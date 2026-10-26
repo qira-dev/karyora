@@ -47,8 +47,11 @@ var allowedInternal = map[string]map[string]bool{
 	},
 	"providers": {"domain": true, "security": true},
 	"plugins":   {"domain": true, "security": true},
-	"runtime":   {"app": true, "security": true, "platform": true},
-	"platform":  {},
+	"runtime": {
+		"app": true, "security": true, "platform": true,
+		"config": true, "health": true, "domain": true,
+	},
+	"platform": {},
 }
 
 // confinement lists imports that are allowed only in the named internal

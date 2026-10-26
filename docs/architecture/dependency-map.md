@@ -1,9 +1,13 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.1 (2026-10-27): adds `internal/config`, `internal/health`, and the
-domain `errs` subpackage while implementing the C2-05 contract set as code; no rule
-changed. Version 1 derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1
-authority/module boundary map. Substantive changes require a version bump and an ADR.
+Contract version 1.2 (2026-10-27): the lifecycle/CLI implementation (C2-07/C2-09)
+gives `internal/runtime` imports of `internal/config` (validated configuration
+contract), `internal/health` (report model), and `internal/domain` (machine-error
+envelope); `internal/platform` gains real code (paths, ownership lock, IPC) with
+no internal imports. No direction changed; the graph stays acyclic. Version 1
+derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1 authority/module
+boundary map; v1.1 added `internal/config`, `internal/health`, and the domain
+`errs` subpackage. Substantive changes require a version bump and an ADR.
 
 ## Rules
 
@@ -41,7 +45,7 @@ authority/module boundary map. Substantive changes require a version bump and an
 | `internal/storage` | SQLite + CAS adapters (D-08/D-09; DB drivers here only) | domain, events, module packages via ports |
 | `internal/providers` | Provider capability model and adapters (D-15/D-16/D-17) | domain, security |
 | `internal/plugins` | Plugin ABI host contracts (D-13/D-14; execution disabled) | domain, security |
-| `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform |
+| `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform, config, health, domain |
 | `internal/platform` | OS paths and lifecycle adapters (OS APIs here only) | (ports) |
 | `cmd/uawp` | Composition root | any internal |
 
