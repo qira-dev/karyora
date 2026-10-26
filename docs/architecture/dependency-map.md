@@ -1,7 +1,9 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1. Derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1
-authority/module boundary map. Changes require a version bump and an ADR.
+Contract version 1.1 (2026-10-27): adds `internal/config`, `internal/health`, and the
+domain `errs` subpackage while implementing the C2-05 contract set as code; no rule
+changed. Version 1 derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1
+authority/module boundary map. Substantive changes require a version bump and an ADR.
 
 ## Rules
 
@@ -32,6 +34,8 @@ authority/module boundary map. Changes require a version bump and an ADR.
 | `internal/workflow` | Workflow definitions and immutable graph revisions | domain, events |
 | `internal/events` | Event record, journal/outbox semantics, opaque cursors | domain |
 | `internal/security` | AuthorizationPolicy decision port, secret handles, audit metadata | domain |
+| `internal/config` | Validated configuration contract (C2-05): layered sources, ranges, policy conflicts | domain |
+| `internal/health` | Liveness/readiness report model (C2-05); five signal groups | (none) |
 | `internal/app` | Use cases and orchestration over ports | domain, module packages, events, security |
 | `internal/contractadapter` | Runtime adapters derived from `/contracts` | domain |
 | `internal/storage` | SQLite + CAS adapters (D-08/D-09; DB drivers here only) | domain, events, module packages via ports |

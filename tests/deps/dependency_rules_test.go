@@ -30,6 +30,8 @@ var allowedInternal = map[string]map[string]bool{
 	"domain":          {},
 	"events":          {"domain": true},
 	"security":        {"domain": true},
+	"config":          {"domain": true},
+	"health":          {},
 	"contractadapter": {"domain": true},
 	"knowledgepack":   {"domain": true, "events": true},
 	"aijobrelay":      {"domain": true, "events": true},
