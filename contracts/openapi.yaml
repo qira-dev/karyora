@@ -1,0 +1,19 @@
+openapi: 3.2.1
+info:
+  title: Karyora Core API (Phase 1 tooling evaluation)
+  version: 0.1.0-eval
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+paths:
+  /jobs:
+    post:
+      operationId: submitJob
+      summary: Submit a durable job (evaluation surface only; idempotency semantics are specified in Phase 1 task C1-07, not here).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'schemas/job-submit-request.schema.json'
+      responses:
+        '202':
+          description: Accepted

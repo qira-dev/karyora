@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://karyora.dev/contracts/schemas/job-submit-request.schema.json",
+  "title": "JobSubmitRequest",
+  "description": "Phase 1 tooling-evaluation payload. Not an API freeze; candidate validators are compared against the shared fixtures using this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["workspaceId", "prompt", "providerId", "idempotencyKey"],
+  "properties": {
+    "workspaceId": { "type": "string", "format": "uuid" },
+    "prompt": { "type": "string", "minLength": 1, "maxLength": 100000 },
+    "providerId": {
+      "type": "string",
+      "enum": ["openai", "anthropic", "google-gemini", "alibaba-qwen", "glm-zai", "kimi-moonshot", "minimax", "deepseek", "custom"]
+    },
+    "idempotencyKey": { "type": "string", "minLength": 16, "maxLength": 128 }
+  }
+}
