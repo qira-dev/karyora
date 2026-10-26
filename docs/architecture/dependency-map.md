@@ -1,13 +1,17 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.2 (2026-10-27): the lifecycle/CLI implementation (C2-07/C2-09)
-gives `internal/runtime` imports of `internal/config` (validated configuration
-contract), `internal/health` (report model), and `internal/domain` (machine-error
-envelope); `internal/platform` gains real code (paths, ownership lock, IPC) with
-no internal imports. No direction changed; the graph stays acyclic. Version 1
-derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1 authority/module
-boundary map; v1.1 added `internal/config`, `internal/health`, and the domain
-`errs` subpackage. Substantive changes require a version bump and an ADR.
+Contract version 1.3 (2026-10-27): the storage-stack implementation (C2-10–
+C2-13) gives `internal/storage` imports of `internal/platform` for the
+OS-bound primitives rule 4 confines to platform (least-privilege directory
+creation, file/directory fsync durability, filesystem-class detection);
+`internal/runtime` imports `internal/config`, `internal/health`, and
+`internal/domain` (v1.2, lifecycle/CLI implementation); `internal/platform`
+gains real code (paths, ownership lock, IPC, fsync) with no internal
+imports. No forbidden direction opened; the graph stays acyclic. Version 1
+derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1
+authority/module boundary map; v1.1 added `internal/config`,
+`internal/health`, and the domain `errs` subpackage. Substantive changes
+require a version bump and an ADR.
 
 ## Rules
 
@@ -42,7 +46,7 @@ boundary map; v1.1 added `internal/config`, `internal/health`, and the domain
 | `internal/health` | Liveness/readiness report model (C2-05); five signal groups | (none) |
 | `internal/app` | Use cases and orchestration over ports | domain, module packages, events, security |
 | `internal/contractadapter` | Runtime adapters derived from `/contracts` | domain |
-| `internal/storage` | SQLite + CAS adapters (D-08/D-09; DB drivers here only) | domain, events, module packages via ports |
+| `internal/storage` | SQLite + CAS adapters (D-08/D-09; DB drivers here only) | domain, events, platform (OS-bound primitives per rule 4), module packages via ports |
 | `internal/providers` | Provider capability model and adapters (D-15/D-16/D-17) | domain, security |
 | `internal/plugins` | Plugin ABI host contracts (D-13/D-14; execution disabled) | domain, security |
 | `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform, config, health, domain |

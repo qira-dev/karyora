@@ -28,22 +28,34 @@ const (
 // Config is the fully resolved, validated configuration. Every field always
 // carries a value because every registered key has a compiled-in default.
 type Config struct {
-	PoolMaxOpen            int
-	WriterQueueDepth       int
-	WriterDeadlineMS       int
-	BusyTimeoutMS          int
-	WALAutocheckpointPages int
-	DurabilitySynchronous  Synchronous
+	PoolMaxOpen             int
+	WriterQueueDepth        int
+	WriterDeadlineMS        int
+	BusyTimeoutMS           int
+	WALAutocheckpointPages  int
+	DurabilitySynchronous   Synchronous
+	CASMaxObjectBytes       int
+	CASMaxObjects           int
+	CASGCGraceHours         int
+	EventsPublishIntervalMS int
+	EventsPublishBatch      int
+	EventsRetentionDays     int
 }
 
 // defaults are the compiled-in baseline (the lowest-precedence source).
 var defaults = Config{
-	PoolMaxOpen:            4,
-	WriterQueueDepth:       64,
-	WriterDeadlineMS:       10000,
-	BusyTimeoutMS:          5000,
-	WALAutocheckpointPages: 1000,
-	DurabilitySynchronous:  SynchronousNormal,
+	PoolMaxOpen:             4,
+	WriterQueueDepth:        64,
+	WriterDeadlineMS:        10000,
+	BusyTimeoutMS:           5000,
+	WALAutocheckpointPages:  1000,
+	DurabilitySynchronous:   SynchronousNormal,
+	CASMaxObjectBytes:       268435456, // Proposed 256 MiB
+	CASMaxObjects:           1000000,   // Proposed
+	CASGCGraceHours:         24,        // Proposed (C2-12 grace period)
+	EventsPublishIntervalMS: 1000,      // Proposed (C2-13 poller)
+	EventsPublishBatch:      256,       // Proposed (C2-13 batch)
+	EventsRetentionDays:     30,        // Proposed (C1-08 replay window)
 }
 
 type valueKind int
@@ -64,12 +76,18 @@ type keySpec struct {
 // ignored. All numeric defaults and ranges mirror the Phase 2
 // specifications' Proposed values.
 var specs = map[string]keySpec{
-	"pool.max_open":            {env: "KARYORA_POOL_MAX_OPEN", kind: kindInt, min: 1, max: 64},
-	"writer.queue_depth":       {env: "KARYORA_WRITER_QUEUE_DEPTH", kind: kindInt, min: 1, max: 10000},
-	"writer.deadline_ms":       {env: "KARYORA_WRITER_DEADLINE_MS", kind: kindInt, min: 100, max: 600000},
-	"busy_timeout_ms":          {env: "KARYORA_BUSY_TIMEOUT_MS", kind: kindInt, min: 100, max: 60000},
-	"wal.autocheckpoint_pages": {env: "KARYORA_WAL_AUTOCHECKPOINT_PAGES", kind: kindInt, min: 100, max: 100000},
-	"durability.synchronous":   {env: "KARYORA_DURABILITY_SYNCHRONOUS", kind: kindSynchronous, isPolicy: true},
+	"pool.max_open":              {env: "KARYORA_POOL_MAX_OPEN", kind: kindInt, min: 1, max: 64},
+	"writer.queue_depth":         {env: "KARYORA_WRITER_QUEUE_DEPTH", kind: kindInt, min: 1, max: 10000},
+	"writer.deadline_ms":         {env: "KARYORA_WRITER_DEADLINE_MS", kind: kindInt, min: 100, max: 600000},
+	"busy_timeout_ms":            {env: "KARYORA_BUSY_TIMEOUT_MS", kind: kindInt, min: 100, max: 60000},
+	"wal.autocheckpoint_pages":   {env: "KARYORA_WAL_AUTOCHECKPOINT_PAGES", kind: kindInt, min: 100, max: 100000},
+	"durability.synchronous":     {env: "KARYORA_DURABILITY_SYNCHRONOUS", kind: kindSynchronous, isPolicy: true},
+	"cas.max_object_bytes":       {env: "KARYORA_CAS_MAX_OBJECT_BYTES", kind: kindInt, min: 1048576, max: 8589934592},
+	"cas.max_objects":            {env: "KARYORA_CAS_MAX_OBJECTS", kind: kindInt, min: 1000, max: 100000000},
+	"cas.gc_grace_hours":         {env: "KARYORA_CAS_GC_GRACE_HOURS", kind: kindInt, min: 1, max: 720},
+	"events.publish_interval_ms": {env: "KARYORA_EVENTS_PUBLISH_INTERVAL_MS", kind: kindInt, min: 100, max: 60000},
+	"events.publish_batch":       {env: "KARYORA_EVENTS_PUBLISH_BATCH", kind: kindInt, min: 1, max: 10000},
+	"events.retention_days":      {env: "KARYORA_EVENTS_RETENTION_DAYS", kind: kindInt, min: 1, max: 3650},
 }
 
 // field is one bounded validation problem reported in the error envelope.
@@ -257,6 +275,18 @@ func assign(out *Config, name string, value any) {
 		out.WALAutocheckpointPages = value.(int)
 	case "durability.synchronous":
 		out.DurabilitySynchronous = value.(Synchronous)
+	case "cas.max_object_bytes":
+		out.CASMaxObjectBytes = value.(int)
+	case "cas.max_objects":
+		out.CASMaxObjects = value.(int)
+	case "cas.gc_grace_hours":
+		out.CASGCGraceHours = value.(int)
+	case "events.publish_interval_ms":
+		out.EventsPublishIntervalMS = value.(int)
+	case "events.publish_batch":
+		out.EventsPublishBatch = value.(int)
+	case "events.retention_days":
+		out.EventsRetentionDays = value.(int)
 	}
 }
 

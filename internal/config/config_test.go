@@ -14,12 +14,18 @@ func TestDefaultsLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := Config{
-		PoolMaxOpen:            4,
-		WriterQueueDepth:       64,
-		WriterDeadlineMS:       10000,
-		BusyTimeoutMS:          5000,
-		WALAutocheckpointPages: 1000,
-		DurabilitySynchronous:  SynchronousNormal,
+		PoolMaxOpen:             4,
+		WriterQueueDepth:        64,
+		WriterDeadlineMS:        10000,
+		BusyTimeoutMS:           5000,
+		WALAutocheckpointPages:  1000,
+		DurabilitySynchronous:   SynchronousNormal,
+		CASMaxObjectBytes:       268435456,
+		CASMaxObjects:           1000000,
+		CASGCGraceHours:         24,
+		EventsPublishIntervalMS: 1000,
+		EventsPublishBatch:      256,
+		EventsRetentionDays:     30,
 	}
 	if cfg != want {
 		t.Fatalf("defaults mismatch:\n got %+v\nwant %+v", cfg, want)

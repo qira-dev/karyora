@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/qira-dev/karyora/internal/platform"
 )
@@ -30,13 +31,17 @@ func newHarness(t *testing.T) *harness {
 }
 
 func (h *harness) run(args ...string) (int, string) {
+	return h.runCtx(context.Background(), args...)
+}
+
+func (h *harness) runCtx(ctx context.Context, args ...string) (int, string) {
 	h.t.Helper()
 	f, err := os.CreateTemp(h.t.TempDir(), "out-*")
 	if err != nil {
 		h.t.Fatal(err)
 	}
 	defer os.Remove(f.Name())
-	code := run(context.Background(), args, f)
+	code := run(ctx, args, f)
 	f.Close()
 	b, err := os.ReadFile(f.Name())
 	if err != nil {
@@ -106,22 +111,6 @@ func TestStatusHumanForm(t *testing.T) {
 	}
 }
 
-func TestStartFailsClosedWithoutStorageStack(t *testing.T) {
-	// The storage stack is not linked yet: start never reaches Ready and
-	// exits EXIT_RECOVERY_REQUIRED (6).
-	code, out := runCapture(t, "start", "--json")
-	if code != 6 {
-		t.Fatalf("exit = %d, want 6 (output %q)", code, out)
-	}
-	var env map[string]any
-	if err := json.Unmarshal([]byte(out), &env); err != nil {
-		t.Fatalf("failure must print the machine envelope: %q", out)
-	}
-	if env["code"] != "MIGRATION_FAILED" {
-		t.Fatalf("code = %v, want MIGRATION_FAILED", env["code"])
-	}
-}
-
 func TestStopIdempotentWhenNotRunning(t *testing.T) {
 	code, out := runCapture(t, "stop", "--json")
 	if code != 0 {
@@ -133,15 +122,89 @@ func TestStopIdempotentWhenNotRunning(t *testing.T) {
 	}
 }
 
-func TestStartThenConflictThenStop(t *testing.T) {
-	// Start would fail closed (no storage stack), so this scenario exercises
-	// the conflict/stop paths through the runtime package directly is covered
-	// there; here we verify start's failure releases ownership so the next
-	// start reports the same stable failure rather than already-running.
-	code1, _ := runCapture(t, "start", "--json")
-	code2, _ := runCapture(t, "start", "--json")
-	if code1 != 6 || code2 != 6 {
-		t.Fatalf("both starts must fail with EXIT_RECOVERY_REQUIRED: %d %d", code1, code2)
+// TestStartReadyStatusStopCycle is the end-to-end C2-07 lifecycle: start
+// reaches Ready with the storage stack wired (migrations, journal, CAS),
+// status reports the live ready state without deriving it from liveness,
+// the exit is the graceful bounded drain, and a subsequent stop is the
+// idempotent no-op.
+func TestStartReadyStatusStopCycle(t *testing.T) {
+	h := newHarness(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	type result struct {
+		code int
+		out  string
+	}
+	done := make(chan result, 1)
+	go func() {
+		code, out := h.runCtx(ctx, "start", "--json")
+		done <- result{code, out}
+	}()
+	// Wait for the Core to serve its IPC endpoint.
+	deadline := time.Now().Add(15 * time.Second)
+	live := false
+	for time.Now().Before(deadline) {
+		code, out := h.run("status", "--json")
+		if code == 0 && strings.Contains(out, `"live": true`) {
+			live = true
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	if !live {
+		cancel()
+		select {
+		case r := <-done:
+			t.Fatalf("start never became live: exit=%d out=%s", r.code, r.out)
+		case <-time.After(25 * time.Second):
+			t.Fatal("start did not exit after cancellation")
+		}
+	}
+	// The live status report carries the ready state and the five groups.
+	_, out := h.run("status", "--json")
+	var report struct {
+		Live   bool `json:"live"`
+		Health struct {
+			Process struct {
+				State             string `json:"state"`
+				MigrationsApplied bool   `json:"migrationsApplied"`
+				RecoveryComplete  bool   `json:"recoveryComplete"`
+			} `json:"process"`
+		} `json:"health"`
+	}
+	if err := json.Unmarshal([]byte(out), &report); err != nil {
+		t.Fatalf("status report: %v (%s)", err, out)
+	}
+	if !report.Health.Process.MigrationsApplied || !report.Health.Process.RecoveryComplete || report.Health.Process.State != "ready" {
+		t.Fatalf("ready report expected: %s", out)
+	}
+
+	// A second start loses the authority race: EXIT_ALREADY_RUNNING.
+	code2, out2 := h.run("start", "--json")
+	if code2 != 3 {
+		t.Fatalf("concurrent start exit = %d, want 3 (out %s)", code2, out2)
+	}
+	if !strings.Contains(out2, "SINGLE_INSTANCE_CONFLICT") {
+		t.Fatalf("conflict report: %s", out2)
+	}
+
+	// Cancelling the parent context maps to the graceful-stop request
+	// (same path as a signal). The exit is the completed drain.
+	cancel()
+	select {
+	case r := <-done:
+		if r.code != 0 {
+			t.Fatalf("graceful start exit = %d, want 0 (out %s)", r.code, r.out)
+		}
+	case <-time.After(25 * time.Second):
+		t.Fatal("start did not exit after the stop request")
+	}
+	// After the drain the next stop is the stable idempotent no-op.
+	code3, out3 := h.run("stop", "--json")
+	if code3 != 0 {
+		t.Fatalf("post-drain stop exit = %d, want 0 (out %s)", code3, out3)
+	}
+	if strings.Contains(out3, "not_running") == false && !strings.Contains(out3, "false") {
+		t.Fatalf("post-drain report should show not running: %s", out3)
 	}
 }
 

@@ -42,7 +42,7 @@ var allowedInternal = map[string]map[string]bool{
 		"knowledgepack": true, "aijobrelay": true, "contextengine": true, "workflow": true,
 	},
 	"storage": {
-		"domain": true, "events": true,
+		"domain": true, "events": true, "platform": true,
 		"knowledgepack": true, "aijobrelay": true, "contextengine": true, "workflow": true,
 	},
 	"providers": {"domain": true, "security": true},

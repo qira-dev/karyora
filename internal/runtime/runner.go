@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/qira-dev/karyora/internal/domain/errs"
+	"github.com/qira-dev/karyora/internal/health"
 	"github.com/qira-dev/karyora/internal/platform"
 )
 
@@ -35,6 +36,11 @@ type Ports struct {
 	// FlushEvents flushes journal/outbox/audit during draining (safe-order
 	// step 3, C2-07 §2).
 	FlushEvents func(ctx context.Context) error
+	// Metrics supplies the storage health signals for the status report:
+	// WAL size, checkpoint-starvation flag, writer queue depth, and
+	// cumulative bounded rejections (C2-05 §3). Unwired reports stay at the
+	// bounded defaults instead of inventing values.
+	Metrics func() (walSizeBytes uint64, starving bool, queueDepth int64, rejections int64)
 }
 
 // Failure couples a stable machine error envelope with the CLI exit code
@@ -347,13 +353,27 @@ func (r *Runner) StatusReport() StatusReport {
 	own := r.own
 	generation := r.generation
 	tookOver := r.tookOver
+	metrics := r.ports.Metrics
 	r.mu.Unlock()
 	var rec *platform.OwnerRecord
 	if own != nil {
 		copied := own.Record
 		rec = &copied
 	}
-	return BuildStatusReport(r.machine, own != nil, generation, tookOver, rec)
+	report := BuildStatusReport(r.machine, own != nil, generation, tookOver, rec)
+	if metrics != nil {
+		wal, starving, queueDepth, rejections := metrics()
+		if starving || wal > 0 || queueDepth > 0 {
+			report.Health.WAL = health.WALSignals{SizeBytes: wal, Starving: starving}
+			report.Health.Queues = []health.QueueSignal{
+				{Name: "writer-admission", Depth: int(queueDepth)},
+			}
+		}
+		if rejections > 0 {
+			report.Health.Diagnostics.DroppedCount = uint64(rejections)
+		}
+	}
+	return report
 }
 
 func step(ctx context.Context, f func(context.Context) error) error {

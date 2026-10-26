@@ -172,11 +172,15 @@ func cmdStart(ctx context.Context, flags cliFlags, out *printer) int {
 		return int(f.Exit)
 	}
 	corr := errs.NewCorrelationID()
-	if _, f := runtime.LoadEffectiveConfig(corr, ds.Config, flags.overrides, os.Getenv); f != nil {
+	cfg, f := runtime.LoadEffectiveConfig(corr, ds.Config, flags.overrides, os.Getenv)
+	if f != nil {
 		out.failure(f)
 		return int(f.Exit)
 	}
-	runner := runtime.NewRunner(ds, runtime.Ports{}, nil)
+	l := &lazyStore{opts: buildOptions(cfg, ds.Data)}
+	defer l.close()
+	journal := &lifecycleJournal{store: l, corrID: corr}
+	runner := runtime.NewRunner(ds, runnerPorts(l, journal, version), journal.sink)
 	if f := runner.Start(ctx, corr, version); f != nil {
 		out.failure(f)
 		return int(f.Exit)
@@ -280,10 +284,16 @@ func cmdDoctor(ctx context.Context, flags cliFlags, out *printer) int {
 		return int(f.Exit)
 	}
 	corr := errs.NewCorrelationID()
+	cfg, f := runtime.LoadEffectiveConfig(corr, ds.Config, flags.overrides, os.Getenv)
 	doctor := runtime.Doctor{Paths: ds, Locale: out.loc}
-	if _, f := runtime.LoadEffectiveConfig(corr, ds.Config, flags.overrides, os.Getenv); f != nil {
+	if f != nil {
 		env := f.Envelope
 		doctor.ConfigFailure = &env
+	} else {
+		opts := buildOptions(cfg, ds.Data)
+		doctor.Storage = func(ctx context.Context) runtime.DoctorCheck {
+			return storageProbe(ctx, opts)
+		}
 	}
 	report := doctor.Run(ctx)
 	if flags.json {
