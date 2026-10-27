@@ -19,6 +19,10 @@ type Doctor struct {
 	Paths   platform.DirSet
 	Locale  Locale
 	Storage func(ctx context.Context) DoctorCheck // wired with the storage stack
+	// Audit verifies the tamper-evident audit chain (C2-15 §2): wired with
+	// the audit stack; an integrity-broken or unverifiable chain is a
+	// visible FAIL, never a silent pass.
+	Audit func(ctx context.Context) DoctorCheck
 	// ConfigFailure, when set, makes the configuration check fail with the
 	// recorded envelope instead of re-validating internally.
 	ConfigFailure *errs.Envelope
@@ -70,6 +74,11 @@ func (d Doctor) Run(ctx context.Context) DoctorReport {
 		checks = append(checks, DoctorCheck{Name: "storage", Status: DoctorUnavailable, Detail: "storage stack not linked in this build slice"})
 		checks = append(checks, DoctorCheck{Name: "migrations", Status: DoctorUnavailable, Detail: "storage stack not linked in this build slice"})
 		checks = append(checks, DoctorCheck{Name: "recovery", Status: DoctorUnavailable, Detail: "storage stack not linked in this build slice"})
+	}
+	if d.Audit != nil {
+		checks = append(checks, d.Audit(ctx))
+	} else {
+		checks = append(checks, DoctorCheck{Name: "audit", Status: DoctorUnavailable, Detail: "audit stack not linked in this build slice"})
 	}
 	sort.Slice(checks, func(i, j int) bool { return checks[i].Name < checks[j].Name })
 	overall := DoctorPass

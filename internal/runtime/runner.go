@@ -74,6 +74,14 @@ type Runner struct {
 	own      *platform.Ownership
 	listener interface{ Close() error } // IPC listener while Ready
 
+	// Guard is the handler-side authorization check for the IPC lifecycle
+	// surface (C2-14 §2): the capability authentication in the IPC
+	// middleware is early rejection only, never the sole or authoritative
+	// check — each operation passes through the one decision port and its
+	// audit record before its effect. The composition root wires it; tests
+	// may leave it nil (documented test-only path).
+	Guard func(ctx context.Context, action string) error
+
 	mu         sync.Mutex
 	generation uint64
 	tookOver   bool
@@ -319,15 +327,34 @@ func (r *Runner) ServeIPC() (func() error, error) {
 			return false, "NOT_FOUND"
 		}
 	}
+	// authorizeHandler applies the authoritative handler-side check
+	// (C2-14 §2): middleware capability verification above is early
+	// rejection only. A wired Guard decides and records the audit outcome
+	// before any effect; a failure is a stable denial.
+	authorizeHandler := func(op string) platform.IPCResponse {
+		if r.Guard == nil {
+			return platform.IPCResponse{} // test-only unset path
+		}
+		if err := r.Guard(context.Background(), op); err != nil {
+			return platform.IPCResponse{OK: false, Code: "AUTHZ_DENIED"}
+		}
+		return platform.IPCResponse{}
+	}
 	handle := func(req platform.IPCRequest) platform.IPCResponse {
 		switch req.Op {
 		case platform.IPCOpStatus:
+			if denied := authorizeHandler("status.read"); denied.Code != "" {
+				return denied
+			}
 			body, err := json.Marshal(r.StatusReport())
 			if err != nil {
 				return platform.IPCResponse{OK: false, Code: "INTERNAL"}
 			}
 			return platform.IPCResponse{OK: true, Body: body}
 		case platform.IPCOpStop:
+			if denied := authorizeHandler("lifecycle.stop"); denied.Code != "" {
+				return denied
+			}
 			r.StopRequested("ipc-stop")
 			select {
 			case <-r.stopDone:

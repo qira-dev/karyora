@@ -1,13 +1,18 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.3 (2026-10-27): the storage-stack implementation (C2-10–
-C2-13) gives `internal/storage` imports of `internal/platform` for the
-OS-bound primitives rule 4 confines to platform (least-privilege directory
-creation, file/directory fsync durability, filesystem-class detection);
-`internal/runtime` imports `internal/config`, `internal/health`, and
-`internal/domain` (v1.2, lifecycle/CLI implementation); `internal/platform`
-gains real code (paths, ownership lock, IPC, fsync) with no internal
-imports. No forbidden direction opened; the graph stays acyclic. Version 1
+Contract version 1.4 (2026-10-27): the C2-14/C2-15 implementation makes
+`internal/security` real code — the AuthorizationPolicy decision port,
+local sessions, secret handles, the tamper-evident audit chain, and
+bounded diagnostics — under its unchanged rule (imports `internal/domain`
+only). `internal/runtime` now exercises its map-allowed `internal/security`
+import through the runner's authoritative IPC guard hook and doctor's audit
+verification check. `internal/storage` gains audit persistence (ordered
+durable rows, checkpoint anchors, the integrity-broken flag) with no import
+change — the security-package port is adapted to those rows only by the
+`cmd/uawp` composition root, which may import anything. `internal/config`
+extends the closed key registry with the five audit/diagnostics bounds
+(Proposed defaults), no import change. No forbidden direction opened; the
+graph stays acyclic. Version 1
 derived from Core Master Blueprint v0.9 §1–§2 and the Phase 1
 authority/module boundary map; v1.1 added `internal/config`,
 `internal/health`, and the domain `errs` subpackage. Substantive changes

@@ -175,8 +175,10 @@ func buildOptions(cfg config.Config, dataDir string) storage.Options {
 }
 
 // runnerPorts wires the storage-side startup and drain steps to the
-// lifecycle machine (C2-09 §2 ordering; C2-07 §2 safe order).
-func runnerPorts(l *lazyStore, journal *lifecycleJournal, coreVersion string) runtime.Ports {
+// lifecycle machine (C2-09 §2 ordering; C2-07 §2 safe order). The drain
+// flush covers journal/outbox/audit (C2-07 §2 step 3) and the security
+// bundle's audit buffer is drained with them.
+func runnerPorts(l *lazyStore, journal *lifecycleJournal, coreVersion string, bundle *securityBundle) runtime.Ports {
 	return runtime.Ports{
 		Migrate: func(ctx context.Context) error {
 			return l.connect(ctx, coreVersion)
@@ -217,7 +219,13 @@ func runnerPorts(l *lazyStore, journal *lifecycleJournal, coreVersion string) ru
 			if err != nil {
 				return err
 			}
-			return s.FlushEvents(ctx)
+			if err := s.FlushEvents(ctx); err != nil {
+				return err
+			}
+			// Audit is the third flush class (C2-07 §2 safe order): the
+			// reserved-quota buffer must reach the durable chain before the
+			// drain reports completion.
+			return bundle.audit.Flush()
 		},
 		Metrics: func() (uint64, bool, int64, int64) {
 			s, err := l.get()

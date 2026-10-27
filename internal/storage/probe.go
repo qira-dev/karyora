@@ -51,7 +51,7 @@ func ProbeReadonly(ctx context.Context, path string) (schemaVersion int64, integ
 	if err := rows.Err(); err != nil {
 		return 0, "", fmt.Errorf("storage: integrity check: %w", err)
 	}
-	row := db.QueryRowContext(ctx, `SELECT COALESCE(MAX(version), 0) FROM sqlite_master WHERE type='table' AND name='schema_migrations'`)
+	row := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_migrations'`)
 	var hasTable int
 	if err := row.Scan(&hasTable); err != nil {
 		return 0, integrity, fmt.Errorf("storage: schema probe: %w", err)

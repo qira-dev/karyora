@@ -40,6 +40,13 @@ type Config struct {
 	EventsPublishIntervalMS int
 	EventsPublishBatch      int
 	EventsRetentionDays     int
+	// Audit and diagnostics bounds (C2-15 §3/§5; every default is Proposed
+	// pending recorded review).
+	AuditPendingMax         int
+	AuditCheckpointInterval int
+	DiagnosticsQueueDepth   int
+	DiagnosticsMaxRecBytes  int
+	DiagnosticsRatePerMin   int
 }
 
 // defaults are the compiled-in baseline (the lowest-precedence source).
@@ -56,6 +63,11 @@ var defaults = Config{
 	EventsPublishIntervalMS: 1000,      // Proposed (C2-13 poller)
 	EventsPublishBatch:      256,       // Proposed (C2-13 batch)
 	EventsRetentionDays:     30,        // Proposed (C1-08 replay window)
+	AuditPendingMax:         128,       // Proposed (C2-15 §5 reserved quota)
+	AuditCheckpointInterval: 1000,      // Proposed (C2-15 §2 checkpoints)
+	DiagnosticsQueueDepth:   256,       // Proposed (C2-15 §3 queue bound)
+	DiagnosticsMaxRecBytes:  4096,      // Proposed (C2-15 §3 record bound)
+	DiagnosticsRatePerMin:   120,       // Proposed (C2-15 §3 category rate)
 }
 
 type valueKind int
@@ -88,6 +100,15 @@ var specs = map[string]keySpec{
 	"events.publish_interval_ms": {env: "KARYORA_EVENTS_PUBLISH_INTERVAL_MS", kind: kindInt, min: 100, max: 60000},
 	"events.publish_batch":       {env: "KARYORA_EVENTS_PUBLISH_BATCH", kind: kindInt, min: 1, max: 10000},
 	"events.retention_days":      {env: "KARYORA_EVENTS_RETENTION_DAYS", kind: kindInt, min: 1, max: 3650},
+	"audit.pending_max":          {env: "KARYORA_AUDIT_PENDING_MAX", kind: kindInt, min: 1, max: 4096},
+	"audit.checkpoint_interval":  {env: "KARYORA_AUDIT_CHECKPOINT_INTERVAL", kind: kindInt, min: 10, max: 100000},
+	"diagnostics.queue_depth":    {env: "KARYORA_DIAGNOSTICS_QUEUE_DEPTH", kind: kindInt, min: 16, max: 10000},
+	"diagnostics.max_record_bytes": {
+		env: "KARYORA_DIAGNOSTICS_MAX_RECORD_BYTES", kind: kindInt, min: 256, max: 65536,
+	},
+	"diagnostics.category_rate_per_min": {
+		env: "KARYORA_DIAGNOSTICS_CATEGORY_RATE_PER_MIN", kind: kindInt, min: 1, max: 10000,
+	},
 }
 
 // field is one bounded validation problem reported in the error envelope.
@@ -287,6 +308,16 @@ func assign(out *Config, name string, value any) {
 		out.EventsPublishBatch = value.(int)
 	case "events.retention_days":
 		out.EventsRetentionDays = value.(int)
+	case "audit.pending_max":
+		out.AuditPendingMax = value.(int)
+	case "audit.checkpoint_interval":
+		out.AuditCheckpointInterval = value.(int)
+	case "diagnostics.queue_depth":
+		out.DiagnosticsQueueDepth = value.(int)
+	case "diagnostics.max_record_bytes":
+		out.DiagnosticsMaxRecBytes = value.(int)
+	case "diagnostics.category_rate_per_min":
+		out.DiagnosticsRatePerMin = value.(int)
 	}
 }
 

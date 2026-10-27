@@ -93,14 +93,32 @@ CREATE TABLE IF NOT EXISTS cas_references (
 CREATE INDEX IF NOT EXISTS idx_cas_refs_owner ON cas_references (owner_type, owner_id);
 `,
 	},
+	{
+		Version: 2,
+		Name:    "0002-audit-store",
+		SQL: `
+CREATE TABLE IF NOT EXISTS audit_records (
+    sequence    INTEGER PRIMARY KEY,
+    prev_hash   TEXT NOT NULL,
+    record_hash TEXT NOT NULL,
+    payload     BLOB NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit_checkpoints (
+    sequence    INTEGER PRIMARY KEY,
+    anchor_hash TEXT NOT NULL,
+    anchored_at TEXT NOT NULL
+);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
-// versions [N_min, N]. Phase 2 supports [1, 1]; the window is recorded per
+// versions [N_min, N]. Phase 2 supports [1, 2]; the window is recorded per
 // release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 1
+	schemaVersionMax = 2
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

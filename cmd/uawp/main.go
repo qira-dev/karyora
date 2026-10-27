@@ -180,7 +180,17 @@ func cmdStart(ctx context.Context, flags cliFlags, out *printer) int {
 	l := &lazyStore{opts: buildOptions(cfg, ds.Data)}
 	defer l.close()
 	journal := &lifecycleJournal{store: l, corrID: corr}
-	runner := runtime.NewRunner(ds, runnerPorts(l, journal, version), journal.sink)
+	// Security bundle (C2-14/C2-15): local identity, decision port + guard,
+	// tamper-evident audit chain, bounded diagnostics. The audit mirror
+	// rides the lifecycle sink so transitions populate the audit slice.
+	bundle := newSecurityBundle(l, cfg, ds.Data, ds.State, corr)
+	defer bundle.logger.Close()
+	sink := func(ev runtime.Event) {
+		journal.sink(ev)
+		bundle.auditMirror(ev, corr)
+	}
+	runner := runtime.NewRunner(ds, runnerPorts(l, journal, version, bundle), sink)
+	runner.Guard = bundle.guardFunc(corr)
 	if f := runner.Start(ctx, corr, version); f != nil {
 		out.failure(f)
 		return int(f.Exit)
@@ -293,6 +303,14 @@ func cmdDoctor(ctx context.Context, flags cliFlags, out *printer) int {
 		opts := buildOptions(cfg, ds.Data)
 		doctor.Storage = func(ctx context.Context) runtime.DoctorCheck {
 			return storageProbe(ctx, opts)
+		}
+		// The audit chain check is wired when the database exists; a
+		// never-started install has nothing to verify (doctor stays
+		// read-only and never initializes anything).
+		if _, err := os.Stat(opts.Path); err == nil {
+			doctor.Audit = func(ctx context.Context) runtime.DoctorCheck {
+				return auditProbe(ctx, opts, cfg)
+			}
 		}
 	}
 	report := doctor.Run(ctx)

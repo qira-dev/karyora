@@ -26,6 +26,11 @@ func TestDefaultsLoad(t *testing.T) {
 		EventsPublishIntervalMS: 1000,
 		EventsPublishBatch:      256,
 		EventsRetentionDays:     30,
+		AuditPendingMax:         128,  // Proposed (C2-15 §5 reserved quota)
+		AuditCheckpointInterval: 1000, // Proposed (C2-15 §2 checkpoints)
+		DiagnosticsQueueDepth:   256,  // Proposed (C2-15 §3 queue bound)
+		DiagnosticsMaxRecBytes:  4096, // Proposed (C2-15 §3 record bound)
+		DiagnosticsRatePerMin:   120,  // Proposed (C2-15 §3 category rate)
 	}
 	if cfg != want {
 		t.Fatalf("defaults mismatch:\n got %+v\nwant %+v", cfg, want)
