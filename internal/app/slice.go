@@ -90,6 +90,11 @@ type SubmitRequest struct {
 	// by the fail-closed egress gate (C3-19). Empty is treated as
 	// protected-unlabeled and blocks every real provider.
 	Classification string
+	// BaseURL is the optional caller-provided endpoint override (C3-29
+	// posture: the caller names the destination; the executor's URL
+	// validation, egress policy, and TLS floor still apply). Empty keeps
+	// the adapter's recorded default base.
+	BaseURL string
 }
 
 // SubmitResult reports the submitted (or replayed) Job.
@@ -110,6 +115,7 @@ type JobInput struct {
 	Model           string          `json:"model,omitempty"`
 	MaxOutputTokens int             `json:"max_output_tokens,omitempty"`
 	Classification  string          `json:"classification,omitempty"`
+	BaseURL         string          `json:"base_url,omitempty"`
 }
 
 // Slice bounds (Proposed, pending the recorded owner review).
@@ -231,7 +237,7 @@ func (s *Slice) Submit(ctx context.Context, req SubmitRequest) (*SubmitResult, e
 	input := JobInput{
 		Task: req.Task, System: req.System, Schema: req.Schema, PackRef: req.PackRef,
 		Provider: req.Provider, Model: req.Model, MaxOutputTokens: req.MaxOutputTokens,
-		Classification: req.Classification,
+		Classification: req.Classification, BaseURL: req.BaseURL,
 	}
 	canonical, err := events.CanonicalJSON(input)
 	if err != nil {

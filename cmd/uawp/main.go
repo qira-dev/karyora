@@ -47,6 +47,8 @@ func run(ctx context.Context, args []string, stdout *os.File) int {
 		return cmdDoctor(ctx, flags, out)
 	case "job":
 		return cmdJob(ctx, flags, out, ordered)
+	case "credential":
+		return cmdCredential(ctx, flags, out, ordered)
 	case "version":
 		out.text("karyora core " + version)
 		return int(runtime.ExitOK)

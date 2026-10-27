@@ -63,6 +63,7 @@ type jobSubmitFlags struct {
 	provider       string
 	model          string
 	classification string
+	baseURL        string
 }
 
 func parseJobSubmitArgs(args []string) (jobSubmitFlags, bool) {
@@ -111,6 +112,14 @@ func parseJobSubmitArgs(args []string) (jobSubmitFlags, bool) {
 				return f, false
 			}
 			f.classification = v
+		case strings.HasPrefix(args[i], "--base-url="):
+			f.baseURL = strings.TrimPrefix(args[i], "--base-url=")
+		case args[i] == "--base-url":
+			v, ok := val()
+			if !ok {
+				return f, false
+			}
+			f.baseURL = v
 		}
 	}
 	if strings.TrimSpace(f.task) == "" || strings.TrimSpace(f.idempotencyKey) == "" {
@@ -124,7 +133,7 @@ func parseJobSubmitArgs(args []string) (jobSubmitFlags, bool) {
 func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []string) int {
 	sf, ok := parseJobSubmitArgs(args)
 	if !ok {
-		out.text("usage: uawp job submit --task <text> --idempotency-key <key> [--provider mock] [--model m] [--classification <label>]")
+		out.text("usage: uawp job submit --task <text> --idempotency-key <key> [--provider mock] [--model m] [--classification <label>] [--base-url <url>]")
 		return int(runtime.ExitConfigInvalid)
 	}
 	ds, f := resolvePaths(flags)
@@ -195,6 +204,7 @@ func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []stri
 		Provider:       sf.provider,
 		Model:          sf.model,
 		Classification: classification,
+		BaseURL:        sf.baseURL,
 	})
 	if err != nil {
 		out.report(map[string]any{"error": boundedDetail(err)})

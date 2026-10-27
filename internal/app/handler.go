@@ -155,6 +155,12 @@ func (h *RelayHandler) execute(ctx context.Context, claim aijobrelay.Claim, corr
 	if input.Schema != nil {
 		plan.Structured = &dprovider.StructuredOutput{Name: "result", Schema: input.Schema}
 	}
+	// Per-job endpoint override (C3-29 posture): the caller may name the
+	// destination; every executor gate (URL validation, egress policy, TLS
+	// floor, secret boundary) still applies to the resulting request.
+	if input.BaseURL != "" {
+		plan.Connection.BaseURL = input.BaseURL
+	}
 	result, err := executor.Execute(ctx, plan)
 	if err != nil {
 		return aijobrelay.Commit{}, err
