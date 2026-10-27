@@ -1,0 +1,8 @@
+# Reviewed false positive (2026-10-27, CR-3.1 security pipeline):
+# commit 194acd4 (Phase 1 contract tooling evaluation) carries a synthetic
+# idempotency-key EXAMPLE in a public contract fixture — documentation of
+# the request shape, never a credential. The working-tree fixture now uses
+# a readable placeholder; this entry covers only the historical commit.
+# Idempotency keys are opaque request-dedup identifiers by design (C1-08),
+# carried in request bodies.
+194acd4e25946f7833cd0e14314ebdcb30156b65:contracts/fixtures/valid/job-submit-valid.json:generic-api-key:5

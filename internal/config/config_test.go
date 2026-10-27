@@ -14,23 +14,28 @@ func TestDefaultsLoad(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := Config{
-		PoolMaxOpen:             4,
-		WriterQueueDepth:        64,
-		WriterDeadlineMS:        10000,
-		BusyTimeoutMS:           5000,
-		WALAutocheckpointPages:  1000,
-		DurabilitySynchronous:   SynchronousNormal,
-		CASMaxObjectBytes:       268435456,
-		CASMaxObjects:           1000000,
-		CASGCGraceHours:         24,
-		EventsPublishIntervalMS: 1000,
-		EventsPublishBatch:      256,
-		EventsRetentionDays:     30,
-		AuditPendingMax:         128,  // Proposed (C2-15 §5 reserved quota)
-		AuditCheckpointInterval: 1000, // Proposed (C2-15 §2 checkpoints)
-		DiagnosticsQueueDepth:   256,  // Proposed (C2-15 §3 queue bound)
-		DiagnosticsMaxRecBytes:  4096, // Proposed (C2-15 §3 record bound)
-		DiagnosticsRatePerMin:   120,  // Proposed (C2-15 §3 category rate)
+		PoolMaxOpen:                  4,
+		WriterQueueDepth:             64,
+		WriterDeadlineMS:             10000,
+		BusyTimeoutMS:                5000,
+		WALAutocheckpointPages:       1000,
+		DurabilitySynchronous:        SynchronousNormal,
+		CASMaxObjectBytes:            268435456,
+		CASMaxObjects:                1000000,
+		CASGCGraceHours:              24,
+		EventsPublishIntervalMS:      1000,
+		EventsPublishBatch:           256,
+		EventsRetentionDays:          30,
+		AuditPendingMax:              128,      // Proposed (C2-15 §5 reserved quota)
+		AuditCheckpointInterval:      1000,     // Proposed (C2-15 §2 checkpoints)
+		DiagnosticsQueueDepth:        256,      // Proposed (C2-15 §3 queue bound)
+		DiagnosticsMaxRecBytes:       4096,     // Proposed (C2-15 §3 record bound)
+		DiagnosticsRatePerMin:        120,      // Proposed (C2-15 §3 category rate)
+		KnowledgeImportMaxFileBytes:  10 << 20, // Proposed (C3-05)
+		KnowledgeImportMaxTotalBytes: 64 << 20, // Proposed (C3-05)
+		KnowledgeImportMaxEntries:    2000,     // Proposed (C3-05)
+		KnowledgeSearchMaxResults:    50,       // Proposed (C3-07)
+		KnowledgeSearchMaxExpansion:  8,        // Proposed (C3-07)
 	}
 	if cfg != want {
 		t.Fatalf("defaults mismatch:\n got %+v\nwant %+v", cfg, want)

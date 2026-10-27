@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -96,17 +97,30 @@ func TestPublisherDeliveryAndDedup(t *testing.T) {
 		t.Fatal(err)
 	}
 	collected := make([]string, 0, 4)
-	tc := &testConsumer{name: "test", onConsume: func(id string) { collected = append(collected, id) }}
+	var mu sync.Mutex
+	appendCollected := func(id string) {
+		mu.Lock()
+		collected = append(collected, id)
+		mu.Unlock()
+	}
+	countCollected := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return len(collected)
+	}
+	tc := &testConsumer{name: "test", onConsume: appendCollected}
 	dedup := NewDedupConsumer(s, tc)
 	p := NewPublisher(s, 10*time.Millisecond, 16)
 	p.Subscribe(dedup)
 	p.Start()
 	t.Cleanup(p.Stop)
 	deadline := time.Now().Add(3 * time.Second)
-	for len(collected) < 2 && time.Now().Before(deadline) {
+	for countCollected() < 2 && time.Now().Before(deadline) {
 		time.Sleep(5 * time.Millisecond)
 	}
-	if len(collected) != 2 {
+	if countCollected() != 2 {
+		mu.Lock()
+		defer mu.Unlock()
 		t.Fatalf("delivered %v, want both events", collected)
 	}
 	var unpublished int
@@ -122,11 +136,11 @@ func TestPublisherDeliveryAndDedup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before := len(collected)
+	before := countCollected()
 	if err := dedup.Consume(ctx, rec); err != nil {
 		t.Fatal(err)
 	}
-	if len(collected) != before {
+	if countCollected() != before {
 		t.Fatal("duplicate delivery must be dropped by event_id")
 	}
 }

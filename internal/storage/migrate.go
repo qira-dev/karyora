@@ -130,14 +130,52 @@ CREATE TABLE IF NOT EXISTS backup_pins (
 );
 `,
 	},
+	{
+		Version: 4,
+		Name:    "0004-knowledge-pack-store",
+		SQL: `
+CREATE TABLE IF NOT EXISTS kp_packs (
+    pack_id         TEXT PRIMARY KEY,
+    current_version INTEGER NOT NULL,
+    created_at      TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS kp_versions (
+    pack_id        TEXT NOT NULL REFERENCES kp_packs(pack_id),
+    version        INTEGER NOT NULL,
+    root_digest    TEXT NOT NULL,
+    manifest_json  BLOB NOT NULL,
+    trust_state    TEXT NOT NULL,
+    license        TEXT NOT NULL DEFAULT '',
+    license_status TEXT NOT NULL,
+    freshness      TEXT NOT NULL DEFAULT '',
+    status         TEXT NOT NULL,
+    status_reason  TEXT NOT NULL DEFAULT '',
+    stored_at      TEXT NOT NULL,
+    PRIMARY KEY (pack_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS kp_entries (
+    pack_id        TEXT NOT NULL,
+    version        INTEGER NOT NULL,
+    entry_path     TEXT NOT NULL,
+    content        BLOB NOT NULL,
+    content_digest TEXT NOT NULL,
+    content_type   TEXT NOT NULL,
+    size_bytes     INTEGER NOT NULL,
+    PRIMARY KEY (pack_id, version, entry_path),
+    FOREIGN KEY (pack_id, version) REFERENCES kp_versions(pack_id, version)
+);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
-// versions [N_min, N]. Phase 2 supports [1, 3]; the window is recorded per
-// release and published floors remain a Phase 5/D-30 concern.
+// versions [N_min, N]. Phase 3 adds the knowledge-pack store; the window is
+// recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 3
+	schemaVersionMax = 4
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

@@ -108,9 +108,15 @@ func TestBackupPinsAreTheGCBarrier(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The live generation moves on: the durable reference row is gone, so
-	// without the backup pin the object would be collectible.
+	// The live generation moves on: both durable references to the object
+	// are aged out — the cas_references row is deleted and the journal's
+	// payload reference is pruned (retention of a delivered event) — so the
+	// backup pin is the ONLY remaining reachability root. Without the pin
+	// the object would be collectible.
 	if _, err := s.writers.ExecContext(ctx, `DELETE FROM cas_references WHERE blob_ref = ?`, digest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.writers.ExecContext(ctx, `UPDATE events_journal SET blob_ref = '', payload_digest = '' WHERE blob_ref = ?`, digest); err != nil {
 		t.Fatal(err)
 	}
 	// Writers keep working while the snapshot exists (no global pause).

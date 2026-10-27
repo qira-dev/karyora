@@ -1,6 +1,18 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.5 (2026-10-27): the C2-16/C2-17 implementation adds the
+Contract version 1.6 (2026-10-27): the CR-3.1 (C3-03–C3-07) implementation
+makes `internal/knowledgepack` real code — the versioned pack manifest,
+claims/evidence/provenance records, the D-41 internal digest/signature
+profile, bounded untrusted import, verification/quarantine, and lexical
+retrieval — under its unchanged rule (imports `internal/domain` and
+`internal/events` only). `internal/storage` exercises its map-allowed
+`internal/knowledgepack` import through the pack-store adapter
+(migration v4: `kp_packs`/`kp_versions`/`kp_entries`), and `internal/config`
+extends the closed key registry with the five Proposed knowledge
+import/retrieval bounds. CAS reachability roots are now registered in the
+Store constructor (was Reconcile-only), so the GC barrier holds for every
+instance. No forbidden direction opened; the graph stays acyclic. Contract
+version 1.5 (2026-10-27): the C2-16/C2-17 implementation adds the
 backup/restore machinery to `internal/storage` (online snapshot capture,
 manifest protocol, durable backup pins as CAS reachability roots, the
 controlled staged restore with generation fencing) with no import change —

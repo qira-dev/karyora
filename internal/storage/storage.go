@@ -270,6 +270,11 @@ func openConnections(opts Options) (*Store, error) {
 	}
 	s.instanceUUID = uuid
 	s.cas = NewCAS(casRoot(opts.Path), opts.MaxObjectBytes, opts.MaxObjects, opts.GCGracePeriod)
+	// Reachability roots are constructor wiring, not a startup step: the
+	// GC barrier (backup pins, journal payload references, durable
+	// references) must hold for every Store instance from the first Collect,
+	// independent of whether Reconcile has run (C2-12 §4, C2-16 §2).
+	s.registerReferenceRoots()
 	s.pub = NewPublisher(s, opts.PublishInterval, opts.PublishBatch)
 	return s, nil
 }

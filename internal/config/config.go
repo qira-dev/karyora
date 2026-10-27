@@ -47,27 +47,39 @@ type Config struct {
 	DiagnosticsQueueDepth   int
 	DiagnosticsMaxRecBytes  int
 	DiagnosticsRatePerMin   int
+	// Knowledge import/retrieval bounds (C3-05/C3-07; every default is
+	// Proposed pending recorded owner/measurement review).
+	KnowledgeImportMaxFileBytes  int
+	KnowledgeImportMaxTotalBytes int
+	KnowledgeImportMaxEntries    int
+	KnowledgeSearchMaxResults    int
+	KnowledgeSearchMaxExpansion  int
 }
 
 // defaults are the compiled-in baseline (the lowest-precedence source).
 var defaults = Config{
-	PoolMaxOpen:             4,
-	WriterQueueDepth:        64,
-	WriterDeadlineMS:        10000,
-	BusyTimeoutMS:           5000,
-	WALAutocheckpointPages:  1000,
-	DurabilitySynchronous:   SynchronousNormal,
-	CASMaxObjectBytes:       268435456, // Proposed 256 MiB
-	CASMaxObjects:           1000000,   // Proposed
-	CASGCGraceHours:         24,        // Proposed (C2-12 grace period)
-	EventsPublishIntervalMS: 1000,      // Proposed (C2-13 poller)
-	EventsPublishBatch:      256,       // Proposed (C2-13 batch)
-	EventsRetentionDays:     30,        // Proposed (C1-08 replay window)
-	AuditPendingMax:         128,       // Proposed (C2-15 §5 reserved quota)
-	AuditCheckpointInterval: 1000,      // Proposed (C2-15 §2 checkpoints)
-	DiagnosticsQueueDepth:   256,       // Proposed (C2-15 §3 queue bound)
-	DiagnosticsMaxRecBytes:  4096,      // Proposed (C2-15 §3 record bound)
-	DiagnosticsRatePerMin:   120,       // Proposed (C2-15 §3 category rate)
+	PoolMaxOpen:                  4,
+	WriterQueueDepth:             64,
+	WriterDeadlineMS:             10000,
+	BusyTimeoutMS:                5000,
+	WALAutocheckpointPages:       1000,
+	DurabilitySynchronous:        SynchronousNormal,
+	CASMaxObjectBytes:            268435456, // Proposed 256 MiB
+	CASMaxObjects:                1000000,   // Proposed
+	CASGCGraceHours:              24,        // Proposed (C2-12 grace period)
+	EventsPublishIntervalMS:      1000,      // Proposed (C2-13 poller)
+	EventsPublishBatch:           256,       // Proposed (C2-13 batch)
+	EventsRetentionDays:          30,        // Proposed (C1-08 replay window)
+	AuditPendingMax:              128,       // Proposed (C2-15 §5 reserved quota)
+	AuditCheckpointInterval:      1000,      // Proposed (C2-15 §2 checkpoints)
+	DiagnosticsQueueDepth:        256,       // Proposed (C2-15 §3 queue bound)
+	DiagnosticsMaxRecBytes:       4096,      // Proposed (C2-15 §3 record bound)
+	DiagnosticsRatePerMin:        120,       // Proposed (C2-15 §3 category rate)
+	KnowledgeImportMaxFileBytes:  10 << 20,  // Proposed (C3-05 per-entry bound)
+	KnowledgeImportMaxTotalBytes: 64 << 20,  // Proposed (C3-05 per-import bound)
+	KnowledgeImportMaxEntries:    2000,      // Proposed (C3-05 archive bound)
+	KnowledgeSearchMaxResults:    50,        // Proposed (C3-07 result bound)
+	KnowledgeSearchMaxExpansion:  8,         // Proposed (C3-07 relation expansion)
 }
 
 type valueKind int
@@ -108,6 +120,21 @@ var specs = map[string]keySpec{
 	},
 	"diagnostics.category_rate_per_min": {
 		env: "KARYORA_DIAGNOSTICS_CATEGORY_RATE_PER_MIN", kind: kindInt, min: 1, max: 10000,
+	},
+	"knowledge.import.max_file_bytes": {
+		env: "KARYORA_KNOWLEDGE_IMPORT_MAX_FILE_BYTES", kind: kindInt, min: 1024, max: 1073741824,
+	},
+	"knowledge.import.max_total_bytes": {
+		env: "KARYORA_KNOWLEDGE_IMPORT_MAX_TOTAL_BYTES", kind: kindInt, min: 4096, max: 1073741824,
+	},
+	"knowledge.import.max_entries": {
+		env: "KARYORA_KNOWLEDGE_IMPORT_MAX_ENTRIES", kind: kindInt, min: 1, max: 100000,
+	},
+	"knowledge.search.max_results": {
+		env: "KARYORA_KNOWLEDGE_SEARCH_MAX_RESULTS", kind: kindInt, min: 1, max: 1000,
+	},
+	"knowledge.search.max_expansion": {
+		env: "KARYORA_KNOWLEDGE_SEARCH_MAX_EXPANSION", kind: kindInt, min: 0, max: 64,
 	},
 }
 
@@ -318,6 +345,16 @@ func assign(out *Config, name string, value any) {
 		out.DiagnosticsMaxRecBytes = value.(int)
 	case "diagnostics.category_rate_per_min":
 		out.DiagnosticsRatePerMin = value.(int)
+	case "knowledge.import.max_file_bytes":
+		out.KnowledgeImportMaxFileBytes = value.(int)
+	case "knowledge.import.max_total_bytes":
+		out.KnowledgeImportMaxTotalBytes = value.(int)
+	case "knowledge.import.max_entries":
+		out.KnowledgeImportMaxEntries = value.(int)
+	case "knowledge.search.max_results":
+		out.KnowledgeSearchMaxResults = value.(int)
+	case "knowledge.search.max_expansion":
+		out.KnowledgeSearchMaxExpansion = value.(int)
 	}
 }
 
