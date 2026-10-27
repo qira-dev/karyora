@@ -60,7 +60,14 @@ release-support claim (D-30).
 
 ## CI
 
-`.github/workflows/ci.yml` runs on push/PR: gofmt check, `go vet ./...`,
-`go build ./...`, and `go test ./...` (which includes the dependency-rule test).
-Workflow runs are inspected per push; artifact retention follows the default GitHub
-policy until a dedicated evidence-retention task extends it.
+`.github/workflows/ci.yml` runs on push/PR with three jobs: **verify** (gofmt
+check, `go vet ./...`, `go build ./...`, and `go test -race ./...`, which
+includes the dependency-rule test), **security** (the Rule 14 pipeline
+mirror: gitleaks, semgrep, and trivy with pinned versions; the live and
+injection stages stay Not Run — there is no live target), and **cross-target**
+(the compile-only D-06 six-row matrix with CGO disabled; per D-09 the CGO-bound
+SQLite driver and the composition root that imports it build only in the
+native verify job, and their cross-target linked-runtime evidence remains the
+recorded Phase 5 work). Workflow runs are inspected per push; artifact
+retention follows the default GitHub policy until a dedicated
+evidence-retention task extends it.
