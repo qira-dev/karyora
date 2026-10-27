@@ -202,6 +202,70 @@ CREATE INDEX IF NOT EXISTS idx_memory_scope_status
     ON memory_records (scope, status);
 `,
 	},
+	{
+		Version: 6,
+		Name:    "0006-durable-job-relay",
+		SQL: `
+CREATE TABLE IF NOT EXISTS jobs (
+    job_id          TEXT PRIMARY KEY,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    input_digest    TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    version         INTEGER NOT NULL,
+    attempt_count   INTEGER NOT NULL DEFAULT 0,
+    waiting_reason  TEXT NOT NULL DEFAULT '',
+    provider_id     TEXT NOT NULL DEFAULT '',
+    min_memory_mb   INTEGER NOT NULL DEFAULT 0,
+    deadline_secs   INTEGER NOT NULL DEFAULT 0,
+    result_digest   TEXT NOT NULL DEFAULT '',
+    receipt_id      TEXT NOT NULL DEFAULT '',
+    correlation_id  TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_jobs_state_created ON jobs (state, created_at);
+
+CREATE TABLE IF NOT EXISTS attempts (
+    attempt_id       TEXT PRIMARY KEY,
+    job_id           TEXT NOT NULL REFERENCES jobs(job_id),
+    seq              INTEGER NOT NULL,
+    worker_id        TEXT NOT NULL,
+    lease_id         TEXT NOT NULL,
+    lease_epoch      INTEGER NOT NULL,
+    lease_expires_at TEXT NOT NULL DEFAULT '',
+    outcome          TEXT NOT NULL,
+    started_at       TEXT NOT NULL,
+    ends_at          TEXT NOT NULL DEFAULT '',
+    UNIQUE (job_id, seq)
+);
+
+CREATE TABLE IF NOT EXISTS side_effect_intents (
+    intent_id       TEXT PRIMARY KEY,
+    job_id          TEXT NOT NULL REFERENCES jobs(job_id),
+    attempt_id      TEXT NOT NULL,
+    operation       TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    input_digest    TEXT NOT NULL DEFAULT '',
+    state           TEXT NOT NULL,
+    provider_ref    TEXT NOT NULL DEFAULT '',
+    result_digest   TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    observed_at     TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS job_receipts (
+    receipt_id    TEXT PRIMARY KEY,
+    job_id        TEXT NOT NULL,
+    attempt_id    TEXT NOT NULL,
+    outcome       TEXT NOT NULL,
+    result_digest TEXT NOT NULL DEFAULT '',
+    job_version   INTEGER NOT NULL,
+    lease_epoch   INTEGER NOT NULL,
+    created_at    TEXT NOT NULL
+);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -209,7 +273,7 @@ CREATE INDEX IF NOT EXISTS idx_memory_scope_status
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 5
+	schemaVersionMax = 6
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —
