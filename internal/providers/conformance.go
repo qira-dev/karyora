@@ -37,7 +37,9 @@ func (fixtureSecretStore) Status(context.Context, security.Handle) (security.Sec
 
 // fixtureEndpointLabel marks the harness profile identity: conformance
 // evidence attaches to THIS endpoint profile only. Real provider profiles
-// keep their unknown-review records and stay blocked (C3-19).
+// carry their dated-review records but stay blocked on classifications —
+// the classification allowlist is empty until the owner sets that policy
+// (C3-19 fail-closed).
 const (
 	fixtureEndpointLabel = "conformance-fixture"
 	fixtureRegion        = "fixture"
@@ -50,8 +52,9 @@ func fixtureProfile(a Adapter) dprovider.ProfileID {
 	return p
 }
 
-// seedFixtureRegistry seeds the adapter's real-profile record (unknown →
-// blocks) plus the verified FIXTURE-profile record for the harness run.
+// seedFixtureRegistry seeds the adapter's real-profile record (dated
+// review; empty classification allowlist → still blocks) plus the verified
+// FIXTURE-profile record for the harness run.
 func seedFixtureRegistry(a Adapter, reg *dprovider.Registry, now time.Time) {
 	reg.Upsert(a.SeedDataHandling(a.DefaultProfile("fixture-model")))
 	fixture := a.SeedDataHandling(fixtureProfile(a))
@@ -61,6 +64,8 @@ func seedFixtureRegistry(a Adapter, reg *dprovider.Registry, now time.Time) {
 	fixture.ApplicationStateTTL = dprovider.FactNo
 	fixture.Subprocessors = dprovider.FactNo
 	fixture.DeletionEligibility = "deletion_supported"
+	fixture.PolicyURL = ""
+	fixture.PolicyVersion = ""
 	fixture.ReviewDate = now
 	fixture.Reviewer = "conformance harness fixture record (no provider policy claim)"
 	fixture.AllowedClassifications = []string{dprovider.ClassificationTestFixture}
@@ -621,10 +626,12 @@ func Catalog() []Case {
 					}
 					return nil
 				}
-				// the REAL provider profile (unknown review) blocks everything
+				// the REAL provider profile still blocks everything: its dated
+				// review records facts but the classification allowlist is
+				// empty (the classification policy is an owner decision)
 				real := c.Adapter.DefaultProfile("fixture-model")
 				if err := c.Registry.EgressAllowed(real, dprovider.FeatureChat, dprovider.ClassificationTestFixture); err == nil {
-					return fmt.Errorf("unknown-review provider profile must block egress")
+					return fmt.Errorf("real provider profile must block egress (empty classification allowlist)")
 				}
 				return nil
 			},

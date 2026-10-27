@@ -63,18 +63,51 @@ func TestConformanceCatalogPasses(t *testing.T) {
 	}
 }
 
-// TestRealProviderProfilesBlockEgress proves the C3-19 fail-closed default:
-// every direct and custom integration ships with an unknown-review record
-// and blocks protected data until a dated official-source review exists.
+// TestRealProviderProfilesBlockEgress proves the C3-19 fail-closed default
+// after the 2026-10-28 dated-review round: every direct integration carries
+// a dated official-source record, but the classification allowlist is EMPTY
+// on every real profile (the classification policy is a separate owner
+// decision), so protected data egress stays blocked; unknown facts (or a
+// missing review) keep their own typed block reasons.
 func TestRealProviderProfilesBlockEgress(t *testing.T) {
-	now := time.Date(2026, 10, 27, 12, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC) // one day after the review round
 	for _, a := range newDirectAdapters() {
 		reg := dprovider.NewRegistry(func() time.Time { return now })
-		reg.Upsert(a.SeedDataHandling(a.DefaultProfile("any-model")))
+		rec := a.SeedDataHandling(a.DefaultProfile("any-model"))
+		reg.Upsert(rec)
 		p := a.DefaultProfile("any-model")
+		if len(rec.AllowedClassifications) != 0 {
+			t.Errorf("%s: real profile must not allow classifications yet", a.ID())
+		}
 		for _, class := range []string{dprovider.ClassificationTestFixture, "user-documents", "prompts", ""} {
 			if err := reg.EgressAllowed(p, dprovider.FeatureChat, class); err == nil {
-				t.Errorf("%s: unknown-review profile must block classification %q", a.ID(), class)
+				t.Errorf("%s: profile must block classification %q", a.ID(), class)
+			}
+		}
+		governing, ok := reg.Lookup(p, dprovider.FeatureChat)
+		if !ok {
+			t.Fatalf("%s: seeded record missing", a.ID())
+		}
+		switch a.ID() {
+		case dprovider.ProviderDeepSeek:
+			// no current official source was reviewable on 2026-10-28: the
+			// record stays unknown and must block on the missing review.
+			if reason := governing.BlockingReason(now); reason != "profile_has_no_current_dated_review" {
+				t.Errorf("%s: unreviewed profile must block on the missing review, got %q", a.ID(), reason)
+			}
+		case dprovider.ProviderGLM:
+			// the Z.AI developer-API record is the one complete record: all
+			// six facts are known, so the ONLY remaining block is the
+			// classification policy and the fact-based reason must be empty.
+			if reason := governing.BlockingReason(now); reason != "" {
+				t.Errorf("%s: complete record must carry no fact-based block, got %q", a.ID(), reason)
+			}
+		default:
+			if governing.Reviewer == "" || governing.PolicyURL == "" || governing.ReviewDate.IsZero() {
+				t.Fatalf("%s: dated review must carry reviewer, policy URL, and review date", a.ID())
+			}
+			if reason := governing.BlockingReason(now); reason == "profile_has_no_current_dated_review" {
+				t.Errorf("%s: reviewed profile must not report a missing review", a.ID())
 			}
 		}
 	}

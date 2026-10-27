@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 )
@@ -281,21 +282,163 @@ func (a *directAdapter) AuthHeaderName(p dprovider.ProfileID) string {
 	}
 }
 
-// SeedDataHandling is the honest seeded record (C3-19): every direct and
-// custom integration ships with an UNKNOWN review — this workspace has
-// recorded no dated official-source policy check, so protected data egress
-// is blocked until such a review exists. No policy URL is claimed here.
-func (a *directAdapter) SeedDataHandling(p dprovider.ProfileID) dprovider.DataHandlingProfile {
+// c319ReviewDate is the date of this workspace's owner-authorized C3-19
+// dated review round (record: Obsidian "Software/Research/Provider
+// Data-Handling Reviews - 2026-10-28"). A vendor policy change invalidates
+// the affected record; the registry's recheck window re-stales it too.
+var c319ReviewDate = time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+
+const c319Reviewer = "zcode-agent (owner-authorized C3-19 dated review round 2026-10-28)"
+
+// reviewedBase seeds a cloud_public record carrying the review metadata and
+// an EMPTY classification allowlist: no egress-classification vocabulary is
+// decided in this workspace yet, so even a fully-known profile blocks every
+// classification until the owner sets that policy (C3-19 fail-closed).
+func reviewedBase(p dprovider.ProfileID, url, version string) dprovider.DataHandlingProfile {
 	return dprovider.DataHandlingProfile{
-		Profile:                p,
-		Deployment:             dprovider.FactUnknown,
-		TrainingUse:            dprovider.FactUnknown,
-		AbuseRetention:         dprovider.FactUnknown,
-		ApplicationStateTTL:    dprovider.FactUnknown,
-		Subprocessors:          dprovider.FactUnknown,
-		DeletionEligibility:    dprovider.FactUnknown,
-		AllowedClassifications: nil, // nothing is allowed without a dated review
-		Notes:                  "no dated official-source review exists in this workspace; protected data egress is blocked (C3-19 fail-closed)",
+		Profile:       p,
+		Deployment:    dprovider.DeploymentCloudPublic,
+		PolicyURL:     url,
+		PolicyVersion: version,
+		ReviewDate:    c319ReviewDate,
+		Reviewer:      c319Reviewer,
+	}
+}
+
+// unknownBase seeds the honest UNKNOWN record: protected data egress stays
+// blocked because at least one required fact (or the review itself) is not
+// known from a dated official source.
+func unknownBase(p dprovider.ProfileID, notes string) dprovider.DataHandlingProfile {
+	return dprovider.DataHandlingProfile{
+		Profile:             p,
+		Deployment:          dprovider.FactUnknown,
+		TrainingUse:         dprovider.FactUnknown,
+		AbuseRetention:      dprovider.FactUnknown,
+		ApplicationStateTTL: dprovider.FactUnknown,
+		Subprocessors:       dprovider.FactUnknown,
+		DeletionEligibility: dprovider.FactUnknown,
+		Notes:               notes,
+	}
+}
+
+// SeedDataHandling is the dated official-source record per provider
+// (C3-19): the eight direct integrations carry the facts their vendor
+// policies state as of the 2026-10-28 review round — and ONLY those facts;
+// anything a reviewed source does not state stays unknown and keeps the
+// profile blocked. Every record's AllowedClassifications is empty (the
+// egress-classification policy is a separate owner decision), so protected
+// data egress remains blocked for every real provider after this milestone.
+// Custom and local endpoints keep unknown records: the pointed-at vendor's
+// policy does not transfer to a custom profile without its own review.
+func (a *directAdapter) SeedDataHandling(p dprovider.ProfileID) dprovider.DataHandlingProfile {
+	switch a.id {
+	case dprovider.ProviderOpenAI:
+		r := reviewedBase(p,
+			"https://platform.openai.com/docs/guides/your-data",
+			"accessed 2026-10-28 (page states no version date)")
+		r.AccountTier = "standard API (abuse monitoring applies); ZDR/MAM by approval"
+		r.TrainingUse = dprovider.FactNo
+		r.AbuseRetention = "bounded"
+		r.ApplicationStateTTL = "bounded"
+		r.Subprocessors = dprovider.FactUnknown
+		r.DeletionEligibility = "zdr"
+		r.Notes = "training: \"As of March 1, 2023, data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in).\"; " +
+			"abuse retention: abuse-monitoring logs retained up to 30 days; " +
+			"state: stored responses default 30 days (store=true), conversations/assistants/threads/vector stores kept until deleted; " +
+			"ZDR/MAM documented for eligible endpoints (approval required); subprocessors not stated on the reviewed page."
+		return r
+	case dprovider.ProviderAnthropic:
+		r := reviewedBase(p,
+			"https://www.anthropic.com/legal/commercial-terms",
+			"effective 2025-06-17; accessed 2026-10-28")
+		r.TrainingUse = dprovider.FactNo
+		r.AbuseRetention = dprovider.FactUnknown
+		r.ApplicationStateTTL = dprovider.FactUnknown
+		r.Subprocessors = dprovider.FactUnknown
+		r.DeletionEligibility = dprovider.FactUnknown
+		r.Notes = "training: \"Anthropic may not train models on Customer Content from Services.\" (Commercial Terms); " +
+			"the reviewed page states no retention period and incorporates a DPA that was NOT reviewed in this round, so " +
+			"abuse retention, application-state TTL, subprocessors, and deletion eligibility stay unknown (fail-closed)."
+		return r
+	case dprovider.ProviderGemini:
+		r := reviewedBase(p,
+			"https://ai.google.dev/gemini-api/terms",
+			"last updated 2026-04-28; accessed 2026-10-28")
+		r.AccountTier = "paid API tier (unpaid tier content MAY be used incl. human review; EEA/CH/UK paid rules apply even to free quota)"
+		r.TrainingUse = dprovider.FactNo
+		r.AbuseRetention = "bounded"
+		r.ApplicationStateTTL = "bounded"
+		r.Subprocessors = dprovider.FactUnknown
+		r.DeletionEligibility = dprovider.FactUnknown
+		r.Notes = "tier-dependent terms (paraphrased from the Gemini API Additional Terms): paid-tier prompts/completions are not used to improve models, " +
+			"unpaid-tier content may be used with possible human review; abuse logs kept for a limited period; grounding data stored up to 30 days; " +
+			"subprocessors and deletion eligibility not stated on the reviewed page."
+		return r
+	case dprovider.ProviderQwen:
+		r := reviewedBase(p,
+			"https://docs.modelstudio.console.alibabacloud.com/en/model-studio/data-retention-policy",
+			"no stated date; accessed 2026-10-28")
+		r.TrainingUse = dprovider.FactNo
+		r.AbuseRetention = "bounded"
+		r.ApplicationStateTTL = "bounded"
+		r.Subprocessors = dprovider.FactUnknown
+		r.DeletionEligibility = "zdr"
+		r.Notes = "training: \"Without your separate consent, we will not use your business data (including inputs, outputs, and files) to train, fine-tune or improve any foundation model.\" (§5.2); " +
+			"prompts/responses retained no longer than 30 days unless law requires longer; ZDR mode: transient encrypted cache (≤24h), files deleted ≤48h; " +
+			"stateful features retained until user deletion; content-safety-flagged logs ≤2 years; no subprocessor list (third-party vendor models follow vendor terms)."
+		return r
+	case dprovider.ProviderGLM:
+		r := reviewedBase(p,
+			"https://chat.z.ai/legal-agreement/terms-of-service",
+			"ToS last updated 2026-04-14; API DPA/privacy 2025-09-29; accessed 2026-10-28")
+		r.AccountTier = "developer API tier (chat.z.ai individual terms DO allow content processing for improvement — tier distinction recorded)"
+		r.TrainingUse = dprovider.FactNo
+		r.AbuseRetention = "none"
+		r.ApplicationStateTTL = "bounded"
+		r.Subprocessors = "listed"
+		r.DeletionEligibility = "deletion_supported"
+		r.Notes = "training (API): \"We will not use End User Content to develop or improve Services, unless you explicitly agree.\"; " +
+			"storage: \"The Company do not store any of the content the Customer or its End Users provide or generate while using our Services.\" (DPA); " +
+			"other customer data stored temporarily, deleted after termination unless law requires otherwise; " +
+			"\"This limited permission also extends to subcontractors or sub-processors.\" (categories disclosed, no per-entity list); " +
+			"also reviewed: https://docs.z.ai/legal-agreement/privacy-policy"
+		return r
+	case dprovider.ProviderMoonshot:
+		r := reviewedBase(p,
+			"https://platform.kimi.ai/docs/agreement/modeluse",
+			"last updated 2026-07-30; accessed 2026-10-28")
+		r.AccountTier = "standard platform terms (training opt-out only via enterprise arrangement)"
+		r.TrainingUse = dprovider.FactYes
+		r.AbuseRetention = dprovider.FactUnknown
+		r.ApplicationStateTTL = dprovider.FactUnknown
+		r.Subprocessors = "listed"
+		r.DeletionEligibility = dprovider.FactUnknown
+		r.Notes = "training: \"We may use Content to provide, maintain, develop, support, and improve the Services\" — opt-out only by contacting Moonshot AI \"to discuss available enterprise arrangements\"; " +
+			"deletion: \"After your service is terminated, we will delete your content and data in accordance with the requirements of applicable laws and regulations.\" (no stated period); " +
+			"confidential info may be shared with \"employees, contractors, affiliates, and professional advisors who have a need to know\" (no per-entity list)."
+		return r
+	case dprovider.ProviderMiniMax:
+		r := reviewedBase(p,
+			"https://platform.minimax.io/protocol/terms-of-service",
+			"effective 2026-03-30; accessed 2026-10-28")
+		r.TrainingUse = dprovider.FactYes
+		r.AbuseRetention = dprovider.FactUnknown
+		r.ApplicationStateTTL = dprovider.FactUnknown
+		r.Subprocessors = dprovider.FactUnknown
+		r.DeletionEligibility = dprovider.FactUnknown
+		r.Notes = "training: \"We may use the input and generated content to provide, maintain, develop, and improve our Services\"; " +
+			"retention periods are delegated to per-service rules, not stated in the reviewed ToS; subprocessors not disclosed (assignment to third parties allowed with notice)."
+		return r
+	case dprovider.ProviderDeepSeek:
+		return unknownBase(p, "no current dated official-source review exists: the live terms origin blocks automated access (403/human check since ~2025) and the newest archived copy of the "+
+			"\"DeepSeek Open Platform Terms of Service\" (Last Update January 20, 2025; archive 2025-02-02) contains no training-use or retention clauses for platform content; "+
+			"a 20-month-old archive cannot ground a current review, so every fact stays unknown and protected data egress is blocked (C3-19 fail-closed). "+
+			"Source attempted: https://platform.deepseek.com/downloads/DeepSeek%20Open%20Platform%20Terms%20of%20Service.html (last archive 2025-02-02)")
+	default:
+		if a.explicitLocal {
+			return unknownBase(p, "explicit local endpoint: the local server's own content handling is not recorded in this workspace; a per-connection review is required (C3-19)")
+		}
+		return unknownBase(p, "custom endpoint: the pointed-at vendor's policy does not transfer to this profile; a per-connection dated review is required (C3-19)")
 	}
 }
 

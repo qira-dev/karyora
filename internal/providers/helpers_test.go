@@ -10,7 +10,9 @@ import (
 
 // verifiedFixtureRecord mirrors the conformance harness's fixture-profile
 // record: a VERIFIED record for the FIXTURE endpoint only, allowing the
-// test-fixture classification. Real provider profiles keep unknown reviews.
+// test-fixture classification. It inherits nothing from the provider's
+// dated-review record: policy metadata is cleared so the fixture record
+// makes no provider policy claim.
 func verifiedFixtureRecord(a Adapter, now time.Time) dprovider.DataHandlingProfile {
 	rec := a.SeedDataHandling(fixtureProfile(a))
 	rec.Deployment = dprovider.DeploymentFixture
@@ -19,6 +21,8 @@ func verifiedFixtureRecord(a Adapter, now time.Time) dprovider.DataHandlingProfi
 	rec.ApplicationStateTTL = dprovider.FactNo
 	rec.Subprocessors = dprovider.FactNo
 	rec.DeletionEligibility = "deletion_supported"
+	rec.PolicyURL = ""
+	rec.PolicyVersion = ""
 	rec.ReviewDate = now
 	rec.Reviewer = "package test fixture record (no provider policy claim)"
 	rec.AllowedClassifications = []string{dprovider.ClassificationTestFixture}

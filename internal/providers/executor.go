@@ -33,9 +33,13 @@ type Adapter interface {
 	// AuthHeaderName is the credential header the family uses; the VALUE
 	// is resolved at call time and attached only through SetCredentialHeader.
 	AuthHeaderName(p dprovider.ProfileID) string
-	// SeedDataHandling is the honest seeded profile record (C3-19): direct
-	// integrations seed ReviewUnknown (no dated source check exists in this
-	// workspace); the mock fixture seeds its own recorded test classification.
+	// SeedDataHandling is the dated official-source profile record
+	// (C3-19): direct integrations carry the facts their vendor policies
+	// state as of the workspace's dated review round (unknown facts stay
+	// unknown and block); custom/local integrations seed ReviewUnknown;
+	// the mock fixture seeds its own recorded test classification. Every
+	// record's AllowedClassifications is empty — the classification policy
+	// is a separate owner decision.
 	SeedDataHandling(p dprovider.ProfileID) dprovider.DataHandlingProfile
 	// NewRequest builds the wire request for one plan. Adapters validate
 	// their URL through ValidateDestinationURL and their headers through

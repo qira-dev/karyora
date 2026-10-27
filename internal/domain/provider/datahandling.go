@@ -8,10 +8,11 @@ import (
 )
 
 // Data-handling review rules (C3-19): a profile's claims are usable only
-// while a dated official-source review exists and is fresh. This workspace
-// has recorded NO dated provider-policy source checks, so every seeded
-// direct-provider profile ships with ReviewUnknown — and unknown profiles
-// BLOCK protected data egress. No provider policy claim is fabricated here.
+// while a dated official-source review exists and is fresh. The adapters
+// seed each direct-provider profile with the facts its vendor policy
+// states as of the workspace's dated review round (2026-10-28); facts the
+// reviewed sources do not state stay unknown — and unknown profiles BLOCK
+// protected data egress. No provider policy claim is fabricated here.
 const (
 	// ProfileRecheckInterval is the freshness window after which a verified
 	// profile goes stale and blocks again (Proposed, pending owner review).
@@ -132,8 +133,9 @@ func (p *DataHandlingProfile) EgressAllowed(now time.Time, classification string
 }
 
 // Registry is the per-profile data-handling registry (C3-19). It is
-// seeded by the adapters with honest unknown-review records and updated
-// only through recorded dated reviews.
+// seeded by the adapters with their dated official-source records (or
+// honest unknown records where no review exists) and updated only through
+// recorded dated reviews.
 type Registry struct {
 	mu   sync.Mutex
 	byID map[string][]*DataHandlingProfile
