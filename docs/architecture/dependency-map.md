@@ -1,6 +1,23 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.6 (2026-10-27): the CR-3.1 (C3-03–C3-07) implementation
+Contract version 1.8 (2026-10-27): the CR-3.3 (C3-12–C3-16) implementation
+makes `internal/aijobrelay` real code — the separate Job/Attempt/Lease/
+Checkpoint/SideEffectIntent/Receipt state machines under the accepted D-34
+transition package, fenced atomic claims and commits, and the bounded
+scheduler — under its unchanged rule (imports `internal/domain` and
+`internal/events` only). `internal/storage` exercises its map-allowed
+`internal/aijobrelay` import through the relay adapter (migration v6:
+`jobs`/`attempts`/`side_effect_intents`/`job_receipts`; no Work tables —
+D-12/D-33 exclusion held). Contract version 1.7 (2026-10-27): the CR-3.2
+(C3-08–C3-11) implementation makes `internal/contextengine` real code —
+the policy-aware compilation pipeline, immutable ContextSnapshots, and the
+scoped Memory lifecycle — under its unchanged rule (imports
+`internal/domain` and `internal/events` only); the canonical JSON authority
+moved to `internal/events` (events.CanonicalJSON) with knowledgepack
+delegating to it; `internal/storage` exercises its map-allowed
+`internal/contextengine` import through the snapshot/memory adapter
+(migration v5: `context_snapshots`/`memory_records`). No forbidden
+direction opened; the graph stays acyclic. Contract version 1.6 (2026-10-27): the CR-3.1 (C3-03–C3-07) implementation
 makes `internal/knowledgepack` real code — the versioned pack manifest,
 claims/evidence/provenance records, the D-41 internal digest/signature
 profile, bounded untrusted import, verification/quarantine, and lexical
