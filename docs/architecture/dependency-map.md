@@ -1,6 +1,17 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.10 (2026-10-27): the CR-3.5 (C3-31) implementation makes
+Contract version 1.11 (2026-10-28): the Secret Store milestone (realizing the
+accepted D-37 decision record of 2026-10-28) adds `internal/security/keyring`
+— the concrete OS-keyring store (Windows Credential Manager, macOS Keychain,
+Linux Secret Service, via `github.com/zalando/go-keyring`) behind the
+unchanged `security.SecretStore` and the new `security.SecretWriter` ports.
+Rules: the subpackage imports `internal/security` only; the keyring import is
+confined to the subpackage by the executable rule check; `cmd/uawp` (the
+composition root) wires it where the job slice previously hardcoded
+`security.UnavailableStore{}` (the executor nil-default stays
+`UnavailableStore` — fail closed). `internal/security` gains the lifecycle
+boundary types with no new internal imports. No forbidden direction opened;
+the graph stays acyclic. Contract version 1.10 (2026-10-27): the CR-3.5 (C3-31) implementation makes
 `internal/app` real code — the durable vertical slice use cases (submit with
 idempotency, status/events/result inspection, cooperative cancel, the relay
 handler with retrieval → snapshot → capability-checked provider call →
@@ -109,6 +120,7 @@ require a version bump and an ADR.
 | `internal/workflow` | Workflow definitions and immutable graph revisions | domain, events |
 | `internal/events` | Event record, journal/outbox semantics, opaque cursors | domain |
 | `internal/security` | AuthorizationPolicy decision port, secret handles, audit metadata | domain |
+| `internal/security/keyring` | Concrete OS-keyring secret store (D-37 accepted; keyring import confined here) | security, domain (error register) |
 | `internal/config` | Validated configuration contract (C2-05): layered sources, ranges, policy conflicts | domain |
 | `internal/health` | Liveness/readiness report model (C2-05); five signal groups | (none) |
 | `internal/app` | Use cases and orchestration over ports | domain, module packages, events, security |

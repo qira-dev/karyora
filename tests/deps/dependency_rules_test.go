@@ -27,16 +27,17 @@ type goListPackage struct {
 // docs/architecture/dependency-map.md (paths relative to internal/). cmd/uawp
 // is the composition root and is intentionally absent: it may import anything.
 var allowedInternal = map[string]map[string]bool{
-	"domain":          {},
-	"events":          {"domain": true},
-	"security":        {"domain": true},
-	"config":          {"domain": true},
-	"health":          {},
-	"contractadapter": {"domain": true},
-	"knowledgepack":   {"domain": true, "events": true},
-	"aijobrelay":      {"domain": true, "events": true},
-	"contextengine":   {"domain": true, "events": true},
-	"workflow":        {"domain": true, "events": true},
+	"domain":           {},
+	"events":           {"domain": true},
+	"security":         {"domain": true},
+	"security/keyring": {"security": true, "domain": true},
+	"config":           {"domain": true},
+	"health":           {},
+	"contractadapter":  {"domain": true},
+	"knowledgepack":    {"domain": true, "events": true},
+	"aijobrelay":       {"domain": true, "events": true},
+	"contextengine":    {"domain": true, "events": true},
+	"workflow":         {"domain": true, "events": true},
 	"app": {
 		"domain": true, "events": true, "security": true,
 		"knowledgepack": true, "aijobrelay": true, "contextengine": true, "workflow": true,
@@ -68,6 +69,7 @@ var confinement = []struct {
 	{"syscall", []string{"platform"}, "OS-specific API imports are confined to internal/platform"},
 	{"os/exec", []string{"platform"}, "OS-specific API imports are confined to internal/platform"},
 	{"golang.org/x/sys/", []string{"platform"}, "OS-specific API imports are confined to internal/platform"},
+	{"github.com/zalando/go-keyring", []string{"security/keyring"}, "OS keyring access is confined to internal/security/keyring"},
 }
 
 func moduleRoot(t *testing.T) string {
@@ -129,7 +131,12 @@ func TestDependencyRules(t *testing.T) {
 		if !isInternal {
 			continue // cmd/uawp is the composition root; tests/deps is a runner.
 		}
-		allowed, ruled := allowedInternal[strings.SplitN(rel, "/", 2)[0]]
+		// A subpackage may carry its own rule (e.g. security/keyring);
+		// otherwise the rule of its top-level package governs.
+		allowed, ruled := allowedInternal[rel]
+		if !ruled {
+			allowed, ruled = allowedInternal[strings.SplitN(rel, "/", 2)[0]]
+		}
 		if !ruled {
 			t.Errorf("package %s is not covered by dependency-map.md: add it to the map and this check, or remove it", p.ImportPath)
 			continue

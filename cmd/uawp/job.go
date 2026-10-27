@@ -14,6 +14,7 @@ import (
 	"github.com/qira-dev/karyora/internal/providers"
 	"github.com/qira-dev/karyora/internal/runtime"
 	"github.com/qira-dev/karyora/internal/security"
+	"github.com/qira-dev/karyora/internal/security/keyring"
 	"github.com/qira-dev/karyora/internal/storage"
 )
 
@@ -21,9 +22,11 @@ import (
 // THE SAME app.SliceService functions an API consumer calls, so CLI and API
 // produce semantically identical state and events. `job submit` runs a
 // foreground session (a first-class Phase 2 mode): it takes data-directory
-// ownership, runs the bounded scheduler to settlement, and reports. While
-// D-37 is open the provider set carries the recorded fixture adapter only —
-// no credentials, no live provider calls.
+// ownership, runs the bounded scheduler to settlement, and reports. D-37 is
+// accepted (2026-10-28): credentials resolve only through the OS-keyring
+// store, while the provider set carries the recorded fixture adapter only —
+// live adapters additionally require C3-19 dated data-handling reviews, so
+// protected-data egress stays blocked.
 
 func cmdJob(ctx context.Context, flags cliFlags, out *printer, args []string) int {
 	if len(args) == 0 {
@@ -218,7 +221,7 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 	mock := providers.NewMockAdapter(providers.MockBehavior{})
 	reg := dprovider.NewRegistry(nil)
 	reg.Upsert(mock.SeedDataHandling(mock.DefaultProfile("default")))
-	exec, _ := providers.NewExecutor(mock, providers.DefaultEgressPolicy(providers.CoreLocal), security.UnavailableStore{}, reg)
+	exec, _ := providers.NewExecutor(mock, providers.DefaultEgressPolicy(providers.CoreLocal), keyring.New(), reg)
 	deps := app.SliceDeps{
 		Relay:     store,
 		Snapshots: store,

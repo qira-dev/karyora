@@ -10,11 +10,12 @@ import (
 
 // Credential/secret references (C2-14 §4): the Core holds opaque handle
 // references (names scoped per provider/connection) and resolves values
-// only through the OS credential store at use time. The concrete store and
-// any at-rest encryption are D-37 decisions and stay open — nothing here
-// implies an encryption or key-loss policy. Values never enter prompts,
-// Context, KnowledgePack, Memory, manifests, traces, crash reports, or
-// logs; only handles cross internal boundaries.
+// only through the OS credential store at use time. The concrete store is
+// the D-37 decision, ACCEPTED 2026-10-28: the OS keyring only — no file,
+// plaintext, or obfuscated fallback, fail closed where no keyring exists
+// (internal/security/keyring). Values never enter prompts, Context,
+// KnowledgePack, Memory, manifests, traces, crash reports, or logs; only
+// handles cross internal boundaries.
 type Handle struct {
 	// Scope names the owning provider/connection (e.g. "provider:openai",
 	// "connection:main-db"). It is an opaque reference, never a value.
@@ -40,6 +41,10 @@ func (h Handle) validate() error {
 	return nil
 }
 
+// Validate exposes the handle-reference rules to the concrete-store
+// subpackage, which maps a validated handle onto keyring item attributes.
+func (h Handle) Validate() error { return h.validate() }
+
 // SecretStatus is the safe metadata a surface may disclose (masked status).
 type SecretStatus string
 
@@ -54,11 +59,23 @@ const (
 // SecretStore is the resolution boundary. Resolve returns the value ONLY at
 // the call boundary — callers must consume it for the immediate operation
 // and never persist, log, or copy it into content. Status discloses safe
-// metadata only. The concrete store (OS keychain, file, encryption) is the
-// D-37 decision and stays open.
+// metadata only. The concrete store is the accepted D-37 decision (the OS
+// keyring — internal/security/keyring).
 type SecretStore interface {
 	Resolve(ctx context.Context, h Handle) ([]byte, error)
 	Status(ctx context.Context, h Handle) (SecretStatus, error)
+}
+
+// SecretWriter is the lifecycle boundary of the accepted D-37 policy
+// (create → use → replace → revoke). Store writes the value under the
+// handle reference; replacing an existing handle is the accepted rotation
+// semantics — an atomic same-handle overwrite whose value resolves at the
+// next call boundary. Revoke deletes the item; dependent resolution then
+// fails closed with the typed family. A writer never accepts an empty
+// value: an empty credential is never silently stored.
+type SecretWriter interface {
+	Store(ctx context.Context, h Handle, value []byte) error
+	Revoke(ctx context.Context, h Handle) error
 }
 
 // UnavailableStore is the Phase 2 wired default: no concrete OS store is
