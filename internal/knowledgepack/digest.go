@@ -1,15 +1,14 @@
 package knowledgepack
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/qira-dev/karyora/internal/events"
 )
 
 // ProfileID is the versioned INTERNAL digest/signature profile (C3-04).
@@ -23,84 +22,11 @@ const ProfileID = "uawp-kp-internal-digest-v1"
 // Unknown or ambiguous algorithms fail closed (C3-04 acceptance).
 const SigAlgorithm = "ed25519-v1"
 
-// Canonicalize renders v as canonical JSON for the v1 profile: object keys
-// sorted lexicographically at every level, no insignificant whitespace,
-// numbers preserved as they decode (json.Number), UTF-8 strings. The same
-// logical document always produces the same bytes regardless of Go struct
-// field order or map iteration order.
+// Canonicalize renders v as canonical JSON for the v1 profile. The
+// canonical authority is the shared wire-contract layer
+// (events.CanonicalJSON): one implementation, one canonical form.
 func Canonicalize(v any) ([]byte, error) {
-	raw, err := json.Marshal(v)
-	if err != nil {
-		return nil, fmt.Errorf("knowledgepack: canonical marshal: %w", err)
-	}
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.UseNumber()
-	var doc any
-	if err := dec.Decode(&doc); err != nil {
-		return nil, fmt.Errorf("knowledgepack: canonical decode: %w", err)
-	}
-	var buf bytes.Buffer
-	if err := writeCanonical(&buf, doc); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func writeCanonical(buf *bytes.Buffer, v any) error {
-	switch t := v.(type) {
-	case map[string]any:
-		keys := make([]string, 0, len(t))
-		for k := range t {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		buf.WriteByte('{')
-		for i, k := range keys {
-			if i > 0 {
-				buf.WriteByte(',')
-			}
-			kb, err := json.Marshal(k)
-			if err != nil {
-				return fmt.Errorf("knowledgepack: canonical key: %w", err)
-			}
-			buf.Write(kb)
-			buf.WriteByte(':')
-			if err := writeCanonical(buf, t[k]); err != nil {
-				return err
-			}
-		}
-		buf.WriteByte('}')
-	case []any:
-		buf.WriteByte('[')
-		for i, item := range t {
-			if i > 0 {
-				buf.WriteByte(',')
-			}
-			if err := writeCanonical(buf, item); err != nil {
-				return err
-			}
-		}
-		buf.WriteByte(']')
-	case string:
-		b, err := json.Marshal(t)
-		if err != nil {
-			return fmt.Errorf("knowledgepack: canonical string: %w", err)
-		}
-		buf.Write(b)
-	case json.Number:
-		buf.WriteString(t.String())
-	case bool:
-		if t {
-			buf.WriteString("true")
-		} else {
-			buf.WriteString("false")
-		}
-	case nil:
-		buf.WriteString("null")
-	default:
-		return fmt.Errorf("knowledgepack: canonical form of %T is undefined", v)
-	}
-	return nil
+	return events.CanonicalJSON(v)
 }
 
 // ValidateEntryPath enforces the pack-relative path rules (C3-04): forward

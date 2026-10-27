@@ -168,6 +168,40 @@ CREATE TABLE IF NOT EXISTS kp_entries (
 );
 `,
 	},
+	{
+		Version: 5,
+		Name:    "0005-context-snapshots-and-memory",
+		SQL: `
+CREATE TABLE IF NOT EXISTS context_snapshots (
+    snapshot_id      TEXT PRIMARY KEY,
+    scope            TEXT NOT NULL,
+    task_ref         TEXT NOT NULL DEFAULT '',
+    schema_version   INTEGER NOT NULL,
+    assembled_digest TEXT NOT NULL,
+    snapshot_json    BLOB NOT NULL,
+    created_at       TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS memory_records (
+    memory_id         TEXT PRIMARY KEY,
+    scope             TEXT NOT NULL,
+    content           TEXT NOT NULL,
+    sensitivity       TEXT NOT NULL,
+    confidence        REAL NOT NULL,
+    status            TEXT NOT NULL,
+    provenance_json   BLOB NOT NULL,
+    correction_of     TEXT NOT NULL DEFAULT '',
+    superseded_by     TEXT NOT NULL DEFAULT '',
+    pinned            INTEGER NOT NULL DEFAULT 0,
+    ttl_seconds       INTEGER NOT NULL DEFAULT 0,
+    created_at        TEXT NOT NULL,
+    last_confirmed_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_scope_status
+    ON memory_records (scope, status);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -175,7 +209,7 @@ CREATE TABLE IF NOT EXISTS kp_entries (
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 4
+	schemaVersionMax = 5
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —
