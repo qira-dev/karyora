@@ -65,14 +65,20 @@ func TestConformanceCatalogPasses(t *testing.T) {
 
 // TestRealProviderProfilesBlockEgress proves the C3-19 gate under the
 // ACCEPTED egress-classification policy (owner decision 2026-10-28, Option
-// A, activated at the wiring milestone): the sole eligible profile — Z.AI's
-// developer API, the only record with a current dated review, all six facts
-// known, and training=none — allows `non-personal` ONLY; every other
-// classification (personal, unlabeled, unknown labels, test-fixture) still
-// blocks on Z.AI, and every other real provider still blocks EVERYTHING
-// (unknown facts or a missing review, plus an empty allowlist).
+// A; follow-up round 2026-10-28): the eligible profiles — OpenAI,
+// Anthropic, and the Z.AI developer API, each with a current dated review,
+// all six facts known, and training=none — allow `non-personal` ONLY;
+// every other classification (personal, unlabeled, unknown labels,
+// test-fixture) still blocks on them, and every other real provider still
+// blocks EVERYTHING (unknown facts or a missing review, plus an empty
+// allowlist).
 func TestRealProviderProfilesBlockEgress(t *testing.T) {
 	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC) // one day after the review round
+	eligible := map[string]bool{
+		dprovider.ProviderOpenAI:    true,
+		dprovider.ProviderAnthropic: true,
+		dprovider.ProviderGLM:       true,
+	}
 	for _, a := range newDirectAdapters() {
 		reg := dprovider.NewRegistry(func() time.Time { return now })
 		rec := a.SeedDataHandling(a.DefaultProfile("any-model"))
@@ -82,10 +88,12 @@ func TestRealProviderProfilesBlockEgress(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s: seeded record missing", a.ID())
 		}
-		switch a.ID() {
-		case dprovider.ProviderGLM:
-			// the Z.AI developer-API record is the ACTIVATED profile: the
-			// registry gate passes for non-personal and nothing else.
+		if eligible[a.ID()] {
+			// ACTIVATED profile: the registry gate passes for non-personal
+			// and nothing else; the record must be complete.
+			if reason := governing.BlockingReason(now); reason != "" {
+				t.Errorf("%s: activated profile must carry no fact-based block, got %q", a.ID(), reason)
+			}
 			if len(governing.AllowedClassifications) != 1 ||
 				governing.AllowedClassifications[0] != dprovider.ClassificationNonPersonal {
 				t.Fatalf("%s: activated profile must allow exactly non-personal, got %v", a.ID(), governing.AllowedClassifications)
@@ -93,9 +101,12 @@ func TestRealProviderProfilesBlockEgress(t *testing.T) {
 			if err := reg.EgressAllowed(p, dprovider.FeatureChat, dprovider.ClassificationNonPersonal); err != nil {
 				t.Errorf("%s: activated profile must allow non-personal, got %v", a.ID(), err)
 			}
-			if reason := governing.BlockingReason(now); reason != "" {
-				t.Errorf("%s: complete record must carry no fact-based block, got %q", a.ID(), reason)
+			if err := reg.EgressAllowed(p, dprovider.FeatureChat, "personal"); err == nil {
+				t.Errorf("%s: personal data must never egress in v1", a.ID())
 			}
+			continue
+		}
+		switch a.ID() {
 		case dprovider.ProviderDeepSeek:
 			// no current official source was reviewable on 2026-10-28: the
 			// record stays unknown and must block on the missing review.
@@ -113,16 +124,10 @@ func TestRealProviderProfilesBlockEgress(t *testing.T) {
 				t.Errorf("%s: non-eligible profile must carry an empty classification allowlist", a.ID())
 			}
 		}
-		// Every real provider blocks every classification except the single
-		// activated pair (Z.AI x non-personal).
-		for _, class := range []string{dprovider.ClassificationTestFixture, "user-documents", "prompts", ""} {
+		// Every non-eligible real provider blocks every classification.
+		for _, class := range []string{dprovider.ClassificationTestFixture, "user-documents", "prompts", "", dprovider.ClassificationNonPersonal} {
 			if err := reg.EgressAllowed(p, dprovider.FeatureChat, class); err == nil {
 				t.Errorf("%s: profile must block classification %q", a.ID(), class)
-			}
-		}
-		if a.ID() == dprovider.ProviderGLM {
-			if err := reg.EgressAllowed(p, dprovider.FeatureChat, "personal"); err == nil {
-				t.Errorf("%s: personal data must never egress in v1", a.ID())
 			}
 		}
 	}

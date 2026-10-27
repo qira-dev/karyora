@@ -331,47 +331,58 @@ func unknownBase(p dprovider.ProfileID, notes string) dprovider.DataHandlingProf
 
 // SeedDataHandling is the dated official-source record per provider
 // (C3-19): the eight direct integrations carry the facts their vendor
-// policies state as of the 2026-10-28 review round — and ONLY those facts;
-// anything a reviewed source does not state stays unknown and keeps the
-// profile blocked. The egress-classification allowlist follows the accepted
-// policy (owner decision 2026-10-28, Option A): the sole eligible profile —
-// the Z.AI developer API, the only record with a current review, all six
-// facts known, and training=none — allows `non-personal` ONLY; every other
-// real-provider record keeps an empty allowlist, and `personal`, unlabeled,
-// or unrecognized labels block everywhere. An allowlist entry opens the
-// REGISTRY gate only: a live call additionally requires a stored credential
-// (OS keyring only, D-37) and a wired connection. Custom and local
-// endpoints keep unknown records: the pointed-at vendor's policy does not
-// transfer to a custom profile without its own review.
+// policies state as of the 2026-10-28 review round and its same-day
+// follow-up — and ONLY those facts; anything a reviewed source does not
+// state stays unknown and keeps the profile blocked. The egress-
+// classification allowlist follows the accepted policy (owner decision
+// 2026-10-28, Option A): a profile is eligible ONLY with a current dated
+// review, all six facts known, and training=none, and then allows
+// `non-personal` ONLY — after the follow-up round that is OpenAI,
+// Anthropic, and the Z.AI developer API. Every other real-provider record
+// keeps an empty allowlist, and `personal`, unlabeled, or unrecognized
+// labels block everywhere. An allowlist entry opens the REGISTRY gate
+// only: a live call additionally requires a stored credential (OS keyring
+// only, D-37) and a wired connection. Custom and local endpoints keep
+// unknown records: the pointed-at vendor's policy does not transfer to a
+// custom profile without its own review.
 func (a *directAdapter) SeedDataHandling(p dprovider.ProfileID) dprovider.DataHandlingProfile {
 	switch a.id {
 	case dprovider.ProviderOpenAI:
 		r := reviewedBase(p,
 			"https://platform.openai.com/docs/guides/your-data",
-			"accessed 2026-10-28 (page states no version date)")
+			"accessed 2026-10-28 (page states no version date); sub-processor list last updated 2026-10-14")
 		r.AccountTier = "standard API (abuse monitoring applies); ZDR/MAM by approval"
 		r.TrainingUse = dprovider.FactNo
 		r.AbuseRetention = "bounded"
 		r.ApplicationStateTTL = "bounded"
-		r.Subprocessors = dprovider.FactUnknown
+		r.Subprocessors = "listed"
 		r.DeletionEligibility = "zdr"
+		// Eligible under the accepted egress policy (2026-10-28 follow-up
+		// round): current dated review, all six facts known, training=none.
+		r.AllowedClassifications = []string{dprovider.ClassificationNonPersonal}
 		r.Notes = "training: \"As of March 1, 2023, data sent to the OpenAI API is not used to train or improve OpenAI models (unless you explicitly opt in).\"; " +
 			"abuse retention: abuse-monitoring logs retained up to 30 days; " +
 			"state: stored responses default 30 days (store=true), conversations/assistants/threads/vector stores kept until deleted; " +
-			"ZDR/MAM documented for eligible endpoints (approval required); subprocessors not stated on the reviewed page."
+			"ZDR/MAM documented for eligible endpoints (approval required); " +
+			"subprocessors: per-entity list at https://openai.com/policies/sub-processor-list/ (Cloudflare TLS termination; Microsoft/CoreWeave/OCI/GCP/AWS/Cerebras cloud infrastructure; moderation and support subprocessors; last updated 2026-10-14; API included)."
 		return r
 	case dprovider.ProviderAnthropic:
 		r := reviewedBase(p,
 			"https://www.anthropic.com/legal/commercial-terms",
-			"effective 2025-06-17; accessed 2026-10-28")
+			"effective 2025-06-17; retention/ZDR docs and Trust Center accessed 2026-10-28")
 		r.TrainingUse = dprovider.FactNo
-		r.AbuseRetention = dprovider.FactUnknown
-		r.ApplicationStateTTL = dprovider.FactUnknown
-		r.Subprocessors = dprovider.FactUnknown
-		r.DeletionEligibility = dprovider.FactUnknown
+		r.AbuseRetention = "bounded"
+		r.ApplicationStateTTL = "bounded"
+		r.Subprocessors = "listed"
+		r.DeletionEligibility = "zdr"
+		// Eligible under the accepted egress policy (2026-10-28 follow-up
+		// round): current dated review, all six facts known, training=none.
+		r.AllowedClassifications = []string{dprovider.ClassificationNonPersonal}
 		r.Notes = "training: \"Anthropic may not train models on Customer Content from Services.\" (Commercial Terms); " +
-			"the reviewed page states no retention period and incorporates a DPA that was NOT reviewed in this round, so " +
-			"abuse retention, application-state TTL, subprocessors, and deletion eligibility stay unknown (fail-closed)."
+			"retention (API and data retention docs): \"Conversation content (your prompts and Claude's outputs) is not retained by default\" (except Covered Models, 30-day retention), flagged content \"may retain inputs and outputs for up to 2 years\"; " +
+			"ZDR: \"Anthropic does not store customer prompts or responses at rest after the API response is returned\" (available on request; Messages API covered); " +
+			"subprocessors: per-entity list at https://trust.anthropic.com/subprocessors (Google Cloud/AWS/Azure/Cloudflare for all products; Stripe, WorkOS, support and fraud tools; 22 entries). " +
+			"Sources: platform.claude.com/docs/en/manage-claude/api-and-data-retention; trust.anthropic.com/subprocessors."
 		return r
 	case dprovider.ProviderGemini:
 		r := reviewedBase(p,
@@ -436,7 +447,8 @@ func (a *directAdapter) SeedDataHandling(p dprovider.ProfileID) dprovider.DataHa
 		r.DeletionEligibility = dprovider.FactUnknown
 		r.Notes = "training: \"We may use Content to provide, maintain, develop, support, and improve the Services\" — opt-out only by contacting Moonshot AI \"to discuss available enterprise arrangements\"; " +
 			"deletion: \"After your service is terminated, we will delete your content and data in accordance with the requirements of applicable laws and regulations.\" (no stated period); " +
-			"confidential info may be shared with \"employees, contractors, affiliates, and professional advisors who have a need to know\" (no per-entity list)."
+			"confidential info may be shared with \"employees, contractors, affiliates, and professional advisors who have a need to know\" (no per-entity list); " +
+			"ZDR doc (enterprise-only, on request): request content \"is deleted as soon as the response is returned\" — not applicable to this standard-tier record; standard tier states no retention periods."
 		return r
 	case dprovider.ProviderMiniMax:
 		r := reviewedBase(p,
