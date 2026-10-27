@@ -1,6 +1,21 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.9 (2026-10-27): the CR-3.4 (C3-17–C3-30) implementation
+Contract version 1.10 (2026-10-27): the CR-3.5 (C3-31) implementation makes
+`internal/app` real code — the durable vertical slice use cases (submit with
+idempotency, status/events/result inspection, cooperative cancel, the relay
+handler with retrieval → snapshot → capability-checked provider call →
+atomic commit, and the bounded settlement loop) — under its unchanged rule
+(imports domain, events, security, and the module packages only; every
+adapter is an interface wired at cmd/uawp). `cmd/uawp` gains the `job`
+command group (foreground submit session over the same SliceService plus
+the read-only status/events probe). `internal/storage` gains the object /
+journal-read / backoff-requeue adapter methods and the read-only job probe
+(no import change); `internal/security` gains the closed `job` resource
+type (no import change); `internal/providers` gains the ProfileFor/
+Connection accessor methods on the existing Executor (no import change);
+`internal/aijobrelay`'s scheduler now commits resolved outcomes on a live
+context (defect found by CR-3.5 verification, no import change). No
+forbidden direction opened; the graph stays acyclic. Contract version 1.9 (2026-10-27): the CR-3.4 (C3-17–C3-30) implementation
 makes `internal/providers` real code — the wire codecs, the egress guard
 (C3-18), the BYOK secret resolution with redaction, the per-profile
 data-handling registry seeding (C3-19), the conformance harness (C3-20),

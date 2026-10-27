@@ -56,14 +56,17 @@ func runCapture(t *testing.T, args ...string) (int, string) {
 }
 
 func TestParseArgs(t *testing.T) {
-	cmd, flags := parseArgs([]string{"status", "--json", "--data-dir", "/tmp/d", "--locale=en"})
+	cmd, flags, rest := parseArgs([]string{"status", "--json", "--data-dir", "/tmp/d", "--locale=en"})
+	if len(rest) != 0 {
+		t.Fatalf("status carries no positional words, got %v", rest)
+	}
 	if cmd != "status" {
 		t.Fatalf("cmd = %q", cmd)
 	}
 	if !flags.json || flags.dataDir != "/tmp/d" || flags.locale != "en" {
 		t.Fatalf("flags = %+v", flags)
 	}
-	cmd, _ = parseArgs([]string{"--json"})
+	cmd, _, _ = parseArgs([]string{"--json"})
 	if cmd != "" {
 		t.Fatalf("empty arg list must yield no command: %q", cmd)
 	}

@@ -32,7 +32,7 @@ func main() {
 // run executes one command and returns the process exit code from the
 // C2-07 register.
 func run(ctx context.Context, args []string, stdout *os.File) int {
-	cmd, flags := parseArgs(args)
+	cmd, flags, ordered := parseArgs(args)
 	loc := runtime.NewLocale(flags.locale)
 	out := newPrinter(stdout, flags.json, loc)
 
@@ -45,6 +45,8 @@ func run(ctx context.Context, args []string, stdout *os.File) int {
 		return cmdStatus(ctx, flags, out)
 	case "doctor":
 		return cmdDoctor(ctx, flags, out)
+	case "job":
+		return cmdJob(ctx, flags, out, ordered)
 	case "version":
 		out.text("karyora core " + version)
 		return int(runtime.ExitOK)
@@ -65,9 +67,10 @@ type cliFlags struct {
 	overrides map[string]any
 }
 
-// parseArgs splits the command from the shared flags. Value-taking flags
+// parseArgs splits the command from the shared flags and returns the
+// remaining positional words (subcommand + arguments). Value-taking flags
 // accept "--flag value" or "--flag=value".
-func parseArgs(args []string) (string, cliFlags) {
+func parseArgs(args []string) (string, cliFlags, []string) {
 	var f cliFlags
 	var ordered []string
 	for i := 0; i < len(args); i++ {
@@ -94,9 +97,9 @@ func parseArgs(args []string) (string, cliFlags) {
 		}
 	}
 	if len(ordered) == 0 {
-		return "", f
+		return "", f, nil
 	}
-	return ordered[0], f
+	return ordered[0], f, ordered[1:]
 }
 
 // printer renders one form only: machine JSON or locale-resolved human text.

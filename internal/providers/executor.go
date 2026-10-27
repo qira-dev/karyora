@@ -52,6 +52,11 @@ type Adapter interface {
 	TestConnectionRequest(ctx context.Context, e *Executor, plan *dprovider.RequestPlan, secret string) (*http.Request, error)
 	// InterpretProbe decides what a probe status means for this adapter.
 	InterpretProbe(status int) error
+	// DefaultConnection returns the adapter's own connection posture: the
+	// default base URL, the credential class, and the secret reference.
+	// Per-connection records (C3-29) override these at the composition
+	// root; the slice never invents a connection.
+	DefaultConnection() dprovider.Connection
 }
 
 // StreamDelta is one neutral streaming step.
@@ -115,6 +120,17 @@ func NewExecutor(a Adapter, policy EgressPolicy, secrets security.SecretStore, r
 func sha256Hex(b []byte) string {
 	h := sha256.Sum256(b)
 	return "sha256:" + hex.EncodeToString(h[:])
+}
+
+// ProfileFor reports the adapter's profile identity for one model (the
+// identity the capability and data-handling gates key on).
+func (e *Executor) ProfileFor(model string) dprovider.ProfileID {
+	return e.Adapter.DefaultProfile(model)
+}
+
+// Connection returns the adapter's default connection posture.
+func (e *Executor) Connection() dprovider.Connection {
+	return e.Adapter.DefaultConnection()
 }
 
 // Execute performs one bounded, capability-checked, gated provider call.

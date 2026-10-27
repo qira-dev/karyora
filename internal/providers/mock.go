@@ -113,6 +113,12 @@ func (m *MockAdapter) TestConnectionRequest(ctx context.Context, e *Executor, pl
 
 func (m *MockAdapter) InterpretProbe(status int) error { return nil }
 
+// DefaultConnection is the fixture posture: the reserved .invalid endpoint
+// (never routable, never dialable) with no credential class.
+func (m *MockAdapter) DefaultConnection() dprovider.Connection {
+	return dprovider.Connection{BaseURL: "https://mock-fixture.invalid", AuthKind: dprovider.AuthNone}
+}
+
 // result produces the scripted neutral result for one plan.
 func (m *MockAdapter) result(plan *dprovider.RequestPlan) (*dprovider.Result, error) {
 	m.mu.Lock()

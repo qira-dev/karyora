@@ -70,6 +70,7 @@ const (
 	ResourceBackup      = "backup"      // backup snapshots (C2-16)
 	ResourceRestore     = "restore"     // controlled restore (C2-17)
 	ResourceSecret      = "secret"      // secret handle administration
+	ResourceJob         = "job"         // durable AI Jobs (Phase 3 C3-31 slice)
 )
 
 var localResourceTypes = map[string]bool{
@@ -81,6 +82,7 @@ var localResourceTypes = map[string]bool{
 	ResourceBackup:      true,
 	ResourceRestore:     true,
 	ResourceSecret:      true,
+	ResourceJob:         true,
 }
 
 func (r Resource) validate() error {

@@ -130,7 +130,10 @@ func (s *Scheduler) launch(claim *Claim) error {
 		}
 		// The fenced store rejects this write when the lease expired or a
 		// newer authority exists; the outcome then belongs to recovery.
-		_ = s.store.CommitAttempt(base, commit)
+		// The commit rides a live context: an interrupted attempt's RESOLVED
+		// outcome (cancelled/timed-out) must stay writable — the attempt
+		// context is exactly what died.
+		_ = s.store.CommitAttempt(context.WithoutCancel(base), commit)
 	}()
 	return nil
 }

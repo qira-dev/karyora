@@ -425,6 +425,18 @@ func (a *directAdapter) TestConnectionRequest(ctx context.Context, e *Executor, 
 	}
 }
 
+// DefaultConnection returns the adapter's own connection posture: the
+// recorded default base URL (refreshable metadata; every connection record
+// may override it) and the family's credential class.
+func (a *directAdapter) DefaultConnection() dprovider.Connection {
+	return dprovider.Connection{
+		BaseURL:       a.base,
+		AuthKind:      dprovider.AuthBearer,
+		SecretRef:     "provider:" + a.id + "/api-key",
+		ExplicitLocal: a.explicitLocal,
+	}
+}
+
 // InterpretProbe decides what a probe status means (C3-18: bounded and
 // non-destructive).
 func (a *directAdapter) InterpretProbe(status int) error {
