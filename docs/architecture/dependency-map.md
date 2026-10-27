@@ -1,6 +1,18 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.8 (2026-10-27): the CR-3.3 (C3-12–C3-16) implementation
+Contract version 1.9 (2026-10-27): the CR-3.4 (C3-17–C3-30) implementation
+makes `internal/providers` real code — the wire codecs, the egress guard
+(C3-18), the BYOK secret resolution with redaction, the per-profile
+data-handling registry seeding (C3-19), the conformance harness (C3-20),
+and the eight direct plus custom/local adapters (C3-21–C3-30) — under its
+unchanged rule (imports `internal/domain` and `internal/security` only;
+no provider SDKs, stdlib `net/http` only). Two pure domain subpackages
+carry the neutral contract: `internal/domain/provider` (C3-17 request/
+result/capability/error/connection types and the C3-19 records with the
+fail-closed gate) and `internal/domain/jsonschema` (the bounded output-
+schema validator used pre-commit; subpackages inherit the domain rule:
+no internal imports). No forbidden direction opened; the graph stays
+acyclic. Contract version 1.8 (2026-10-27): the CR-3.3 (C3-12–C3-16) implementation
 makes `internal/aijobrelay` real code — the separate Job/Attempt/Lease/
 Checkpoint/SideEffectIntent/Receipt state machines under the accepted D-34
 transition package, fenced atomic claims and commits, and the bounded
