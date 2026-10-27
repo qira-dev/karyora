@@ -97,15 +97,67 @@ func TestJobSubmitConflictIsTyped(t *testing.T) {
 	}
 }
 
-// TestJobSubmitUnwiredProviderRefused proves the provider boundary through
-// the CLI: only the recorded fixture provider is wired while D-37 is open.
-func TestJobSubmitUnwiredProviderRefused(t *testing.T) {
+// TestJobSubmitUnknownProviderRefused proves the provider boundary through
+// the CLI: a provider string that matches NO wired adapter is refused as
+// unwired. The eight direct integrations ARE wired (2026-10-28 wiring
+// milestone); the gate and credential boundary decide their submissions.
+func TestJobSubmitUnknownProviderRefused(t *testing.T) {
 	h := newHarness(t)
-	code, out := h.run("job", "submit", "--task", "x", "--idempotency-key", "cli-p", "--provider", "openai", "--json")
+	code, out := h.run("job", "submit", "--task", "x", "--idempotency-key", "cli-p", "--provider", "no-such-provider", "--json")
 	if code == 0 {
-		t.Fatal("a non-fixture provider must be refused while D-37 is open")
+		t.Fatal("a provider with no wired adapter must be refused")
 	}
 	if !strings.Contains(out, "VALIDATION_FAILED") {
 		t.Fatalf("refusal must be typed, got %s", out)
+	}
+}
+
+// TestJobSubmitRealProviderUnlabeledBlocksEgress proves the accepted
+// egress-classification policy through the CLI: a real provider submission
+// WITHOUT a classification label is protected-unlabeled and fails the C3-19
+// gate terminally — even though the provider adapter is wired.
+func TestJobSubmitRealProviderUnlabeledBlocksEgress(t *testing.T) {
+	h := newHarness(t)
+	code, out := h.run("job", "submit", "--task", "x", "--idempotency-key", "cli-egress", "--provider", "openai", "--json")
+	if code == 0 {
+		t.Fatal("an unlabeled real-provider submission must fail")
+	}
+	if !strings.Contains(out, "egress") {
+		t.Fatalf("the failure must name the egress policy gate, got %s", out)
+	}
+}
+
+// TestJobSubmitZaiNonPersonalPassesGateFailsOnCredential proves BOTH halves
+// of the wiring: the activated Z.AI profile passes the C3-19 gate for
+// `non-personal` (the sole eligible provider/class pair), and the run then
+// fails typed at the credential boundary because nothing is stored in the
+// OS keyring — no live call is possible without a credential (D-37).
+func TestJobSubmitZaiNonPersonalPassesGateFailsOnCredential(t *testing.T) {
+	h := newHarness(t)
+	code, out := h.run("job", "submit", "--task", "x", "--idempotency-key", "cli-zai",
+		"--provider", "glm-zai", "--classification", "non-personal", "--json")
+	if code == 0 {
+		t.Fatal("without a stored credential the run must fail")
+	}
+	if strings.Contains(out, "egress") {
+		t.Fatalf("the egress gate must PASS for Z.AI x non-personal, got %s", out)
+	}
+	if !strings.Contains(out, "credential unavailable") {
+		t.Fatalf("the failure must come from the credential boundary, got %s", out)
+	}
+}
+
+// TestJobSubmitZaiPersonalNeverEgresses proves the personal-data rule: even
+// on the only eligible provider, a `personal` label is refused by the gate
+// (v1: personal data never egresses to a third-party cloud).
+func TestJobSubmitZaiPersonalNeverEgresses(t *testing.T) {
+	h := newHarness(t)
+	code, out := h.run("job", "submit", "--task", "x", "--idempotency-key", "cli-personal",
+		"--provider", "glm-zai", "--classification", "personal", "--json")
+	if code == 0 {
+		t.Fatal("personal data must never egress in v1")
+	}
+	if !strings.Contains(out, "egress") {
+		t.Fatalf("the failure must name the egress policy gate, got %s", out)
 	}
 }

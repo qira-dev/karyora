@@ -37,6 +37,16 @@ const (
 	// classification for recorded/mock fixtures. Only the mock adapter's
 	// profile allows it; no real provider does (no dated source check).
 	ClassificationTestFixture = "test-fixture"
+
+	// ClassificationNonPersonal is the v1 egress label for content the user
+	// affirmatively asserts carries no personal data and no
+	// third-party-confidential material (owner decision 2026-10-28, Option
+	// A: "Core Egress Classification Policy Decision Record"). Only a
+	// profile with a current dated review, all six facts known, and
+	// training_use=none may allow it; `personal`, unlabeled, and
+	// unrecognized labels never egress to a third-party cloud provider in
+	// v1 (the empty/other allowlists keep them fail-closed).
+	ClassificationNonPersonal = "non-personal"
 )
 
 // DataHandlingProfile is the per-profile provider data-handling record

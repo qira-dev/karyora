@@ -188,6 +188,14 @@ func newDirectAdapters() []Adapter {
 	return out
 }
 
+// NewDirectAdapters returns the eight recorded direct integrations
+// (C3-21–C3-28) for composition-root wiring: one adapter per provider, each
+// carrying its honest capability facts and its dated C3-19 data-handling
+// record (seeded via SeedDataHandling at the composition root).
+func NewDirectAdapters() []Adapter {
+	return newDirectAdapters()
+}
+
 // NewCustomOpenAIAdapter builds a custom OpenAI-compatible connection
 // (C3-29): explicit base URL, model, and per-connection capability
 // overrides. Compatibility is a tested profile, never a promise of full
@@ -325,11 +333,16 @@ func unknownBase(p dprovider.ProfileID, notes string) dprovider.DataHandlingProf
 // (C3-19): the eight direct integrations carry the facts their vendor
 // policies state as of the 2026-10-28 review round — and ONLY those facts;
 // anything a reviewed source does not state stays unknown and keeps the
-// profile blocked. Every record's AllowedClassifications is empty (the
-// egress-classification policy is a separate owner decision), so protected
-// data egress remains blocked for every real provider after this milestone.
-// Custom and local endpoints keep unknown records: the pointed-at vendor's
-// policy does not transfer to a custom profile without its own review.
+// profile blocked. The egress-classification allowlist follows the accepted
+// policy (owner decision 2026-10-28, Option A): the sole eligible profile —
+// the Z.AI developer API, the only record with a current review, all six
+// facts known, and training=none — allows `non-personal` ONLY; every other
+// real-provider record keeps an empty allowlist, and `personal`, unlabeled,
+// or unrecognized labels block everywhere. An allowlist entry opens the
+// REGISTRY gate only: a live call additionally requires a stored credential
+// (OS keyring only, D-37) and a wired connection. Custom and local
+// endpoints keep unknown records: the pointed-at vendor's policy does not
+// transfer to a custom profile without its own review.
 func (a *directAdapter) SeedDataHandling(p dprovider.ProfileID) dprovider.DataHandlingProfile {
 	switch a.id {
 	case dprovider.ProviderOpenAI:
@@ -397,6 +410,14 @@ func (a *directAdapter) SeedDataHandling(p dprovider.ProfileID) dprovider.DataHa
 		r.ApplicationStateTTL = "bounded"
 		r.Subprocessors = "listed"
 		r.DeletionEligibility = "deletion_supported"
+		// Egress-classification policy ACTIVATED for the sole eligible
+		// profile (owner decision 2026-10-28, Option A: this is the only
+		// record with a current dated review, all six facts known, and
+		// training=none). `personal`, unlabeled, and unrecognized labels
+		// still block (not in the allowlist). No live call is authorized by
+		// this allowlist: egress additionally requires a stored credential
+		// (OS keyring only) and a wired connection.
+		r.AllowedClassifications = []string{dprovider.ClassificationNonPersonal}
 		r.Notes = "training (API): \"We will not use End User Content to develop or improve Services, unless you explicitly agree.\"; " +
 			"storage: \"The Company do not store any of the content the Customer or its End Users provide or generate while using our Services.\" (DPA); " +
 			"other customer data stored temporarily, deleted after termination unless law requires otherwise; " +

@@ -22,11 +22,13 @@ import (
 // THE SAME app.SliceService functions an API consumer calls, so CLI and API
 // produce semantically identical state and events. `job submit` runs a
 // foreground session (a first-class Phase 2 mode): it takes data-directory
-// ownership, runs the bounded scheduler to settlement, and reports. D-37 is
-// accepted (2026-10-28): credentials resolve only through the OS-keyring
-// store, while the provider set carries the recorded fixture adapter only —
-// live adapters additionally require C3-19 dated data-handling reviews, so
-// protected-data egress stays blocked.
+// ownership, runs the bounded scheduler to settlement, and reports. Wiring
+// (2026-10-28 milestone): the composition root carries the recorded fixture
+// adapter AND the eight direct integrations (C3-21–C3-28), each over the
+// OS-keyring credential store (D-37 accepted). Live calls additionally
+// require a stored credential and a passing C3-19 gate under the accepted
+// egress-classification policy (only Z.AI x `non-personal` passes today);
+// unlabeled or `personal` data never egresses to a third-party cloud in v1.
 
 func cmdJob(ctx context.Context, flags cliFlags, out *printer, args []string) int {
 	if len(args) == 0 {
@@ -60,11 +62,12 @@ type jobSubmitFlags struct {
 	idempotencyKey string
 	provider       string
 	model          string
+	classification string
 }
 
 func parseJobSubmitArgs(args []string) (jobSubmitFlags, bool) {
 	var f jobSubmitFlags
-	f.provider = dprovider.ProviderMock // the fixture adapter while D-37 is open
+	f.provider = dprovider.ProviderMock // the recorded fixture adapter is the default
 	for i := 0; i < len(args); i++ {
 		val := func() (string, bool) {
 			if i+1 < len(args) {
@@ -100,6 +103,14 @@ func parseJobSubmitArgs(args []string) (jobSubmitFlags, bool) {
 			f.provider = v
 		case strings.HasPrefix(args[i], "--model="):
 			f.model = strings.TrimPrefix(args[i], "--model=")
+		case strings.HasPrefix(args[i], "--classification="):
+			f.classification = strings.TrimPrefix(args[i], "--classification=")
+		case args[i] == "--classification":
+			v, ok := val()
+			if !ok {
+				return f, false
+			}
+			f.classification = v
 		}
 	}
 	if strings.TrimSpace(f.task) == "" || strings.TrimSpace(f.idempotencyKey) == "" {
@@ -113,7 +124,7 @@ func parseJobSubmitArgs(args []string) (jobSubmitFlags, bool) {
 func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []string) int {
 	sf, ok := parseJobSubmitArgs(args)
 	if !ok {
-		out.text("usage: uawp job submit --task <text> --idempotency-key <key> [--provider mock] [--model m]")
+		out.text("usage: uawp job submit --task <text> --idempotency-key <key> [--provider mock] [--model m] [--classification <label>]")
 		return int(runtime.ExitConfigInvalid)
 	}
 	ds, f := resolvePaths(flags)
@@ -164,13 +175,26 @@ func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []stri
 	}
 	callCtx := app.WithCaller(ctx, bundle.instance, token.Secret)
 
-	slice, runDeps := wireJobSlice(lz, bundle)
+	slice, runDeps, err := wireJobSlice(lz, bundle)
+	if err != nil {
+		env, _ := errs.New(errs.CodeInternal, corr, map[string]any{"reason": boundedDetail(err)})
+		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitInternal})
+		return int(runtime.ExitInternal)
+	}
+	// Classification label (accepted egress policy, 2026-10-28): an explicit
+	// flag value wins; otherwise the fixture adapter keeps its fixture label
+	// and every real provider gets the EMPTY label (protected-unlabeled) —
+	// the C3-19 gate then decides, fail-closed.
+	classification := sf.classification
+	if classification == "" && sf.provider == dprovider.ProviderMock {
+		classification = dprovider.ClassificationTestFixture
+	}
 	sub, err := slice.Submit(callCtx, app.SubmitRequest{
 		IdempotencyKey: sf.idempotencyKey,
 		Task:           sf.task,
 		Provider:       sf.provider,
 		Model:          sf.model,
-		Classification: dprovider.ClassificationTestFixture,
+		Classification: classification,
 	})
 	if err != nil {
 		out.report(map[string]any{"error": boundedDetail(err)})
@@ -214,14 +238,29 @@ func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []stri
 	return int(runtime.ExitFailure)
 }
 
-// wireJobSlice composes the slice over the opened store with the recorded
-// fixture provider (D-37: no credentials, no live provider calls).
-func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceDeps) {
+// wireJobSlice composes the slice over the opened store: the recorded
+// fixture adapter PLUS the eight direct integrations (C3-21–C3-28), each as
+// its own executor over ONE shared C3-19 registry and the OS-keyring
+// credential store (D-37 accepted). No credential exists until the user
+// stores one; a provider without a stored credential fails typed at
+// resolution time, and the registry gate decides classification egress
+// (today only Z.AI x non-personal passes — accepted policy, 2026-10-28).
+func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceDeps, error) {
 	store := lz.store
-	mock := providers.NewMockAdapter(providers.MockBehavior{})
 	reg := dprovider.NewRegistry(nil)
-	reg.Upsert(mock.SeedDataHandling(mock.DefaultProfile("default")))
-	exec, _ := providers.NewExecutor(mock, providers.DefaultEgressPolicy(providers.CoreLocal), keyring.New(), reg)
+	adapters := make([]providers.Adapter, 0, 9)
+	adapters = append(adapters, providers.NewMockAdapter(providers.MockBehavior{}))
+	adapters = append(adapters, providers.NewDirectAdapters()...)
+	secrets := keyring.New()
+	executors := make(map[string]app.ProviderExecutor, len(adapters))
+	for _, a := range adapters {
+		reg.Upsert(a.SeedDataHandling(a.DefaultProfile("default")))
+		exec, err := providers.NewExecutor(a, providers.DefaultEgressPolicy(providers.CoreLocal), secrets, reg)
+		if err != nil {
+			return nil, app.SliceDeps{}, err
+		}
+		executors[a.ID()] = exec
+	}
 	deps := app.SliceDeps{
 		Relay:     store,
 		Snapshots: store,
@@ -229,11 +268,11 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		Events:    store,
 		Packs:     store,
 		Guard:     bundle.guard,
-		Providers: map[string]app.ProviderExecutor{dprovider.ProviderMock: exec},
+		Providers: executors,
 		Backoff:   store,
 	}
 	slice, _ := app.NewSlice(deps)
-	return slice, deps
+	return slice, deps, nil
 }
 
 // cmdJobStatus reads one job read-only (no ownership taken; the doctor-style
