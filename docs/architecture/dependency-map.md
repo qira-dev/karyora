@@ -1,6 +1,12 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.4 (2026-10-27): the C2-14/C2-15 implementation makes
+Contract version 1.5 (2026-10-27): the C2-16/C2-17 implementation adds the
+backup/restore machinery to `internal/storage` (online snapshot capture,
+manifest protocol, durable backup pins as CAS reachability roots, the
+controlled staged restore with generation fencing) with no import change —
+storage keeps `domain, events, platform` plus the pinned driver, and no new
+package exists. Contract version 1.4 (2026-10-27): the C2-14/C2-15
+implementation makes
 `internal/security` real code — the AuthorizationPolicy decision port,
 local sessions, secret handles, the tamper-evident audit chain, and
 bounded diagnostics — under its unchanged rule (imports `internal/domain`

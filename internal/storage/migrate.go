@@ -111,14 +111,33 @@ CREATE TABLE IF NOT EXISTS audit_checkpoints (
 );
 `,
 	},
+	{
+		Version: 3,
+		Name:    "0003-backup-runs-and-pins",
+		SQL: `
+CREATE TABLE IF NOT EXISTS backup_runs (
+    generation TEXT PRIMARY KEY,
+    state      TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS backup_pins (
+    generation TEXT NOT NULL,
+    blob_ref   TEXT NOT NULL,
+    pinned_at  TEXT NOT NULL,
+    PRIMARY KEY (generation, blob_ref)
+);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
-// versions [N_min, N]. Phase 2 supports [1, 2]; the window is recorded per
+// versions [N_min, N]. Phase 2 supports [1, 3]; the window is recorded per
 // release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 2
+	schemaVersionMax = 3
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

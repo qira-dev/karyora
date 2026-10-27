@@ -25,8 +25,9 @@ func (s *Store) Migrate(ctx context.Context, coreVersion string) error {
 }
 
 // Reconcile runs step 4: journal/outbox consistency, CAS staging
-// completion, and reachability-root registration; idempotent and
-// re-runnable (C2-09 §2, C2-12/C2-13 policies).
+// completion, backup-run reconciliation, and reachability-root
+// registration; idempotent and re-runnable (C2-09 §2, C2-12/C2-13/C2-16
+// policies).
 func (s *Store) Reconcile(ctx context.Context) error {
 	if err := s.ReconcileOutbox(ctx); err != nil {
 		return err
@@ -35,8 +36,19 @@ func (s *Store) Reconcile(ctx context.Context) error {
 		return err
 	}
 	s.registerReferenceRoots()
+	// Interrupted backup runs resolve deterministically before dispatch:
+	// a pin set without a published manifest is never a commit (C2-16 §4).
+	if _, err := s.ReconcileBackupRuns(ctx, s.reconcileCorrelation()); err != nil {
+		return err
+	}
 	s.pub.Start()
 	return nil
+}
+
+// reconcileCorrelation derives a bounded correlation identifier for
+// reconciliation-time events when the caller did not thread one through.
+func (s *Store) reconcileCorrelation() string {
+	return "reconcile-" + s.instanceUUID
 }
 
 // registerReferenceRoots wires the reachability roots that exist in the
@@ -63,6 +75,24 @@ func (s *Store) registerReferenceRoots() {
 	})
 	s.cas.RegisterReferenceType("cas.references", func(ctx context.Context) (map[string]bool, error) {
 		rows, err := s.readers.QueryContext(ctx, `SELECT DISTINCT blob_ref FROM cas_references`)
+		if err != nil {
+			return nil, mapVendorError(err)
+		}
+		defer rows.Close()
+		set := map[string]bool{}
+		for rows.Next() {
+			var ref string
+			if err := rows.Scan(&ref); err != nil {
+				return nil, mapVendorError(err)
+			}
+			set[ref] = true
+		}
+		return set, rows.Err()
+	})
+	// Backup pins (C2-16 §2): committed AND in-progress backup pins are
+	// GC reachability roots — the barrier is the pin set, never a pause.
+	s.cas.RegisterReferenceType("backup.pins", func(ctx context.Context) (map[string]bool, error) {
+		rows, err := s.readers.QueryContext(ctx, `SELECT DISTINCT blob_ref FROM backup_pins`)
 		if err != nil {
 			return nil, mapVendorError(err)
 		}
