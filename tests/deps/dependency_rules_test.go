@@ -54,7 +54,9 @@ var allowedInternal = map[string]map[string]bool{
 		"app": true, "security": true, "platform": true,
 		"config": true, "health": true, "domain": true,
 	},
-	"remotestore": {},
+	// security (incl. security/teamauth): the store resolves the
+	// teamauth.Directory CURRENT-authority port (dependency-map v1.15).
+	"remotestore": {"security": true},
 	"platform":    {},
 }
 

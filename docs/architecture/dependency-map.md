@@ -1,5 +1,16 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.15 (2026-10-29): the CR-4.4 identity sub-milestone
+implements the `teamauth.Directory` port inside `internal/remotestore`
+(`StoreDirectory`): the store now imports `internal/security` (the
+`security.Resource`/`security.Action` port types) and
+`internal/security/teamauth` (the Directory port and the role vocabulary
+it resolves), replacing the "no internal imports in v1" rule for this
+package. The direction stays adapter→port — teamauth never imports the
+store; the graph remains acyclic and no forbidden direction opens. The
+store is still NOT wired into any product surface, remote mode does not
+exist, and Local mode keeps zero dependency on the package (isolation
+rule); the object-store half stays an owner item (vendor selection open).
 Contract version 1.14 (2026-10-28): the CR-4.4 sub-milestone B (D-10 pin)
 adds `internal/remotestore` — the PostgreSQL remote/team authority adapter
 on the pinned `github.com/jackc/pgx/v5` v5.11.0 (D-10 baseline; MIT; the
@@ -166,7 +177,7 @@ require a version bump and an ADR.
 | `internal/pluginhost` | Enforced WASM plugin host adapter (C4-25; wazero confined here; execution disabled — package fixtures only, D-14 open) | plugins |
 | `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform, config, health, domain |
 | `internal/platform` | OS paths and lifecycle adapters (OS APIs here only) | (ports) |
-| `internal/remotestore` | PostgreSQL remote/team authority (D-10; pgx confined here; claim/fencing/outbox core; not wired into any surface) | (none in v1) |
+| `internal/remotestore` | PostgreSQL remote/team authority (D-10; pgx confined here; claim/fencing/outbox core + the `teamauth.Directory` identity resolution; not wired into any surface) | security (incl. teamauth: the Directory port types) |
 | `cmd/uawp` | Composition root | any internal |
 
 ## Static dependency-rule check (specified; executable in C2-03 CI)

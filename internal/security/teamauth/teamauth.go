@@ -142,9 +142,10 @@ func (g DelegatedGrant) validate() error {
 }
 
 // Directory is the CURRENT-authority view the adapter decides against. It
-// is a port: the durable remote store implements it (sub-milestone B/C);
-// tests provide an in-memory fake. Every method resolves CURRENT state —
-// a revocation is visible on the next call, never cached here.
+// is a port: the durable remote store implements it (remotestore.
+// StoreDirectory); tests provide an in-memory fake. Every method resolves
+// CURRENT state — a revocation is visible on the next call, never cached
+// here.
 type Directory interface {
 	// RoleOf resolves the member's CURRENT role and state in one tenant
 	// scope (a workspace, or the org for org-scoped resources). Absence
