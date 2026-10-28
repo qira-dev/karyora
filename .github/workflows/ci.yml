@@ -94,9 +94,11 @@ jobs:
     # with measured runtime behavior of the quota/cancellation/
     # authorization/containment boundary. Pure-Go packages only (no CGO,
     # no platform package), so the whole suite stays on linux/amd64 in
-    # verify; these legs measure the plugin boundary per target. Windows
-    # ARM64 rides the windows-11-arm hosted runner (public repos); if
-    # GitHub retires the label the row degrades honestly to compile-only
+    # verify; these legs measure the plugin boundary per target. darwin
+    # amd64 rides the macos-15-intel hosted runner (the macos-13 Intel
+    # pool saturated for public repos at C4-28 time) and windows ARM64
+    # rides the windows-11-arm hosted runner (public repos); if GitHub
+    # retires a label the affected row degrades honestly to compile-only
     # and this comment says so.
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -105,7 +107,7 @@ jobs:
         include:
           - { runner: ubuntu-latest, goos: linux, goarch: amd64 }
           - { runner: ubuntu-24.04-arm, goos: linux, goarch: arm64 }
-          - { runner: macos-13, goos: darwin, goarch: amd64 }
+          - { runner: macos-15-intel, goos: darwin, goarch: amd64 }
           - { runner: macos-latest, goos: darwin, goarch: arm64 }
           - { runner: windows-latest, goos: windows, goarch: amd64 }
           - { runner: windows-11-arm, goos: windows, goarch: arm64 }
