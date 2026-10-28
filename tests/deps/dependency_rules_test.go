@@ -80,6 +80,7 @@ var confinement = []struct {
 	{"github.com/zalando/go-keyring", []string{"security/keyring"}, "OS keyring access is confined to internal/security/keyring"},
 	{"github.com/tetratelabs/wazero", []string{"pluginhost"}, "the WASM runtime is confined to the plugin host adapter (dependency-map rule 4)"},
 	{"github.com/jackc/pgx", []string{"remotestore"}, "the PostgreSQL driver is confined to the remote authority adapter (dependency-map rule 4, D-10)"},
+	{"github.com/minio/minio-go", []string{"remotestore"}, "the S3-compatible object client is confined to the remote authority adapter (dependency-map rule 4, C4-36)"},
 }
 
 func moduleRoot(t *testing.T) string {

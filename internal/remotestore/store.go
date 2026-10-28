@@ -39,6 +39,16 @@ type Store struct {
 	// this value only parameterizes the interval (spec §2 authority-clock
 	// rule). Default DefaultLeaseTTL; the numeric value stays Proposed.
 	LeaseTTL time.Duration
+	// Blob is the S3-compatible shared object store (C4-36, spec §4).
+	// Attached when the deployment configures one; the object lifecycle
+	// primitives refuse with ErrBlobStoreRequired otherwise. The DB
+	// reference rows remain the ONLY authority that makes an object
+	// readable — the blob store holds bytes, never authority.
+	Blob *BlobStore
+	// GCGrace is the Proposed orphan-grace interval (DefaultGCGrace); the
+	// SERVER clock inside the sweep transaction decides what is past
+	// grace, exactly like the lease expiry.
+	GCGrace time.Duration
 }
 
 // DefaultLeaseTTL is the Proposed lease interval (no owner-accepted
@@ -52,7 +62,7 @@ func Open(ctx context.Context, dsn string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("remotestore: connect: %w", err)
 	}
-	return &Store{pool: pool, LeaseTTL: DefaultLeaseTTL}, nil
+	return &Store{pool: pool, LeaseTTL: DefaultLeaseTTL, GCGrace: DefaultGCGrace}, nil
 }
 
 // Close releases the pool.

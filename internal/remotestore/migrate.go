@@ -189,6 +189,40 @@ CREATE TABLE service_identity_credentials (
     PRIMARY KEY (identity_id, version)
 );`,
 	},
+	{
+		version: 3,
+		name:    "object-store-lifecycle",
+		sql: `
+-- C4-36 implementation (spec §4): the shared object/blob store GC
+-- lifecycle. The v1 object_refs table already carries the tenant-scoped
+-- identity (workspace_id, digest) — the composite IS the object key; a
+-- bare content digest is never a global key. v3 adds the GC machinery
+-- (C2-12 discipline extended cross-store):
+--   * orphan_since stamps the first mark pass durably, so the grace
+--     period is measured by the SERVER clock inside the sweep
+--     transaction and a sweep is restartable across processes;
+--   * the third state 'sweeping' is the sweep LEASE: a row flipped to
+--     sweeping excludes it from every concurrent reference commit (the
+--     commit refuses and re-uploads afterwards), which is what makes
+--     "orphan cleanup never deletes a referenced object" structural —
+--     the lease state replaces the CHECK constraint (forward-fix);
+--   * object_pins are the backup-pin barriers: while a pin row exists
+--     the GC never removes the object and the reference cannot be
+--     dropped (the pin id is the backup manifest's reference; no TTL
+--     numeric is encoded — the D-27 retention numerics stay Proposed).
+ALTER TABLE object_refs ADD COLUMN orphan_since timestamptz;
+ALTER TABLE object_refs DROP CONSTRAINT object_refs_state_check;
+ALTER TABLE object_refs ADD CONSTRAINT object_refs_state_check
+    CHECK (state IN ('referenced','orphan_candidate','sweeping'));
+
+CREATE TABLE object_pins (
+    workspace_id text NOT NULL,
+    digest       text NOT NULL,
+    pin_id       text NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (workspace_id, digest, pin_id)
+);`,
+	},
 }
 
 // Migrate applies the known migrations idempotently. Each migration runs

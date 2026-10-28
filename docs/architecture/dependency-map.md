@@ -1,5 +1,23 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.18 (2026-10-29): the CR-4.4 C4-36 milestone (the
+shared object/blob store, Remote PostgreSQL and Object Storage
+Specification §4) lands inside `internal/remotestore` — the S3-compatible
+`BlobStore` wrapper over the newly pinned `github.com/minio/minio-go/v7`
+v7.3.0 (owner-selected MinIO profile; Apache-2.0; the go.sum hash and the
+full proof-before-pin record are in the Work Log; the import is confined
+to the package by the executable rule check, rule 4, mirroring the pgx
+confinement) plus migration v3 (`object_refs.orphan_since`, the
+`object_pins` backup-pin barriers, the `sweeping` sweep-lease state) and
+the store-level lifecycle primitives (PutObject with upload-before-
+reference ordering, digest-verified GetObject, DropObjectReference, the
+pin pair, MarkStoreOrphans, SweepOrphanedObjects). NO internal-import
+change: the store's allowed internal imports stay `security`; the graph,
+its acyclicity, and every other confinement rule are unchanged. The
+client is endpoint-neutral (the same code drives MinIO, Amazon S3 or
+Cloudflare R2 by configuration). The object lifecycle is NOT wired into
+any product surface, remote mode does not exist, and Local mode keeps
+zero dependency on the package (isolation rule).
 Contract version 1.17 (2026-10-29): the CR-4.4 C4-38 implementation
 milestone (the workload-scoped service-identity lifecycle, Remote
 Operations Specification §1) lands inside `internal/remotestore` — schema

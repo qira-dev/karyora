@@ -10,12 +10,19 @@
 // never decides authority. Every authoritative commit verifies the full
 // fencing tuple and refuses stale/missing/mismatched evidence.
 //
-// Status boundary (sub-milestone B): the claim/lease/fenced-commit/outbox
-// core is real code proven against a live PostgreSQL 18 server (the
-// conformance fixtures of spec §2 executed locally); the store is NOT
-// wired into any product surface, remote mode does not exist yet, and the
-// failover/clock-discontinuity rows of spec §3 remain Not Run (they need a
-// controlled failover environment). Local mode has zero dependency on this
-// package (isolation rule). The object-store half of the specification is
-// sub-milestone C.
+// Status boundary: the claim/lease/fenced-commit/outbox core is real
+// code proven against a live PostgreSQL 18 server (the conformance
+// fixtures of spec §2 executed locally); the object-store half of the
+// specification (C4-36, spec §4) is implemented in this package on the
+// owner-selected MinIO S3-compatible profile (2026-10-29) — tenant-
+// scoped (workspace, digest) identity, upload-before-reference ordering,
+// digest-verified reads, the reference-aware GC with grace + second-pass
+// recheck + backup pins, and the typed missing/corrupt failures — with
+// its conformance fixtures executed against a live MinIO server and a
+// live PostgreSQL. The store is NOT wired into any product surface,
+// remote mode does not exist yet, and the failover/clock-discontinuity
+// rows of spec §3 remain Not Run (they need a controlled failover
+// environment); the restore-reconciliation fixture row is Not Run (no
+// restore surface exists). Local mode has zero dependency on this
+// package (isolation rule).
 package remotestore

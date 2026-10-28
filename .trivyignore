@@ -1,0 +1,32 @@
+# Trivy finding register — module-level Go advisories that are NOT
+# symbol-reachable in this module and whose fixed versions require a Go
+# toolchain beyond the pinned go1.25.14 (a recorded owner decision: the
+# minor toolchain upgrade is a separate proof-before-pin item, the same
+# standing register as the 10 stdlib residuals recorded 2026-10-28).
+#
+# Origin (2026-10-29, C4-36): the minio-go v7.3.0 pin pulls
+# golang.org/x/{net,crypto} into the module graph. Evidence for each
+# entry below, all dated 2026-10-29:
+#   * `go list -deps ./...` — the vulnerable packages (x/net/html,
+#     x/net/http2, x/crypto/ssh, x/crypto/openpgp) are NOT imported by
+#     any package of this module; the modules are pulled only for
+#     x/net/{idna,http/httpguts,publicsuffix} and
+#     x/crypto/{blake2b,argon2} via minio-go.
+#   * govulncheck v1.1.4 ./... — every entry below appears at MODULE
+#     level with zero call stacks ("your code doesn't appear to call
+#     these vulnerabilities").
+#   * The fixed versions (x/net 0.60.0/0.62.0, x/crypto 0.56.0) each
+#     declare `go 1.26.0` and cannot be applied under the pinned
+#     go1.25.14 toolchain without an owner-approved toolchain upgrade.
+# Remove these entries when the toolchain upgrade lands and the bumps
+# are applied; trivy keeps gating every other finding in the meantime.
+CVE-2026-78669
+CVE-2026-78659
+CVE-2026-78660
+CVE-2026-78663
+CVE-2026-97032
+CVE-2026-78661
+CVE-2026-97045
+CVE-2026-56855
+CVE-2026-78662
+GO-2026-5932

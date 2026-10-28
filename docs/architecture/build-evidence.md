@@ -62,10 +62,19 @@ release-support claim (D-30).
 
 `.github/workflows/ci.yml` runs on push/PR with four jobs: **verify** (gofmt
 check, `go vet ./...`, `go build ./...`, and `go test -race ./...`, which
-includes the dependency-rule test), **security** (the Rule 14 pipeline
-mirror: gitleaks, semgrep, and trivy with pinned versions; the live and
-injection stages stay Not Run — there is no live target), **cross-target**
-(the compile-only D-06 six-row matrix with CGO disabled; per D-09 the CGO-bound
+includes the dependency-rule test; since C4-36 the job also starts the
+MinIO live target for the object-store conformance fixtures — the MinIO
+community server was archived upstream (2026-04-24) and its release
+binaries and public container images are no longer pullable (Docker Hub,
+ghcr, quay and bitnami probed 2026-10-29), so the job builds the final
+community release tag `RELEASE.2025-10-15T17-29-55Z` from its own source
+and runs it on a loopback port with ephemeral job-local credentials fed
+by env — the same vendor/version the local fixtures verify against),
+**security** (the Rule 14 pipeline mirror: gitleaks, semgrep, and trivy
+with pinned versions; the live and injection stages stay Not Run in CI —
+the MinIO instance lives and dies inside the verify job, so the security
+job has no live target of its own), **cross-target** (the compile-only
+D-06 six-row matrix with CGO disabled; per D-09 the CGO-bound
 SQLite driver and the composition root that imports it build only in the
 native verify job, and their cross-target linked-runtime evidence remains the
 recorded Phase 5 work), and **plugin-runtime-conformance** (the C4-28
