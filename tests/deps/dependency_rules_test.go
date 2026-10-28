@@ -46,8 +46,9 @@ var allowedInternal = map[string]map[string]bool{
 		"domain": true, "events": true, "platform": true,
 		"knowledgepack": true, "aijobrelay": true, "contextengine": true, "workflow": true,
 	},
-	"providers": {"domain": true, "security": true},
-	"plugins":   {"domain": true, "security": true},
+	"providers":  {"domain": true, "security": true},
+	"plugins":    {"domain": true, "security": true},
+	"pluginhost": {"plugins": true},
 	"runtime": {
 		"app": true, "security": true, "platform": true,
 		"config": true, "health": true, "domain": true,
@@ -70,6 +71,7 @@ var confinement = []struct {
 	{"os/exec", []string{"platform"}, "OS-specific API imports are confined to internal/platform"},
 	{"golang.org/x/sys/", []string{"platform"}, "OS-specific API imports are confined to internal/platform"},
 	{"github.com/zalando/go-keyring", []string{"security/keyring"}, "OS keyring access is confined to internal/security/keyring"},
+	{"github.com/tetratelabs/wazero", []string{"pluginhost"}, "the WASM runtime is confined to the plugin host adapter (dependency-map rule 4)"},
 }
 
 func moduleRoot(t *testing.T) string {

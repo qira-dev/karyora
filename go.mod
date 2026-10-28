@@ -4,6 +4,7 @@ go 1.25.14
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.52
+	github.com/tetratelabs/wazero v1.12.0
 	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/sys v0.44.0
 )

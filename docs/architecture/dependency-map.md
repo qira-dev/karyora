@@ -1,6 +1,19 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.11 (2026-10-28): the Secret Store milestone (realizing the
+Contract version 1.12 (2026-10-28): the CR-4.3 C4-25 runtime-enforcement
+milestone adds `internal/pluginhost` — the enforced plugin host adapter
+that wraps the pinned WASM runtime (`github.com/tetratelabs/wazero`
+v1.12.0, Apache-2.0) around the `internal/plugins` contract model so the
+manifest quota envelope, per-call authorization, cancellation, and fault
+containment are measured at a product boundary. Rules: the subpackage
+imports `internal/plugins` only; the wazero import is confined to this
+package by the executable rule check (rule 4: the WASM runtime only
+behind plugin host adapters). Untrusted plugin execution stays DISABLED:
+nothing outside the package's own fixtures instantiates a plugin, no
+CLI/API surface reaches it, and the D-14 gate remains open
+(cross-target runtime execution and the publisher-signature profile are
+unproven; no instruction fuel claim is made). No forbidden direction
+opened; the graph stays acyclic. Contract version 1.11 (2026-10-28): the Secret Store milestone (realizing the
 accepted D-37 decision record of 2026-10-28) adds `internal/security/keyring`
 — the concrete OS-keyring store (Windows Credential Manager, macOS Keychain,
 Linux Secret Service, via `github.com/zalando/go-keyring`) behind the
@@ -128,6 +141,7 @@ require a version bump and an ADR.
 | `internal/storage` | SQLite + CAS adapters (D-08/D-09; DB drivers here only) | domain, events, platform (OS-bound primitives per rule 4), module packages via ports |
 | `internal/providers` | Provider capability model and adapters (D-15/D-16/D-17) | domain, security |
 | `internal/plugins` | Plugin ABI host contracts (D-13/D-14; execution disabled) | domain, security |
+| `internal/pluginhost` | Enforced WASM plugin host adapter (C4-25; wazero confined here; execution disabled — package fixtures only, D-14 open) | plugins |
 | `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform, config, health, domain |
 | `internal/platform` | OS paths and lifecycle adapters (OS APIs here only) | (ports) |
 | `cmd/uawp` | Composition root | any internal |
