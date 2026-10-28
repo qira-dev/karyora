@@ -60,14 +60,20 @@ release-support claim (D-30).
 
 ## CI
 
-`.github/workflows/ci.yml` runs on push/PR with three jobs: **verify** (gofmt
+`.github/workflows/ci.yml` runs on push/PR with four jobs: **verify** (gofmt
 check, `go vet ./...`, `go build ./...`, and `go test -race ./...`, which
 includes the dependency-rule test), **security** (the Rule 14 pipeline
 mirror: gitleaks, semgrep, and trivy with pinned versions; the live and
-injection stages stay Not Run — there is no live target), and **cross-target**
+injection stages stay Not Run — there is no live target), **cross-target**
 (the compile-only D-06 six-row matrix with CGO disabled; per D-09 the CGO-bound
 SQLite driver and the composition root that imports it build only in the
 native verify job, and their cross-target linked-runtime evidence remains the
-recorded Phase 5 work). Workflow runs are inspected per push; artifact
-retention follows the default GitHub policy until a dedicated
-evidence-retention task extends it.
+recorded Phase 5 work), and **plugin-runtime-conformance** (the C4-28
+runtime evidence job: the internal/pluginhost enforcement fixtures and
+internal/plugins contract tests execute on hosted runners for every D-06
+row that has one — linux amd64/arm64, darwin amd64/arm64, windows amd64,
+windows arm64 via the windows-11-arm public-repo runner — measuring the
+enforced plugin boundary per target; if GitHub retires a runner label the
+affected row degrades to compile-only and the workflow comment says so).
+Workflow runs are inspected per push; artifact retention follows the
+default GitHub policy until a dedicated evidence-retention task extends it.

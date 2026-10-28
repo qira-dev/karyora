@@ -85,3 +85,34 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: go build $(go list ./... | grep -v -e '/internal/storage' -e '/tests/deps' -e '/cmd/uawp')
+
+  plugin-runtime-conformance:
+    # C4-28 cross-target RUNTIME evidence for the enforced plugin boundary
+    # (CR-4.3): the internal/pluginhost enforcement fixtures and the
+    # internal/plugins contract tests EXECUTE on real hosted runners for
+    # every D-06 row that has one, extending the compile-only matrix above
+    # with measured runtime behavior of the quota/cancellation/
+    # authorization/containment boundary. Pure-Go packages only (no CGO,
+    # no platform package), so the whole suite stays on linux/amd64 in
+    # verify; these legs measure the plugin boundary per target. Windows
+    # ARM64 rides the windows-11-arm hosted runner (public repos); if
+    # GitHub retires the label the row degrades honestly to compile-only
+    # and this comment says so.
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest, goos: linux, goarch: amd64 }
+          - { runner: ubuntu-24.04-arm, goos: linux, goarch: arm64 }
+          - { runner: macos-13, goos: darwin, goarch: amd64 }
+          - { runner: macos-latest, goos: darwin, goarch: arm64 }
+          - { runner: windows-latest, goos: windows, goarch: amd64 }
+          - { runner: windows-11-arm, goos: windows, goarch: arm64 }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+      - name: enforcement fixtures (${{ matrix.goos }}/${{ matrix.goarch }})
+        run: go test -count=1 ./internal/pluginhost ./internal/plugins
