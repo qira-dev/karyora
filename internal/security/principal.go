@@ -22,6 +22,10 @@ const (
 	PrincipalServiceWorker PrincipalKind = "service-worker"
 	// PrincipalPlugin is reserved behind D-14.
 	PrincipalPlugin PrincipalKind = "plugin"
+	// PrincipalTeamUser is a remote human member (Phase 4 D-36): an
+	// authenticated workspace member resolved by the team adapter behind
+	// the same port. Local mode never produces it.
+	PrincipalTeamUser PrincipalKind = "team-user"
 )
 
 // Principal is one authenticated actor.
@@ -38,7 +42,7 @@ func (p Principal) validate() error {
 		return errors.New("security: principal id is missing or unbounded")
 	}
 	switch p.Kind {
-	case PrincipalLocalUser, PrincipalServiceWorker, PrincipalPlugin:
+	case PrincipalLocalUser, PrincipalServiceWorker, PrincipalPlugin, PrincipalTeamUser:
 		return nil
 	default:
 		return errors.New("security: unknown principal kind")

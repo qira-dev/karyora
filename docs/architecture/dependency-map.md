@@ -1,6 +1,16 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.12 (2026-10-28): the CR-4.3 C4-25 runtime-enforcement
+Contract version 1.13 (2026-10-28): the CR-4.4 sub-milestone A (D-36
+identity wiring) adds `internal/security/teamauth` — the Team-mode
+authorization adapter implementing the owner-accepted D-36 model v1
+(roles/matrix/delegation/revocation) behind the unchanged
+`security.Policy` port, plus the new `security.PrincipalTeamUser`
+principal kind declaration. Rules: the subpackage imports
+`internal/security` only; the accepted C2-14 local adapter and Local mode
+stay byte-for-byte unchanged (isolation rule); the adapter is NOT wired
+into any product surface and no remote session surface exists yet. The
+durable remote store (sub-milestone B/C) implements the teamauth.Directory
+port. No forbidden direction opened; the graph stays acyclic. Contract version 1.12 (2026-10-28): the CR-4.3 C4-25 runtime-enforcement
 milestone adds `internal/pluginhost` — the enforced plugin host adapter
 that wraps the pinned WASM runtime (`github.com/tetratelabs/wazero`
 v1.12.0, Apache-2.0) around the `internal/plugins` contract model so the
@@ -134,6 +144,7 @@ require a version bump and an ADR.
 | `internal/events` | Event record, journal/outbox semantics, opaque cursors | domain |
 | `internal/security` | AuthorizationPolicy decision port, secret handles, audit metadata | domain |
 | `internal/security/keyring` | Concrete OS-keyring secret store (D-37 accepted; keyring import confined here) | security, domain (error register) |
+| `internal/security/teamauth` | Team-mode authorization adapter (D-36 accepted matrix + delegated-Job revocation; not wired into any product surface) | security |
 | `internal/config` | Validated configuration contract (C2-05): layered sources, ranges, policy conflicts | domain |
 | `internal/health` | Liveness/readiness report model (C2-05); five signal groups | (none) |
 | `internal/app` | Use cases and orchestration over ports | domain, module packages, events, security |
