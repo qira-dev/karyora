@@ -1,6 +1,17 @@
 # Core Dependency Map (Phase 2, C2-02)
 
-Contract version 1.13 (2026-10-28): the CR-4.4 sub-milestone A (D-36
+Contract version 1.14 (2026-10-28): the CR-4.4 sub-milestone B (D-10 pin)
+adds `internal/remotestore` — the PostgreSQL remote/team authority adapter
+on the pinned `github.com/jackc/pgx/v5` v5.11.0 (D-10 baseline; MIT; the
+pgx import is confined here by the executable rule check, rule 4). The
+package carries the spec §1 schema-area map (Work excluded), the C2-11
+migration discipline, the atomic claim (SKIP LOCKED + monotonic fencing
+epoch + server-clock lease inside one transaction), the fenced commit, and
+the journal/outbox append. Rules: no internal imports in v1; the store is
+NOT wired into any product surface and local mode has zero dependency on
+it (isolation rule); remote mode does not exist yet. The teamauth.Directory
+implementation over these tables lands with the identity sub-milestone. No
+forbidden direction opened; the graph stays acyclic. Contract version 1.13 (2026-10-28): the CR-4.4 sub-milestone A (D-36
 identity wiring) adds `internal/security/teamauth` — the Team-mode
 authorization adapter implementing the owner-accepted D-36 model v1
 (roles/matrix/delegation/revocation) behind the unchanged
@@ -155,6 +166,7 @@ require a version bump and an ADR.
 | `internal/pluginhost` | Enforced WASM plugin host adapter (C4-25; wazero confined here; execution disabled — package fixtures only, D-14 open) | plugins |
 | `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform, config, health, domain |
 | `internal/platform` | OS paths and lifecycle adapters (OS APIs here only) | (ports) |
+| `internal/remotestore` | PostgreSQL remote/team authority (D-10; pgx confined here; claim/fencing/outbox core; not wired into any surface) | (none in v1) |
 | `cmd/uawp` | Composition root | any internal |
 
 ## Static dependency-rule check (specified; executable in C2-03 CI)

@@ -8,6 +8,24 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # The remotestore conformance fixtures (CR-4.4 sub-milestone B) run
+    # against a live PostgreSQL inside CI — the server floor per the
+    # prepared D-10 record is 16–18, so CI rides 17. The credential below
+    # is an ephemeral job-local container credential, not a secret.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: karyora
+          POSTGRES_PASSWORD: karyora-ci-ephemeral
+          POSTGRES_DB: karyora_rs_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U karyora -d karyora_rs_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       # Action tags are pinned to immutable commit SHAs (semgrep
       # github-actions-mutable-action-tag; supply-chain policy).
@@ -22,6 +40,8 @@ jobs:
       - name: go build
         run: go build ./...
       - name: go test with the race detector (includes the dependency-rule check)
+        env:
+          REMOTESTORE_TEST_DSN: postgres://karyora:karyora-ci-ephemeral@localhost:55432/karyora_rs_test
         run: go test -race ./...
 
   security:
