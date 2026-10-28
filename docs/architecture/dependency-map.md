@@ -1,5 +1,16 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.17 (2026-10-29): the CR-4.4 C4-38 implementation
+milestone (the workload-scoped service-identity lifecycle, Remote
+Operations Specification §1) lands inside `internal/remotestore` — schema
+migration v2 (service-identity bindings + versioned credentials) and the
+lifecycle store primitives with the claim/renew/commit boundary
+verification. NO import-rule change: the store's allowed imports stay
+`security` (the new code uses stdlib crypto only and the pgx import stays
+confined to the package); the graph, its acyclicity, and every
+confinement rule are unchanged. The lifecycle is NOT wired into any
+product surface, remote mode does not exist, and Local mode keeps zero
+dependency on the package (isolation rule).
 Contract version 1.16 (2026-10-29): the CR-4.5 C4-41 PROVE-half milestone
 (the owner-accepted D-38 device-key lifecycle) adds
 `internal/security/devicekey` — the lifecycle state machine, the server

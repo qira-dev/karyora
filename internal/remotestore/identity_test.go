@@ -128,8 +128,11 @@ func TestClaimPathScopedToAuthorizedWorkspaces(t *testing.T) {
 	seedJob(t, s, wsB, uid("j-claim-b"), "mallory", "queued")
 
 	// The worker's assignment lists ONLY workspace A: B's queued job is
-	// unreachable by construction (TI-02 claim path).
-	c, err := s.ClaimJob(context.Background(), uid("worker-a"), []string{wsA})
+	// unreachable by construction (TI-02 claim path). The claim crosses
+	// the C4-38 service-identity boundary: the presenting credential must
+	// verify and the requested workspace must be bound.
+	workerA, credA := issueWorker(t, s, "worker-claim-a", wsA)
+	c, err := s.ClaimJob(context.Background(), workerA, credA, []string{wsA})
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -158,54 +161,55 @@ func TestWorkerDelegationScopesAndSubmitterRevocation(t *testing.T) {
 	seedJob(t, s, wsA, uid("j-other"), "alice", "queued") // same workspace, never claimed by this worker
 	seedJob(t, s, wsB, uid("j-foreign"), "mallory", "queued")
 
-	c, err := s.ClaimJob(context.Background(), uid("worker-iso"), []string{wsA})
+	workerIso, credIso := issueWorker(t, s, "worker-iso", wsA)
+	c, err := s.ClaimJob(context.Background(), workerIso, credIso, []string{wsA})
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
 	dir := s.Directory()
-	grant, ok := dir.ActiveDelegation(uid("worker-iso"))
+	grant, ok := dir.ActiveDelegation(workerIso)
 	if !ok || grant.JobID != c.JobID || grant.WorkspaceID != wsA || grant.SubmitterID != "alice" {
 		t.Fatalf("ActiveDelegation = (%+v, %v), want the claimed job's grant", grant, ok)
 	}
 	p := team(s)
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourceJob, c.JobID, teamauth.ActionJobRead); !d.Allow {
+	if d := decideWorker(p, workerIso, teamauth.ResourceJob, c.JobID, teamauth.ActionJobRead); !d.Allow {
 		t.Fatalf("the worker must read its own claimed job, got %s", d.ReasonCode)
 	}
 	// TI-13: outside the assignment denies at every layer.
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourceJob, uid("j-foreign"), teamauth.ActionJobRead); d.Allow || d.ReasonCode != teamauth.ReasonWorkspaceMismatch {
+	if d := decideWorker(p, workerIso, teamauth.ResourceJob, uid("j-foreign"), teamauth.ActionJobRead); d.Allow || d.ReasonCode != teamauth.ReasonWorkspaceMismatch {
 		t.Fatalf("a foreign workspace's job must deny WORKSPACE_MISMATCH, got allow=%v code=%s", d.Allow, d.ReasonCode)
 	}
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourceJob, uid("j-other"), teamauth.ActionJobRead); d.Allow || d.ReasonCode != teamauth.ReasonDelegationScopeInvalid {
+	if d := decideWorker(p, workerIso, teamauth.ResourceJob, uid("j-other"), teamauth.ActionJobRead); d.Allow || d.ReasonCode != teamauth.ReasonDelegationScopeInvalid {
 		t.Fatalf("an unclaimed same-workspace job must deny DELEGATION_SCOPE_INVALID, got allow=%v code=%s", d.Allow, d.ReasonCode)
 	}
 	// TI-11: plugin operations are hard-denied before anything else.
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourcePlugin, uid("pl"), teamauth.ActionObjectRead); d.Allow || d.ReasonCode != teamauth.ReasonPluginDisabled {
+	if d := decideWorker(p, workerIso, teamauth.ResourcePlugin, uid("pl"), teamauth.ActionObjectRead); d.Allow || d.ReasonCode != teamauth.ReasonPluginDisabled {
 		t.Fatalf("plugin operations must deny PLUGIN_DISABLED, got allow=%v code=%s", d.Allow, d.ReasonCode)
 	}
 	// TI-12: no remote secret handles exist in schema v1. The worker's
 	// tenancy check runs FIRST (fail closed): a handle owned by no remote
 	// table resolves no tenant, so the resolve denies before the
 	// submitter-ownership check is even reached.
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourceSecret, uid("handle"), teamauth.ActionSecretExecute); d.Allow || d.ReasonCode != teamauth.ReasonWorkspaceMismatch {
+	if d := decideWorker(p, workerIso, teamauth.ResourceSecret, uid("handle"), teamauth.ActionSecretExecute); d.Allow || d.ReasonCode != teamauth.ReasonWorkspaceMismatch {
 		t.Fatalf("secret resolve must stay fail-closed absent, got allow=%v code=%s", d.Allow, d.ReasonCode)
 	}
 	// Workers never reach administration.
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourceWorkspace, wsA, teamauth.ActionAuditRead); d.Allow || d.ReasonCode != security.ReasonDenyDefault {
+	if d := decideWorker(p, workerIso, teamauth.ResourceWorkspace, wsA, teamauth.ActionAuditRead); d.Allow || d.ReasonCode != security.ReasonDenyDefault {
 		t.Fatalf("worker audit read must deny DENY_DEFAULT, got allow=%v code=%s", d.Allow, d.ReasonCode)
 	}
 
 	// The accepted revocation table (auth spec §4): revoking the
 	// SUBMITTER kills the delegation at the next decision — mid-run.
 	seedMembership(t, s, wsA, "alice", "member", "revoked")
-	if _, ok := dir.ActiveDelegation(uid("worker-iso")); ok {
+	if _, ok := dir.ActiveDelegation(workerIso); ok {
 		t.Fatal("a revoked submitter's grant must resolve absent")
 	}
-	if d := decideWorker(p, uid("worker-iso"), teamauth.ResourceJob, c.JobID, teamauth.ActionJobRead); d.Allow {
+	if d := decideWorker(p, workerIso, teamauth.ResourceJob, c.JobID, teamauth.ActionJobRead); d.Allow {
 		t.Fatal("the worker must lose the claimed job after submitter revocation")
 	}
 	// CURRENT authority: restoring the membership restores the resolution.
 	seedMembership(t, s, wsA, "alice", "member", "active")
-	if _, ok := dir.ActiveDelegation(uid("worker-iso")); !ok {
+	if _, ok := dir.ActiveDelegation(workerIso); !ok {
 		t.Fatal("the grant must resolve again while the lease lives")
 	}
 }
@@ -218,14 +222,15 @@ func TestMultipleLiveLeasesFailClosed(t *testing.T) {
 	seedJob(t, s, ws, uid("j-two-a"), "alice", "queued")
 	seedJob(t, s, ws, uid("j-two-b"), "alice", "queued")
 
-	if _, err := s.ClaimJob(context.Background(), uid("worker-two"), []string{ws}); err != nil {
+	workerTwo, credTwo := issueWorker(t, s, "worker-two", ws)
+	if _, err := s.ClaimJob(context.Background(), workerTwo, credTwo, []string{ws}); err != nil {
 		t.Fatalf("first claim: %v", err)
 	}
-	if _, err := s.ClaimJob(context.Background(), uid("worker-two"), []string{ws}); err != nil {
+	if _, err := s.ClaimJob(context.Background(), workerTwo, credTwo, []string{ws}); err != nil {
 		t.Fatalf("second claim: %v", err)
 	}
 	// Two live leases are outside the one-grant invariant: absent, deny.
-	if _, ok := s.Directory().ActiveDelegation(uid("worker-two")); ok {
+	if _, ok := s.Directory().ActiveDelegation(workerTwo); ok {
 		t.Fatal("a worker holding two live leases must resolve absent")
 	}
 }
@@ -238,11 +243,12 @@ func TestActiveDelegationEndsWithLeaseExpiry(t *testing.T) {
 	seedMembership(t, s, ws, "alice", "member", "active")
 	seedJob(t, s, ws, uid("j-expire"), "alice", "queued")
 
-	if _, err := s.ClaimJob(context.Background(), uid("worker-exp"), []string{ws}); err != nil {
+	workerExp, credExp := issueWorker(t, s, "worker-exp", ws)
+	if _, err := s.ClaimJob(context.Background(), workerExp, credExp, []string{ws}); err != nil {
 		t.Fatalf("claim: %v", err)
 	}
 	time.Sleep(100 * time.Millisecond)
-	if _, ok := s.Directory().ActiveDelegation(uid("worker-exp")); ok {
+	if _, ok := s.Directory().ActiveDelegation(workerExp); ok {
 		t.Fatal("an expired lease must end the delegation")
 	}
 }
@@ -258,11 +264,13 @@ func TestEventJournalWorkspaceScoping(t *testing.T) {
 	seedJob(t, s, wsB, uid("j-jrn-b"), "mallory", "queued")
 
 	// One claim takes one job: the first lands in A, the second (A's job
-	// is running now) lands in B.
-	if _, err := s.ClaimJob(context.Background(), uid("worker-jrn"), []string{wsA, wsB}); err != nil {
+	// is running now) lands in B. The worker identity is bound to BOTH
+	// workspaces, so both claims pass the C4-38 boundary.
+	workerJrn, credJrn := issueWorker(t, s, "worker-jrn", wsA, wsB)
+	if _, err := s.ClaimJob(context.Background(), workerJrn, credJrn, []string{wsA, wsB}); err != nil {
 		t.Fatalf("claim a: %v", err)
 	}
-	if _, err := s.ClaimJob(context.Background(), uid("worker-jrn"), []string{wsA, wsB}); err != nil {
+	if _, err := s.ClaimJob(context.Background(), workerJrn, credJrn, []string{wsA, wsB}); err != nil {
 		t.Fatalf("claim b: %v", err)
 	}
 	// TI-07 storage level: the journal and the seq counter are

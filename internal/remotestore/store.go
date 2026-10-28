@@ -75,15 +75,19 @@ type ClaimedJob struct {
 }
 
 // ClaimJob claims ONE queued job for the worker, atomically (spec §2):
-// SELECT ... FOR UPDATE SKIP LOCKED over the worker's authorized
-// workspaces + precondition checks (still queued, no active attempt) +
-// monotonic fencing-epoch bump + attempt row + lease row (server-clock
-// expiry computed inside this transaction) + job → running + journal +
-// outbox, all in ONE transaction. Two concurrent workers can never claim
-// the same job; the loser sees no rows.
-func (s *Store) ClaimJob(ctx context.Context, workerID string, workspaces []string) (ClaimedJob, error) {
-	if workerID == "" || len(workspaces) == 0 {
-		return ClaimedJob{}, errors.New("remotestore: claim needs a worker id and authorized workspaces")
+// the presenting credential is verified INSIDE the claim transaction
+// (active identity + current credential version + every requested
+// workspace bound — Remote Operations §1; a revoked identity, a stale
+// credential or an unbound scope refuses the whole claim) + SELECT … FOR
+// UPDATE SKIP LOCKED over the worker's bound workspaces + precondition
+// checks (still queued, no active attempt) + monotonic fencing-epoch bump
+// + attempt row + lease row (server-clock expiry computed inside this
+// transaction) + job → running + journal + outbox, all in ONE
+// transaction. Two concurrent workers can never claim the same job; the
+// loser sees no rows.
+func (s *Store) ClaimJob(ctx context.Context, workerID, credential string, workspaces []string) (ClaimedJob, error) {
+	if workerID == "" || credential == "" || len(workspaces) == 0 {
+		return ClaimedJob{}, errors.New("remotestore: claim needs a worker id, a credential, and authorized workspaces")
 	}
 	ttl := s.LeaseTTL
 	if ttl <= 0 {
@@ -96,6 +100,13 @@ func (s *Store) ClaimJob(ctx context.Context, workerID string, workspaces []stri
 			return err
 		}
 		defer tx.Rollback(ctx)
+
+		// Service-identity boundary (Remote Operations §1): revoked
+		// credentials are refused at claim, immediately, inside this
+		// transaction — before any job state is touched.
+		if err := verifyServiceIdentityCredential(ctx, tx, workerID, credential, workspaces); err != nil {
+			return err
+		}
 
 		var jobID, workspaceID string
 		var jobVersion int64
@@ -203,7 +214,10 @@ func (s *Store) ClaimJob(ctx context.Context, workerID string, workspaces []stri
 // RenewLease extends a live lease by the store TTL. Validity is decided by
 // the SERVER clock inside the transaction; a stale epoch refuses before
 // anything else, an expired lease refuses renewal (a fresh claim with a
-// new epoch is the only recovery, spec §3).
+// bumped epoch is the only recovery, spec §3), and a worker whose service
+// identity is unknown or revoked refuses (Remote Operations §1 — the lease
+// expires normally into reconciliation instead of being extended by a
+// revoked worker).
 func (s *Store) RenewLease(ctx context.Context, jobID, attemptID, workerID string, fencingEpoch int64) (time.Time, error) {
 	ttl := s.LeaseTTL
 	if ttl <= 0 {
@@ -216,6 +230,12 @@ func (s *Store) RenewLease(ctx context.Context, jobID, attemptID, workerID strin
 			return err
 		}
 		defer tx.Rollback(ctx)
+
+		// Service-identity boundary (Remote Operations §1): a revoked or
+		// unknown worker identity never extends a lease.
+		if err := requireActiveServiceIdentity(ctx, tx, workerID); err != nil {
+			return err
+		}
 
 		var rowEpoch int64
 		var rowExpires time.Time
@@ -294,6 +314,14 @@ func (s *Store) CommitAttempt(ctx context.Context, c AttemptCommit) error {
 			return err
 		}
 		defer tx.Rollback(ctx)
+
+		// Service-identity boundary (Remote Operations §1): the running
+		// Attempt of a revoked worker resolves through the fencing rules —
+		// its next authoritative commit refuses here and the lease expires
+		// normally into reconciliation (fresh-epoch recovery takes over).
+		if err := requireActiveServiceIdentity(ctx, tx, c.WorkerID); err != nil {
+			return err
+		}
 
 		var epoch int64
 		var expires time.Time

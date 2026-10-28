@@ -31,10 +31,11 @@ func (m migration) checksum() string {
 	return "sha256-" + hex.EncodeToString(sum[:])
 }
 
-// migrationsV1 is the spec §1 schema-area map (v1, Work excluded per
-// D-12/D-33). Additions append a new migration; applied migrations are
-// immutable (a change is a new version, never an edit).
-var migrationsV1 = []migration{
+// migrations is the versioned migration authority (C2-11 discipline):
+// the spec §1 schema-area map (v1, Work excluded per D-12/D-33) plus
+// forward migrations. Applied migrations are immutable (a change is a new
+// version, never an edit); additions append a new entry.
+var migrations = []migration{
 	{
 		version: 1,
 		name:    "remote-authority-v1-schema",
@@ -154,6 +155,40 @@ CREATE TABLE object_refs (
     PRIMARY KEY (workspace_id, digest)
 );`,
 	},
+	{
+		version: 2,
+		name:    "service-identity-lifecycle",
+		sql: `
+-- C4-38 implementation remainder (Remote Operations Specification §1):
+-- the workload-scoped service-identity lifecycle. A service principal
+-- binds to NAMED WORKSPACES (plural), which the v1 single-column shape
+-- cannot express: the binding moves into its own table, where every row
+-- carries its workspace scope column (tenant-scoping stays schema-level).
+-- The v1 inline column is dropped to nullable for continuity with any
+-- rows a pre-v2 database may hold; v2 code resolves bindings ONLY through
+-- service_identity_bindings. Rotation uses versioned credentials: the
+-- one-time credential plaintext is NEVER stored — the server keeps the
+-- SHA-256 digest only. Revocation timestamps make "immediate at the
+-- claim boundary" observable and auditable.
+ALTER TABLE service_identities ALTER COLUMN workspace_id DROP NOT NULL;
+ALTER TABLE service_identities ADD COLUMN revoked_at timestamptz;
+
+CREATE TABLE service_identity_bindings (
+    identity_id  text NOT NULL REFERENCES service_identities(id),
+    workspace_id text NOT NULL REFERENCES workspaces(id),
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (identity_id, workspace_id)
+);
+
+CREATE TABLE service_identity_credentials (
+    identity_id     text NOT NULL REFERENCES service_identities(id),
+    version         integer NOT NULL,
+    credential_hash text NOT NULL,
+    created_at      timestamptz NOT NULL DEFAULT now(),
+    revoked_at      timestamptz,
+    PRIMARY KEY (identity_id, version)
+);`,
+	},
 }
 
 // Migrate applies the known migrations idempotently. Each migration runs
@@ -162,7 +197,7 @@ CREATE TABLE object_refs (
 // than this build knows (forward-fix only) or when an applied checksum no
 // longer matches the embedded SQL.
 func (s *Store) Migrate(ctx context.Context) error {
-	for _, m := range migrationsV1 {
+	for _, m := range migrations {
 		if err := s.migrateOne(ctx, m); err != nil {
 			return err
 		}
@@ -231,7 +266,7 @@ func (s *Store) VerifyAhead(ctx context.Context) error {
 		return nil
 	}
 	var maxKnown int64
-	for _, m := range migrationsV1 {
+	for _, m := range migrations {
 		if m.version > maxKnown {
 			maxKnown = m.version
 		}

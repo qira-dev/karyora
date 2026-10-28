@@ -65,6 +65,24 @@ func seedJob(t *testing.T, s *Store, ws, id, submitter, state string) {
 	}
 }
 
+// issueWorker issues an ACTIVE service identity bound to the named
+// workspaces (the C4-38 lifecycle) and returns its per-run unique id with
+// the one-time credential. Every claim/renew/commit fixture now crosses
+// the service-identity boundary (Remote Operations §1), so the fixtures
+// authenticate the way a real worker deployment would.
+func issueWorker(t *testing.T, s *Store, name string, workspaces ...string) (string, string) {
+	t.Helper()
+	for _, ws := range workspaces {
+		seedWorkspace(t, s, ws)
+	}
+	worker := uid(name)
+	cred, err := s.IssueServiceIdentity(context.Background(), worker, workspaces)
+	if err != nil {
+		t.Fatalf("issue service identity %s: %v", worker, err)
+	}
+	return worker, cred
+}
+
 func TestMigrationsApplyIdempotentlyAndVerify(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
@@ -84,7 +102,7 @@ func TestMigrationsApplyIdempotentlyAndVerify(t *testing.T) {
 		t.Fatalf("drifted checksum must refuse, got %v", err)
 	}
 	if _, err := s.pool.Exec(ctx,
-		`UPDATE schema_migrations SET checksum = $1 WHERE version = 1`, migrationsV1[0].checksum()); err != nil {
+		`UPDATE schema_migrations SET checksum = $1 WHERE version = 1`, migrations[0].checksum()); err != nil {
 		t.Fatalf("restore: %v", err)
 	}
 	// A database claiming a newer version refuses (forward-fix only).
@@ -116,13 +134,22 @@ func TestCompetingClaimRaceSingleWinner(t *testing.T) {
 	var mu sync.Mutex
 	claimed := map[string]string{} // job id → worker id
 	var wg sync.WaitGroup
+	// Each worker deployment carries its own service identity bound to the
+	// contended workspace (the C4-38 boundary is orthogonal to the race).
+	wsRace := uid("ws-race")
+	workerCreds := make([]string, 4)
+	workerIDs := make([]string, 4)
+	for w := 0; w < 4; w++ {
+		id, cred := issueWorker(t, s, fmt.Sprintf("worker-%d", w), wsRace)
+		workerIDs[w], workerCreds[w] = id, cred
+	}
 	for w := 0; w < 4; w++ {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()
-			worker := fmt.Sprintf("worker-%d", n)
+			worker, credential := workerIDs[n], workerCreds[n]
 			for {
-				c, err := s.ClaimJob(ctx, worker, []string{uid("ws-race")})
+				c, err := s.ClaimJob(ctx, worker, credential, []string{wsRace})
 				if errors.Is(err, ErrNotClaimed) {
 					return
 				}
@@ -151,7 +178,8 @@ func TestStaleFencingCommitRefused(t *testing.T) {
 	seedWorkspace(t, s, uid("ws-fence"))
 	seedJob(t, s, uid("ws-fence"), uid("j-fence"), "carol", "queued")
 
-	c, err := s.ClaimJob(ctx, "worker-a", []string{uid("ws-fence")})
+	workerA, credA := issueWorker(t, s, "worker-fence", uid("ws-fence"))
+	c, err := s.ClaimJob(ctx, workerA, credA, []string{uid("ws-fence")})
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -171,9 +199,16 @@ func TestStaleFencingCommitRefused(t *testing.T) {
 	if err := commit(c.FencingEpoch+1, 2, c.WorkerID, c.LeaseID, uid("rc-forged")); !errors.Is(err, ErrStaleFencing) {
 		t.Fatalf("forged epoch must refuse, got %v", err)
 	}
-	// A different worker with the same lease refuses.
-	if err := commit(c.FencingEpoch, 2, "worker-b", c.LeaseID, uid("rc-foreign")); !errors.Is(err, ErrStaleFencing) {
-		t.Fatalf("foreign worker must refuse, got %v", err)
+	// A different REGISTERED worker with the same lease refuses on the
+	// fencing tuple (the lease carries its owner); an UNREGISTERED worker
+	// refuses earlier, on the C4-38 identity boundary — both refuse, for
+	// different typed reasons.
+	workerB, _ := issueWorker(t, s, "worker-fence-b", uid("ws-fence"))
+	if err := commit(c.FencingEpoch, 2, workerB, c.LeaseID, uid("rc-foreign")); !errors.Is(err, ErrStaleFencing) {
+		t.Fatalf("a foreign worker's tuple must refuse, got %v", err)
+	}
+	if err := commit(c.FencingEpoch, 2, "worker-unregistered", c.LeaseID, uid("rc-foreign-unknown")); !errors.Is(err, ErrServiceIdentityRefused) {
+		t.Fatalf("an unregistered worker must refuse on the identity boundary, got %v", err)
 	}
 	// A stale job version (moved underneath the caller) refuses.
 	if err := commit(c.FencingEpoch, 1, c.WorkerID, c.LeaseID, uid("rc-stalever")); !errors.Is(err, ErrStaleFencing) {
@@ -195,7 +230,8 @@ func TestExpiredLeaseNeverCommits(t *testing.T) {
 	seedWorkspace(t, s, uid("ws-expiry"))
 	seedJob(t, s, uid("ws-expiry"), uid("j-expiry"), "carol", "queued")
 
-	c, err := s.ClaimJob(ctx, "worker-a", []string{uid("ws-expiry")})
+	workerA, credA := issueWorker(t, s, "worker-exp-a", uid("ws-expiry"))
+	c, err := s.ClaimJob(ctx, workerA, credA, []string{uid("ws-expiry")})
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -217,7 +253,8 @@ func TestExpiredLeaseNeverCommits(t *testing.T) {
 	// SERVER clock expire the first claim).
 	recovered := &Store{pool: s.pool, LeaseTTL: DefaultLeaseTTL}
 	seedJob(t, s, uid("ws-expiry"), uid("j-expiry"), "carol", "queued")
-	fresh, err := recovered.ClaimJob(ctx, "worker-b", []string{uid("ws-expiry")})
+	workerB, credB := issueWorker(t, s, "worker-exp-b", uid("ws-expiry"))
+	fresh, err := recovered.ClaimJob(ctx, workerB, credB, []string{uid("ws-expiry")})
 	if err != nil {
 		t.Fatalf("fresh claim: %v", err)
 	}
@@ -248,7 +285,8 @@ func TestRollbackLeavesNoPartialState(t *testing.T) {
 	seedWorkspace(t, s, uid("ws-rollback"))
 	seedJob(t, s, uid("ws-rollback"), uid("j-rollback"), "carol", "queued")
 
-	c, err := s.ClaimJob(ctx, "worker-a", []string{uid("ws-rollback")})
+	workerA, credA := issueWorker(t, s, "worker-rollback", uid("ws-rollback"))
+	c, err := s.ClaimJob(ctx, workerA, credA, []string{uid("ws-rollback")})
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -305,7 +343,8 @@ func TestOutboxApplyOnce(t *testing.T) {
 	seedWorkspace(t, s, uid("ws-outbox"))
 	seedJob(t, s, uid("ws-outbox"), uid("j-outbox"), "carol", "queued")
 
-	c, err := s.ClaimJob(ctx, "worker-a", []string{uid("ws-outbox")})
+	workerA, credA := issueWorker(t, s, "worker-outbox", uid("ws-outbox"))
+	c, err := s.ClaimJob(ctx, workerA, credA, []string{uid("ws-outbox")})
 	if err != nil {
 		t.Fatalf("claim: %v", err)
 	}
@@ -349,7 +388,8 @@ func TestNotQueuedJobNeverClaims(t *testing.T) {
 	seedWorkspace(t, s, uid("ws-states"))
 	seedJob(t, s, uid("ws-states"), uid("j-running"), "carol", "running")
 	seedJob(t, s, uid("ws-states"), uid("j-done"), "carol", "succeeded")
-	if _, err := s.ClaimJob(ctx, "worker-a", []string{uid("ws-states")}); !errors.Is(err, ErrNotClaimed) {
+	workerA, credA := issueWorker(t, s, "worker-states", uid("ws-states"))
+	if _, err := s.ClaimJob(ctx, workerA, credA, []string{uid("ws-states")}); !errors.Is(err, ErrNotClaimed) {
 		t.Fatalf("non-queued jobs must not claim, got %v", err)
 	}
 }
