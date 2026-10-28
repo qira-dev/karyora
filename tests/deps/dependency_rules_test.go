@@ -27,18 +27,19 @@ type goListPackage struct {
 // docs/architecture/dependency-map.md (paths relative to internal/). cmd/uawp
 // is the composition root and is intentionally absent: it may import anything.
 var allowedInternal = map[string]map[string]bool{
-	"domain":            {},
-	"events":            {"domain": true},
-	"security":          {"domain": true},
-	"security/keyring":  {"security": true, "domain": true},
-	"security/teamauth": {"security": true},
-	"config":            {"domain": true},
-	"health":            {},
-	"contractadapter":   {"domain": true},
-	"knowledgepack":     {"domain": true, "events": true},
-	"aijobrelay":        {"domain": true, "events": true},
-	"contextengine":     {"domain": true, "events": true},
-	"workflow":          {"domain": true, "events": true},
+	"domain":             {},
+	"events":             {"domain": true},
+	"security":           {"domain": true},
+	"security/keyring":   {"security": true, "domain": true},
+	"security/teamauth":  {"security": true},
+	"security/devicekey": {"security": true, "domain": true},
+	"config":             {"domain": true},
+	"health":             {},
+	"contractadapter":    {"domain": true},
+	"knowledgepack":      {"domain": true, "events": true},
+	"aijobrelay":         {"domain": true, "events": true},
+	"contextengine":      {"domain": true, "events": true},
+	"workflow":           {"domain": true, "events": true},
 	"app": {
 		"domain": true, "events": true, "security": true,
 		"knowledgepack": true, "aijobrelay": true, "contextengine": true, "workflow": true,
@@ -55,7 +56,9 @@ var allowedInternal = map[string]map[string]bool{
 		"config": true, "health": true, "domain": true,
 	},
 	// security (incl. security/teamauth): the store resolves the
-	// teamauth.Directory CURRENT-authority port (dependency-map v1.15).
+	// teamauth.Directory CURRENT-authority port (dependency-map v1.15;
+	// v1.16 adds security/devicekey — the D-38 lifecycle — with keyring
+	// implementing its storage port across the same security segment).
 	"remotestore": {"security": true},
 	"platform":    {},
 }

@@ -1,5 +1,20 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.16 (2026-10-29): the CR-4.5 C4-41 PROVE-half milestone
+(the owner-accepted D-38 device-key lifecycle) adds
+`internal/security/devicekey` — the lifecycle state machine, the server
+side registry semantics, and the key-state verification rules behind
+typed denials. Rules: the package imports `internal/security` and the
+`internal/domain` error register only; it defines the
+`devicekey.PrivateKeySource` storage port, which
+`internal/security/keyring` implements structurally (the go-keyring
+import stays confined to keyring; the adapter→port direction means
+keyring imports devicekey's port package and devicekey never imports
+keyring — the graph stays acyclic and no forbidden direction opens). The
+lifecycle is NOT wired into any product surface, no remote session
+surface exists (the registration ceremony's credential validation stays
+with TM-AUTH), the two-party transfer protocol stays D-42-gated and
+unimplemented, and Local mode is byte-for-byte unchanged.
 Contract version 1.15 (2026-10-29): the CR-4.4 identity sub-milestone
 implements the `teamauth.Directory` port inside `internal/remotestore`
 (`StoreDirectory`): the store now imports `internal/security` (the
@@ -167,6 +182,7 @@ require a version bump and an ADR.
 | `internal/security` | AuthorizationPolicy decision port, secret handles, audit metadata | domain |
 | `internal/security/keyring` | Concrete OS-keyring secret store (D-37 accepted; keyring import confined here) | security, domain (error register) |
 | `internal/security/teamauth` | Team-mode authorization adapter (D-36 accepted matrix + delegated-Job revocation; not wired into any product surface) | security |
+| `internal/security/devicekey` | D-38 device-key identity lifecycle (accepted model v1): registry state machine, key-state verification denials, `PrivateKeySource` port; not wired into any product surface; transfer protocol stays D-42-gated | security, domain (error register) |
 | `internal/config` | Validated configuration contract (C2-05): layered sources, ranges, policy conflicts | domain |
 | `internal/health` | Liveness/readiness report model (C2-05); five signal groups | (none) |
 | `internal/app` | Use cases and orchestration over ports | domain, module packages, events, security |
