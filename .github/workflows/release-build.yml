@@ -111,6 +111,8 @@ jobs:
             --go-version "${GO_VERSION}" \
             --cc-version "${CC_VERSION}" \
             --dependency-map-version "${DEPMAP_VERSION}" \
+            --go-mod go.mod \
+            --go-sum go.sum \
             --workflow ".github/workflows/release-build.yml" \
             --workflow-commit "${GITHUB_SHA}" \
             --run-id "${GITHUB_RUN_ID}" \
