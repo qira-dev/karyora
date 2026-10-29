@@ -59,14 +59,17 @@ func denyReason(t *testing.T, res VerifyResult, err error, want string, purpose 
 // TestUnregisteredKeyCannotAuthorize covers model §2.4 row 1: no registry
 // entry → KEY_UNREGISTERED for both purposes.
 func TestUnregisteredKeyCannotAuthorize(t *testing.T) {
-	reg, _, _, _, _ := newFixture(t)
+	reg, _, _, _, setClock := newFixture(t)
 	roguePub, roguePriv, err := Generate()
 	if err != nil {
 		t.Fatalf("generate: %v", err)
 	}
-	sig := ed25519.Sign(roguePriv, Assertion{Version: PayloadV1, KeyID: KeyIDFor(roguePub), Payload: payload("x"), SignedAt: time.Now().Truncate(time.Second)}.canonical())
+	// Sign at the registry's fixture clock: Verify fails closed on a
+	// future-signed assertion BEFORE the deny table, so the real wall
+	// clock would mask the denial under test after the fixture base time.
+	sig := ed25519.Sign(roguePriv, Assertion{Version: PayloadV1, KeyID: KeyIDFor(roguePub), Payload: payload("x"), SignedAt: *setClock}.canonical())
 	for _, purpose := range []Purpose{PurposeReceiptReconciliation, PurposeNewTransfer} {
-		res, err := reg.Verify(Assertion{Version: PayloadV1, KeyID: KeyIDFor(roguePub), Payload: payload("x"), SignedAt: time.Now().Truncate(time.Second), Signature: sig}, purpose)
+		res, err := reg.Verify(Assertion{Version: PayloadV1, KeyID: KeyIDFor(roguePub), Payload: payload("x"), SignedAt: *setClock, Signature: sig}, purpose)
 		denyReason(t, res, err, ReasonKeyUnregistered, purpose)
 	}
 }
@@ -102,14 +105,16 @@ func TestSelfSignedAssertionAloneProvesNothing(t *testing.T) {
 // Registered-but-not-Active → KEY_NOT_ACTIVE, even with a fully valid
 // signature (the possession half passes, the authorization half denies).
 func TestRegisteredButNotActiveCannotAuthorize(t *testing.T) {
-	reg, _, _, _, _ := newFixture(t)
+	reg, _, _, _, setClock := newFixture(t)
 	ceremony := Ceremony{SessionProof: "session-ref-2", UserConfirmed: true}
 	pub2, priv2, _ := Generate()
 	if _, err := reg.Register(ceremony, pub2, Binding{UserID: "user-1", DeviceID: "device-3", WorkspaceID: "ws-1"}); err != nil {
 		t.Fatalf("register 2: %v", err)
 	}
 	id2 := KeyIDFor(pub2)
-	signed := Assertion{Version: PayloadV1, KeyID: id2, Payload: payload("pending-2"), SignedAt: time.Now().Truncate(time.Second)}
+	// Signed at the registry's fixture clock — same fail-closed rule as
+	// the unregistered-key test above.
+	signed := Assertion{Version: PayloadV1, KeyID: id2, Payload: payload("pending-2"), SignedAt: *setClock}
 	signed.Signature = ed25519.Sign(priv2, signed.canonical())
 	res, err := reg.Verify(signed, PurposeNewTransfer)
 	denyReason(t, res, err, ReasonKeyNotActive, PurposeNewTransfer)
