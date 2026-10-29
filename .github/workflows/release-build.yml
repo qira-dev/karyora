@@ -85,10 +85,8 @@ jobs:
           sha256sum "$RUNNER_TEMP/llvm-mingw.zip"
           mkdir -p /c/llvm-mingw
           /c/Windows/System32/tar.exe -xf "$RUNNER_TEMP/llvm-mingw.zip" -C /c/llvm-mingw
-          {
-            echo 'C:\llvm-mingw\llvm-mingw-20261020-ucrt-x86_64\bin'
-            echo "CC_NAME=C:/llvm-mingw/llvm-mingw-20261020-ucrt-x86_64/bin/aarch64-w64-mingw32-gcc.exe"
-          } >> "$GITHUB_ENV"
+          echo 'C:\llvm-mingw\llvm-mingw-20261020-ucrt-x86_64\bin' >> "$GITHUB_PATH"
+          echo "CC_NAME=C:/llvm-mingw/llvm-mingw-20261020-ucrt-x86_64/bin/aarch64-w64-mingw32-gcc.exe" >> "$GITHUB_ENV"
       - name: record builder and toolchain facts
         shell: bash
         run: |
