@@ -22,6 +22,11 @@ name: release-build
 # (the release cut). If GitHub retires a runner label, the affected row
 # degrades honestly and this comment says so (the ci.yml convention).
 #
+# Two jobs: `build` (C5-14 §6 stage 2, the six rows above) and
+# `verify-release-artifacts` (§6 stage 3 — the independent digest/
+# provenance verification plus the stage-4 no-secret-bundle check; it
+# comments its own checks in detail).
+#
 # The stamped version identifier: tag pushes stamp the tag; dispatch builds
 # stamp the explicit non-release identifier "0.0.0-dev" — release version
 # naming is a later CR-5.2 decision and the cmd/uawp scaffold rule ("this
@@ -61,6 +66,22 @@ jobs:
       # Action tags are pinned to immutable commit SHAs (the ci.yml
       # supply-chain convention; C5-14 §4.2 item 2).
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # The windows images' Git ships core.autocrlf=true, which smudges the
+      # checked-out go.mod/go.sum to CRLF. The stage-3 verification's
+      # cross-row input-lock invariant (executed against run 40960623466's
+      # bundles before this job shipped) caught the two windows rows
+      # recording CRLF-rendition digests (287be873…/6afffeba…) while the
+      # four Unix rows recorded the committed LF bytes (46fdba4e…/deec03d4…).
+      # Re-checkout with autocrlf disabled pins the input-lock files to
+      # their committed bytes so every row records the same digests (C5-14
+      # §3: the input lock binds the REVISION, not a runner's working-copy
+      # rendition; the §6 stage-3 job enforces the invariant).
+      - name: pin the input-lock files to their committed bytes (Windows autocrlf guard)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config core.autocrlf false
+          git checkout HEAD -- go.mod go.sum
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
@@ -152,5 +173,216 @@ jobs:
         with:
           name: release-${{ matrix.row }}
           path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  verify-release-artifacts:
+    # C5-14 §6 stage 3 — the INDEPENDENT verification stage. The design's
+    # binding rule (§3): digests are computed by the build job and
+    # re-computed INDEPENDENTLY by a separate verification job; a digest the
+    # second computation does not reproduce FAILS the pipeline. This job
+    # runs on a different runner than every build row and does NOT check out
+    # the source tree: it verifies the UPLOADED artifacts against the run's
+    # own GitHub context (github.sha / github.ref / github.run_id supply the
+    # truth), implementing the §5.2 verification policy mechanically at
+    # build time (§5.3) with §5.2 item 4's fail-closed rule — a typed
+    # refusal, never partial acceptance. The source tree is not needed: the
+    # artifacts carry every fact this job checks.
+    #
+    # Checks, in order (any failure fails the job):
+    #   1. Presence — all six per-row bundles (binary + SHA256SUMS + the §5.1
+    #      provenance record) must exist; a missing row is a failure.
+    #   2. Per row — the recomputed sha256 must equal BOTH the bundle's
+    #      SHA256SUMS entry AND the record's subject.sha256; the record must
+    #      carry the full §5.1 field set (validated against cmd/genprovenance's
+    #      schema: presence + consistency — no drifting values are hardcoded;
+    #      fields the run context supplies as truth are compared against it).
+    #   3. Cross-row identity invariants — source.revision, source.ref,
+    #      builder.workflow + workflow_commit, builder.run_id, and the
+    #      input-lock triple (dependency-map version + go.mod/go.sum digests)
+    #      must be IDENTICAL across all six records.
+    #   4. The stage-4 release extension (C5-13 §9.1(2) "no build-time secret
+    #      files shipped", bound via C5-15 §8) — a fast pattern scan over
+    #      EVERY downloaded bundle file, binaries included. This mirrors the
+    #      pre-push fast pattern-scan convention (Software/AGENT.md 14); the
+    #      tree-level gitleaks/semgrep/trivy gate keeps running in ci.yml's
+    #      security job — stage 4's main line. The private-key-block pattern
+    #      targets the design's stated objects (PEM private-key blocks)
+    #      rather than the bare -----BEGIN prefix, which false-positives on
+    #      the Go standard library's compiled-in PEM header constants (e.g.
+    #      crypto/tls's "-----BEGIN RSA TESTING KEY-----", verified against
+    #      the run 40960623466 bundles).
+    #   5. The aggregated release-SHA256SUMS.txt over the six binaries
+    #      (recomputed HERE — never copied from the bundles, sha256sum -c
+    #      format, sorted) is uploaded as the release-manifest artifact and
+    #      every digest is printed: the logs are the audit record (§4.2
+    #      item 5; there is no credential material in these artifacts). The
+    #      manifest is carried UNMODIFIED into the release evidence bundle
+    #      (§3; C5-32 consumes it).
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Action tags are pinned to immutable commit SHAs (C5-14 §4.2 item 2).
+      - name: download the six per-row bundles
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: bundles
+      - name: verify digests, provenance, cross-row identity, and the no-secret-bundle rule; emit the manifest
+        env:
+          RUN_SHA: ${{ github.sha }}
+          RUN_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          # Expected per-row bundle identity. The row set mirrors this
+          # workflow's build matrix (same file, one maintenance unit); the
+          # provenance record's per-row fields are checked against it so a
+          # row cannot ship under another row's identity.
+          ROWS=(
+            "windows-amd64|uawp-windows-amd64.exe|windows|amd64|windows-latest"
+            "windows-arm64|uawp-windows-arm64.exe|windows|arm64|windows-11-arm"
+            "macos-amd64|uawp-darwin-amd64|darwin|amd64|macos-15-intel"
+            "macos-arm64|uawp-darwin-arm64|darwin|arm64|macos-latest"
+            "linux-amd64|uawp-linux-amd64|linux|amd64|ubuntu-latest"
+            "linux-arm64|uawp-linux-arm64|linux|arm64|ubuntu-24.04-arm"
+          )
+
+          fail() { echo "verify-release-artifacts: FAIL: $*" >&2; exit 1; }
+          hex64() { printf '%s' "$1" | grep -qE '^[0-9a-f]{64}$'; }
+
+          # 1. Presence (fail-closed): every one of the six bundles.
+          for spec in "${ROWS[@]}"; do
+            IFS='|' read -r row art _goos _goarch _runner <<< "$spec"
+            for f in "$art" "SHA256SUMS-${row}.txt" "${art}.provenance.json"; do
+              [ -f "bundles/$f" ] || fail "row=${row}: bundle file missing: bundles/$f"
+            done
+          done
+          echo "verify-release-artifacts: all six bundles present"
+
+          # 2 + 3. Per-row digest/provenance verification and the cross-row
+          # identity invariants.
+          prev_rev=""; prev_ref=""; prev_wf=""; prev_wfc=""; prev_rid=""; prev_dep=""; prev_gm=""; prev_gs=""
+          for spec in "${ROWS[@]}"; do
+            IFS='|' read -r row art goos goarch runner <<< "$spec"
+            sums="bundles/SHA256SUMS-${row}.txt"
+            rec="bundles/${art}.provenance.json"
+
+            # The recomputed digest must match BOTH the bundle's SHA256SUMS
+            # entry AND the provenance subject (§3, §5.2 item 1). Both
+            # sha256sum line modes are accepted: text ("digest  name") and
+            # the binary-mode marker the windows rows' sha256sum emits
+            # ("digest *name") — both are standard `sha256sum -c` grammar.
+            recomputed=$(sha256sum "bundles/$art" | cut -d' ' -f1)
+            [ "$(wc -l < "$sums")" -eq 1 ] || fail "row=${row}: SHA256SUMS-${row}.txt must carry exactly one entry"
+            grep -qE "^[0-9a-f]{64} [ *]${art}\$" "$sums" || fail "row=${row}: SHA256SUMS-${row}.txt is not sha256sum -c format for ${art}"
+            sums_digest=$(awk '{print $1}' "$sums")
+            [ "$recomputed" = "$sums_digest" ] || fail "row=${row}: recomputed sha256 ${recomputed} != SHA256SUMS entry ${sums_digest}"
+
+            # The §5.1 record schema (cmd/genprovenance's v1 predicate).
+            [ "$(jq -r '.record_type // empty' "$rec")" = "uawp-release-provenance" ] || fail "row=${row}: record_type is not uawp-release-provenance"
+            [ "$(jq -r '.predicate // empty' "$rec")" = "uawp-build-provenance/v1" ] || fail "row=${row}: predicate is not uawp-build-provenance/v1"
+            [ "$(jq -r '.subject.name // empty' "$rec")" = "$art" ] || fail "row=${row}: provenance subject.name != ${art}"
+            subj=$(jq -r '.subject.sha256 // empty' "$rec")
+            hex64 "$subj" || fail "row=${row}: provenance subject.sha256 is not a sha256 hex digest"
+            [ "$subj" = "$recomputed" ] || fail "row=${row}: provenance subject.sha256 != recomputed digest"
+
+            # Run-context truths: the record's run-bound fields must equal
+            # THIS run's GitHub context.
+            rev=$(jq -r '.source.revision // empty' "$rec")
+            [ "$rev" = "$RUN_SHA" ] || fail "row=${row}: source.revision != the run's commit SHA (${RUN_SHA})"
+            ref=$(jq -r '.source.ref // empty' "$rec")
+            [ "$ref" = "$RUN_REF" ] || fail "row=${row}: source.ref != the run's ref (${RUN_REF})"
+            wf=$(jq -r '.builder.workflow // empty' "$rec")
+            [ "$wf" = ".github/workflows/release-build.yml" ] || fail "row=${row}: builder.workflow mismatch"
+            wfc=$(jq -r '.builder.workflow_commit // empty' "$rec")
+            [ "$wfc" = "$RUN_SHA" ] || fail "row=${row}: builder.workflow_commit != the run's commit SHA"
+            rid=$(jq -r '.builder.run_id // empty' "$rec")
+            [ "$rid" = "$RUN_ID" ] || fail "row=${row}: builder.run_id != this workflow run (${RUN_ID})"
+
+            # Builder identity: present and consistent with the row.
+            [ "$(jq -r '.builder.runner_label // empty' "$rec")" = "$runner" ] || fail "row=${row}: builder.runner_label != the row's runner (${runner})"
+            [ -n "$(jq -r '.builder.runner_image // empty' "$rec")" ] || fail "row=${row}: builder.runner_image missing"
+            [ "$(jq -r '.builder.job // empty' "$rec")" = "build ${row}" ] || fail "row=${row}: builder.job != build ${row}"
+
+            # Toolchain + input lock: present, well-formed.
+            [ -n "$(jq -r '.toolchain.go // empty' "$rec")" ] || fail "row=${row}: toolchain.go missing"
+            [ -n "$(jq -r '.toolchain.c_compiler // empty' "$rec")" ] || fail "row=${row}: toolchain.c_compiler missing"
+            dep=$(jq -r '.input_lock.dependency_map_version // empty' "$rec")
+            [ -n "$dep" ] || fail "row=${row}: input_lock.dependency_map_version missing"
+            gm=$(jq -r '.input_lock.go_mod_sha256 // empty' "$rec")
+            hex64 "$gm" || fail "row=${row}: input_lock.go_mod_sha256 is not a sha256 hex digest"
+            gs=$(jq -r '.input_lock.go_sum_sha256 // empty' "$rec")
+            hex64 "$gs" || fail "row=${row}: input_lock.go_sum_sha256 is not a sha256 hex digest"
+
+            # Environment facts: the design-fixed values and the row's target.
+            [ "$(jq -r '.environment.cgo_enabled // empty' "$rec")" = "1" ] || fail "row=${row}: environment.cgo_enabled != 1 (release builds are native CGO builds, D-09)"
+            [ "$(jq -r '.environment.goos // empty' "$rec")" = "$goos" ] || fail "row=${row}: environment.goos != ${goos}"
+            [ "$(jq -r '.environment.goarch // empty' "$rec")" = "$goarch" ] || fail "row=${row}: environment.goarch != ${goarch}"
+            jq -e '(.environment.build_flags | type == "array") and (.environment.build_flags | length > 0)' "$rec" >/dev/null 2>&1 \
+              || fail "row=${row}: environment.build_flags missing or empty"
+            flags=$(jq -r '.environment.build_flags | join(" ")' "$rec")
+            case "$flags" in *-trimpath*) ;; *) fail "row=${row}: build_flags do not include -trimpath";; esac
+            case "$flags" in *"main.version="*) ;; *) fail "row=${row}: stamped main.version missing from build_flags";; esac
+            case "$flags" in *"main.commit=${RUN_SHA}"*) ;; *) fail "row=${row}: stamped main.commit != the run's commit SHA";; esac
+            case "$flags" in *"main.buildDate="*) ;; *) fail "row=${row}: stamped main.buildDate missing from build_flags";; esac
+            ts=$(jq -r '.environment.build_timestamp_utc // empty' "$rec")
+            printf '%s' "$ts" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$' \
+              || fail "row=${row}: environment.build_timestamp_utc is not RFC3339 UTC (${ts:-missing})"
+
+            # Cross-row identity invariants: every row must share the same
+            # values (§6 stage 3; any divergence is a failure).
+            if [ -n "$prev_rev" ]; then
+              [ "$rev" = "$prev_rev" ] || fail "cross-row: source.revision diverges at row=${row}"
+              [ "$ref" = "$prev_ref" ] || fail "cross-row: source.ref diverges at row=${row}"
+              [ "$wf" = "$prev_wf" ] || fail "cross-row: builder.workflow diverges at row=${row}"
+              [ "$wfc" = "$prev_wfc" ] || fail "cross-row: builder.workflow_commit diverges at row=${row}"
+              [ "$rid" = "$prev_rid" ] || fail "cross-row: builder.run_id diverges at row=${row}"
+              [ "$dep" = "$prev_dep" ] || fail "cross-row: input_lock.dependency_map_version diverges at row=${row}"
+              [ "$gm" = "$prev_gm" ] || fail "cross-row: input_lock.go_mod_sha256 diverges at row=${row}"
+              [ "$gs" = "$prev_gs" ] || fail "cross-row: input_lock.go_sum_sha256 diverges at row=${row}"
+            fi
+            prev_rev="$rev"; prev_ref="$ref"; prev_wf="$wf"; prev_wfc="$wfc"; prev_rid="$rid"; prev_dep="$dep"; prev_gm="$gm"; prev_gs="$gs"
+
+            echo "verify-release-artifacts: row=${row} OK (subject ${recomputed})"
+          done
+
+          # 4. Stage-4 extension: no build-time secret material in ANY
+          # downloaded bundle file. The private-key-block pattern is the
+          # design's stated target (PEM private-key blocks) — see the job
+          # comment for why the bare -----BEGIN prefix is not used. The
+          # credential-assignment shapes are matched case-insensitively.
+          pem_pat='-----BEGIN( [A-Z0-9]+)* PRIVATE KEY( BLOCK)?-----|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|github_pat_|xox[baprs]-'
+          ci_pat='password[[:space:]]*=|api[_-]?key[[:space:]]*='
+          hits=$(grep -rlE -- "$pem_pat" bundles/ || true)
+          [ -z "$hits" ] || fail "bundle secret-scan (stage-4 extension, C5-13 §9.1(2)) hit secret-shaped material in: $(echo "$hits" | tr '\n' ' ')"
+          hits=$(grep -rliE -- "$ci_pat" bundles/ || true)
+          [ -z "$hits" ] || fail "bundle secret-scan (stage-4 extension, C5-13 §9.1(2)) hit credential-shaped material in: $(echo "$hits" | tr '\n' ' ')"
+          echo "verify-release-artifacts: bundle secret-scan clean over every downloaded file"
+
+          # 5. The aggregated manifest, recomputed over the binaries here
+          # (sha256sum -c format: digest, two spaces, filename; sorted by
+          # filename) and printed — the logs are the audit record (§4.2
+          # item 5). The in-job `sha256sum -c` self-check proves the format.
+          : > release-SHA256SUMS.txt
+          for spec in "${ROWS[@]}"; do
+            IFS='|' read -r row art _goos _goarch _runner <<< "$spec"
+            d=$(sha256sum "bundles/$art" | cut -d' ' -f1)
+            printf '%s  %s\n' "$d" "$art" >> release-SHA256SUMS.txt
+            echo "verify-release-artifacts: manifest ${art} sha256 ${d}"
+          done
+          sort -k2 -o release-SHA256SUMS.txt release-SHA256SUMS.txt
+          ( cd bundles && sha256sum -c ../release-SHA256SUMS.txt )
+          echo "verify-release-artifacts: release-SHA256SUMS.txt emitted and self-checked"
+          echo "verify-release-artifacts: PASS (6/6 rows verified)"
+      - name: upload the aggregated manifest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-manifest
+          path: release-SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
