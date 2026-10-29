@@ -9,12 +9,16 @@ name: release-build
 # row builds natively on its own runner.
 #
 # Each job emits the v1 raw artifact bundle for its row: the uawp binary,
-# a SHA256SUMS digest file, and the §5.1 provenance predicate record
-# (cmd/genprovenance). The record is a provenance-style attestation — NO
-# SLSA or reproducible-build claim is made (C5-14 §5.4). The build never
-# holds signing keys (C5-13 §5.2); the signing stage stays BLOCKED
-# (C5-13 §9.2). Native package formats (MSI/pkg/deb/rpm/portable) are the
-# C5-15 transformation of these bundles.
+# a SHA256SUMS digest file, the §5.1 provenance predicate record
+# (cmd/genprovenance), and the C5-16 SPDX-2.3 SBOM of the binary (syft
+# v1.55.0 — the generator/validator pin lives in the Core CR-5.2 C5-16
+# SBOM Tooling Proof-before-Pin Record). The provenance record is a
+# provenance-style attestation and the SBOM is a component inventory —
+# NO SLSA or reproducible-build claim is made (C5-14 §5.4) and NO
+# benignity claim (C5-16 §5). The build never holds signing keys
+# (C5-13 §5.2); the signing stage stays BLOCKED (C5-13 §9.2). Native
+# package formats (MSI/pkg/deb/rpm/portable) are the C5-15 transformation
+# of these bundles.
 #
 # This workflow publishes NOTHING: artifacts live on the workflow run only
 # (Software/AGENT.md 13 — release is owner-controlled). Triggers:
@@ -42,6 +46,15 @@ on:
 
 permissions:
   contents: read
+
+env:
+  # The C5-16 SBOM tooling, pinned by the Core CR-5.2 C5-16 SBOM Tooling
+  # Proof-before-Pin Record (§1–§3; proof executed 2026-10-30): syft
+  # v1.55.0 — the six per-platform archive digests each build row verifies
+  # fail-closed before use — and the SPDX Project's official spdx-tools
+  # validator, pinned exactly, which the verify job runs over every SBOM.
+  SYFT_VERSION: "1.55.0"
+  SPDX_TOOLS_VERSION: "0.8.3"
 
 jobs:
   build:
@@ -168,6 +181,61 @@ jobs:
             --build-date "${STAMP_DATE}" \
             --out "dist/${ART}.provenance.json"
           ( cd dist && sha256sum "${ART}" > "SHA256SUMS-${{ matrix.row }}.txt" )
+      - name: emit the SPDX SBOM of the built binary (C5-16 §14)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The pinned SBOM generator (Core CR-5.2 C5-16 SBOM Tooling
+          # Proof-before-Pin Record): the official syft v1.55.0 archive for
+          # THIS runner, downloaded and verified fail-closed against the
+          # pinned digest before use — the record-and-verify pattern of the
+          # llvm-mingw step, upgraded to verify (C5-14 §4.2 item 5). Per-row
+          # generation needs a uniform digest-pinned tool on all six rows;
+          # trivy was rejected for exactly this step because its official
+          # releases ship no windows-ARM64 binary (the record's §1).
+          case "${RUNNER_OS}-${RUNNER_ARCH}" in
+            Linux-X64)     asset="syft_${SYFT_VERSION}_linux_amd64.tar.gz";  expect="bb65249542db5fedeeb4d3f9b018b75e7264dbfbbb10486f044581a92f90490d" ;;
+            Linux-ARM64)   asset="syft_${SYFT_VERSION}_linux_arm64.tar.gz";  expect="929bd163db2d7cd2255d3bcb8967208079813d7b46b0c952f7b794d8e2c7d304" ;;
+            Darwin-X64)    asset="syft_${SYFT_VERSION}_darwin_amd64.tar.gz"; expect="e2e5831cbabaec9a36fe65c34755c1113982c842a685edce3ce0b54a0ded8003" ;;
+            Darwin-ARM64)  asset="syft_${SYFT_VERSION}_darwin_arm64.tar.gz"; expect="1217c258bd5eb91ef3189cf22a82e02f9cac07e4ce934350f428e93aff674625" ;;
+            Windows-X64)   asset="syft_${SYFT_VERSION}_windows_amd64.zip";   expect="ada4c9b93af575f479ce80fce6629897272a2d41f300a14bc49bace020767ca2" ;;
+            Windows-ARM64) asset="syft_${SYFT_VERSION}_windows_arm64.zip";   expect="f52f7796e41e4d1ae511c228c99239fd09887077336dcb7a8c2aa7046ed7c816" ;;
+            *) echo "syft: no pinned archive for runner ${RUNNER_OS}-${RUNNER_ARCH}" >&2; exit 1 ;;
+          esac
+          curl -fsSL -o "$RUNNER_TEMP/syft-archive" \
+            "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${asset}"
+          actual=$(sha256sum "$RUNNER_TEMP/syft-archive" | cut -d' ' -f1)
+          echo "syft ${SYFT_VERSION} archive ${asset} sha256 ${actual}"
+          [ "$actual" = "$expect" ] || { echo "syft: archive digest mismatch (expected ${expect})" >&2; exit 1; }
+          mkdir -p "$RUNNER_TEMP/syft-bin"
+          case "$asset" in
+            *.zip) /c/Windows/System32/tar.exe -xf "$RUNNER_TEMP/syft-archive" -C "$RUNNER_TEMP/syft-bin" ;;
+            *)     tar -xzf "$RUNNER_TEMP/syft-archive" -C "$RUNNER_TEMP/syft-bin" ;;
+          esac
+          ls -la "$RUNNER_TEMP/syft-bin"
+          SYFT="$RUNNER_TEMP/syft-bin/syft"
+          [ -x "$SYFT" ] || SYFT="$RUNNER_TEMP/syft-bin/syft.exe"
+          [ -x "$SYFT" ] || { echo "syft: binary not found after extraction" >&2; exit 1; }
+          ART="uawp-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
+          # Generation: the Go module set (direct + transitive + stdlib) read
+          # from the binary's embedded buildinfo — declared-dependency
+          # granularity only (C5-16 §5 limits 1–2; licenseConcluded stays
+          # NOASSERTION — no license conclusion before C5-22/D-31).
+          "$SYFT" "dist/${ART}" -o "spdx-json=dist/${ART}.spdx.json"
+          # Generation-time validation, fail-closed (C5-16 §14): the pinned
+          # generator re-parses its own document; the required document
+          # fields are present; the subject binding — the binary's exact
+          # sha256 — is inside the document. The independent spec-level
+          # validation (official spdx-tools) runs in the verify job.
+          "$SYFT" "spdx-json:dist/${ART}.spdx.json" > /dev/null
+          grep -q '"spdxVersion":"SPDX-2.3"' "dist/${ART}.spdx.json"
+          grep -q '"dataLicense":"CC0-1.0"' "dist/${ART}.spdx.json"
+          grep -q '"SPDXID":"SPDXRef-DOCUMENT"' "dist/${ART}.spdx.json"
+          grep -q '"creationInfo"' "dist/${ART}.spdx.json"
+          grep -q "\"name\":\"${ART}\"" "dist/${ART}.spdx.json"
+          grep -qF "$(sha256sum "dist/${ART}" | cut -d' ' -f1)" "dist/${ART}.spdx.json" \
+            || { echo "syft: SBOM does not carry the binary's sha256 subject binding" >&2; exit 1; }
+          echo "syft SBOM emitted + generation-validated: dist/${ART}.spdx.json"
       - name: upload the per-row artifact bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -201,7 +269,19 @@ jobs:
     #      builder.workflow + workflow_commit, builder.run_id, and the
     #      input-lock triple (dependency-map version + go.mod/go.sum digests)
     #      must be IDENTICAL across all six records.
-    #   4. The stage-4 release extension (C5-13 §9.1(2) "no build-time secret
+    #   4. The C5-16 SBOM per row (Core CR-5.2 C5-16 SBOM Tooling
+    #      Proof-before-Pin Record): presence in the bundle; the required
+    #      SPDX-2.3 document fields (jq, format-level); the subject
+    #      binding — the document's single DESCRIBES relationship from
+    #      SPDXRef-DOCUMENT must resolve to an element carrying the
+    #      row's RECOMPUTED binary sha256; the module set (main module,
+    #      stdlib, the D-09 go-sqlite3 driver); and the official
+    #      spdx-tools validation over every SBOM (spec-level validity,
+    #      independent of the generator). licenseConcluded stays
+    #      NOASSERTION — no license conclusion before C5-22/D-31; the
+    #      six C5-16 §5 completeness limits are carried by the
+    #      proof-before-pin record, never silently omitted.
+    #   5. The stage-4 release extension (C5-13 §9.1(2) "no build-time secret
     #      files shipped", bound via C5-15 §8) — a fast pattern scan over
     #      EVERY downloaded bundle file, binaries included. This mirrors the
     #      pre-push fast pattern-scan convention (Software/AGENT.md 14); the
@@ -211,8 +291,10 @@ jobs:
     #      rather than the bare -----BEGIN prefix, which false-positives on
     #      the Go standard library's compiled-in PEM header constants (e.g.
     #      crypto/tls's "-----BEGIN RSA TESTING KEY-----", verified against
-    #      the run 40960623466 bundles).
-    #   5. The aggregated release-SHA256SUMS.txt over the six binaries
+    #      the run 40960623466 bundles). The C5-16 SBOM files are scanned
+    #      like every other bundle file — no exception (confirmed in the
+    #      log).
+    #   6. The aggregated release-SHA256SUMS.txt over the six binaries
     #      (recomputed HERE — never copied from the bundles, sha256sum -c
     #      format, sorted) is uploaded as the release-manifest artifact and
     #      every digest is printed: the logs are the audit record (§4.2
@@ -258,11 +340,11 @@ jobs:
           # 1. Presence (fail-closed): every one of the six bundles.
           for spec in "${ROWS[@]}"; do
             IFS='|' read -r row art _goos _goarch _runner <<< "$spec"
-            for f in "$art" "SHA256SUMS-${row}.txt" "${art}.provenance.json"; do
+            for f in "$art" "SHA256SUMS-${row}.txt" "${art}.provenance.json" "${art}.spdx.json"; do
               [ -f "bundles/$f" ] || fail "row=${row}: bundle file missing: bundles/$f"
             done
           done
-          echo "verify-release-artifacts: all six bundles present"
+          echo "verify-release-artifacts: all six bundles present (binary + SHA256SUMS + provenance record + C5-16 SBOM)"
 
           # 2 + 3. Per-row digest/provenance verification and the cross-row
           # identity invariants.
@@ -334,6 +416,42 @@ jobs:
             printf '%s' "$ts" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$' \
               || fail "row=${row}: environment.build_timestamp_utc is not RFC3339 UTC (${ts:-missing})"
 
+            # 4. The C5-16 SBOM (Core CR-5.2 C5-16 SBOM Tooling
+            # Proof-before-Pin Record): required document fields, the
+            # subject binding, and the module set. The spec-level official
+            # validation of every SBOM runs once after this loop.
+            sbom="bundles/${art}.spdx.json"
+            [ "$(jq -r '.spdxVersion // empty' "$sbom")" = "SPDX-2.3" ] || fail "row=${row}: SBOM spdxVersion is not SPDX-2.3"
+            [ "$(jq -r '.dataLicense // empty' "$sbom")" = "CC0-1.0" ] || fail "row=${row}: SBOM dataLicense is not CC0-1.0"
+            [ "$(jq -r '.SPDXID // empty' "$sbom")" = "SPDXRef-DOCUMENT" ] || fail "row=${row}: SBOM SPDXID is not SPDXRef-DOCUMENT"
+            [ "$(jq -r '.name // empty' "$sbom")" = "$art" ] || fail "row=${row}: SBOM document name != ${art}"
+            [ -n "$(jq -r '.creationInfo.created // empty' "$sbom")" ] || fail "row=${row}: SBOM creationInfo.created missing"
+            jq -e --arg v "Tool: syft-${SYFT_VERSION}" 'any(.creationInfo.creators[]?; . == $v)' "$sbom" >/dev/null 2>&1 \
+              || fail "row=${row}: SBOM creationInfo.creators missing Tool: syft-${SYFT_VERSION} (the pinned generator)"
+            # Subject binding, digest-exact: the document's single DESCRIBES
+            # relationship from SPDXRef-DOCUMENT must resolve to one element
+            # whose checksums carry the RECOMPUTED binary sha256 (above).
+            dtarget=$(jq -r '[.relationships[] | select(.relationshipType == "DESCRIBES" and .spdxElementId == "SPDXRef-DOCUMENT") | .relatedSpdxElement] | if length == 1 then .[0] else empty end' "$sbom")
+            [ -n "$dtarget" ] || fail "row=${row}: SBOM must carry exactly one DESCRIBES relationship from SPDXRef-DOCUMENT"
+            jq -e --arg t "$dtarget" --arg d "$recomputed" \
+              '([.packages[], .files[]] | map(select(.SPDXID == $t)) | length == 1)
+               and
+               ((([.packages[], .files[]] | map(select(.SPDXID == $t)) | .[0].checksums) // [])
+                  | map(select(.algorithm == "SHA256" and .checksumValue == $d)) | length > 0)' \
+              "$sbom" >/dev/null 2>&1 \
+              || fail "row=${row}: SBOM DESCRIBES target does not carry the recomputed subject sha256"
+            # The module set (declared-dependency granularity, C5-16 §5
+            # limit 1): the main module, the stdlib, and the D-09 driver
+            # identity must be present. Versions are NOT asserted here —
+            # the release-time binding records compare them against the
+            # C5-12 lock (C5-21/C5-32).
+            jq -e '.packages[]? | select(.name == "github.com/qira-dev/karyora")' "$sbom" >/dev/null 2>&1 \
+              || fail "row=${row}: SBOM missing the main module package"
+            jq -e '.packages[]? | select(.name == "stdlib") | select((.versionInfo // "") | test("^go"))' "$sbom" >/dev/null 2>&1 \
+              || fail "row=${row}: SBOM missing the stdlib package"
+            jq -e '.packages[]? | select(.name == "github.com/mattn/go-sqlite3")' "$sbom" >/dev/null 2>&1 \
+              || fail "row=${row}: SBOM missing the go-sqlite3 package (the D-09 driver identity)"
+
             # Cross-row identity invariants: every row must share the same
             # values (§6 stage 3; any divergence is a failure).
             if [ -n "$prev_rev" ]; then
@@ -351,7 +469,22 @@ jobs:
             echo "verify-release-artifacts: row=${row} OK (subject ${recomputed})"
           done
 
-          # 4. Stage-4 extension: no build-time secret material in ANY
+          # 4 (cont.). The official SPDX validation of every row's SBOM —
+          # spec-level validity from the format owner's own validator
+          # (spdx-tools, pinned exactly by the proof-before-pin record),
+          # independent of the generator. pyspdxtools is silent on valid
+          # documents and exits nonzero with a typed error otherwise (its
+          # fail-closed behavior was proven against a tampered document
+          # before this pin).
+          pip install --disable-pip-version-check --quiet "spdx-tools==${SPDX_TOOLS_VERSION}"
+          for spec in "${ROWS[@]}"; do
+            IFS='|' read -r row art _goos _goarch _runner <<< "$spec"
+            pyspdxtools --infile "bundles/${art}.spdx.json" \
+              || fail "row=${row}: the official SPDX validator (spdx-tools ${SPDX_TOOLS_VERSION}) rejected ${art}.spdx.json"
+          done
+          echo "verify-release-artifacts: all six SBOMs validate against SPDX-2.3 (official spdx-tools ${SPDX_TOOLS_VERSION})"
+
+          # 5. Stage-4 extension: no build-time secret material in ANY
           # downloaded bundle file. The private-key-block pattern is the
           # design's stated target (PEM private-key blocks) — see the job
           # comment for why the bare -----BEGIN prefix is not used. The
@@ -363,8 +496,11 @@ jobs:
           hits=$(grep -rliE -- "$ci_pat" bundles/ || true)
           [ -z "$hits" ] || fail "bundle secret-scan (stage-4 extension, C5-13 §9.1(2)) hit credential-shaped material in: $(echo "$hits" | tr '\n' ' ')"
           echo "verify-release-artifacts: bundle secret-scan clean over every downloaded file"
+          # Explicit confirmation (C5-16): the SBOM documents were inside
+          # the scanned set above — no exception was made for them.
+          echo "verify-release-artifacts: the no-secret scan included the C5-16 SBOM documents ($(find bundles -name '*.spdx.json' | wc -l) file(s))"
 
-          # 5. The aggregated manifest, recomputed over the binaries here
+          # 6. The aggregated manifest, recomputed over the binaries here
           # (sha256sum -c format: digest, two spaces, filename; sorted by
           # filename) and printed — the logs are the audit record (§4.2
           # item 5). The in-job `sha256sum -c` self-check proves the format.
