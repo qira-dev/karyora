@@ -26,7 +26,7 @@ func uid(name string) string { return fmt.Sprintf("%s-%d", name, runStamp) }
 // REMOTESTORE_TEST_DSN; when unset the DB fixtures SKIP (recorded as Not
 // Run for that run, never a pass).
 
-func testStore(t *testing.T) *Store {
+func testStore(t testing.TB) *Store {
 	t.Helper()
 	dsn := os.Getenv("REMOTESTORE_TEST_DSN")
 	if dsn == "" {
@@ -46,7 +46,7 @@ func testStore(t *testing.T) *Store {
 	return store
 }
 
-func seedWorkspace(t *testing.T, s *Store, id string) {
+func seedWorkspace(t testing.TB, s *Store, id string) {
 	t.Helper()
 	if _, err := s.pool.Exec(context.Background(),
 		`INSERT INTO workspaces (id, org_id) VALUES ($1, $1) ON CONFLICT DO NOTHING`, id); err != nil {

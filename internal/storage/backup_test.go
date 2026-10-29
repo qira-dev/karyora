@@ -16,7 +16,7 @@ import (
 // both a cas_references row and a journal event with a digest+blob
 // reference (the committed-reference shapes the snapshot inventory
 // extracts).
-func recordCASBackedEvent(t *testing.T, s *Store, correlationID string, data []byte) string {
+func recordCASBackedEvent(t testing.TB, s *Store, correlationID string, data []byte) string {
 	t.Helper()
 	digest, err := s.cas.Put(context.Background(), data)
 	if err != nil {

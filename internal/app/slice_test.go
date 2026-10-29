@@ -107,7 +107,10 @@ func (f *flippingExecutor) Connection() dprovider.Connection {
 	return f.inner.Connection()
 }
 
-func newTestEnv(t *testing.T) *testEnv {
+// newTestEnv builds the fixture environment; it accepts testing.TB so the
+// C5-10 benchmark harnesses (bench_c510_test.go) reuse the identical
+// wiring the conformance fixtures use.
+func newTestEnv(t testing.TB) *testEnv {
 	t.Helper()
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "karyora.db")

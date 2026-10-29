@@ -31,7 +31,7 @@ import (
 // tenant") is NOT RUN — no restore surface exists in this phase; the row
 // stays with the backup/restore milestones that own it.
 
-func testStoreWithBlob(t *testing.T) *Store {
+func testStoreWithBlob(t testing.TB) *Store {
 	t.Helper()
 	s := testStore(t) // skips unless REMOTESTORE_TEST_DSN is set
 	endpoint := os.Getenv("REMOTESTORE_TEST_S3_ENDPOINT")
