@@ -196,15 +196,20 @@ jobs:
           case "${RUNNER_OS}-${RUNNER_ARCH}" in
             Linux-X64)     asset="syft_${SYFT_VERSION}_linux_amd64.tar.gz";  expect="bb65249542db5fedeeb4d3f9b018b75e7264dbfbbb10486f044581a92f90490d" ;;
             Linux-ARM64)   asset="syft_${SYFT_VERSION}_linux_arm64.tar.gz";  expect="929bd163db2d7cd2255d3bcb8967208079813d7b46b0c952f7b794d8e2c7d304" ;;
-            Darwin-X64)    asset="syft_${SYFT_VERSION}_darwin_amd64.tar.gz"; expect="e2e5831cbabaec9a36fe65c34755c1113982c842a685edce3ce0b54a0ded8003" ;;
-            Darwin-ARM64)  asset="syft_${SYFT_VERSION}_darwin_arm64.tar.gz"; expect="1217c258bd5eb91ef3189cf22a82e02f9cac07e4ce934350f428e93aff674625" ;;
+            macOS-X64)     asset="syft_${SYFT_VERSION}_darwin_amd64.tar.gz"; expect="e2e5831cbabaec9a36fe65c34755c1113982c842a685edce3ce0b54a0ded8003" ;;
+            macOS-ARM64)   asset="syft_${SYFT_VERSION}_darwin_arm64.tar.gz"; expect="1217c258bd5eb91ef3189cf22a82e02f9cac07e4ce934350f428e93aff674625" ;;
             Windows-X64)   asset="syft_${SYFT_VERSION}_windows_amd64.zip";   expect="ada4c9b93af575f479ce80fce6629897272a2d41f300a14bc49bace020767ca2" ;;
             Windows-ARM64) asset="syft_${SYFT_VERSION}_windows_arm64.zip";   expect="f52f7796e41e4d1ae511c228c99239fd09887077336dcb7a8c2aa7046ed7c816" ;;
             *) echo "syft: no pinned archive for runner ${RUNNER_OS}-${RUNNER_ARCH}" >&2; exit 1 ;;
           esac
           curl -fsSL -o "$RUNNER_TEMP/syft-archive" \
             "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/${asset}"
-          actual=$(sha256sum "$RUNNER_TEMP/syft-archive" | cut -d' ' -f1)
+          # GNU sha256sum escapes the whole output line with a leading
+          # backslash when the hashed PATH contains backslashes — the
+          # Windows $RUNNER_TEMP is a Windows path, so field 1 can carry
+          # that escape prefix (the first dispatch's digest guard caught
+          # exactly this). Strip it: the digest itself is bare hex.
+          actual=$(sha256sum "$RUNNER_TEMP/syft-archive" | cut -d' ' -f1 | tr -d '\\')
           echo "syft ${SYFT_VERSION} archive ${asset} sha256 ${actual}"
           [ "$actual" = "$expect" ] || { echo "syft: archive digest mismatch (expected ${expect})" >&2; exit 1; }
           mkdir -p "$RUNNER_TEMP/syft-bin"
@@ -223,11 +228,15 @@ jobs:
           # NOASSERTION — no license conclusion before C5-22/D-31).
           "$SYFT" "dist/${ART}" -o "spdx-json=dist/${ART}.spdx.json"
           # Generation-time validation, fail-closed (C5-16 §14): the pinned
-          # generator re-parses its own document; the required document
-          # fields are present; the subject binding — the binary's exact
-          # sha256 — is inside the document. The independent spec-level
-          # validation (official spdx-tools) runs in the verify job.
-          "$SYFT" "spdx-json:dist/${ART}.spdx.json" > /dev/null
+          # generator must DECODE its own document as an SBOM (syft convert
+          # fails closed on non-SBOM or truncated input — negative-controlled
+          # in the proof-before-pin record; a bare-path invocation would
+          # merely catalog the file and exit 0 regardless of SBOM validity);
+          # the required document fields are present; the subject binding —
+          # the binary's exact sha256 — is inside the document. The
+          # independent spec-level validation (official spdx-tools) runs in
+          # the verify job.
+          "$SYFT" convert "dist/${ART}.spdx.json" -o json > /dev/null
           grep -q '"spdxVersion":"SPDX-2.3"' "dist/${ART}.spdx.json"
           grep -q '"dataLicense":"CC0-1.0"' "dist/${ART}.spdx.json"
           grep -q '"SPDXID":"SPDXRef-DOCUMENT"' "dist/${ART}.spdx.json"
