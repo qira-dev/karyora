@@ -67,15 +67,38 @@ jobs:
           # The module cache is keyed by the locked go.sum hash and
           # re-verified by the toolchain (C5-14 §4.2 item 1).
           cache: true
+      - name: install the native ARM64 C toolchain (windows/arm64 row only)
+        if: matrix.row == 'windows-arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The windows-11-arm hosted image's PATH gcc is the x86_64 MinGW
+          # build — it cannot assemble the ARM64 runtime/cgo sources (the
+          # second dispatch failed exactly there), so this row installs the
+          # PINNED llvm-mingw aarch64-w64-mingw32 toolchain. The toolchain
+          # is x86_64-hosted and runs under Windows-on-ARM emulation; its
+          # exact version lands in the §5.1 record's c_compiler field
+          # (record-and-verify, C5-14 §7.3) and the zip digest is printed
+          # for the run log (C5-14 §4.2 item 5).
+          curl -fsSL -o "$RUNNER_TEMP/llvm-mingw.zip" \
+            https://github.com/mstorsjo/llvm-mingw/releases/download/20261020/llvm-mingw-20261020-ucrt-x86_64.zip
+          sha256sum "$RUNNER_TEMP/llvm-mingw.zip"
+          mkdir -p /c/llvm-mingw
+          /c/Windows/System32/tar.exe -xf "$RUNNER_TEMP/llvm-mingw.zip" -C /c/llvm-mingw
+          {
+            echo 'C:\llvm-mingw\llvm-mingw-20261020-ucrt-x86_64\bin'
+            echo "CC_NAME=C:/llvm-mingw/llvm-mingw-20261020-ucrt-x86_64/bin/aarch64-w64-mingw32-gcc.exe"
+          } >> "$GITHUB_ENV"
       - name: record builder and toolchain facts
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$RUNNER_OS" = "macOS" ]; then CC_BIN=clang; else CC_BIN=gcc; fi
+          CC_BIN="${CC_NAME:-gcc}"
+          if [ "$RUNNER_OS" = "macOS" ]; then CC_BIN=clang; fi
           {
             echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-unknown}"
             echo "GO_VERSION=$(go env GOVERSION)"
-            echo "CC_VERSION=$($CC_BIN --version | head -n 1 | tr -d '\r')"
+            echo "CC_VERSION=$("$CC_BIN" --version | head -n 1 | tr -d '\r')"
             echo "GO_MOD_SHA=$(sha256sum go.mod | cut -d' ' -f1)"
             echo "GO_SUM_SHA=$(sha256sum go.sum | cut -d' ' -f1)"
             echo "DEPMAP_VERSION=$(sed -n 's/^Contract version \([0-9.]*\).*/\1/p' docs/architecture/dependency-map.md | head -n 1)"
@@ -88,6 +111,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           set -euo pipefail
+          if [ -n "${CC_NAME:-}" ]; then export CC="$CC_NAME"; fi
           STAMP_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           LDFLAGS="-X main.version=${STAMP_VERSION} -X main.commit=${GITHUB_SHA} -X main.buildDate=${STAMP_DATE}"
           go build -trimpath -ldflags "$LDFLAGS" \
