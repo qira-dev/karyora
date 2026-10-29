@@ -22,8 +22,15 @@ import (
 
 // version is the scaffold build identifier. Reproducible build metadata is
 // stamped by the build pipeline (-ldflags -X) per the build-evidence
-// protocol; this value is not a release version.
-var version = "0.0.0-scaffold"
+// protocol; this value is not a release version. commit and buildDate
+// complete the protocol's stamped identity (version, commit, build date);
+// all three are pipeline-stamped, never hand-edited.
+var (
+	version = "0.0.0-scaffold"
+	commit  = "none"
+	// buildDate carries the RFC3339 UTC stamp of the release build.
+	buildDate = "unknown"
+)
 
 func main() {
 	os.Exit(run(context.Background(), os.Args[1:], os.Stdout))
@@ -50,7 +57,7 @@ func run(ctx context.Context, args []string, stdout *os.File) int {
 	case "credential":
 		return cmdCredential(ctx, flags, out, ordered)
 	case "version":
-		out.text("karyora core " + version)
+		out.text("karyora core " + version + " (" + commit + " " + buildDate + ")")
 		return int(runtime.ExitOK)
 	case "help", "":
 		out.text(loc.Text(runtime.KeyHelpUsage))

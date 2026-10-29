@@ -1,0 +1,132 @@
+name: release-build
+
+# C5-14 §6 stage 2 — the per-target release build (CR-5.2). The v1 builder
+# is the existing GitHub hosted-runner fleet (the C4-28-proven labels; the
+# hosted-runner selection is the owner's 2026-10-30 standing delegation of
+# C5-14 §7.2). One job = one target = one ephemeral environment (§4.2).
+# CGO is ON per D-09: internal/storage and cmd/uawp — the SQLite
+# composition root — build only under the native CGO toolchain, so every
+# row builds natively on its own runner.
+#
+# Each job emits the v1 raw artifact bundle for its row: the uawp binary,
+# a SHA256SUMS digest file, and the §5.1 provenance predicate record
+# (cmd/genprovenance). The record is a provenance-style attestation — NO
+# SLSA or reproducible-build claim is made (C5-14 §5.4). The build never
+# holds signing keys (C5-13 §5.2); the signing stage stays BLOCKED
+# (C5-13 §9.2). Native package formats (MSI/pkg/deb/rpm/portable) are the
+# C5-15 transformation of these bundles.
+#
+# This workflow publishes NOTHING: artifacts live on the workflow run only
+# (Software/AGENT.md 13 — release is owner-controlled). Triggers:
+# workflow_dispatch (manual and C5-20 evidence runs) and v* tag pushes
+# (the release cut). If GitHub retires a runner label, the affected row
+# degrades honestly and this comment says so (the ci.yml convention).
+#
+# The stamped version identifier: tag pushes stamp the tag; dispatch builds
+# stamp the explicit non-release identifier "0.0.0-dev" — release version
+# naming is a later CR-5.2 decision and the cmd/uawp scaffold rule ("this
+# value is not a release version") stands until then. commit and buildDate
+# complete the build-evidence protocol's stamped identity (version, commit,
+# build date).
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build ${{ matrix.row }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The six C5-11-approved rows; the runner labels are TODAY'S
+          # labels (the same fleet the plugin-runtime-conformance matrix
+          # proves per row).
+          - { row: windows-amd64, runner: windows-latest,   goos: windows, goarch: amd64, ext: .exe }
+          - { row: windows-arm64, runner: windows-11-arm,   goos: windows, goarch: arm64, ext: .exe }
+          - { row: macos-amd64,   runner: macos-15-intel,   goos: darwin,  goarch: amd64, ext: "" }
+          - { row: macos-arm64,   runner: macos-latest,     goos: darwin,  goarch: arm64, ext: "" }
+          - { row: linux-amd64,   runner: ubuntu-latest,    goos: linux,   goarch: amd64, ext: "" }
+          - { row: linux-arm64,   runner: ubuntu-24.04-arm, goos: linux,   goarch: arm64, ext: "" }
+    env:
+      STAMP_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '0.0.0-dev' }}
+    steps:
+      # Action tags are pinned to immutable commit SHAs (the ci.yml
+      # supply-chain convention; C5-14 §4.2 item 2).
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          # The module cache is keyed by the locked go.sum hash and
+          # re-verified by the toolchain (C5-14 §4.2 item 1).
+          cache: true
+      - name: record builder and toolchain facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$RUNNER_OS" = "macOS" ]; then CC_BIN=clang; else CC_BIN=gcc; fi
+          {
+            echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-unknown}"
+            echo "GO_VERSION=$(go env GOVERSION)"
+            echo "CC_VERSION=$($CC_BIN --version | head -n 1 | tr -d '\r')"
+            echo "GO_MOD_SHA=$(sha256sum go.mod | cut -d' ' -f1)"
+            echo "GO_SUM_SHA=$(sha256sum go.sum | cut -d' ' -f1)"
+            echo "DEPMAP_VERSION=$(sed -n 's/^Contract version \([0-9.]*\).*/\1/p' docs/architecture/dependency-map.md | head -n 1)"
+          } >> "$GITHUB_ENV"
+      - name: build uawp (CGO on, -trimpath, stamped identity)
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          STAMP_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-X main.version=${STAMP_VERSION} -X main.commit=${GITHUB_SHA} -X main.buildDate=${STAMP_DATE}"
+          go build -trimpath -ldflags "$LDFLAGS" \
+            -o "dist/uawp-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}" ./cmd/uawp
+          {
+            echo "STAMP_DATE=${STAMP_DATE}"
+            echo "LDFLAGS_USED=${LDFLAGS}"
+          } >> "$GITHUB_ENV"
+      - name: emit digests + the §5.1 provenance record
+        shell: bash
+        run: |
+          set -euo pipefail
+          ART="uawp-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
+          go run ./cmd/genprovenance \
+            --artifact "dist/${ART}" \
+            --name "${ART}" \
+            --revision "${GITHUB_SHA}" \
+            --ref "${GITHUB_REF}" \
+            --runner-label "${{ matrix.runner }}" \
+            --runner-image "${RUNNER_IMAGE}" \
+            --go-version "${GO_VERSION}" \
+            --cc-version "${CC_VERSION}" \
+            --dependency-map-version "${DEPMAP_VERSION}" \
+            --workflow ".github/workflows/release-build.yml" \
+            --workflow-commit "${GITHUB_SHA}" \
+            --run-id "${GITHUB_RUN_ID}" \
+            --job "build ${{ matrix.row }}" \
+            --cgo "1" \
+            --goos "${{ matrix.goos }}" \
+            --goarch "${{ matrix.goarch }}" \
+            --build-flags "-trimpath" \
+            --build-ldflags "${LDFLAGS_USED}" \
+            --build-date "${STAMP_DATE}" \
+            --out "dist/${ART}.provenance.json"
+          ( cd dist && sha256sum "${ART}" > "SHA256SUMS-${{ matrix.row }}.txt" )
+      - name: upload the per-row artifact bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ matrix.row }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
