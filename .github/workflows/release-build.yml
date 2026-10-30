@@ -308,6 +308,10 @@ jobs:
                 packaging/windows/uawp.wxs
               "$WIX/light.exe" -out "dist/karyora-core-${PKG_VERSION}-windows-${{ matrix.goarch }}.msi" \
                 "$RUNNER_TEMP/uawp.wixobj"
+              # The debug database is a build-side artifact, not a
+              # publishable file — it leaves the bundle (PACKAGES and the
+              # manifest never carried it; this keeps the bundle honest).
+              rm -f dist/*.wixpdb
               ;;
             macOS)
               # pkgbuild (the runner's native tool — the OS build itself
@@ -371,14 +375,16 @@ jobs:
             *) echo "packaging: no format story for runner ${RUNNER_OS}" >&2; exit 1 ;;
           esac
           # The per-row package digest file (sha256sum -c format; the row's
-          # whole publishable package set). Written from INSIDE dist so the
-          # entries carry bare names — no dist/ prefix to strip (and no
-          # sed -i, whose BSD form differs from GNU's — the second dispatch
-          # caught that on the macOS rows). UNSIGNED — recorded, never
-          # hidden (C5-13 §9.2).
+          # whole publishable package set). Written from INSIDE dist, and
+          # the loop iterates EVERY dist entry filtered by the package
+          # extensions — the deb's name carries UNDERSCORES
+          # (name_version_arch.deb, the dpkg convention), so a
+          # karyora-core-* glob silently missed it on the fourth dispatch;
+          # an extension filter cannot. UNSIGNED — recorded, never hidden
+          # (C5-13 §9.2).
           ( cd dist
             : > "PACKAGES-${{ matrix.row }}.txt"
-            for f in karyora-core-*; do
+            for f in *; do
               case "$f" in
                 *.msi|*.pkg|*.deb|*.rpm|*portable.tar.gz)
                   sha256sum "$f" >> "PACKAGES-${{ matrix.row }}.txt" ;;
@@ -676,18 +682,28 @@ jobs:
             case "$goos" in
               windows)
                 [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*-windows-*.msi')" ] \
-                  || pkgfail "row=${row}: the MSI package is missing (C5-15 §14)" ;;
+                  || pkgfail "row=${row}: the MSI package is missing (C5-15 §14)"
+                expected=1 ;;
               darwin)
                 [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*-macos-*.pkg')" ] \
-                  || pkgfail "row=${row}: the pkg package is missing (C5-15 §14)" ;;
+                  || pkgfail "row=${row}: the pkg package is missing (C5-15 §14)"
+                expected=1 ;;
               linux)
                 [ -n "$(find bundles -maxdepth 1 -name 'karyora-core_*.deb')" ] \
                   || pkgfail "row=${row}: the deb package is missing (C5-15 §14)"
                 [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*.rpm')" ] \
                   || pkgfail "row=${row}: the rpm package is missing (C5-15 §14)"
                 [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*-portable.tar.gz')" ] \
-                  || pkgfail "row=${row}: the portable archive is missing (C5-15 §14)" ;;
+                  || pkgfail "row=${row}: the portable archive is missing (C5-15 §14)"
+                expected=3 ;;
             esac
+            # Completeness, not just validity: the PACKAGES file must carry
+            # EXACTLY the row's format set — the fourth dispatch's deb
+            # (underscore-named, per the dpkg convention) was silently
+            # omitted from a karyora-core-* glob, which presence checks
+            # alone cannot catch.
+            [ "$(grep -c . "$pf")" -eq "$expected" ] \
+              || pkgfail "row=${row}: PACKAGES-${row}.txt carries $(grep -c . "$pf") entries, expected ${expected} (the full C5-15 §14 format set)"
             while IFS= read -r line; do
               [ -n "$line" ] || continue
               d=$(printf '%s' "$line" | awk '{print $1}')
