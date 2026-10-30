@@ -57,7 +57,18 @@
     </Directory>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="UawpExe" Guid="12AE98C5-EDE2-4A91-B439-2BC788FB4A7D">
-        <File Id="UawpExeFile" Source="$(var.BinaryPath)" KeyPath="yes" />
+        <File Id="UawpExeFile" Source="$(var.BinaryPath)" />
+        <!-- Per-user components key on an HKCU registry value (ICE38);
+             the value records the install and nothing else. -->
+        <RegistryValue Root="HKCU" Key="Software\Qira Dev\Karyora Core"
+                       Name="installed" Type="integer" Value="1" KeyPath="yes" />
+        <!-- ICE64: the user-profile directories are removed on uninstall
+             ONLY IF EMPTY (RemoveFolder semantics) — any file the user
+             placed there survives, and the user-data classes are never
+             touched (C5-15 §5.0). -->
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveDirKaryora" Directory="DirKaryora" On="uninstall" />
+        <RemoveFolder Id="RemoveDirPrograms" Directory="DirPrograms" On="uninstall" />
         <!-- The per-user PATH entry: product files only; nothing else. -->
         <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]"
                      Permanent="no" Part="last" Action="set" />
