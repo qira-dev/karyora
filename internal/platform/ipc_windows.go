@@ -13,7 +13,7 @@ import (
 // runtime class, and every request still carries the per-instance
 // capability token (C2-08 §5) — the same trust shape as the darwin family.
 var peerAuthorized func(net.Conn) bool
-//
+
 // The endpoint is a REAL AF_UNIX socket file in the runtime class, NOT a
 // \\.\pipe\ named-pipe address: Windows AF_UNIX (afunix.sys) binds
 // filesystem paths, and binding the pipe namespace fails with WSAENETDEAD
