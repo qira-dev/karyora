@@ -268,55 +268,63 @@ func (s *AuditService) Record(rec AuditRecord) error {
 	tail, err := s.store.Tail()
 	if err != nil {
 		// Transient pressure: absorb into the quota if room remains.
-		return s.absorbLocked(tail, payload, err)
+		return s.absorbLocked(payload, err)
 	}
 	if err := s.appendOne(tail, payload); err != nil {
-		return s.absorbLocked(tail, payload, err)
+		return s.absorbLocked(payload, err)
 	}
 	return nil
 }
 
 // drainLocked flushes buffered records head-first; the first failure stops
-// the drain (the buffer keeps order).
+// the drain (the buffer keeps order). The chain fields are assigned HERE,
+// from the store's live tail — never at buffer time: a record buffered
+// while the store was unreachable (the lazy pre-open window, e.g. a
+// crash-recovered start's first lifecycle events) would otherwise carry a
+// chain position computed from a zero tail that collides with the durable
+// chain and could never be appended (the C5-20 lifecycle evidence caught
+// exactly that: every later stop reported "N audit records remain
+// buffered").
 func (s *AuditService) drainLocked() error {
+	tail, err := s.store.Tail()
+	if err != nil {
+		// The store is still unreachable: keep buffering.
+		return nil
+	}
 	for len(s.pending) > 0 {
-		head := s.pending[0]
-		if err := s.store.Append(head); err != nil {
+		payload := s.pending[0].Payload
+		rec := ChainedRecord{
+			Sequence: tail.Sequence + 1,
+			PrevHash: tail.RecHash,
+			RecHash:  ChainHash(tail.RecHash, tail.Sequence+1, payload),
+			Payload:  payload,
+		}
+		if err := s.store.Append(rec); err != nil {
 			if broken, berr := s.store.IntegrityBroken(); berr == nil && broken {
 				return errAuditUnavailable("audit chain integrity broken; writes stopped")
 			}
 			return nil // store still under pressure; keep buffering
 		}
 		s.pending = s.pending[1:]
-		if head.Sequence%s.checkpointInterval == 0 {
-			_ = s.store.Anchor(Anchor{Sequence: head.Sequence, Hash: head.RecHash})
+		tail = TailState{Sequence: rec.Sequence, RecHash: rec.RecHash}
+		if rec.Sequence%s.checkpointInterval == 0 {
+			_ = s.store.Anchor(Anchor{Sequence: rec.Sequence, Hash: rec.RecHash})
 		}
 	}
 	return nil
 }
 
-// absorbLocked buffers one record inside the reserved quota; a full quota
-// denies.
-func (s *AuditService) absorbLocked(tail TailState, payload []byte, cause error) error {
+// absorbLocked buffers one record's payload inside the reserved quota; a
+// full quota denies. The chain position is deliberately NOT assigned here:
+// it is computed at drain time from the store's live tail (drainLocked).
+func (s *AuditService) absorbLocked(payload []byte, cause error) error {
 	if broken, berr := s.store.IntegrityBroken(); berr == nil && broken {
 		return errAuditUnavailable("audit chain integrity broken; writes stopped")
 	}
 	if len(s.pending) >= s.quota {
 		return errAuditUnavailable("audit reserved quota exhausted: " + cause.Error())
 	}
-	seq := tail.Sequence + uint64(len(s.pending)) + 1
-	prev := tail.RecHash
-	if len(s.pending) > 0 {
-		last := s.pending[len(s.pending)-1]
-		seq = last.Sequence + 1
-		prev = last.RecHash
-	}
-	s.pending = append(s.pending, ChainedRecord{
-		Sequence: seq,
-		PrevHash: prev,
-		RecHash:  ChainHash(prev, seq, payload),
-		Payload:  append([]byte(nil), payload...),
-	})
+	s.pending = append(s.pending, ChainedRecord{Payload: append([]byte(nil), payload...)})
 	return nil
 }
 

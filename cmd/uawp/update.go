@@ -464,7 +464,12 @@ func (h *probeHealthChecker) probe(ctx context.Context, spec updater.HealthCheck
 		"--data-dir", h.dataDir,
 		"--schema-to", strconv.Itoa(spec.MigrationTo),
 		"--json"}
-	cmd := exec.CommandContext(runCtx, h.binaryPath, cmdArgs...)
+	// The C5-18 S8 design (the composition root's process-level health
+	// checker): the spawned path is the machine's own InstallPath — the
+	// digest-verified candidate the machine just swapped in — and every
+	// argument is a constant literal or a resolved local path/integer.
+	// There is no user- or network-controlled input in the command line.
+	cmd := exec.CommandContext(runCtx, h.binaryPath, cmdArgs...) // nosemgrep
 	out, err := cmd.Output()
 	if err != nil {
 		return false, "the health probe did not complete cleanly: " + boundedProbeErr(err, out)
