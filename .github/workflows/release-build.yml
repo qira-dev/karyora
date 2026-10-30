@@ -371,17 +371,21 @@ jobs:
             *) echo "packaging: no format story for runner ${RUNNER_OS}" >&2; exit 1 ;;
           esac
           # The per-row package digest file (sha256sum -c format; the row's
-          # whole publishable package set). UNSIGNED — recorded, never
+          # whole publishable package set). Written from INSIDE dist so the
+          # entries carry bare names — no dist/ prefix to strip (and no
+          # sed -i, whose BSD form differs from GNU's — the second dispatch
+          # caught that on the macOS rows). UNSIGNED — recorded, never
           # hidden (C5-13 §9.2).
-          : > "dist/PACKAGES-${{ matrix.row }}.txt"
-          for f in dist/karyora-core-*; do
-            case "$f" in
-              *.msi|*.pkg|*.deb|*.rpm|*portable.tar.gz)
-                sha256sum "$f" >> "dist/PACKAGES-${{ matrix.row }}.txt" ;;
-            esac
-          done
-          sed -i 's|dist/||' "dist/PACKAGES-${{ matrix.row }}.txt"
-          ( cd dist && sha256sum -c "PACKAGES-${{ matrix.row }}.txt" )
+          ( cd dist
+            : > "PACKAGES-${{ matrix.row }}.txt"
+            for f in karyora-core-*; do
+              case "$f" in
+                *.msi|*.pkg|*.deb|*.rpm|*portable.tar.gz)
+                  sha256sum "$f" >> "PACKAGES-${{ matrix.row }}.txt" ;;
+              esac
+            done
+            sha256sum -c "PACKAGES-${{ matrix.row }}.txt"
+          )
           echo "packaging: $(grep -c . "dist/PACKAGES-${{ matrix.row }}.txt") package file(s) for row ${{ matrix.row }} (UNSIGNED — signing BLOCKED, C5-13 §9.2)"
       - name: upload the per-row artifact bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

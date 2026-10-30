@@ -38,8 +38,8 @@
     <Package InstallerVersion="500"
              Compressed="yes"
              InstallScope="perUser"
-             Description="Karyora Core — the Unified AI Work Platform desktop product (uawp)"
-             Comments="Installs the product files only; user data is never touched (C5-15 §5.0)." />
+             Description="Karyora Core - the Unified AI Work Platform desktop product (uawp)"
+             Comments="Installs the product files only; user data is never touched (C5-15 section 5.0)." />
     <MajorUpgrade AllowSameVersionUpgrades="yes"
                   DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate EmbedCab="yes" />
