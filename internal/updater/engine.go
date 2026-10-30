@@ -49,155 +49,11 @@ func (e *Engine) quarantined(st ClientState) bool {
 // required). Any failure is a typed Outcome; nothing is ever partially
 // accepted.
 func (e *Engine) RunUpdate(ctx context.Context) (Outcome, error) {
-	st, err := loadState(e.Layout)
-	if err != nil {
-		return Outcome{}, err
-	}
-	j, err := loadJournal(e.Layout)
-	if err != nil {
-		return Outcome{}, err
-	}
-	if j != nil {
-		// §5.2: an unresolved journal means reconciliation must run first —
-		// the machine never starts a new update on a mid-flight one.
-		return Outcome{State: StateRefused, Reason: ReasonJournalPending,
-			Detail: "an update is mid-flight; run startup reconciliation first"}, nil
+	st, manifest, out, ok, err := e.metadataPhase(ctx)
+	if err != nil || !ok {
+		return out, err
 	}
 
-	// --- S1 METADATA_CHECK (T1/T2; the C5-17 §7 order) ---
-	bundle, err := e.Fetcher.Fetch(ctx)
-	if err != nil {
-		e.audit(ctx, EventUpdateCheck, string(ReasonFetchFailed), "", "metadata fetch failed")
-		// R1/M9: nothing downloaded, nothing changed; the persisted state
-		// (including any cached/expired metadata) authorizes nothing.
-		return Outcome{State: StateRefused, Reason: ReasonFetchFailed, Detail: err.Error()}, nil
-	}
-	// T1's audit event records the fetch result on the success path too.
-	e.audit(ctx, EventUpdateCheck, "ok", "", "the metadata bundle was fetched")
-	if e.quarantined(st) {
-		// R15/L8: clock discontinuity — no freshness decision, no install.
-		e.audit(ctx, EventUpdateCheck, string(ReasonClockQuarantine), "", "wall-clock discontinuity quarantines freshness decisions")
-		return Outcome{State: StateRefused, Reason: ReasonClockQuarantine,
-			Detail: "the wall clock jumped backwards; freshness decisions are quarantined this run"}, nil
-	}
-
-	// Root metadata (optional in the bundle): verify under the PINNED root
-	// key, check ITS expiry (per-release expiry binds the root too), and
-	// enforce root-version monotonicity (the forged-transition refusal —
-	// M7b). Acceptance updates the persisted delegation (the chain-of-trust
-	// step — M7a).
-	signerKey := st.ReleaseSignerKey
-	signerFP := st.ReleaseSignerKeyFingerprint
-	rootVersion := st.RootVersionSeen
-	rootExpiry := st.RootExpiresAt
-	if bundle.Root != nil {
-		rp, err := VerifyRoot(bundle.Root, e.PinnedRoot.Key)
-		if err != nil {
-			e.audit(ctx, EventUpdateCheck, string(reasonOf(err)), "", "root metadata refused")
-			return Outcome{State: StateRefused, Reason: reasonOf(err), Detail: err.Error()}, nil
-		}
-		if !e.Clock().Before(rp.ExpiresAt) {
-			// The root metadata itself is expired: the whole bundle is not
-			// fresh (C5-17 §9.1's binding rule: the values apply identically
-			// to the manifest and root metadata structures) → X2.
-			return e.pause(ctx, st, string(ReasonExpired), "root metadata expired at "+rp.ExpiresAt.UTC().Format(timeRFC3339))
-		}
-		if rp.RootVersion < rootVersion {
-			e.audit(ctx, EventUpdateCheck, string(ReasonVersionRollback), "", "root metadata version rolled back")
-			return Outcome{State: StateRefused, Reason: ReasonVersionRollback,
-				Detail: "root metadata version is below the persisted highest-seen"}, nil
-		}
-		// Chain maintained (M7a): a NEWER root version under the pinned
-		// root's own signature is the legitimate transition; the persisted
-		// delegation advances atomically with it (no split-brain: the
-		// manifest below must bind THIS root version).
-		rootVersion = rp.RootVersion
-		rootExpiry = rp.ExpiresAt
-		signerKey = rp.ReleaseSigner.PublicKey
-		signerFP = Fingerprint(rp.ReleaseSigner.PublicKey)
-	}
-	if len(signerKey) == 0 {
-		// No root in the bundle and no persisted delegation: the manifest has
-		// no trust anchor — refuse (fail-closed; never trust a bare key).
-		return Outcome{State: StateRefused, Reason: ReasonSignatureInvalid,
-			Detail: "no trusted release-signer delegation is available to verify the manifest"}, nil
-	}
-
-	// Manifest: signature over the exact payload bytes under the delegated
-	// signer, then the payload bounds (validity FIRST — never freshness).
-	manifest, payloadBytes, err := VerifyManifest(&bundle.Manifest, signerKey)
-	if err != nil {
-		e.audit(ctx, EventUpdateCheck, string(reasonOf(err)), "", "manifest refused")
-		return Outcome{State: StateRefused, Reason: reasonOf(err), Detail: err.Error()}, nil
-	}
-	// Consistency (M10): the manifest must bind the root version whose
-	// delegation verified it — any cross-release combination is refused.
-	if manifest.RootVersion != rootVersion {
-		e.audit(ctx, EventUpdateCheck, string(ReasonInconsistent), "", "manifest/root version mismatch")
-		return Outcome{State: StateRefused, Reason: ReasonInconsistent,
-			Detail: "the manifest binds a different root version than the verified root metadata"}, nil
-	}
-
-	// Freshness AFTER validity (C5-17 §7): expiry + the persisted monotonic
-	// state. The expiry value travels inside the signed metadata itself —
-	// the machine never carries an expiry number (per-release expiry).
-	if !e.Clock().Before(manifest.ExpiresAt) {
-		return e.pause(ctx, st, string(ReasonExpired), "manifest expired at "+manifest.ExpiresAt.UTC().Format(timeRFC3339))
-	}
-	manifestDigest := sha256Hex(payloadBytes)
-	if manifest.MetadataVersion < st.HighestSeenMetadataVersion {
-		// R4/M2/M3: stale replay or a signed rollback — the persisted state
-		// governs; nothing is reset, nothing is downloaded.
-		e.audit(ctx, EventUpdateCheck, string(ReasonVersionRollback), manifest.ReleaseVersion, "metadata_version below the persisted highest-seen")
-		return Outcome{State: StateRefused, Reason: ReasonVersionRollback, Version: manifest.ReleaseVersion,
-			Detail: "metadata_version is below the persisted highest-seen (rollback refused)"}, nil
-	}
-	if manifest.MetadataVersion == st.HighestSeenMetadataVersion {
-		if manifestDigest != st.HighestSeenManifestDigest {
-			// M11: version reuse — the same monotonic version with DIFFERENT
-			// bytes is refused (a reset/reused version is never legal).
-			e.audit(ctx, EventUpdateCheck, string(ReasonVersionReuse), manifest.ReleaseVersion, "metadata_version reused with different payload")
-			return Outcome{State: StateRefused, Reason: ReasonVersionReuse, Version: manifest.ReleaseVersion,
-				Detail: "metadata_version equals the highest-seen but the payload differs"}, nil
-		}
-		// Idempotent replay of the exact same manifest: no applicable update.
-		e.audit(ctx, EventUpdateCheck, "replay", manifest.ReleaseVersion, "identical manifest; nothing to do")
-		return Outcome{State: StateNoUpdate, Version: manifest.ReleaseVersion}, nil
-	}
-
-	// T2: the metadata is accepted — persist the monotonic state NOW (the
-	// rollback protection survives any later failure), record the
-	// delegation, clear any pause (a fresh valid check exits X2 — the
-	// delegated freeze behavior), and stamp the last-validated time (the
-	// clock-quarantine datum).
-	st.HighestSeenMetadataVersion = manifest.MetadataVersion
-	st.HighestSeenManifestDigest = manifestDigest
-	st.RootVersionSeen = rootVersion
-	st.ReleaseSignerKey = signerKey
-	st.ReleaseSignerKeyFingerprint = signerFP
-	st.RootExpiresAt = rootExpiry
-	st.LastValidated = e.Clock()
-	st.Paused = false
-	st.PauseReason = ""
-	if err := saveState(e.Layout, st); err != nil {
-		return Outcome{}, err
-	}
-	e.audit(ctx, EventUpdateMetadataAccepted, "", manifest.ReleaseVersion, "manifest verified and fresh")
-
-	// --- S2 VERSION_DECISION (P-DOWNGRADE: no downgrades in v1) ---
-	if cmp := CompareVersions(manifest.ReleaseVersion, e.InstalledVersion); cmp < 0 {
-		e.audit(ctx, EventUpdateCheck, string(ReasonDowngradeRefused), manifest.ReleaseVersion, "the served release is older than the installed version")
-		return Outcome{State: StateRefused, Reason: ReasonDowngradeRefused, Version: manifest.ReleaseVersion,
-			Detail: "no downgrades in v1 (C5-17 §9.5): the updater never installs an older release"}, nil
-	}
-	if cmp := CompareVersions(manifest.ReleaseVersion, e.InstalledVersion); cmp == 0 {
-		return Outcome{State: StateNoUpdate, Version: manifest.ReleaseVersion}, nil
-	}
-	if refusedThrough(st, manifest.ReleaseVersion) {
-		e.audit(ctx, EventUpdateCheck, string(ReasonRefusedVersion), manifest.ReleaseVersion, "the release version is at/below a failed update")
-		return Outcome{State: StateRefused, Reason: ReasonRefusedVersion, Version: manifest.ReleaseVersion,
-			Detail: "refused until a NEW release exists (the failed update's version is recorded)"}, nil
-	}
 	// The explicit-consent gate is the caller's responsibility (§9.3);
 	// reaching here means the caller authorized this check-and-apply cycle.
 	e.audit(ctx, EventUpdateSelected, "", manifest.ReleaseVersion, "update selected ("+e.InstalledVersion+" → "+manifest.ReleaseVersion+")")
@@ -246,7 +102,7 @@ func (e *Engine) RunUpdate(ctx context.Context) (Outcome, error) {
 		return Outcome{State: StateRefused, Reason: ReasonDigestMismatch, Version: manifest.ReleaseVersion,
 			Detail: "the staged artifact's sha256 does not match the manifest"}, nil
 	}
-	j = &Journal{
+	j := &Journal{
 		JournalVersion:  journalVer,
 		Phase:           PhaseStaged,
 		OldVersion:      e.InstalledVersion,

@@ -32,6 +32,11 @@ const (
 	KeyCmdStop           = "cmd.stop"
 	KeyCmdStatus         = "cmd.status"
 	KeyCmdDoctor         = "cmd.doctor"
+	KeyCmdUpdate         = "cmd.update"
+	KeyUpdateCurrent     = "update.current"
+	KeyUpdateAvailable   = "update.available"
+	KeyUpdateOutcome     = "update.outcome"
+	KeyUpdateStatusLine  = "update.status_line"
 	KeyStatusLive        = "status.live"
 	KeyStatusNotRunning  = "status.not_running"
 	KeyStatusOwner       = "status.owner"
@@ -53,11 +58,16 @@ const (
 // enCatalog is the English source catalog: the only copy the CLI renders
 // until the UI locale resources supply the other eleven locales.
 var enCatalog = map[string]string{
-	KeyHelpUsage:         "usage: uawp <command> [--json] [--data-dir DIR]\ncommands: start, stop, status, doctor, version",
+	KeyHelpUsage:         "usage: uawp <command> [--json] [--data-dir DIR]\ncommands: start, stop, status, doctor, update, version",
 	KeyCmdStart:          "start the Core in the foreground",
 	KeyCmdStop:           "request a graceful stop of the running Core",
 	KeyCmdStatus:         "print the read-only status report",
 	KeyCmdDoctor:         "run read-only local diagnostics (never repairs)",
+	KeyCmdUpdate:         "update check|apply|status — check for a release, apply one explicitly, or show the update state",
+	KeyUpdateCurrent:     "no applicable update; the installed version is current",
+	KeyUpdateAvailable:   "an update to version {{version}} is available; the apply command installs it explicitly",
+	KeyUpdateOutcome:     "update: state={{state}} reason={{reason}} version={{version}} detail={{detail}}",
+	KeyUpdateStatusLine:  "update state: last-known-good={{lkg}} paused={{paused}} highest-seen-metadata={{metadata}}",
 	KeyStatusLive:        "core is running",
 	KeyStatusNotRunning:  "core is not running",
 	KeyStatusOwner:       "owner",

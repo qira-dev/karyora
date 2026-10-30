@@ -83,6 +83,22 @@ type Journal struct {
 func statePath(layout Layout) string   { return filepath.Join(layout.StateDir, stateFileName) }
 func journalPath(layout Layout) string { return filepath.Join(layout.StateDir, journalFile) }
 
+// ReadStatus reports the persisted client state and any mid-flight journal
+// for the composition root's update-status surface (C2-07 §5: both forms
+// derive from the same report object). A missing state file is the fresh
+// zero state; a corrupt one is the machine's own typed failure.
+func ReadStatus(layout Layout) (ClientState, *Journal, error) {
+	st, err := loadState(layout)
+	if err != nil {
+		return ClientState{}, nil, err
+	}
+	j, err := loadJournal(layout)
+	if err != nil {
+		return st, nil, err
+	}
+	return st, j, nil
+}
+
 // loadState reads the persisted client state; a missing file is the fresh
 // zero state (not an error); a corrupt file is a hard typed failure — the
 // machine never invents state.

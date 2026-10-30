@@ -1,5 +1,28 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.20 (2026-10-30): the release-pipeline sub-milestone 6
+(the C5-18 updater's composition-root wiring, Core CR-5.2) wires the machine
+into the product: `cmd/uawp` gains the `update` surface (check | apply |
+status, plus the internal `update health-probe` mechanism S8's health checker
+spawns) and implements every production port over the delivered packages —
+the HTTPS metadata fetcher and artifact downloader over the configured
+endpoint (the new `update.endpoint_url` config key; C5-17 §4.3 keeps URLs
+out of the signed metadata), the C5-09 backup adapter over
+`internal/storage.Store.Backup`, the C5-16 binding-record resolver over the
+release channel, the process-level health checker (the new binary acquires
+the data-directory lock itself and applies migrations transactionally), the
+audit adapter over `internal/security`'s tamper-evident chain, and the
+delivered single-authority lock (`internal/platform.AcquireOwnership`).
+`internal/updater` gains the Windows activator (`swap_windows.go`, plain
+stdlib os calls — the same rule-4 boundary as the Unix implementation) and
+the exported `CheckForUpdate` (S1/S2 only — C5-18 §9.3's on-demand check
+default; never downloads) and `ReadStatus`. The C5-13 artifact-signature
+layer is REQUIRED and stays fail-closed: the wired production implementation
+refuses every update while signing is BLOCKED (C5-13 §9.2), and the pinned
+root anchor is an out-of-band file whose absence refuses every update the
+same way. No new module dependency and no pin-set change; `internal/updater`
+keeps zero internal imports.
+
 Contract version 1.19 (2026-10-30): the release-pipeline sub-milestone 4
 (the owner-approved C5-18 staged-update state machine, Core CR-5.2) adds
 `internal/updater` — the update machine: the two-key metadata verification

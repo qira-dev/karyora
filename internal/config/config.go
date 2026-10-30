@@ -9,6 +9,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -54,6 +55,11 @@ type Config struct {
 	KnowledgeImportMaxEntries    int
 	KnowledgeSearchMaxResults    int
 	KnowledgeSearchMaxExpansion  int
+	// UpdateEndpointURL is the official update channel's base URL (C5-17
+	// §4.3: the endpoint is configuration, never a field inside the signed
+	// metadata). The default is empty — updates stay honestly disabled until
+	// the release channel is published (C5-15 §9.6, an open owner item).
+	UpdateEndpointURL string
 }
 
 // defaults are the compiled-in baseline (the lowest-precedence source).
@@ -87,6 +93,7 @@ type valueKind int
 const (
 	kindInt valueKind = iota
 	kindSynchronous
+	kindString
 )
 
 type keySpec struct {
@@ -135,6 +142,9 @@ var specs = map[string]keySpec{
 	},
 	"knowledge.search.max_expansion": {
 		env: "KARYORA_KNOWLEDGE_SEARCH_MAX_EXPANSION", kind: kindInt, min: 0, max: 64,
+	},
+	"update.endpoint_url": {
+		env: "KARYORA_UPDATE_ENDPOINT_URL", kind: kindString,
 	},
 }
 
@@ -296,6 +306,25 @@ func coerceValidate(name string, spec keySpec, value any, src string, problems *
 			return bad("UNSUPPORTED_VALUE")
 		}
 		return mode, true
+	case kindString:
+		s, ok := value.(string)
+		if !ok {
+			return bad("INVALID_TYPE")
+		}
+		s = strings.TrimSpace(s)
+		if s == "" {
+			// An explicitly empty value resolves to the unset default (the
+			// honest updates-disabled posture), never an error.
+			return "", true
+		}
+		if len(s) > 2048 {
+			return bad("OUT_OF_RANGE")
+		}
+		u, err := url.Parse(s)
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			return bad("UNSUPPORTED_VALUE")
+		}
+		return s, true
 	}
 	return bad("INVALID_TYPE")
 }
@@ -304,6 +333,8 @@ func normalize(spec keySpec, value any) string {
 	switch spec.kind {
 	case kindSynchronous:
 		return strings.ToUpper(string(value.(Synchronous)))
+	case kindString:
+		return value.(string)
 	default:
 		return strconv.Itoa(value.(int))
 	}
@@ -355,6 +386,8 @@ func assign(out *Config, name string, value any) {
 		out.KnowledgeSearchMaxResults = value.(int)
 	case "knowledge.search.max_expansion":
 		out.KnowledgeSearchMaxExpansion = value.(int)
+	case "update.endpoint_url":
+		out.UpdateEndpointURL = value.(string)
 	}
 }
 

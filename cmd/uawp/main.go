@@ -52,6 +52,8 @@ func run(ctx context.Context, args []string, stdout *os.File) int {
 		return cmdStatus(ctx, flags, out)
 	case "doctor":
 		return cmdDoctor(ctx, flags, out)
+	case "update":
+		return cmdUpdate(ctx, flags, out, ordered)
 	case "job":
 		return cmdJob(ctx, flags, out, ordered)
 	case "credential":

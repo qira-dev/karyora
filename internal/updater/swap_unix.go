@@ -17,9 +17,12 @@ package updater
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 )
+
+// DefaultActivator returns the Unix (Linux/macOS) Mode-A activator; the
+// composition root wires it on these platforms.
+func DefaultActivator() Activator { return RenameActivator{} }
 
 // RenameActivator is the Unix Mode-A activator: copy the current binary to
 // the retain path (the last-known-good anchor), fsync it, then rename the
@@ -60,29 +63,5 @@ func (RenameActivator) Restore(_ context.Context, retainPath, installPath string
 	return nil
 }
 
-// retainCurrent copies the current binary to the retain path with fsync (a
-// plain copy — the anchor must be a durable, independent copy, not a link
-// that a rename could move).
-func retainCurrent(installPath, retainPath string) error {
-	src, err := os.Open(installPath)
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-	dst, err := os.OpenFile(retainPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755)
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(dst, src); err != nil {
-		dst.Close()
-		return err
-	}
-	if err := dst.Sync(); err != nil {
-		dst.Close()
-		return err
-	}
-	if err := dst.Close(); err != nil {
-		return err
-	}
-	return nil
-}
+// retainCurrent (the durable last-known-good anchor copy) lives in
+// swap_common.go, shared with the Windows implementation.
