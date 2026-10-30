@@ -1,0 +1,142 @@
+Karyora (Unified AI Work Platform) — Core
+Copyright 2026 The Karyora Project Authors
+https://github.com/qira-dev/karyora
+
+This product's source code is licensed under the Apache License, Version 2.0.
+The complete license text is distributed with this repository in the LICENSE
+file. This NOTICE file is maintained per Apache License 2.0, Section 4(d), and
+additionally carries the third-party attribution notices below.
+
+The complete pinned third-party module set (names and versions) is recorded in
+go.mod and go.sum at each source tag of this repository. The attribution
+notices below are transcribed from each component's own license or NOTICE file
+as distributed at its pinned version (read from the Go module cache). License
+names are recorded as each component's own license file states them.
+
+================================================================================
+THIRD-PARTY ATTRIBUTION NOTICES
+================================================================================
+
+Components under the Apache License, Version 2.0:
+
+  github.com/minio/minio-go/v7
+  github.com/tetratelabs/wazero
+  go.yaml.in/yaml/v3
+      (its own license file states the project is covered by two different
+      licenses: MIT for the libyaml-ported files and Apache-2.0 for the
+      remaining project files)
+  github.com/minio/crc64nvme
+  github.com/minio/md5-simd
+      (its distribution additionally carries LICENSE.Golang, the Go Authors'
+      BSD-3-Clause text, covering its Go-derived files)
+  gopkg.in/ini.v1
+
+Where a component's distribution includes a NOTICE file, its contents are
+carried verbatim below (Apache License 2.0, Section 4(d)).
+
+---- From github.com/minio/minio-go/v7 ----
+
+MinIO Cloud Storage, (C) 2014-2020 MinIO, Inc.
+
+This product includes software developed at MinIO, Inc.
+(https://min.io/).
+
+The MinIO project contains unmodified/modified subcomponents too with
+separate copyright notices and license terms. Your use of the source
+code for these subcomponents is subject to the terms and conditions
+of Apache License Version 2.0
+
+---- From github.com/tetratelabs/wazero ----
+
+wazero
+Copyright 2020-2023 wazero authors
+
+---- From go.yaml.in/yaml/v3 ----
+
+Copyright 2011-2016 Canonical Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Components under the MIT License (copyright notices as each component's own
+license file states them):
+
+  github.com/jackc/pgx/v5
+      Copyright (c) 2013-2021 Jack Christensen
+  github.com/mattn/go-sqlite3
+      Copyright (c) 2014 Yasuhiro Matsumoto
+  github.com/zalando/go-keyring
+      Copyright (c) 2016 Zalando SE
+  github.com/cespare/xxhash/v2
+      Copyright (c) 2016 Caleb Spare
+  github.com/danieljoos/wincred
+      Copyright (c) 2014 Daniel Joos
+  github.com/dustin/go-humanize
+      Copyright (c) 2005-2008  Dustin Sallings <dustin@spy.net>
+  github.com/jackc/pgpassfile
+      Copyright (c) 2019 Jack Christensen
+  github.com/jackc/pgservicefile
+      Copyright (c) 2020 Jack Christensen
+  github.com/jackc/puddle/v2
+      Copyright (c) 2018 Jack Christensen
+  github.com/klauspost/cpuid/v2
+      Copyright (c) 2015 Klaus Post
+  github.com/philhofer/fwd
+      Copyright (c) 2014-2015, Philip Hofer
+  github.com/rs/xid
+      Copyright (c) 2015 Olivier Poitrey <rs@dailymotion.com>
+  github.com/tinylib/msgp
+      Copyright (c) 2014 Philip Hofer
+      Portions Copyright (c) 2009 The Go Authors (license at http://golang.org) where indicated
+
+Components under the BSD 2-Clause License (copyright notices as each
+component's own license file states them):
+
+  github.com/godbus/dbus/v5
+      Copyright (c) 2013, Georg Reinke (<guelfey at gmail dot com>), Google
+  github.com/zeebo/xxh3
+      Copyright (c) 2012-2014, Yann Collet
+      Copyright (c) 2019, Jeff Wendling
+
+Components under the BSD 3-Clause License (copyright notices as each
+component's own license file states them):
+
+  golang.org/x/sys
+  golang.org/x/crypto
+  golang.org/x/net
+  golang.org/x/sync
+  golang.org/x/text
+      Copyright 2009 The Go Authors.
+  github.com/klauspost/crc32
+      Copyright (c) 2012 The Go Authors. All rights reserved.
+  github.com/google/uuid
+      Copyright (c) 2009,2014 Google Inc. All rights reserved.
+  github.com/klauspost/compress
+      Copyright (c) 2012 The Go Authors. All rights reserved.
+      Copyright (c) 2019 Klaus Post. All rights reserved.
+      (its single LICENSE file carries both the Go Authors' BSD-3-Clause text
+      and a MIT text for the Klaus Post portions)
+
+The Go standard library:
+
+  This product statically links the Go standard library of the building Go
+  toolchain (the recorded release evidence was built with go1.25.14). The
+  standard library's code is Copyright 2009 The Go Authors and is distributed
+  under the Go project's BSD-style three-clause license, the text of which
+  ships with every Go distribution (LICENSE in the Go installation root).
+
+Bundled SQLite C library:
+
+  github.com/mattn/go-sqlite3 bundles the SQLite C library. The SQLite project
+  dedicates all of its code and documentation to the public domain (see
+  sqlite.org/copyright.html); the go-sqlite3 wrapper module's own LICENSE file
+  carries the MIT text listed above.
