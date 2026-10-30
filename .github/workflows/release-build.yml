@@ -57,13 +57,21 @@ env:
   # validator, pinned exactly, which the verify job runs over every SBOM.
   SYFT_VERSION: "1.55.0"
   SPDX_TOOLS_VERSION: "0.8.3"
-  # The C5-15 packaging toolchain pin (record-and-verify per C5-14 §7.3 —
-  # the version is recorded here, printed in each packaging step's log,
-  # and re-verified against the previous release's recorded values at the
-  # release cut; no custom image build). WiX 7.0.1 = nuget's latest stable
-  # wix dotnet tool, checked 2026-10-30; used for both Windows rows' MSI
-  # (per-user, unsigned — Authenticode is the BLOCKED release-day stage).
-  WIX_VERSION: "7.0.1"
+  # The C5-15 packaging toolchain pins (record-and-verify per C5-14 §7.3 —
+  # the versions/digests are recorded here, printed in each packaging
+  # step's log, and re-verified against the previous release's recorded
+  # values at the release cut; no custom image build).
+  # - WiX 3.14.1 (wix3141rtm) for both Windows rows' MSI: the binaries
+  #   zip from the official wixtoolset/wix3 release, digest-pinned below
+  #   and verified fail-closed before use. WHY NOT WiX 5/6/7: those
+  #   toolsets gate every invocation behind the Open Source Maintenance
+  #   Fee (OSMF) EULA — accepting it is a legal act the standing
+  #   delegation does not cover (the first dispatch failed exactly there:
+  #   WIX7015); v3.14.1 carries the classic MS-RL license with no EULA
+  #   gate and supports arm64 MSIs. Wanting v7 is an explicit owner
+  #   decision first. UNSIGNED — Authenticode is the BLOCKED release-day
+  #   stage (C5-13 §9.2).
+  WIX314_DIGEST: "6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31"
 
 jobs:
   build:
@@ -278,27 +286,38 @@ jobs:
           fi
           case "$RUNNER_OS" in
             Windows)
-              # WiX (pinned by env WIX_VERSION; record-and-verify per
-              # C5-14 §7.3): the per-user MSI per C5-15 §5.1 — product
-              # files only, the data directory is not a component.
-              dotnet tool install --global wix --version "${WIX_VERSION}" >/dev/null
-              wix --version
-              WIX="$HOME/.dotnet/tools/wix.exe"
-              [ -x "$WIX" ] || { echo "wix: tool not found after install" >&2; exit 1; }
+              # WiX 3.14.1 (digest-pinned, fail-closed): candle + light
+              # build the per-user MSI per C5-15 §5.1 — product files
+              # only, the data directory is not a component. See the
+              # WIX314_DIGEST env comment for the v3-vs-v5+ toolchain
+              # rationale (the OSMF EULA gate).
+              curl -fsSL -o "$RUNNER_TEMP/wix314-binaries.zip" \
+                https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip
+              actual=$(sha256sum "$RUNNER_TEMP/wix314-binaries.zip" | cut -d' ' -f1 | tr -d '\\')
+              echo "wix314-binaries.zip sha256 ${actual}"
+              [ "$actual" = "${WIX314_DIGEST}" ] || { echo "wix: archive digest mismatch (expected ${WIX314_DIGEST})" >&2; exit 1; }
+              mkdir -p "$RUNNER_TEMP/wix314"
+              /c/Windows/System32/tar.exe -xf "$RUNNER_TEMP/wix314-binaries.zip" -C "$RUNNER_TEMP/wix314"
+              WIX="$RUNNER_TEMP/wix314"
+              [ -f "$WIX/candle.exe" ] && [ -f "$WIX/light.exe" ] || { echo "wix: candle/light not found after extraction" >&2; exit 1; }
               if [ "${{ matrix.goarch }}" = "amd64" ]; then WIXARCH=x64; else WIXARCH=arm64; fi
-              "$WIX" build -arch "$WIXARCH" \
-                -define "ProductVersion=${PKG_VERSION}" \
-                -define "BinaryPath=dist/${ART}" \
-                packaging/windows/uawp.wxs \
-                -o "dist/karyora-core-${PKG_VERSION}-windows-${{ matrix.goarch }}.msi"
+              "$WIX/candle.exe" -arch "$WIXARCH" \
+                -dProductVersion="${PKG_VERSION}" \
+                -dBinaryPath="dist/${ART}" \
+                -out "$RUNNER_TEMP/uawp.wixobj" \
+                packaging/windows/uawp.wxs
+              "$WIX/light.exe" -out "dist/karyora-core-${PKG_VERSION}-windows-${{ matrix.goarch }}.msi" \
+                "$RUNNER_TEMP/uawp.wixobj"
               ;;
             macOS)
-              # pkgbuild (the runner's native tool; version in the log):
-              # the payload at /usr/local/bin/uawp, the bounded postinstall
-              # from packaging/macos (C5-15 §5.2 — data-preserving,
-              # fail-closed). UNSIGNED: Developer ID signing + notarization
-              # are the BLOCKED release-day stage (C5-13 §9.2).
-              pkgbuild --version | head -n 1
+              # pkgbuild (the runner's native tool — the OS build itself
+              # is the version anchor): the payload at /usr/local/bin/uawp,
+              # the bounded postinstall from packaging/macos (C5-15 §5.2 —
+              # data-preserving, fail-closed). UNSIGNED: Developer ID
+              # signing + notarization are the BLOCKED release-day stage
+              # (C5-13 §9.2). NOTE: pkgbuild's --version is the PACKAGE
+              # version option, not a tool probe — the tool's version is
+              # not printed (the first dispatch caught this).
               PKGROOT="$RUNNER_TEMP/pkgroot/bin"
               mkdir -p "$PKGROOT"
               cp "dist/${ART}" "$PKGROOT/uawp"

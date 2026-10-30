@@ -2,43 +2,59 @@
 <!--
   Karyora Core (uawp) — the C5-15 §3.1 Option A Windows MSI (the owner's
   §14 selection: MSI for both Windows rows), built by the release-build
-  workflow's packaging step with the pinned WiX toolset (wix 7.0.1 —
-  record-and-verify per C5-14 §7.3; selected from nuget's latest stable,
-  checked 2026-10-30).
+  workflow's packaging step with the WiX 3.14.1 toolset (wix3141rtm —
+  the binaries zip digest-pinned in the workflow; record-and-verify per
+  C5-14 §7.3).
+
+  WHY WiX 3.14 and not v5/v6/v7: the WiX 4+ toolsets gate every
+  invocation behind the Open Source Maintenance Fee (OSMF) EULA —
+  accepting that EULA is a legal act (a fee-conditional commitment for
+  the organization) that the owner's standing delegation does not cover,
+  and no handover moment is attached to a build-tool EULA. WiX 3.14.1
+  carries the classic MS-RL license with NO EULA gate, supports arm64
+  MSI packaging (candle -arch arm64), and is the last v3 release. If v7
+  is ever wanted, that is an explicit owner decision first (the workflow
+  comment records this rationale).
 
   Binding rules carried by this definition:
-  - Per-user install, no elevation (Blueprint §3.4/§3.6 via C5-15 §5.1).
+  - Per-user install, no elevation (Blueprint §3.4/§3.6 via C5-15 §5.1):
+    Package/@InstallScope="perUser".
   - The data directory is NOT a component: no packaged file, registry
     value, or script touches the user-data classes, so
     uninstall-with-data-preserved holds structurally (C5-15 §5.0).
-  - The upgrade path is the Windows Installer major-upgrade transaction
-    (old product files removed, new installed, one transaction);
+  - The upgrade path is the Windows Installer major-upgrade transaction;
     AllowSameVersionUpgrades covers the same-version CI rebuilds.
   - UNSIGNED on purpose: Authenticode signing is the BLOCKED release-day
     stage (C5-13 §9.2; handover moment 1). The MSI makes no floor claim
     and does not check-then-lie (C5-15 §3.5 Option A).
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="Karyora Core"
-           Manufacturer="Qira Dev"
-           Version="$(var.ProductVersion)"
-           UpgradeCode="E721B1F6-3A62-4441-90C7-6DE7BAA00A3B"
-           Scope="perUser"
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="Karyora Core"
            Language="1033"
-           Codepage="1252">
+           Version="$(var.ProductVersion)"
+           Manufacturer="Qira Dev"
+           UpgradeCode="E721B1F6-3A62-4441-90C7-6DE7BAA00A3B">
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perUser"
+             Description="Karyora Core — the Unified AI Work Platform desktop product (uawp)"
+             Comments="Installs the product files only; user data is never touched (C5-15 §5.0)." />
     <MajorUpgrade AllowSameVersionUpgrades="yes"
                   DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <Feature Id="Main" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
-    <StandardDirectory Id="LocalAppDataFolder">
-      <Directory Id="DirPrograms" Name="Programs">
-        <Directory Id="DirKaryora" Name="Karyora">
-          <Directory Id="INSTALLFOLDER" Name="bin" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="DirPrograms" Name="Programs">
+          <Directory Id="DirKaryora" Name="Karyora">
+            <Directory Id="INSTALLFOLDER" Name="bin" />
+          </Directory>
         </Directory>
       </Directory>
-    </StandardDirectory>
+    </Directory>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="UawpExe" Guid="12AE98C5-EDE2-4A91-B439-2BC788FB4A7D">
         <File Id="UawpExeFile" Source="$(var.BinaryPath)" KeyPath="yes" />
@@ -47,5 +63,5 @@
                      Permanent="no" Part="last" Action="set" />
       </Component>
     </ComponentGroup>
-  </Package>
+  </Product>
 </Wix>
