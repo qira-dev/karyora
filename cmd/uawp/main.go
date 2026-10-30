@@ -211,7 +211,14 @@ func cmdStart(ctx context.Context, flags cliFlags, out *printer) int {
 	}
 	closeIPC, err := runner.ServeIPC()
 	if err != nil {
-		env, _ := errs.New(errs.CodeInternal, corr, map[string]any{"reason": "IPC_INFRASTRUCTURE"})
+		// The bounded underlying cause rides the machine envelope (C2-05:
+		// machine + human diagnostics from one report) — the C5-20
+		// lifecycle evidence needs the named cause on the clean runner.
+		detail := err.Error()
+		if len(detail) > 200 {
+			detail = detail[:200]
+		}
+		env, _ := errs.New(errs.CodeInternal, corr, map[string]any{"reason": "IPC_INFRASTRUCTURE", "detail": detail})
 		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitAuthority})
 		return int(runtime.ExitAuthority)
 	}

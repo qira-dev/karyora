@@ -174,7 +174,11 @@ wait "$REINIT_PID" 2>/dev/null || true
 sudo apt-get update -qq >> "$REPORT" 2>&1
 sudo apt-get install -y -qq rpm >> "$REPORT" 2>&1
 echo "environment: $(rpm --version)" | tee -a "$REPORT"
-sudo rpm -i "$DIST/karyora-core-0.0.0-$( [ "$ARCH" = amd64 ] && echo x86_64 || echo aarch64 ).rpm" >> "$REPORT" 2>&1
+if ! RPM_OUT=$(sudo rpm -i "$DIST/karyora-core-0.0.0-$( [ "$ARCH" = amd64 ] && echo x86_64 || echo aarch64 ).rpm" 2>&1); then
+  echo "rpm-install-output: $RPM_OUT" >&2
+  cell FAIL "rpm-install" "rpm -i exited nonzero: $RPM_OUT"
+fi
+printf '%s\n' "$RPM_OUT" >> "$REPORT"
 [ -x "$BIN" ] || { cell FAIL "rpm-install" "$BIN missing after rpm -i"; }
 cell PASS "rpm-install" "$("$BIN" version | head -n 1)"
 sudo rpm -e karyora-core >> "$REPORT" 2>&1
