@@ -829,7 +829,7 @@ jobs:
             r="lifecycle/LIFECYCLE-${row}.txt"
             [ -f "$r" ] || lifefail "the lifecycle report for ${row} is missing"
             grep -q "row ${row}" "$r" || lifefail "the ${row} lifecycle report does not name its row"
-            rd=$(sed -n 's/^exact-artifact: .* sha256 \([0-9a-f]\{64\}\)$/\1/p' "$r" | head -n 1)
+            rd=$(sed -n 's/^exact-artifact: .* sha256 \([0-9a-f]\{64\}\)\r\{0,1\}$/\1/p' "$r" | head -n 1)
             [ -n "$rd" ] || lifefail "the ${row} lifecycle report carries no exact-artifact digest"
             grep -q "^${rd}" "bundles/PACKAGES-${row}.txt" \
               || lifefail "the ${row} lifecycle report's installed digest ${rd} is not in PACKAGES-${row}.txt"
