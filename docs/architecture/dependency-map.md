@@ -1,5 +1,35 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.19 (2026-10-30): the release-pipeline sub-milestone 4
+(the owner-approved C5-18 staged-update state machine, Core CR-5.2) adds
+`internal/updater` — the update machine: the two-key metadata verification
+(offline root delegating the online release signer, threshold 1 per role,
+per-release expiry carried inside the signed metadata, monotonic
+metadata_version with version-reuse refusal; signatures are Ed25519 over
+the exact canonical payload bytes via crypto/ed25519 — the STANDARD
+LIBRARY, no new module dependency and no pin-set change), the disposable
+staging area with digest+size verification, the durable update journal and
+client state (atomic whole-record replaces), the §5.2 startup
+reconciliation ordering (lock → clock-quarantine → journal → staging
+cleanup → last-known-good self-check, with the Mode-B X3
+externally-managed reconcile), the migration-compatibility gates
+(min_supported_client; the delegated REFUSE rollback-incompatible policy),
+atomic activation, the health gate, and the last-known-good BINARY-ONLY
+rollback (user-data recovery stays the C5-09 restore path — never this
+machine). Rules: the package imports NOTHING internal (allowedInternal {}
+— stdlib only); every environment-touching step is a port implemented by
+the composition root (metadata fetch, artifact download, the C5-09 backup,
+the C5-16 supply-chain resolver, the C5-13 artifact-signature verifier —
+REQUIRED, so updates refuse fail-closed until the signing stage exists —
+the health check, the activator, the data-directory lock, the audit sink);
+the rename-based Unix activator ships in the package (plain
+os.Rename/os.Open standard-library calls — NOT the confined
+syscall/os/exec surface, rule 4; the Windows/macOS swap mechanisms are the
+composition root's recorded follow-up implementations of the same port).
+The machine is NOT wired into any product surface (no uawp command, no
+runtime wiring — the recorded next integration step), Local mode behavior
+is byte-for-byte unchanged (isolation rule), the graph stays acyclic, and
+no forbidden direction opens.
 Contract version 1.18 (2026-10-29): the CR-4.4 C4-36 milestone (the
 shared object/blob store, Remote PostgreSQL and Object Storage
 Specification §4) lands inside `internal/remotestore` — the S3-compatible
@@ -223,6 +253,7 @@ require a version bump and an ADR.
 | `internal/runtime` | Process modes, lifecycle, startup/shutdown/recovery wiring | app, security, platform, config, health, domain |
 | `internal/platform` | OS paths and lifecycle adapters (OS APIs here only) | (ports) |
 | `internal/remotestore` | PostgreSQL remote/team authority (D-10; pgx confined here; claim/fencing/outbox core + the `teamauth.Directory` identity resolution; not wired into any surface) | security (incl. teamauth: the Directory port types) |
+| `internal/updater` | The C5-18 staged-update state machine (two-key metadata verification, staging, journal + startup reconciliation, migration gates, activation, health, binary-only rollback; every environment step a port; the rename-based Unix activator here; NOT wired into any surface — no signing operations, C5-13 §9.2) | (none) |
 | `cmd/uawp` | Composition root | any internal |
 
 ## Static dependency-rule check (specified; executable in C2-03 CI)

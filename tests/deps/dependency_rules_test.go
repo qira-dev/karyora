@@ -60,7 +60,10 @@ var allowedInternal = map[string]map[string]bool{
 	// v1.16 adds security/devicekey — the D-38 lifecycle — with keyring
 	// implementing its storage port across the same security segment).
 	"remotestore": {"security": true},
-	"platform":    {},
+	// updater (dependency-map v1.19): the C5-18 staged-update machine —
+	// stdlib only, every environment step a port; no internal imports.
+	"updater":  {},
+	"platform": {},
 }
 
 // confinement lists imports that are allowed only in the named internal
