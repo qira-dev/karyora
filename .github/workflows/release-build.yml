@@ -95,6 +95,15 @@ jobs:
     steps:
       # Action tags are pinned to immutable commit SHAs (the ci.yml
       # supply-chain convention; C5-14 §4.2 item 2).
+      # The autocrlf guard MUST run BEFORE the checkout: a fresh fleet
+      # image's Git ships core.autocrlf=true, and the post-checkout
+      # re-checkout guard took the index fast-path on the updated
+      # windows-11-arm image (run 41126796360's windows-arm64 record
+      # carried the CRLF digests 287be873…/6afffeba… again) — the global
+      # config pins the INITIAL checkout to the committed LF bytes.
+      - name: disable autocrlf globally before the checkout smudges anything
+        shell: bash
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       # The windows images' Git ships core.autocrlf=true, which smudges the
       # checked-out go.mod/go.sum to CRLF. The stage-3 verification's
