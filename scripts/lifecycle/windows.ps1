@@ -88,7 +88,10 @@ function Wait-Gone([int]$seconds) {
 # C2: product lifecycle. The start's output is captured to files — a core
 # that never reports live must name its own cause.
 $so = "$env:RUNNER_TEMP\core-start.out"; $se = "$env:RUNNER_TEMP\core-start.err"
-Start-Process -FilePath $bin -ArgumentList 'start' -WindowStyle Hidden -RedirectStandardOutput $so -RedirectStandardError $se | Out-Null
+# The arguments travel as ONE string: Start-Process's array form mangles
+# leading-dash items on some runner images (the iteration-7 start ran
+# without --json and printed the human failure form).
+Start-Process -FilePath $bin -ArgumentList 'start --json' -WindowStyle Hidden -RedirectStandardOutput $so -RedirectStandardError $se | Out-Null
 if (-not (Wait-Live 30)) {
   Write-Output "start-stdout: $(Get-Content $so -Raw -ErrorAction SilentlyContinue)"
   Write-Output "start-stderr: $(Get-Content $se -Raw -ErrorAction SilentlyContinue)"
