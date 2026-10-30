@@ -137,10 +137,16 @@ if ($actualDigest -ne $env:WIX314_DIGEST) { Cell 'FAIL' 'package-upgrade' 'wix z
 Expand-Archive -Path $wixZip -DestinationPath (Join-Path $env:RUNNER_TEMP 'wix314') -Force
 $wix = Join-Path $env:RUNNER_TEMP 'wix314'
 $wixArch = 'x64'; if ($arch -eq 'arm64') { $wixArch = 'arm64' }
-& (Join-Path $wix 'candle.exe') -arch $wixArch -dProductVersion=$bumpVersion -dBinaryPath="$dist\uawp-windows-$arch.exe" -out "$env:RUNNER_TEMP\uawp-upgrade.wixobj" packaging/windows/uawp.wxs *> $null
-if ($LASTEXITCODE -ne 0) { Cell 'FAIL' 'package-upgrade' 'candle failed' }
-& (Join-Path $wix 'light.exe') -out "$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi" "$env:RUNNER_TEMP\uawp-upgrade.wixobj" *> $null
-if ($LASTEXITCODE -ne 0) { Cell 'FAIL' 'package-upgrade' 'light failed' }
+$candleOut = & (Join-Path $wix 'candle.exe') -arch $wixArch "-dProductVersion=$bumpVersion" "-dBinaryPath=$dist\uawp-windows-$arch.exe" -out "$env:RUNNER_TEMP\uawp-upgrade.wixobj" packaging/windows/uawp.wxs 2>&1
+if ($LASTEXITCODE -ne 0) {
+  Write-Output "candle-output: $($candleOut | Select-Object -Last 20 | Out-String)"
+  Cell 'FAIL' 'package-upgrade' 'candle failed'
+}
+$lightOut = & (Join-Path $wix 'light.exe') -out "$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi" "$env:RUNNER_TEMP\uawp-upgrade.wixobj" 2>&1
+if ($LASTEXITCODE -ne 0) {
+  Write-Output "light-output: $($lightOut | Select-Object -Last 20 | Out-String)"
+  Cell 'FAIL' 'package-upgrade' 'light failed'
+}
 $upgrade = Start-Process msiexec -ArgumentList "/i", "`"$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi`"", "/qn", "/norestart", "MSIINSTALLPERUSER=1", "/l*vw", "`"$env:RUNNER_TEMP\msi-upgrade.log`"" -Wait -PassThru
 if ($upgrade.ExitCode -ne 0 -and $upgrade.ExitCode -ne 3010) { Cell 'FAIL' 'package-upgrade' "upgrade msiexec exit $($upgrade.ExitCode)" }
 if (-not (Test-Path $bin)) { Cell 'FAIL' 'package-upgrade' 'the binary vanished after the upgrade' }
