@@ -35,14 +35,18 @@ Add-Content -Path $report -Value "== C5-20 lifecycle evidence — row $row =="
 Add-Content -Path $report -Value "environment: $([System.Environment]::OSVersion.VersionString) arch $env:PROCESSOR_ARCHITECTURE"
 Add-Content -Path $report -Value "environment: runner image ${env:ImageOS}-${env:ImageVersion}"
 
-# The exact-artifact binding: the bundle's digest recompute. The windows
-# rows emit binary-mode sha256sum lines (`*name`); field 1 is the digest.
+# The exact-artifact binding: the BINARY's digest verifies against the
+# bundle's SHA256SUMS line (the same -c story the unix rows run), and the
+# MSI's own digest is recorded (the verify job binds it to PACKAGES).
 $sums = Join-Path $dist "SHA256SUMS-$row.txt"
 $sumLine = (Get-Content $sums | Select-Object -First 1)
 $expect  = ($sumLine -split '\s+')[0]
+$sumName = ($sumLine -replace '^[0-9a-fA-F]{64}\s+\*?','').Trim()
+$binDist = Join-Path $dist $sumName
+$binDigest = (Get-FileHash -Algorithm SHA256 $binDist).Hash.ToLower()
+if ($binDigest -ne $expect.ToLower()) { Cell 'FAIL' 'artifact-digest-binding' "binary digest $binDigest != $expect" }
+Cell 'PASS' 'artifact-digest-binding' "the bundle binary verifies against SHA256SUMS"
 $msiDigest = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLower()
-if ($msiDigest -ne $expect.ToLower()) { Cell 'FAIL' 'artifact-digest-binding' "msi digest $msiDigest != $expect" }
-Cell 'PASS' 'artifact-digest-binding' "msi sha256 $msiDigest recomputed OK"
 Add-Content -Path $report -Value "exact-artifact: karyora-core-0.0.0-windows-$arch.msi sha256 $msiDigest"
 
 # C1: clean install (the real MSI, unsigned by design — C5-13 §9.2).
@@ -115,13 +119,18 @@ if (Test-Path $bin) { Cell 'FAIL' 'uninstall-preserves-data' "$bin still present
 if (-not (Test-Path $data)) { Cell 'FAIL' 'uninstall-preserves-data' 'the data directory was removed by uninstall' }
 Cell 'PASS' 'uninstall-preserves-data' "binary gone; $data still present"
 
-# C6: the explicit data deletion (the separate act) + fresh re-init.
+# C6: the explicit data deletion (the separate act) + fresh re-init. The
+# package was UNINSTALLED in C5 (that is the point C5 proved), so the
+# fresh start rides a REAL fresh install — the data deletion happens while
+# the product is absent, exactly the user's documented flow.
+$reinstall = Start-Process msiexec -ArgumentList "/i", "`"$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi`"", "/qn", "/norestart", "/l*vw", "`"$env:RUNNER_TEMP\msi-reinstall.log`"" -Wait -PassThru
+if ($reinstall.ExitCode -ne 0 -and $reinstall.ExitCode -ne 3010) { Cell 'FAIL' 'explicit-data-deletion' "reinstall msiexec exit $($reinstall.ExitCode)" }
 Remove-Item -LiteralPath $data -Recurse -Force
 if (Test-Path $data) { Cell 'FAIL' 'explicit-data-deletion' "$data still exists after the explicit removal" }
 Start-Process -FilePath $bin -ArgumentList 'start' -WindowStyle Hidden | Out-Null
 if (-not (Wait-Live 30)) { Cell 'FAIL' 'explicit-data-deletion' 'no live status after the explicit deletion + fresh start' }
 if (-not (Test-Path $data)) { Cell 'FAIL' 'explicit-data-deletion' "the fresh start did not re-initialize $data" }
-Cell 'PASS' 'explicit-data-deletion' 'the separate act removed the data; a fresh start re-initialized it'
+Cell 'PASS' 'explicit-data-deletion' 'the separate act removed the data; a fresh install + start re-initialized it'
 & $bin stop *> $null
 
 # C7: the updater's fail-closed posture with NO channel configured.

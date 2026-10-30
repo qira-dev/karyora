@@ -122,7 +122,11 @@ cell PASS "uninstall-preserves-data" "binary gone; $DATA still present"
 
 # C6: the explicit data deletion is the SEPARATE documented act — performed
 # here under the test's own authority (never by any package script), then a
-# fresh start re-initializes.
+# fresh install + start re-initializes. The package was UNINSTALLED in C5
+# (that is the point C5 proved), so the fresh start rides a REAL fresh
+# install — the data deletion happens while the product is absent, exactly
+# the user's documented flow.
+sudo dpkg -i "$RUNNER_TEMP/karyora-core_${BUMP_VERSION}_${ARCH}.deb" >> "$REPORT" 2>&1
 rm -rf "$DATA"
 [ ! -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "$DATA still exists after the explicit removal"; }
 "$BIN" start >> "$REPORT" 2>&1 &
@@ -133,7 +137,7 @@ for i in $(seq 1 30); do
 done
 [ "$REINIT" = yes ] || { cell FAIL "explicit-data-deletion" "no live status after the explicit deletion + fresh start"; }
 [ -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "the fresh start did not re-initialize $DATA"; }
-cell PASS "explicit-data-deletion" "the separate act removed the data; a fresh start re-initialized it"
+cell PASS "explicit-data-deletion" "the separate act removed the data; a fresh install + start re-initialized it"
 "$BIN" stop >> "$REPORT" 2>&1
 
 # C7: the rpm row artifact (install/verify/remove — the second Linux

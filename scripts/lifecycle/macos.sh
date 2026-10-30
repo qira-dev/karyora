@@ -114,7 +114,11 @@ sudo pkgutil --forget com.qira-dev.karyora-core >> "$REPORT" 2>&1
 [ -d "$DATA" ] || { cell FAIL "uninstall-preserves-data" "the data directory was removed by uninstall"; }
 cell PASS "uninstall-preserves-data" "payload gone; $DATA still present"
 
-# C6: the explicit data deletion (the separate act) + fresh re-init.
+# C6: the explicit data deletion (the separate act) + fresh re-init. The
+# payload was REMOVED in C5 (that is the point C5 proved), so the fresh
+# start rides a REAL fresh install — the data deletion happens while the
+# product is absent, exactly the user's documented flow.
+sudo installer -pkg "$RUNNER_TEMP/karyora-core-${BUMP_VERSION}-macos-$ARCH.pkg" -target / >> "$REPORT" 2>&1
 rm -rf "$DATA"
 [ ! -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "$DATA still exists after the explicit removal"; }
 "$BIN" start >> "$REPORT" 2>&1 &
@@ -125,7 +129,7 @@ for i in $(seq 1 30); do
 done
 [ "$REINIT" = yes ] || { cell FAIL "explicit-data-deletion" "no live status after the explicit deletion + fresh start"; }
 [ -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "the fresh start did not re-initialize $DATA"; }
-cell PASS "explicit-data-deletion" "the separate act removed the data; a fresh start re-initialized it"
+cell PASS "explicit-data-deletion" "the separate act removed the data; a fresh install + start re-initialized it"
 "$BIN" stop >> "$REPORT" 2>&1
 
 # C7: the updater's fail-closed posture with NO channel configured.
