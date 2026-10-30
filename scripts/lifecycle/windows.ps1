@@ -50,9 +50,19 @@ $msiDigest = (Get-FileHash -Algorithm SHA256 $msi).Hash.ToLower()
 Add-Content -Path $report -Value "exact-artifact: karyora-core-0.0.0-windows-$arch.msi sha256 $msiDigest"
 
 # C1: clean install (the real MSI, unsigned by design — C5-13 §9.2).
-$install = Start-Process msiexec -ArgumentList "/i", "`"$msi`"", "/qn", "/norestart", "/l*vw", "`"$env:RUNNER_TEMP\msi-install.log`"" -Wait -PassThru
+# MSIINSTALLPERUSER=1 pins the per-user context even under the runner's
+# elevated token (the iteration-2 clean-install cell found msiexec exit 0
+# with no binary at the per-user path — the diagnostics below surface the
+# installer's own log if any variant of that repeats).
+$install = Start-Process msiexec -ArgumentList "/i", "`"$msi`"", "/qn", "/norestart", "MSIINSTALLPERUSER=1", "/l*vw", "`"$env:RUNNER_TEMP\msi-install.log`"" -Wait -PassThru
 if ($install.ExitCode -ne 0 -and $install.ExitCode -ne 3010) { Cell 'FAIL' 'clean-install' "msiexec exit $($install.ExitCode)" }
-if (-not (Test-Path $bin)) { Cell 'FAIL' 'clean-install' "$bin missing after msiexec /i" }
+if (-not (Test-Path $bin)) {
+  Get-Content "$env:RUNNER_TEMP\msi-install.log" -ErrorAction SilentlyContinue | Select-Object -Last 60 | ForEach-Object { Write-Output "msi-log: $_" }
+  Get-ChildItem "$env:LOCALAPPDATA\Programs" -Recurse -Filter 'uawp.exe' -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "search-hit: $($_.FullName)" }
+  $sysprofile = 'C:\Windows\System32\config\systemprofile\AppData\Local\Programs\Karyora\bin\uawp.exe'
+  if (Test-Path $sysprofile) { Write-Output "search-hit: $sysprofile (per-machine redirect under the elevated token)" }
+  Cell 'FAIL' 'clean-install' "$bin missing after msiexec /i"
+}
 $got = (& $bin version | Select-Object -First 1)
 Cell 'PASS' 'clean-install' "$got"
 
@@ -87,6 +97,12 @@ if (-not (Wait-Live 45)) { Cell 'FAIL' 'crash-recovery' 'no live status within 4
 Cell 'PASS' 'crash-recovery' 'the restart after the force-kill reports live (startup recovery ran)'
 if (-not (Test-Path $data)) { Cell 'FAIL' 'data-directory' "$data was not created by the first start" }
 Note 'data-directory' "$data exists"
+# The package operations that follow (C4–C6) run against a STOPPED product
+# — the realistic package-management flow — so the recovered core stops
+# here and its graceful stop is itself an asserted cell.
+& $bin stop *> $null
+if (Wait-Live 10) { Cell 'FAIL' 'lifecycle-stop-recovery' 'still live after the post-recovery stop' }
+Cell 'PASS' 'lifecycle-stop-recovery' 'the core is stopped before the package operations'
 
 # C4: the real cross-version major-upgrade transaction — rebuild the MSI at
 # the bumped synthetic version from the checked-out packaging sources over
@@ -102,7 +118,7 @@ $wixArch = 'x64'; if ($arch -eq 'arm64') { $wixArch = 'arm64' }
 if ($LASTEXITCODE -ne 0) { Cell 'FAIL' 'package-upgrade' 'candle failed' }
 & (Join-Path $wix 'light.exe') -out "$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi" "$env:RUNNER_TEMP\uawp-upgrade.wixobj" *> $null
 if ($LASTEXITCODE -ne 0) { Cell 'FAIL' 'package-upgrade' 'light failed' }
-$upgrade = Start-Process msiexec -ArgumentList "/i", "`"$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi`"", "/qn", "/norestart", "/l*vw", "`"$env:RUNNER_TEMP\msi-upgrade.log`"" -Wait -PassThru
+$upgrade = Start-Process msiexec -ArgumentList "/i", "`"$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi`"", "/qn", "/norestart", "MSIINSTALLPERUSER=1", "/l*vw", "`"$env:RUNNER_TEMP\msi-upgrade.log`"" -Wait -PassThru
 if ($upgrade.ExitCode -ne 0 -and $upgrade.ExitCode -ne 3010) { Cell 'FAIL' 'package-upgrade' "upgrade msiexec exit $($upgrade.ExitCode)" }
 if (-not (Test-Path $bin)) { Cell 'FAIL' 'package-upgrade' 'the binary vanished after the upgrade' }
 if (-not (Test-Path $data)) { Cell 'FAIL' 'package-upgrade' 'the data directory did not survive the upgrade' }
@@ -123,7 +139,7 @@ Cell 'PASS' 'uninstall-preserves-data' "binary gone; $data still present"
 # package was UNINSTALLED in C5 (that is the point C5 proved), so the
 # fresh start rides a REAL fresh install — the data deletion happens while
 # the product is absent, exactly the user's documented flow.
-$reinstall = Start-Process msiexec -ArgumentList "/i", "`"$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi`"", "/qn", "/norestart", "/l*vw", "`"$env:RUNNER_TEMP\msi-reinstall.log`"" -Wait -PassThru
+$reinstall = Start-Process msiexec -ArgumentList "/i", "`"$env:RUNNER_TEMP\karyora-core-$bumpVersion-windows-$arch.msi`"", "/qn", "/norestart", "MSIINSTALLPERUSER=1", "/l*vw", "`"$env:RUNNER_TEMP\msi-reinstall.log`"" -Wait -PassThru
 if ($reinstall.ExitCode -ne 0 -and $reinstall.ExitCode -ne 3010) { Cell 'FAIL' 'explicit-data-deletion' "reinstall msiexec exit $($reinstall.ExitCode)" }
 Remove-Item -LiteralPath $data -Recurse -Force
 if (Test-Path $data) { Cell 'FAIL' 'explicit-data-deletion' "$data still exists after the explicit removal" }

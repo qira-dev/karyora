@@ -98,6 +98,17 @@ done
 cell PASS "crash-recovery" "the restart after kill -9 reports live (startup recovery ran)"
 [ -d "$DATA" ] || { cell FAIL "data-directory" "$DATA was not created by the first start"; }
 note "data-directory" "$DATA exists"
+# The package operations that follow (C4–C6) run against a STOPPED product
+# — the realistic package-management flow — so the recovered core stops
+# here and its graceful stop is itself an asserted cell.
+"$BIN" stop >> "$REPORT" 2>&1
+STOPPED=no
+for i in $(seq 1 10); do
+  "$BIN" status --json 2>/dev/null | grep -q '"live": *true\|"live":true' || { STOPPED=yes; break; }
+  sleep 1
+done
+[ "$STOPPED" = yes ] || { cell FAIL "lifecycle-stop-recovery" "still live after the post-recovery stop"; }
+cell PASS "lifecycle-stop-recovery" "the core is stopped before the package operations"
 
 # C4: the real cross-version package-upgrade transaction (an in-job
 # synthetic version — the release-train versioning is release-time work).
