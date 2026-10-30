@@ -7,6 +7,8 @@
 #
 # Environment: ROW, DIST, EXPECT_VERSION, BUMP_VERSION, REPORT, ARCH.
 set -euo pipefail
+# Any unguarded failure names its own line (the honest-iteration discipline).
+trap 'echo "lifecycle: FAILED at line $LINENO (exit $?)" >&2' ERR
 
 ROW="${ROW:?}"
 DIST="${DIST:?}"
@@ -77,6 +79,7 @@ CORE_PID=$(pgrep -x uawp | head -n 1)
 kill -9 "$CORE_PID"
 wait "$START_PID" 2>/dev/null || true
 "$BIN" start >> "$REPORT" 2>&1 &
+RESTART_PID=$!
 RECOVERED=no
 for i in $(seq 1 45); do
   if "$BIN" status --json 2>/dev/null | grep -q '"live": *true\|"live":true'; then RECOVERED=yes; break; fi
@@ -88,8 +91,12 @@ cell PASS "crash-recovery" "the restart after kill -9 reports live (startup reco
 note "data-directory" "$DATA exists"
 # The package operations that follow (C4–C6) run against a STOPPED product
 # — the realistic package-management flow — so the recovered core stops
-# here and its graceful stop is itself an asserted cell.
+# here and its graceful stop is itself an asserted cell. The background
+# start is REAPPED before the status probe: a status hitting the dying
+# listener mid-shutdown is a race, not evidence (C2's reaped block is the
+# proven shape).
 "$BIN" stop >> "$REPORT" 2>&1
+wait "$RESTART_PID" 2>/dev/null || true
 STOPPED=no
 for i in $(seq 1 10); do
   "$BIN" status --json 2>/dev/null | grep -q '"live": *true\|"live":true' || { STOPPED=yes; break; }
@@ -133,6 +140,7 @@ sudo installer -pkg "$RUNNER_TEMP/karyora-core-${BUMP_VERSION}-macos-$ARCH.pkg" 
 rm -rf "$DATA"
 [ ! -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "$DATA still exists after the explicit removal"; }
 "$BIN" start >> "$REPORT" 2>&1 &
+REINIT_PID=$!
 REINIT=no
 for i in $(seq 1 30); do
   if "$BIN" status --json 2>/dev/null | grep -q '"live": *true\|"live":true'; then REINIT=yes; break; fi
@@ -142,6 +150,7 @@ done
 [ -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "the fresh start did not re-initialize $DATA"; }
 cell PASS "explicit-data-deletion" "the separate act removed the data; a fresh install + start re-initialized it"
 "$BIN" stop >> "$REPORT" 2>&1
+wait "$REINIT_PID" 2>/dev/null || true
 
 # C7: the updater's fail-closed posture with NO channel configured.
 if "$BIN" update check --json >> "$REPORT" 2>&1; then

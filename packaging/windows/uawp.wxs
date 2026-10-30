@@ -57,7 +57,11 @@
     </Directory>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="UawpExe" Guid="12AE98C5-EDE2-4A91-B439-2BC788FB4A7D">
-        <File Id="UawpExeFile" Source="$(var.BinaryPath)" />
+        <!-- Name is EXPLICIT: without it Windows Installer uses the SOURCE
+             artifact's row-qualified name (uawp-windows-amd64.exe), and the
+             product's canonical uawp.exe never exists (the C5-20 lifecycle
+             evidence's clean-install cell caught exactly this). -->
+        <File Id="UawpExeFile" Name="uawp.exe" Source="$(var.BinaryPath)" />
         <!-- Per-user components key on an HKCU registry value (ICE38);
              the value records the install and nothing else. -->
         <RegistryValue Root="HKCU" Key="Software\Qira Dev\Karyora Core"

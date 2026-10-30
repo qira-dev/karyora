@@ -75,6 +75,16 @@ function Wait-Live([int]$seconds) {
   return $false
 }
 
+function Wait-Gone([int]$seconds) {
+  # The status probe must not race the dying listener: after a stop, the
+  # core PROCESS has to be gone before status evidence counts.
+  for ($i = 0; $i -lt $seconds; $i++) {
+    if (-not (Get-Process uawp -ErrorAction SilentlyContinue)) { return $true }
+    Start-Sleep -Seconds 1
+  }
+  return $false
+}
+
 # C2: product lifecycle.
 Start-Process -FilePath $bin -ArgumentList 'start' -WindowStyle Hidden | Out-Null
 if (-not (Wait-Live 30)) { Cell 'FAIL' 'lifecycle-start' 'the core did not report live within 30s' }
@@ -84,6 +94,7 @@ $secondExit = $LASTEXITCODE
 if ($secondExit -eq 0) { Cell 'FAIL' 'second-start-refusal' 'a second start was accepted (exit 0)' }
 Cell 'PASS' 'second-start-refusal' "the second start was refused (exit $secondExit)"
 & $bin stop *> $null
+if (-not (Wait-Gone 15)) { Cell 'FAIL' 'lifecycle-stop' 'the uawp process is still running 15s after stop' }
 if (Wait-Live 5) { Cell 'FAIL' 'lifecycle-stop' 'still live after stop' }
 Cell 'PASS' 'lifecycle-stop' 'status reports not running'
 
@@ -101,6 +112,7 @@ Note 'data-directory' "$data exists"
 # — the realistic package-management flow — so the recovered core stops
 # here and its graceful stop is itself an asserted cell.
 & $bin stop *> $null
+if (-not (Wait-Gone 15)) { Cell 'FAIL' 'lifecycle-stop' 'the uawp process is still running 15s after stop' }
 if (Wait-Live 10) { Cell 'FAIL' 'lifecycle-stop-recovery' 'still live after the post-recovery stop' }
 Cell 'PASS' 'lifecycle-stop-recovery' 'the core is stopped before the package operations'
 
@@ -148,6 +160,7 @@ if (-not (Wait-Live 30)) { Cell 'FAIL' 'explicit-data-deletion' 'no live status 
 if (-not (Test-Path $data)) { Cell 'FAIL' 'explicit-data-deletion' "the fresh start did not re-initialize $data" }
 Cell 'PASS' 'explicit-data-deletion' 'the separate act removed the data; a fresh install + start re-initialized it'
 & $bin stop *> $null
+if (-not (Wait-Gone 15)) { Cell 'FAIL' 'lifecycle-stop' 'the uawp process is still running 15s after stop' }
 
 # C7: the updater's fail-closed posture with NO channel configured.
 & $bin update check --json *> $env:RUNNER_TEMP\update-check.json
