@@ -401,6 +401,78 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  lifecycle-evidence:
+    # C5-20 — per-row installation and lifecycle evidence on named CLEAN
+    # environments (Core CR-5.2 C5-20). Each job is a fresh hosted VM —
+    # clean by construction — and IS the named environment for its C5-11
+    # row: the Windows rows install the real MSI, the macOS rows the real
+    # pkg, and the Linux rows the real deb/rpm/portable on an Ubuntu LTS
+    # runner (a C5-11-approved family). The cells cover clean install, the
+    # product lifecycle (start → live, the single-authority second-start
+    # refusal, stop), crash recovery, the REAL cross-version package-upgrade
+    # transaction (an in-job synthetic version over the SAME binary — the
+    # release-train versioning is release-time work), uninstall with the
+    # user data preserved, the explicit data deletion as the SEPARATE
+    # documented act (performed by the test under its own authority, never
+    # by any package script), and the updater's fail-closed posture with no
+    # channel configured. Every cell, the environment facts, and the
+    # honestly NOT-RUN register (the BLOCKED signing prerequisite,
+    # C5-13 §9.2) are recorded in LIFECYCLE-<row>.txt — exact-artifact,
+    # OS/CPU, and environment-tagged per C5-20's evidence requirement; the
+    # logs carry no secrets by construction (digests, versions, cell names).
+    # The scripts are test-side evidence tooling (scripts/lifecycle/) —
+    # the C5-15 §5.0 static guard keeps binding packaging/ (the publishable
+    # set) alone.
+    needs: build
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { row: windows-amd64, runner: windows-latest,   arch: amd64, shell: pwsh }
+          - { row: windows-arm64, runner: windows-11-arm,   arch: arm64, shell: pwsh }
+          - { row: macos-amd64,   runner: macos-15-intel,   arch: amd64, shell: bash }
+          - { row: macos-arm64,   runner: macos-latest,     arch: arm64, shell: bash }
+          - { row: linux-amd64,   runner: ubuntu-latest,    arch: amd64, shell: bash }
+          - { row: linux-arm64,   runner: ubuntu-24.04-arm, arch: arm64, shell: bash }
+    env:
+      ROW: ${{ matrix.row }}
+      ARCH: ${{ matrix.arch }}
+      EXPECT_VERSION: 0.0.0-dev
+      # The in-job synthetic upgrade version (numeric major.minor.build for
+      # the MSI's ProductVersion): the run number makes every dispatch a
+      # REAL cross-version transaction over the 0.0.0 build package.
+      BUMP_VERSION: 0.0.${{ github.run_number }}
+      DIST: ${{ github.workspace }}/bundle
+      REPORT: ${{ github.workspace }}/LIFECYCLE-${{ matrix.row }}.txt
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: download the row's built bundle
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-${{ matrix.row }}
+          path: bundle
+      - name: run the C5-20 lifecycle cells (unix rows)
+        if: matrix.shell == 'bash'
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "scripts/lifecycle/$( [ "${RUNNER_OS}" = "macOS" ] && echo macos.sh || echo linux.sh )"
+      - name: run the C5-20 lifecycle cells (windows rows)
+        if: matrix.shell == 'pwsh'
+        shell: pwsh
+        env:
+          WIX314_DIGEST: "6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31"
+        run: scripts/lifecycle/windows.ps1
+      - name: upload the lifecycle report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: lifecycle-${{ matrix.row }}
+          path: LIFECYCLE-*.txt
+          if-no-files-found: error
+          retention-days: 30
+
   verify-release-artifacts:
     # C5-14 §6 stage 3 — the INDEPENDENT verification stage. The design's
     # binding rule (§3): digests are computed by the build job and
@@ -466,7 +538,7 @@ jobs:
     #      signing stage is BLOCKED, C5-13 §9.2 — no signature check is
     #      faked; C5-15 §6's per-format verification paths run at the
     #      release cut once signing ships).
-    needs: build
+    needs: [build, lifecycle-evidence]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -478,6 +550,12 @@ jobs:
           pattern: release-*
           merge-multiple: true
           path: bundles
+      - name: download the six C5-20 lifecycle reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: lifecycle-*
+          merge-multiple: true
+          path: lifecycle
       - name: verify digests, provenance, cross-row identity, and the no-secret-bundle rule; emit the manifest
         env:
           RUN_SHA: ${{ github.sha }}
@@ -740,7 +818,25 @@ jobs:
           sort -k2 -o release-SHA256SUMS.txt release-SHA256SUMS.txt
           ( cd bundles && sha256sum -c ../release-SHA256SUMS.txt )
           echo "verify-release-artifacts: release-SHA256SUMS.txt emitted and self-checked"
-          echo "verify-release-artifacts: PASS (6/6 rows verified incl. the C5-15 packages)"
+
+          # 9. The C5-20 lifecycle reports: every row carries one, it names
+          # its row, and its exact-artifact digest line matches the row's
+          # PACKAGES entries (the installed package IS the verified one —
+          # the report cannot drift from the bundle).
+          lifefail() { echo "verify-release-artifacts: C5-20 $1" >&2; exit 1; }
+          for spec in "${ROWS[@]}"; do
+            IFS='|' read -r row art _goos _goarch _runner <<< "$spec"
+            r="lifecycle/LIFECYCLE-${row}.txt"
+            [ -f "$r" ] || lifefail "the lifecycle report for ${row} is missing"
+            grep -q "row ${row}" "$r" || lifefail "the ${row} lifecycle report does not name its row"
+            rd=$(sed -n 's/^exact-artifact: .* sha256 \([0-9a-f]\{64\}\)$/\1/p' "$r" | head -n 1)
+            [ -n "$rd" ] || lifefail "the ${row} lifecycle report carries no exact-artifact digest"
+            grep -q "^${rd}" "bundles/PACKAGES-${row}.txt" \
+              || lifefail "the ${row} lifecycle report's installed digest ${rd} is not in PACKAGES-${row}.txt"
+            grep -q "^PASS" "$r" || lifefail "the ${row} lifecycle report carries no PASS cell"
+            echo "verify-release-artifacts: lifecycle ${row} OK (exact-artifact digest ${rd:0:12}…)"
+          done
+          echo "verify-release-artifacts: PASS (6/6 rows verified incl. the C5-15 packages and the C5-20 lifecycle reports)"
       - name: upload the aggregated manifest
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
