@@ -107,7 +107,11 @@ note "data-directory" "$DATA exists"
 # start is REAPPED before the status probe: a status hitting the dying
 # listener mid-shutdown is a race, not evidence (C2's reaped block is the
 # proven shape).
-"$BIN" stop >> "$REPORT" 2>&1
+if ! STOP_OUT=$("$BIN" stop 2>&1); then
+  echo "stop-failed-output: $STOP_OUT" >&2
+  cell FAIL "lifecycle-stop-recovery" "uawp stop exited nonzero: $STOP_OUT"
+fi
+printf '%s\n' "$STOP_OUT" >> "$REPORT"
 wait "$RESTART_PID" 2>/dev/null || true
 STOPPED=no
 for i in $(seq 1 10); do
@@ -157,7 +161,11 @@ done
 [ "$REINIT" = yes ] || { cell FAIL "explicit-data-deletion" "no live status after the explicit deletion + fresh start"; }
 [ -d "$DATA" ] || { cell FAIL "explicit-data-deletion" "the fresh start did not re-initialize $DATA"; }
 cell PASS "explicit-data-deletion" "the separate act removed the data; a fresh install + start re-initialized it"
-"$BIN" stop >> "$REPORT" 2>&1
+if ! REINIT_STOP=$("$BIN" stop 2>&1); then
+  echo "stop-failed-output: $REINIT_STOP" >&2
+  cell FAIL "lifecycle-stop-fresh" "the fresh core's stop exited nonzero: $REINIT_STOP"
+fi
+printf '%s\n' "$REINIT_STOP" >> "$REPORT"
 wait "$REINIT_PID" 2>/dev/null || true
 
 # C7: the rpm row artifact (install/verify/remove — the second Linux

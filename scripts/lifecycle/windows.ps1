@@ -85,9 +85,17 @@ function Wait-Gone([int]$seconds) {
   return $false
 }
 
-# C2: product lifecycle.
-Start-Process -FilePath $bin -ArgumentList 'start' -WindowStyle Hidden | Out-Null
-if (-not (Wait-Live 30)) { Cell 'FAIL' 'lifecycle-start' 'the core did not report live within 30s' }
+# C2: product lifecycle. The start's output is captured to files — a core
+# that never reports live must name its own cause.
+$so = "$env:RUNNER_TEMP\core-start.out"; $se = "$env:RUNNER_TEMP\core-start.err"
+Start-Process -FilePath $bin -ArgumentList 'start' -WindowStyle Hidden -RedirectStandardOutput $so -RedirectStandardError $se | Out-Null
+if (-not (Wait-Live 30)) {
+  Write-Output "start-stdout: $(Get-Content $so -Raw -ErrorAction SilentlyContinue)"
+  Write-Output "start-stderr: $(Get-Content $se -Raw -ErrorAction SilentlyContinue)"
+  Write-Output "status-sample: $(& $bin status --json 2>&1 | Out-String)"
+  Get-Process uawp -ErrorAction SilentlyContinue | ForEach-Object { Write-Output "process: $($_.Id) started $($_.StartTime)" }
+  Cell 'FAIL' 'lifecycle-start' 'the core did not report live within 30s'
+}
 Cell 'PASS' 'lifecycle-start' 'status reports live'
 & $bin start *> $null
 $secondExit = $LASTEXITCODE
