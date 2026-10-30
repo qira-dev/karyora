@@ -194,4 +194,9 @@ Add-Content -Path $report -Value 'NOT-RUN artifact-signature        the Authenti
 Add-Content -Path $report -Value 'NOT-RUN smartscreen-reputation    rides the Authenticode cell above'
 Add-Content -Path $report -Value 'lifecycle: row complete'
 
+# The action's pwsh wrapper exits with $LASTEXITCODE when it is set — the
+# updater-fail-closed cell's EXPECTED refusal (exit 1) must not fail the
+# step after every cell passed.
+exit 0
+
 Write-Output "lifecycle: row $row complete"
