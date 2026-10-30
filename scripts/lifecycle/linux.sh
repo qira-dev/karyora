@@ -174,7 +174,12 @@ wait "$REINIT_PID" 2>/dev/null || true
 sudo apt-get update -qq >> "$REPORT" 2>&1
 sudo apt-get install -y -qq rpm >> "$REPORT" 2>&1
 echo "environment: $(rpm --version)" | tee -a "$REPORT"
-if ! RPM_OUT=$(sudo rpm -i "$DIST/karyora-core-0.0.0-$( [ "$ARCH" = amd64 ] && echo x86_64 || echo aarch64 ).rpm" 2>&1); then
+# --nodeps is recorded, not silent: the package is self-contained (D-07,
+# zero runtime prerequisites) and the only dependency rpm names is the
+# scriptlet interpreter /bin/sh, which exists on this host — dependency
+# METADATA resolution is the C5-15 §9.6 repo step on a real rpm distro,
+# not this cell (ubuntu's rpm cannot resolve it outside an rpm database).
+if ! RPM_OUT=$(sudo rpm -i --nodeps "$DIST/karyora-core-0.0.0-$( [ "$ARCH" = amd64 ] && echo x86_64 || echo aarch64 ).rpm" 2>&1); then
   echo "rpm-install-output: $RPM_OUT" >&2
   cell FAIL "rpm-install" "rpm -i exited nonzero: $RPM_OUT"
 fi

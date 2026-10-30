@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -156,6 +157,23 @@ func (r *Runner) DrainResult() DrainOutcome {
 func (r *Runner) Start(ctx context.Context, correlationID, coreVersion string) *Failure {
 	if err := r.machine.Transition(StateAcquiring, "start"); err != nil {
 		return failf(correlationID, errs.CodeConflictState, ExitFailure, map[string]any{"detail": err.Error()})
+	}
+	// The storage classes are created before the runner owns the data
+	// directory (the C2-06 composition-root creation discipline): a fresh
+	// install has empty classes, and the ownership lock's open fails
+	// LOCK_INFRASTRUCTURE when the runtime class does not exist — the C5-20
+	// lifecycle evidence caught exactly that on the Windows rows, where no
+	// default directory pre-exists (the Linux CI rows were masked by the
+	// runner's preset XDG_RUNTIME_DIR).
+	for _, dir := range []string{r.paths.Data, r.paths.Config, r.paths.Cache, r.paths.State, r.paths.Runtime} {
+		if dir == "" {
+			continue // a class the composition left unset is not created here
+		}
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			env, _ := errs.New(errs.CodeStorageUnavailable, correlationID, map[string]any{"reason": "CLASS_CREATION_FAILED"})
+			r.machine.Fail(env, "classes")
+			return &Failure{Envelope: env, Exit: ExitPermission}
+		}
 	}
 	own, tookOver, err := platform.AcquireOwnership(r.paths, r.paths.Data, coreVersion)
 	if err != nil {
