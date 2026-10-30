@@ -3,52 +3,46 @@
 package platform
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
-// peerAuthorized is nil on Windows: the per-instance capability token is the
-// client verification (C2-08 §5 "client-token verification"); the per-user
-// pipe namespace scopes the endpoint.
+// peerAuthorized is nil on Windows: SO_PEERCRED is unavailable. The user
+// boundary is enforced by the socket file's 0600 mode inside the per-user
+// runtime class, and every request still carries the per-instance
+// capability token (C2-08 §5) — the same trust shape as the darwin family.
 var peerAuthorized func(net.Conn) bool
-
-// ipcPipeName is the named pipe in the per-user namespace
-// (\\.\pipe\karyora\<user>\core). The pipe name is bounded and sanitized;
-// tightening the pipe ACL to the owner SID is recorded per-target evidence
-// work (D-06 matrix), not a Phase 2 runtime claim.
-func ipcPipeName(runtimeDir string) string {
-	user := sanitizePipeSegment(os.Getenv("USERNAME"))
-	if user == "" {
-		user = "default"
-	}
-	return fmt.Sprintf(`\\.\pipe\karyora\%s\core`, user)
-}
-
-func sanitizePipeSegment(s string) string {
-	var b strings.Builder
-	for _, r := range s {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
-			b.WriteRune(r)
-		}
-		if b.Len() >= 64 {
-			break
-		}
-	}
-	return b.String()
-}
-
-// ListenIPC creates the named pipe server via the standard library's
-// unix-listener-over-named-pipes support on Windows.
+//
+// The endpoint is a REAL AF_UNIX socket file in the runtime class, NOT a
+// \\.\pipe\ named-pipe address: Windows AF_UNIX (afunix.sys) binds
+// filesystem paths, and binding the pipe namespace fails with WSAENETDEAD
+// ("a socket operation encountered a dead network") — the C5-20 lifecycle
+// evidence caught exactly that on the hosted Windows runners. The runtime
+// class is the per-boot, per-user namespace (C2-06's class map), which
+// scopes the endpoint to this user exactly as the pipe namespace did; the
+// tightening to a pipe-ACL form remains recorded per-target evidence work
+// (D-06 matrix), not a runtime claim.
+//
+// ListenIPC binds the domain socket in the runtime namespace. A stale
+// socket file from a dead prior owner is removed first: the kernel lock is
+// held at this point, so no live owner can own that name (C2-08 §5).
 func ListenIPC(ds DirSet) (net.Listener, error) {
-	_ = filepath.Join // keep filepath import parity with the family files
-	return net.Listen("unix", ipcPipeName(ds.Runtime))
+	path := filepath.Join(ds.Runtime, IPCSocketName)
+	_ = os.Remove(path)
+	ln, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+	// Least privilege: only the owning user may connect at all.
+	if err := os.Chmod(path, 0o600); err != nil {
+		ln.Close()
+		return nil, err
+	}
+	return ln, nil
 }
 
-// dialFamily connects to the live owner's named pipe.
+// dialFamily connects to the live owner's endpoint.
 func dialFamily(runtimeDir string) (net.Conn, error) {
-	return net.DialTimeout("unix", ipcPipeName(runtimeDir), ipcDeadline)
+	return net.DialTimeout("unix", filepath.Join(runtimeDir, IPCSocketName), ipcDeadline)
 }

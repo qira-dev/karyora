@@ -168,7 +168,17 @@ fi
 printf '%s\n' "$REINIT_STOP" >> "$REPORT"
 wait "$REINIT_PID" 2>/dev/null || true
 
-# C7: the rpm row artifact (install/verify/remove — the second Linux
+# C7: the updater's fail-closed posture with NO channel configured — the
+# wired C5-18 machine refuses honestly (the typed fetch_failed refusal).
+# This cell runs BEFORE the rpm cycle removes the deb binary (the earlier
+# ordering ran it after rpm -e and the command could not even start).
+if "$BIN" update check --json >> "$REPORT" 2>&1; then
+  cell FAIL "updater-fail-closed" "uawp update check succeeded without any endpoint configured"
+fi
+grep -q 'fetch_failed' "$REPORT" || { cell FAIL "updater-fail-closed" "the refusal did not carry the typed reason"; }
+cell PASS "updater-fail-closed" "the machine refused with the typed fetch_failed reason (no channel configured)"
+
+# C8: the rpm row artifact (install/verify/remove — the second Linux
 # format). The rpm TOOLCHAIN is installed per run with its version printed
 # (the C5-14 §7.3 record-and-verify pattern — this job's VM is fresh).
 sudo apt-get update -qq >> "$REPORT" 2>&1
@@ -200,14 +210,6 @@ tar -xzf "$PORTABLE" -C "$PT"
 [ -x "$PT/uawp-linux-$ARCH" ] || { cell FAIL "portable-archive" "the extracted binary is missing"; }
 GOT=$("$PT/uawp-linux-$ARCH" version | head -n 1)
 cell PASS "portable-archive" "$GOT (extracted + executed; the detached-signature step is the first SIGNED release)"
-
-# C9: the updater's fail-closed posture with NO channel configured — the
-# wired C5-18 machine refuses honestly (the typed fetch_failed refusal).
-if "$BIN" update check --json >> "$REPORT" 2>&1; then
-  cell FAIL "updater-fail-closed" "uawp update check succeeded without any endpoint configured"
-fi
-grep -q 'fetch_failed' "$REPORT" || { cell FAIL "updater-fail-closed" "the refusal did not carry the typed reason"; }
-cell PASS "updater-fail-closed" "the machine refused with the typed fetch_failed reason (no channel configured)"
 
 # Cells honestly NOT RUN (recorded, never silently skipped):
 {
