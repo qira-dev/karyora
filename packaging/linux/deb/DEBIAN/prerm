@@ -1,0 +1,8 @@
+#!/bin/bash
+# Karyora Core deb prerm. The product is NOT wired into any service or
+# background process (dependency-map v1.19's isolation rule), so there is
+# nothing to stop; the script exists so the package's lifecycle is
+# explicit and fails closed. Binding rule C5-15 §5.0: no user-data
+# operation, ever.
+set -euo pipefail
+exit 0

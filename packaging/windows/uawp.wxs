@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Karyora Core (uawp) — the C5-15 §3.1 Option A Windows MSI (the owner's
+  §14 selection: MSI for both Windows rows), built by the release-build
+  workflow's packaging step with the pinned WiX toolset (wix 7.0.1 —
+  record-and-verify per C5-14 §7.3; selected from nuget's latest stable,
+  checked 2026-10-30).
+
+  Binding rules carried by this definition:
+  - Per-user install, no elevation (Blueprint §3.4/§3.6 via C5-15 §5.1).
+  - The data directory is NOT a component: no packaged file, registry
+    value, or script touches the user-data classes, so
+    uninstall-with-data-preserved holds structurally (C5-15 §5.0).
+  - The upgrade path is the Windows Installer major-upgrade transaction
+    (old product files removed, new installed, one transaction);
+    AllowSameVersionUpgrades covers the same-version CI rebuilds.
+  - UNSIGNED on purpose: Authenticode signing is the BLOCKED release-day
+    stage (C5-13 §9.2; handover moment 1). The MSI makes no floor claim
+    and does not check-then-lie (C5-15 §3.5 Option A).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Karyora Core"
+           Manufacturer="Qira Dev"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="E721B1F6-3A62-4441-90C7-6DE7BAA00A3B"
+           Scope="perUser"
+           Language="1033"
+           Codepage="1252">
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Feature Id="Main" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="DirPrograms" Name="Programs">
+        <Directory Id="DirKaryora" Name="Karyora">
+          <Directory Id="INSTALLFOLDER" Name="bin" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="UawpExe" Guid="12AE98C5-EDE2-4A91-B439-2BC788FB4A7D">
+        <File Id="UawpExeFile" Source="$(var.BinaryPath)" KeyPath="yes" />
+        <!-- The per-user PATH entry: product files only; nothing else. -->
+        <Environment Id="PathEntry" Name="PATH" Value="[INSTALLFOLDER]"
+                     Permanent="no" Part="last" Action="set" />
+      </Component>
+    </ComponentGroup>
+  </Package>
+</Wix>

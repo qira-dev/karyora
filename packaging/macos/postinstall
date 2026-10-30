@@ -1,0 +1,10 @@
+#!/bin/bash
+# Karyora Core pkg postinstall (C5-15 §3.2 Option A — the owner's §14
+# macOS selection: pkg). Binding rule C5-15 §5.0: NO package script ever
+# writes to, moves, or deletes the user-data classes; scripts fail closed
+# (§5.2). UNSIGNED on purpose — Developer ID Installer signing and
+# notarization are the BLOCKED release-day stage (C5-13 §9.2).
+set -euo pipefail
+chmod 755 /usr/local/bin/uawp
+echo "Karyora Core installed at /usr/local/bin/uawp (receipt: pkgutil --pkg-info com.qira-dev.karyora-core; uninstall removes the receipt's files only — user data is untouched)."
+exit 0

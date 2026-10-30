@@ -1,0 +1,13 @@
+Package: karyora-core
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: @ARCH@
+Maintainer: Qira Dev <qira-dev@users.noreply.github.com>
+Description: Karyora Core — the Unified AI Work Platform desktop product (uawp)
+ Local-mode AI work platform core; the binary is self-contained
+ (the CGO-linked SQLite engine ships inside it — zero runtime
+ prerequisites, D-07). User data lives at OS-standard user
+ application-data locations and is NEVER touched by install, upgrade
+ or uninstall (C5-15 §5.0). UNSIGNED: repo metadata and package
+ signatures are the BLOCKED release-day stage (C5-13 §9.2).

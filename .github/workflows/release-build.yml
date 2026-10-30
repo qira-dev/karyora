@@ -12,13 +12,15 @@ name: release-build
 # a SHA256SUMS digest file, the §5.1 provenance predicate record
 # (cmd/genprovenance), and the C5-16 SPDX-2.3 SBOM of the binary (syft
 # v1.55.0 — the generator/validator pin lives in the Core CR-5.2 C5-16
-# SBOM Tooling Proof-before-Pin Record). The provenance record is a
-# provenance-style attestation and the SBOM is a component inventory —
+# SBOM Tooling Proof-before-Pin Record). The build step then packages the
+# row's C5-15 §14 formats (Windows MSI / macOS pkg / Linux deb + rpm +
+# portable — UNSIGNED BY DESIGN: every signing operation is the BLOCKED
+# release-day stage, C5-13 §9.2, handover moment 1) and records the
+# per-row package digests in PACKAGES-<row>.txt. The provenance record is
+# a provenance-style attestation and the SBOM is a component inventory —
 # NO SLSA or reproducible-build claim is made (C5-14 §5.4) and NO
 # benignity claim (C5-16 §5). The build never holds signing keys
-# (C5-13 §5.2); the signing stage stays BLOCKED (C5-13 §9.2). Native
-# package formats (MSI/pkg/deb/rpm/portable) are the C5-15 transformation
-# of these bundles.
+# (C5-13 §5.2).
 #
 # This workflow publishes NOTHING: artifacts live on the workflow run only
 # (Software/AGENT.md 13 — release is owner-controlled). Triggers:
@@ -55,6 +57,13 @@ env:
   # validator, pinned exactly, which the verify job runs over every SBOM.
   SYFT_VERSION: "1.55.0"
   SPDX_TOOLS_VERSION: "0.8.3"
+  # The C5-15 packaging toolchain pin (record-and-verify per C5-14 §7.3 —
+  # the version is recorded here, printed in each packaging step's log,
+  # and re-verified against the previous release's recorded values at the
+  # release cut; no custom image build). WiX 7.0.1 = nuget's latest stable
+  # wix dotnet tool, checked 2026-10-30; used for both Windows rows' MSI
+  # (per-user, unsigned — Authenticode is the BLOCKED release-day stage).
+  WIX_VERSION: "7.0.1"
 
 jobs:
   build:
@@ -245,6 +254,116 @@ jobs:
           grep -qF "$(sha256sum "dist/${ART}" | cut -d' ' -f1)" "dist/${ART}.spdx.json" \
             || { echo "syft: SBOM does not carry the binary's sha256 subject binding" >&2; exit 1; }
           echo "syft SBOM emitted + generation-validated: dist/${ART}.spdx.json"
+      - name: package the row's native artifacts (C5-15 §14 formats)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ART="uawp-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
+          # The package version: a tag push stamps the tag (v-stripped);
+          # dispatch builds use the explicit non-release identifier. MSI
+          # ProductVersion must be numeric major.minor.build — normalize.
+          V="$(printf '%s' "${STAMP_VERSION#v}" | grep -oE '^[0-9]+(\.[0-9]+){0,2}' || true)"
+          [ -n "$V" ] || V="0.0.0"
+          IFS='.' read -r A B C <<< "$V"; A=${A:-0}; B=${B:-0}; C=${C:-0}
+          PKG_VERSION="${A}.${B}.${C}"
+          echo "PKG_VERSION=${PKG_VERSION}" >> "$GITHUB_ENV"
+          # C5-15 §5.0 static guard (fail-closed): the packaging sources
+          # carry NO user-data deletion — uninstall preserves data
+          # structurally; explicit data deletion stays the separate
+          # documented act (Blueprint §3.7). Any destructive command that
+          # ever enters these sources fails the build.
+          if grep -rEn '(rm[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*-[a-zA-Z]*[rfR]|rmdir)' packaging/ ; then
+            echo "packaging: destructive command found in packaging sources (C5-15 §5.0 violation)" >&2
+            exit 1
+          fi
+          case "$RUNNER_OS" in
+            Windows)
+              # WiX (pinned by env WIX_VERSION; record-and-verify per
+              # C5-14 §7.3): the per-user MSI per C5-15 §5.1 — product
+              # files only, the data directory is not a component.
+              dotnet tool install --global wix --version "${WIX_VERSION}" >/dev/null
+              wix --version
+              WIX="$HOME/.dotnet/tools/wix.exe"
+              [ -x "$WIX" ] || { echo "wix: tool not found after install" >&2; exit 1; }
+              if [ "${{ matrix.goarch }}" = "amd64" ]; then WIXARCH=x64; else WIXARCH=arm64; fi
+              "$WIX" build -arch "$WIXARCH" \
+                -define "ProductVersion=${PKG_VERSION}" \
+                -define "BinaryPath=dist/${ART}" \
+                packaging/windows/uawp.wxs \
+                -o "dist/karyora-core-${PKG_VERSION}-windows-${{ matrix.goarch }}.msi"
+              ;;
+            macOS)
+              # pkgbuild (the runner's native tool; version in the log):
+              # the payload at /usr/local/bin/uawp, the bounded postinstall
+              # from packaging/macos (C5-15 §5.2 — data-preserving,
+              # fail-closed). UNSIGNED: Developer ID signing + notarization
+              # are the BLOCKED release-day stage (C5-13 §9.2).
+              pkgbuild --version | head -n 1
+              PKGROOT="$RUNNER_TEMP/pkgroot/bin"
+              mkdir -p "$PKGROOT"
+              cp "dist/${ART}" "$PKGROOT/uawp"
+              chmod 755 "$PKGROOT/uawp"
+              pkgbuild --identifier com.qira-dev.karyora-core \
+                --version "${PKG_VERSION}" \
+                --root "$RUNNER_TEMP/pkgroot" \
+                --scripts packaging/macos \
+                --install-location /usr/local \
+                "dist/karyora-core-${PKG_VERSION}-macos-${{ matrix.goarch }}.pkg"
+              ;;
+            Linux)
+              # deb (dpkg-deb is preinstalled): the maintainer scripts are
+              # the data-preserving minimal set (C5-15 §5.0).
+              dpkg-deb --version | head -n 1
+              STAGE="$RUNNER_TEMP/deb-stage"
+              mkdir -p "$STAGE/DEBIAN" "$STAGE/opt/karyora/bin"
+              cp "dist/${ART}" "$STAGE/opt/karyora/bin/uawp"
+              sed -e "s/@VERSION@/${PKG_VERSION}/g" -e "s/@ARCH@/${{ matrix.goarch }}/g" \
+                packaging/linux/deb/DEBIAN/control > "$STAGE/DEBIAN/control"
+              for s in postinst prerm postrm; do
+                cp "packaging/linux/deb/DEBIAN/$s" "$STAGE/DEBIAN/$s"
+                chmod 755 "$STAGE/DEBIAN/$s"
+              done
+              dpkg-deb --build --root-owner-group "$STAGE" \
+                "dist/karyora-core_${PKG_VERSION}_${{ matrix.goarch }}.deb"
+              # rpm: the toolchain is installed per run and its version
+              # printed for the log (the C5-14 §7.3 record-and-verify
+              # pattern; no owner decision attached).
+              sudo apt-get update -qq
+              sudo apt-get install -y -qq rpm >/dev/null
+              rpm --version
+              RPMBUILD="$RUNNER_TEMP/rpmbuild"
+              mkdir -p "$RPMBUILD/SOURCES" "$RPMBUILD/SPECS" "$RPMBUILD/BUILD" "$RPMBUILD/RPMS" "$RPMBUILD/SRPMS"
+              cp "dist/${ART}" "$RPMBUILD/SOURCES/uawp-${{ matrix.goarch }}"
+              if [ "${{ matrix.goarch }}" = "amd64" ]; then RPMARCH=x86_64; else RPMARCH=aarch64; fi
+              rpmbuild -bb --define "_topdir $RPMBUILD" \
+                --define "_uawp_version ${PKG_VERSION}" \
+                --define "_uawp_arch_go ${{ matrix.goarch }}" \
+                --define "_uawp_arch_rpm ${RPMARCH}" \
+                packaging/rpm/uawp.spec
+              find "$RPMBUILD/RPMS" -type f -name '*.rpm' \
+                -exec cp {} "dist/karyora-core-${PKG_VERSION}-${RPMARCH}.rpm" \;
+              # the portable archive (C5-15 §3.3): the SAME supported
+              # Linux families, never an excluded environment (map rule 4)
+              cp packaging/portable/README.md "dist/uawp-linux-${{ matrix.goarch }}-PORTABLE-README.md"
+              tar -czf "dist/karyora-core-${PKG_VERSION}-linux-${{ matrix.goarch }}-portable.tar.gz" \
+                -C dist "${ART}" "uawp-linux-${{ matrix.goarch }}-PORTABLE-README.md"
+              rm "dist/uawp-linux-${{ matrix.goarch }}-PORTABLE-README.md"
+              ;;
+            *) echo "packaging: no format story for runner ${RUNNER_OS}" >&2; exit 1 ;;
+          esac
+          # The per-row package digest file (sha256sum -c format; the row's
+          # whole publishable package set). UNSIGNED — recorded, never
+          # hidden (C5-13 §9.2).
+          : > "dist/PACKAGES-${{ matrix.row }}.txt"
+          for f in dist/karyora-core-*; do
+            case "$f" in
+              *.msi|*.pkg|*.deb|*.rpm|*portable.tar.gz)
+                sha256sum "$f" >> "dist/PACKAGES-${{ matrix.row }}.txt" ;;
+            esac
+          done
+          sed -i 's|dist/||' "dist/PACKAGES-${{ matrix.row }}.txt"
+          ( cd dist && sha256sum -c "PACKAGES-${{ matrix.row }}.txt" )
+          echo "packaging: $(grep -c . "dist/PACKAGES-${{ matrix.row }}.txt") package file(s) for row ${{ matrix.row }} (UNSIGNED — signing BLOCKED, C5-13 §9.2)"
       - name: upload the per-row artifact bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -303,13 +422,21 @@ jobs:
     #      the run 40960623466 bundles). The C5-16 SBOM files are scanned
     #      like every other bundle file — no exception (confirmed in the
     #      log).
-    #   6. The aggregated release-SHA256SUMS.txt over the six binaries
+    #   6. The aggregated release-SHA256SUMS.txt over the whole publishable
+    #      artifact set — the six binaries PLUS every row's C5-15 packages
     #      (recomputed HERE — never copied from the bundles, sha256sum -c
     #      format, sorted) is uploaded as the release-manifest artifact and
     #      every digest is printed: the logs are the audit record (§4.2
     #      item 5; there is no credential material in these artifacts). The
     #      manifest is carried UNMODIFIED into the release evidence bundle
     #      (§3; C5-32 consumes it).
+    #   7. The C5-15 packages: per row the bundle carries its §14 format's
+    #      package(s) (MSI / pkg / deb + rpm + portable, per-arch), every
+    #      package digest matches BOTH its PACKAGES-<row>.txt entry and an
+    #      independent recompute, and the set is recorded UNSIGNED (the
+    #      signing stage is BLOCKED, C5-13 §9.2 — no signature check is
+    #      faked; C5-15 §6's per-format verification paths run at the
+    #      release cut once signing ships).
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -509,21 +636,72 @@ jobs:
           # the scanned set above — no exception was made for them.
           echo "verify-release-artifacts: the no-secret scan included the C5-16 SBOM documents ($(find bundles -name '*.spdx.json' | wc -l) file(s))"
 
-          # 6. The aggregated manifest, recomputed over the binaries here
-          # (sha256sum -c format: digest, two spaces, filename; sorted by
-          # filename) and printed — the logs are the audit record (§4.2
-          # item 5). The in-job `sha256sum -c` self-check proves the format.
+          # 7. The C5-15 packages (the owner's §14 format set: Windows
+          # MSI / macOS pkg / Linux deb + rpm + portable; per-arch):
+          # per row the bundle must carry its format's package(s), and
+          # every package's digest must equal BOTH its PACKAGES-<row>.txt
+          # entry AND an independent recompute here. The packages are
+          # UNSIGNED BY DESIGN — the signing stage is BLOCKED (C5-13
+          # §9.2), so no signature check exists yet and none is faked;
+          # the C5-15 §6 verification paths run at the release cut once
+          # signing ships.
+          pkgfail() { echo "verify-release-artifacts: FAIL (packages): $*" >&2; exit 1; }
+          for spec in "${ROWS[@]}"; do
+            IFS='|' read -r row _art goos _goarch _runner <<< "$spec"
+            pf="bundles/PACKAGES-${row}.txt"
+            [ -f "$pf" ] || pkgfail "row=${row}: PACKAGES-${row}.txt missing"
+            case "$goos" in
+              windows)
+                [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*-windows-*.msi')" ] \
+                  || pkgfail "row=${row}: the MSI package is missing (C5-15 §14)" ;;
+              darwin)
+                [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*-macos-*.pkg')" ] \
+                  || pkgfail "row=${row}: the pkg package is missing (C5-15 §14)" ;;
+              linux)
+                [ -n "$(find bundles -maxdepth 1 -name 'karyora-core_*.deb')" ] \
+                  || pkgfail "row=${row}: the deb package is missing (C5-15 §14)"
+                [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*.rpm')" ] \
+                  || pkgfail "row=${row}: the rpm package is missing (C5-15 §14)"
+                [ -n "$(find bundles -maxdepth 1 -name 'karyora-core-*-portable.tar.gz')" ] \
+                  || pkgfail "row=${row}: the portable archive is missing (C5-15 §14)" ;;
+            esac
+            while IFS= read -r line; do
+              [ -n "$line" ] || continue
+              d=$(printf '%s' "$line" | awk '{print $1}')
+              name=$(printf '%s' "$line" | sed -E 's/^[0-9a-f]{64}[[:space:]]+\*?//')
+              hex64 "$d" || pkgfail "row=${row}: PACKAGES digest for ${name} is not sha256 hex"
+              [ -f "bundles/$name" ] || pkgfail "row=${row}: PACKAGES names a missing file: ${name}"
+              rd=$(sha256sum "bundles/$name" | cut -d' ' -f1)
+              [ "$rd" = "$d" ] || pkgfail "row=${row}: package ${name} recomputed ${rd} != PACKAGES entry ${d}"
+            done < "$pf"
+            echo "verify-release-artifacts: row=${row} packages OK ($(grep -c . "$pf") file(s), unsigned)"
+          done
+
+          # 8. The aggregated manifest, recomputed HERE over the whole
+          # publishable artifact set — the six binaries PLUS every row's
+          # C5-15 packages (C5-15 §2: one row = one artifact set) — never
+          # copied from the bundles' own files; sha256sum -c format,
+          # sorted by filename, self-checked, and printed. The manifest
+          # is carried UNMODIFIED into the release evidence bundle
+          # (C5-14 §3; C5-32 consumes it).
           : > release-SHA256SUMS.txt
           for spec in "${ROWS[@]}"; do
             IFS='|' read -r row art _goos _goarch _runner <<< "$spec"
             d=$(sha256sum "bundles/$art" | cut -d' ' -f1)
             printf '%s  %s\n' "$d" "$art" >> release-SHA256SUMS.txt
             echo "verify-release-artifacts: manifest ${art} sha256 ${d}"
+            while IFS= read -r line; do
+              [ -n "$line" ] || continue
+              d=$(printf '%s' "$line" | awk '{print $1}')
+              name=$(printf '%s' "$line" | sed -E 's/^[0-9a-f]{64}[[:space:]]+\*?//')
+              printf '%s  %s\n' "$d" "$name" >> release-SHA256SUMS.txt
+              echo "verify-release-artifacts: manifest ${name} sha256 ${d}"
+            done < "bundles/PACKAGES-${row}.txt"
           done
           sort -k2 -o release-SHA256SUMS.txt release-SHA256SUMS.txt
           ( cd bundles && sha256sum -c ../release-SHA256SUMS.txt )
           echo "verify-release-artifacts: release-SHA256SUMS.txt emitted and self-checked"
-          echo "verify-release-artifacts: PASS (6/6 rows verified)"
+          echo "verify-release-artifacts: PASS (6/6 rows verified incl. the C5-15 packages)"
       - name: upload the aggregated manifest
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

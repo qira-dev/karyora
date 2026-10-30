@@ -1,0 +1,8 @@
+#!/bin/bash
+# Karyora Core deb postrm. Binding rule C5-15 §5.0: uninstall preserves
+# user data structurally — the data directory is not a packaged component
+# anywhere, and this script deliberately performs NO user-data operation;
+# explicit data deletion stays the separate documented act (Blueprint
+# §3.7). Fails closed.
+set -euo pipefail
+exit 0

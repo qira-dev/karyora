@@ -1,0 +1,9 @@
+#!/bin/bash
+# Karyora Core deb postinst (C5-15 §3.3 Option A — the owner's §14 Linux
+# selection: deb + rpm + portable). Binding rule C5-15 §5.0: this script
+# NEVER writes to, moves, or deletes the user-data classes; it fails
+# closed on any error. UNSIGNED on purpose (C5-13 §9.2).
+set -euo pipefail
+chmod 755 /opt/karyora/bin/uawp
+echo "Karyora Core installed at /opt/karyora/bin/uawp (uninstall removes only the package's files — user data is untouched)."
+exit 0
