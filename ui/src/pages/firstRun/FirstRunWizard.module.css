@@ -1,0 +1,206 @@
+/* The First-Run Setup wizard (C-06). Tokens only; logical properties;
+   reduced-motion safe. */
+
+.intro {
+  margin: 0 0 var(--space-6);
+  max-width: 72ch;
+}
+
+.stepList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  list-style: none;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.stepItem[data-state="current"] {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.stepItem[data-state="completed"] {
+  color: var(--color-success);
+}
+
+.stepMarker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 50%;
+  font-size: var(--text-metadata-size);
+}
+
+.stepItem[data-state="current"] .stepMarker {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.panels {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  padding: var(--space-5);
+}
+
+.stepHeading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-section-title-size);
+  font-weight: 600;
+  line-height: var(--text-section-title-line);
+}
+
+.stepHelp {
+  margin: 0 0 var(--space-4);
+  max-width: 72ch;
+}
+
+.choiceGroup {
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.choice input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+}
+
+.choiceLabel {
+  font-weight: 600;
+}
+
+.choiceHelp {
+  margin: 0 0 var(--space-2);
+  padding-inline-start: 28px;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+  max-width: 68ch;
+}
+
+.actionList {
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.actionItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-2);
+}
+
+.actionName {
+  font-weight: 600;
+}
+
+.actionNote {
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.completion {
+  margin-block-start: var(--space-6);
+  padding-block-start: var(--space-4);
+  border-block-start: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-5);
+}
+
+.primaryButton,
+.secondaryButton,
+.tertiaryButton {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-button);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryButton {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-control-border);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.tertiaryButton {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tertiaryButton:hover {
+  text-decoration-thickness: 2px;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.policy {
+  margin: var(--space-5) 0 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+  max-width: 72ch;
+}

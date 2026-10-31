@@ -1,10 +1,13 @@
 /**
- * CoreClient contract layer (UI Phase 2, P2.6).
+ * CoreClient contract layer (UI Phase 2, P2.6 shell; P2.7 first-run and
+ * connection onboarding).
  *
  * Construction authority: UI Blueprint §31.2 and the P1.5 wire-contract
  * specification. What is implemented here is the typed boundary — the
- * interface shape, the D-35 error envelope, and the unavailable state —
- * consumed by the shell's truthful status surfaces (C-02/C-04/C-11).
+ * interface shape (queries and commands), the D-35 error envelope, and
+ * the unavailable state — consumed by the shell's truthful status
+ * surfaces (C-02/C-04/C-11) and the P2.7 onboarding surfaces
+ * (C-06/C-07/C-08/C-09/C-10).
  *
  * What is deliberately NOT here (carried Open, never invented):
  * - No exact wire names, paths, or per-operation payload schemas. Every
@@ -74,20 +77,64 @@ export type CoreQueryResult<TData> =
   | CoreRejection
   | CoreUnknown;
 
+/** Command-level operation kinds the P2.7 first-run and connection
+ *  surfaces consume. These are UI interface names at the P1.5 §3
+ *  object/authority level — not wire names. Each maps to a recorded P1.1
+ *  mutation or contract operation, and its exact wire name stays Open
+ *  (O-1). No command here may be implemented client-side: every one is
+ *  Core-owned durable authority. */
+export type CoreCommandKind =
+  /** `Test connection` (M-25; C-07): read-only endpoint/model/capability
+   *  verification with a sanitized result. Wire name: Open (O-1). */
+  | "provider-connection-test"
+  /** `Save securely` (M-24; C-07): store provider metadata + the secret
+   *  reference through the Core credential boundary. Wire name: Open. */
+  | "provider-connection-save"
+  /** Connection rename (C-08/M-27): safe display label only. */
+  | "connection-rename"
+  /** Connection remove (C-08/M-27): destructive; §8.9 confirmation binds. */
+  | "connection-remove"
+  /** Connection switch (M-34; C-09): a Core-mediated context change that
+   *  never migrates a Job and never mixes caches/cursors/credentials. */
+  | "connection-switch"
+  /** Session re-authentication (C-11): the dedicated re-auth flow.
+   *  Mechanism: Open (O-3 — Core/security owners). */
+  | "session-reauthenticate"
+  /** First-run setup completion (C-06): recorded ONLY after
+   *  authoritative Core success — never invented client-side. */
+  | "first-run-complete";
+
+/** The result of a command attempt. `unavailable` is the truthful state
+ *  of this milestone: no transport is configured, so the command was
+ *  NEVER SUBMITTED — no correlation ID exists, nothing reached a Core,
+ *  and no retry is owed (this is S0-with-reason in the P1.6 §2 model,
+ *  not S1, S3, or S4). `accepted` is the future S1 surface for a live
+ *  transport; no code path can produce it today. */
+export type CoreCommandResult =
+  | { readonly kind: "accepted"; readonly correlationId: string }
+  | { readonly kind: "unavailable" }
+  | CoreRejection
+  | CoreUnknown;
+
 /** The typed client boundary (Blueprint §31.2). Phase 2 provides the
  *  interface and the unavailable instance; live transports arrive only
  *  through their recorded approval path. */
 export interface CoreClient {
   /** Run one object-level query. */
   query<TData>(operation: CoreOperationKind): Promise<CoreQueryResult<TData>>;
+  /** Attempt one Core-owned command. */
+  command(operation: CoreCommandKind): Promise<CoreCommandResult>;
 }
 
-/** The single Phase 2 instance: every query reports `unavailable`. This
- *  is the honest no-transport state — not a mock, not a fake success,
- *  not fabricated data. */
+/** The single Phase 2 instance: every query and command reports
+ *  `unavailable`. This is the honest no-transport state — not a mock,
+ *  not a fake success, not fabricated data. */
 export function createUnavailableCoreClient(): CoreClient {
   return {
     query<TData>(_operation: CoreOperationKind): Promise<CoreQueryResult<TData>> {
+      return Promise.resolve({ kind: "unavailable" });
+    },
+    command(_operation: CoreCommandKind): Promise<CoreCommandResult> {
       return Promise.resolve({ kind: "unavailable" });
     },
   };

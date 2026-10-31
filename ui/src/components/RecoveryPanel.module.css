@@ -1,0 +1,61 @@
+/* The shared recovery panel (P2.3 §3.2; Blueprint §25.3). Quiet state
+   surface; tokens only; reduced-motion safe (transitions ride the
+   --motion-* tokens, which collapse to 0 ms under reduce). */
+
+.panel {
+  margin-block-start: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-info);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+}
+
+.body {
+  margin: 0 0 var(--space-2);
+}
+
+.note {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.reference {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.action {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.action:hover {
+  background: var(--color-surface-3);
+}

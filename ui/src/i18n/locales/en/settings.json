@@ -73,7 +73,30 @@
     "localNote": "Shortcut preferences are a local per-device preference."
   },
   "connections": {
-    "body": "Connection management — add, rename, test, re-authenticate, and switch — needs the Core connection contracts, which are not wired in this milestone, so no connection list is shown. No connection state is invented here."
+    "body": "Connection management — add, rename, test, re-authenticate, and switch — needs the Core connection contracts, which are not wired in this milestone, so no connection list is shown. No connection state is invented here.",
+    "listTitle": "Connections",
+    "listIntro": "Connections are Core records shown with safe display names. This page never shows tokens or endpoints with embedded credentials.",
+    "listUnavailable": "The connection list is unavailable: the Core connection contracts are not wired in this milestone, so no connection records can be listed. No connection state is invented here.",
+    "providerSectionTitle": "Provider connection setup",
+    "providerIntro": "This is the same provider setup step the first-run wizard uses. You can also reach it from the first-run setup on the home page. Re-running setup never resets existing state.",
+    "operationsTitle": "Connection operations",
+    "operationsIntro": "The dedicated connection flow offers add, rename, remove, test, and re-authenticate. Each operation runs only through the Core connection contracts, which are not wired in this milestone, so each control states its real availability.",
+    "opAdd": "Add connection",
+    "opAddNote": "Opens the provider connection setup below — the only connection type whose setup fields are specified in this phase. Setup for other connection types needs the Core bootstrap contracts, which are not wired yet.",
+    "opAddGo": "Add a provider connection",
+    "opRename": "Rename connection",
+    "opRenameUnavailable": "Rename applies to a connection in the list. The connection list is unavailable, so there is nothing to rename yet.",
+    "opRemove": "Remove connection",
+    "opRemoveUnavailable": "Remove applies to a connection in the list. The connection list is unavailable, so there is nothing to remove yet. Removal is destructive and always asks for an explicit confirmation that states its scope and effects before it runs.",
+    "opTest": "Test connection",
+    "opTestUnavailable": "Test applies to a saved connection, and none can be listed yet. The provider form below offers Test connection for the entries you are currently entering.",
+    "opReauth": "Re-authenticate",
+    "opReauthUnavailable": "Re-authentication runs through the Core session contracts, which are not wired in this milestone. When the Core reports that authentication is required, the re-authenticate path appears here and in the session menu.",
+    "switchTitle": "Switch connection",
+    "switchIntro": "Switching is a Core-mediated context change: it changes which data and permissions are available. It never moves or copies Jobs or data between Cores.",
+    "firstRunTitle": "First-run setup",
+    "firstRunBody": "You can run or resume the first-run setup at any time. Re-running setup preserves your existing choices.",
+    "resumeSetup": "Resume first-run setup"
   },
   "updates": {
     "body": "Update and maintenance status is not shown: the update-status contract is not wired in this milestone. This surface never implies checkout, expiry lockout, or any maintenance behavior."

@@ -1,0 +1,71 @@
+/* The connection switch dialog (C-09/C-10). */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.warningHeading {
+  margin: 0;
+  font-size: var(--text-card-title-size);
+  font-weight: 600;
+}
+
+.warningBody {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.select {
+  min-height: var(--size-input);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  font: inherit;
+  cursor: not-allowed;
+}
+
+.reason {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.confirmRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.primaryButton {
+  min-height: var(--size-button-primary);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+}

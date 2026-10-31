@@ -4,7 +4,8 @@
     "open": "Open",
     "close": "Close",
     "cancel": "Cancel",
-    "reset": "Reset"
+    "reset": "Reset",
+    "retry": "Retry"
   },
   "states": {
     "unknown": "Unknown",

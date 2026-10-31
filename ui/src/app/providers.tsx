@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { FirstRunProvider } from "./firstRun/firstRunState";
 import { PreferencesProvider } from "./preferences";
 import { useApplyPreferences } from "./useApplyPreferences";
 
@@ -18,8 +19,10 @@ function PreferenceEffects() {
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <PreferencesProvider>
-      <PreferenceEffects />
-      {children}
+      <FirstRunProvider>
+        <PreferenceEffects />
+        {children}
+      </FirstRunProvider>
     </PreferencesProvider>
   );
 }

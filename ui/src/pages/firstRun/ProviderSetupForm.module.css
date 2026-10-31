@@ -1,0 +1,184 @@
+/* The provider setup form (C-07). Tokens only; logical properties;
+   reduced-motion safe (transitions ride --motion-* tokens). */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 560px;
+}
+
+.emptyState {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.select,
+.input,
+.textarea {
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+  padding: 0 var(--space-3);
+}
+
+.select {
+  min-height: var(--size-input);
+}
+
+.input {
+  min-height: var(--size-input);
+}
+
+.textarea {
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+}
+
+.select:disabled {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2);
+  cursor: not-allowed;
+}
+
+.help {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.secretRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.secretRow .input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+}
+
+.revealButton {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.revealButton:hover {
+  background: var(--color-surface-3);
+}
+
+.notice {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-2);
+}
+
+.notice[data-kind="billing"] {
+  border-inline-start: 3px solid var(--color-info);
+}
+
+.noticeTitle {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+
+.noticeBody {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: var(--size-button-primary);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-button);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryButton {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-control-border);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.capability {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-2);
+}
+
+.capabilityRow {
+  margin: 0 0 var(--space-1);
+}
+
+.capabilityLabel {
+  font-weight: 600;
+}
+
+.capabilityValue {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}

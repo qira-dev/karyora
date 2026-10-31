@@ -1,0 +1,50 @@
+/* The dirty-form guard dialog actions (J-8). */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.body p {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
+
+.primary,
+.secondary {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-button);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primary {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+.primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.secondary {
+  border: 1px solid var(--color-control-border);
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+.secondary:hover {
+  background: var(--color-surface-3);
+}

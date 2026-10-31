@@ -86,3 +86,27 @@
 .popoverClose:hover {
   background: var(--color-surface-3);
 }
+
+.popoverActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+
+.popoverActions .popoverClose {
+  margin-block-start: 0;
+}
+
+.popoverNote {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.sessionReauth {
+  margin-block: var(--space-3);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--color-border);
+}

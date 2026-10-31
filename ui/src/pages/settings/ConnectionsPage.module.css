@@ -1,0 +1,112 @@
+/* /settings/connections (C-14). */
+
+.sectionTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-section-title-size);
+  font-weight: 600;
+  line-height: var(--text-section-title-line);
+}
+
+.help {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+  max-width: 72ch;
+}
+
+.stateBlock {
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-info);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+  padding: var(--space-3) var(--space-4);
+  max-width: 72ch;
+}
+
+.stateTitle {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+}
+
+.stateBody {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.operationList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 72ch;
+}
+
+.operationItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.operationButton {
+  align-self: flex-start;
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.operationButton:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.operationButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.operationReason {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.operationName {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.providerAnchor {
+  scroll-margin-block-start: var(--space-8);
+}
+
+.providerAnchor:focus {
+  outline: none;
+}
+
+.resumeButton {
+  align-self: flex-start;
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.resumeButton:hover {
+  background: var(--color-surface-3);
+}

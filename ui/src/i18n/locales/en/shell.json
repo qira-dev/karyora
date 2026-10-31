@@ -25,7 +25,17 @@
     "stateUnknown": "Unknown",
     "unknownExplanation": "The connection state is Unknown: no Core connection is wired in this milestone, so no Core-reported state exists to display. Unknown is never shown as connected.",
     "listUnavailable": "The connection list is unavailable: the Core connection contracts are not wired in this milestone.",
-    "switchUnavailable": "Switching connections is not offered yet: it needs the Core connection contracts."
+    "switchUnavailable": "Switching connections is not offered yet: it needs the Core connection contracts.",
+    "switch": {
+      "title": "Switch connection",
+      "warningHeading": "Before you switch",
+      "warningBody": "Switching changes which Core, workspace, data, and permissions you are working with. It never moves or copies Jobs or data between Cores, and each connection keeps its own caches, cursors, credentials, and events — they are never mixed.",
+      "selectorLabel": "Connection",
+      "selectorUnavailable": "The connection list is unavailable: the Core connection contracts are not wired in this milestone, so there is nothing to switch to yet.",
+      "confirm": "Switch connection",
+      "confirmUnavailableReason": "Switching needs a selectable connection from the Core connection list, which is unavailable.",
+      "setupHint": "You can set up a connection from Settings, Connections, or from the first-run setup."
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -35,7 +45,11 @@
   "session": {
     "label": "Session",
     "popoverTitle": "Session",
-    "stateUnavailable": "The session state is unavailable: the Core session contract is not wired in this milestone, so there is no session state to display."
+    "stateUnavailable": "The session state is unavailable: the Core session contract is not wired in this milestone, so there is no session state to display.",
+    "stateRule": "This display shows only what the Core reports. Authentication required and Permission limited appear only when the Core reports them — never shown as connected.",
+    "reauthLabel": "Re-authenticate",
+    "reauthUnavailable": "Re-authentication is not offered yet: the Core session contract is not wired in this milestone, so there is no session state to act on.",
+    "reauthNote": "When the Core reports Authentication required or Permission limited, this display shows it and offers the re-authentication path as a dedicated flow. Protected operations stay disabled with an explanation while that state lasts, and credentials are never stored to avoid it."
   },
   "shortcutHelp": {
     "trigger": "Keyboard shortcuts",
