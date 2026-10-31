@@ -108,6 +108,33 @@ jobs:
           scan-ref: .
           exit-code: '1'
 
+  ui:
+    # The UI shell (P2.6) is built from the committed lockfile only: npm ci
+    # verifies every recorded integrity hash and refuses drift (the PP-3
+    # lockfile-integrity rule), then the G-10 locale-parity check, the
+    # P1.5 §5 generated-types drift check, and the production build run.
+    # The exact tool versions were proven in the recorded PP-1–PP-4 proof
+    # set before the pins; node 24 is that proof's major line.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - name: npm ci (lockfile-driven clean install)
+        run: npm ci --no-fund --no-audit
+      - name: locale key parity (G-10)
+        run: npm run i18n:parity
+      - name: generated-types drift check (P1.5 §5)
+        run: npm run types:check
+      - name: production build (tsc + vite)
+        run: npm run build
+
   cross-target:
     # Compile-only cross-target matrix (Software/AGENT.md 9; Blueprint D-06
     # six locked rows). Per D-09 a Go-only cross-build never proves the

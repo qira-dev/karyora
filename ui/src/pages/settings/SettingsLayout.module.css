@@ -1,0 +1,67 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.groupNav {
+  flex-shrink: 0;
+}
+
+.groupList {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.groupLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-button);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-body-size);
+}
+
+.groupLink:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text-primary);
+}
+
+.groupLinkActive {
+  background: var(--color-surface-3);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.groupPanel {
+  min-width: 0;
+}
+
+/* From the standard band up, the vertical settings-nav pattern: the group
+   nav is a persistent vertical column (C-12). */
+@media (min-width: 1200px) {
+  .layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .groupNav {
+    position: sticky;
+    inset-block-start: 0;
+    width: 220px;
+  }
+  .groupList {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+  .groupLink {
+    width: 100%;
+  }
+}

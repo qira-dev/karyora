@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Main",
+    "buildAndConnect": "Build & connect",
+    "extensions": "Extensions",
+    "operate": "Operate",
+    "bottom": "More"
+  },
+  "items": {
+    "overview": "Overview",
+    "chat": "Chat",
+    "jobs": "Jobs",
+    "knowledge": "Knowledge",
+    "memory": "Memory",
+    "context": "Context",
+    "workflows": "Workflows",
+    "providersAndModels": "Providers & Models",
+    "plugins": "Plugins",
+    "activityAndAudit": "Activity & Audit",
+    "helpAndDocumentation": "Help & Documentation",
+    "settings": "Settings",
+    "session": "Session"
+  },
+  "unavailableSuffix": "(not available yet)",
+  "unavailableReason": "Not available yet: this destination ships in a later release package.",
+  "collapse": "Collapse navigation",
+  "expand": "Expand navigation",
+  "openNavigation": "Open navigation",
+  "closeNavigation": "Close navigation"
+}

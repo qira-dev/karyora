@@ -1,0 +1,37 @@
+.page {
+  max-width: var(--shell-content-max);
+  margin-inline: auto;
+  padding: var(--shell-page-pad-compact);
+}
+
+.heading {
+  margin: 0 0 var(--space-6);
+  font-family: var(--font-display);
+  font-size: var(--text-page-title-size);
+  font-weight: 500;
+  line-height: var(--text-page-title-line);
+}
+
+.section {
+  margin-block-end: var(--space-8);
+  max-width: 72ch;
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-section-title-size);
+  font-weight: 600;
+  line-height: var(--text-section-title-line);
+}
+
+@media (min-width: 1024px) {
+  .page {
+    padding: var(--shell-page-pad);
+  }
+}
+
+@media (min-width: 1440px) {
+  .page {
+    padding-inline: var(--space-8);
+  }
+}

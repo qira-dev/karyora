@@ -1,0 +1,88 @@
+{
+  "hub": {
+    "title": "Settings",
+    "subtitle": "Settings groups. Groups whose Core-backed screens are not wired yet show their honest entry state.",
+    "groupsNavLabel": "Settings groups"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Appearance",
+      "description": "Theme, motion, and language preferences.",
+      "title": "Appearance"
+    },
+    "connections": {
+      "label": "Connections",
+      "description": "Core connection management (add, test, switch, re-authenticate).",
+      "title": "Connections"
+    },
+    "privacy": {
+      "label": "Privacy",
+      "description": "Privacy and data controls.",
+      "title": "Privacy"
+    },
+    "security": {
+      "label": "Security",
+      "description": "Session and credential security controls.",
+      "title": "Security"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "description": "Notification preferences.",
+      "title": "Notifications"
+    },
+    "shortcuts": {
+      "label": "Shortcuts",
+      "description": "Keyboard shortcuts.",
+      "title": "Keyboard shortcuts"
+    },
+    "diagnostics": {
+      "label": "Diagnostics",
+      "description": "Core health and redacted diagnostic export.",
+      "title": "Diagnostics"
+    },
+    "updates": {
+      "label": "Updates",
+      "description": "Update and maintenance status.",
+      "title": "Updates"
+    },
+    "about": {
+      "label": "About",
+      "description": "Version, license, and product metadata.",
+      "title": "About"
+    }
+  },
+  "appearance": {
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "themeHelp": "Light is the first-run default. System follows the operating-system appearance and switches live when the OS appearance changes.",
+    "reducedMotion": "Motion",
+    "reducedMotionSystem": "Follow system",
+    "reducedMotionReduce": "Reduce motion",
+    "reducedMotionFull": "No reduction",
+    "reducedMotionHelp": "Follow system honors the operating-system reduced-motion setting. You can also force reduction on or off.",
+    "language": "Language",
+    "languageHelp": "English is the source locale. Translations for the other accepted locales are not delivered yet, so selecting them renders English until the locale resources are reviewed.",
+    "densityWithheld": "A compact density option is not offered: it renders only if target-size and accessibility checks pass, and those checks have not run.",
+    "applied": "Changes apply immediately. Reset restores the documented defaults: Light theme, motion following the system, and English.",
+    "resetConfirm": "Reset appearance to defaults"
+  },
+  "shortcuts": {
+    "body": "The shortcuts below are implemented in the current shell. The full shortcut registry and the remap and disable controls ship in a later package.",
+    "localNote": "Shortcut preferences are a local per-device preference."
+  },
+  "connections": {
+    "body": "Connection management — add, rename, test, re-authenticate, and switch — needs the Core connection contracts, which are not wired in this milestone, so no connection list is shown. No connection state is invented here."
+  },
+  "updates": {
+    "body": "Update and maintenance status is not shown: the update-status contract is not wired in this milestone. This surface never implies checkout, expiry lockout, or any maintenance behavior."
+  },
+  "about": {
+    "appVersion": "UI shell version",
+    "license": "License",
+    "licenseValue": "Apache-2.0",
+    "body": "This build contains the shared shell and approved navigation. Wordmark and brand assets are deferred pending the owner's decision; the product name appears as plain text.",
+    "versionDisclaimer": "This is the local UI shell version only. It makes no claim about the newest or most secure available release."
+  }
+}

@@ -1,0 +1,151 @@
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-2);
+  background: var(--color-surface-2);
+}
+
+.topCluster {
+  display: flex;
+  justify-content: flex-end;
+  padding-inline: var(--space-1);
+}
+
+.collapseToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-icon-button);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.collapseToggle:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text-primary);
+}
+
+.controlLabel {
+  white-space: nowrap;
+}
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  flex: 1;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.groupLabel {
+  margin: 0;
+  padding-inline: var(--space-3);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-secondary);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item[data-disabled="true"] {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.item:not([data-disabled="true"]):hover {
+  background: var(--color-surface-3);
+}
+
+.itemIcon {
+  flex-shrink: 0;
+}
+
+.itemLabel {
+  font-size: var(--text-body-size);
+}
+
+/* The active item: visible indicator bar + text treatment + aria-current.
+   Color is not the only signal (C-01; §4.3). */
+.itemActive {
+  background: var(--color-surface-3);
+  font-weight: 600;
+}
+
+.itemActive::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-2);
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+.disabledNote {
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+}
+
+.bottomCluster {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--color-border);
+  padding-block-start: var(--space-3);
+}
+
+/* The narrow drawer variant stretches the rail full height. */
+
+/* Collapsed rail: center the icon-only items. The collapsed state is set
+   as a global attribute by the shell wrapper. */
+:global([data-sidebar-collapsed="true"]) .item {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+:global([data-sidebar-collapsed="true"]) .groupLabel {
+  text-align: center;
+  padding-inline: 0;
+}

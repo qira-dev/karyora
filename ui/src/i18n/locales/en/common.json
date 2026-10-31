@@ -1,0 +1,19 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Open",
+    "close": "Close",
+    "cancel": "Cancel",
+    "reset": "Reset"
+  },
+  "states": {
+    "unknown": "Unknown",
+    "unavailable": "Unavailable",
+    "notConnected": "Not connected"
+  },
+  "entryNotice": {
+    "title": "Entry point",
+    "body": "This group's screens and Core-backed controls ship in a later package. No Core contract is wired in this milestone, so nothing beyond this entry is shown.",
+    "localOnlyBody": "The local-preference controls on this page work now; the remaining screens for this group ship in a later package."
+  }
+}

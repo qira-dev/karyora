@@ -1,0 +1,7 @@
+{
+  "title": "Welcome",
+  "shellStatus": "Shell status",
+  "shellStatusBody": "The shared application shell and approved navigation are in place. The operational home (Overview) and the first-run setup ship in later packages, so this page shows no data, no metrics, and no composer.",
+  "nextActions": "Next actions",
+  "nextActionsBody": "Settings is reachable now. Every other destination in the navigation shows its honest not-available state."
+}

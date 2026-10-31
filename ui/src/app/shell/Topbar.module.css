@@ -1,0 +1,80 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: var(--shell-topbar);
+  flex-shrink: 0;
+  padding-inline: var(--shell-page-pad-compact) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-1);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.productName {
+  font-family: var(--font-display);
+  font-size: var(--text-card-title-size);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.separator {
+  width: 1px;
+  height: var(--space-5);
+  background: var(--color-border);
+}
+
+.pageTitle {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-button);
+  height: var(--size-icon-button);
+  border: 0;
+  border-radius: var(--radius-icon-button);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text-primary);
+}
+
+/* The narrow-viewport drawer trigger: the rail replaces it at the compact
+   breakpoint (§28.1). */
+.drawerOnly {
+  display: inline-flex;
+}
+
+@media (min-width: 1024px) {
+  .drawerOnly {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .topbar {
+    padding-inline: var(--shell-page-pad) var(--space-5);
+  }
+}

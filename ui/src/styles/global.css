@@ -1,0 +1,66 @@
+/* Global baseline. Component styling lives in CSS Modules (UI-07
+   approved direction); this file only resets and applies tokens. */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Focus (P2.2 §2.5): one ring token for every focusable control; 2 px
+ * solid with a 2 px offset where layout permits; never removed without a
+ * tested replacement; verified against both the control surface and the
+ * adjacent page surface at the rendered-pair review (UI-25, OPEN).
+ */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Links stay identifiable without color alone (Blueprint §6.5): persistent
+ * underline for body links; underline on hover/focus elsewhere.
+ */
+a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a:hover,
+a:focus-visible {
+  text-decoration-thickness: 2px;
+}
+
+/* Visually hidden, still available to assistive technology. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Route-change focus target: the page main heading receives focus after
+   navigation (Blueprint §7.4 focus behavior) without a visible ring. */
+[tabindex="-1"]:focus {
+  outline: none;
+}

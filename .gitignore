@@ -4,6 +4,10 @@
 *.test
 *.out
 
+# Node / UI (ui/)
+node_modules/
+dist/
+
 # Local environment
 .env
 .env.*

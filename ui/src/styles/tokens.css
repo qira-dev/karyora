@@ -1,0 +1,189 @@
+/*
+ * Semantic design tokens (UI Phase 2, P2.2).
+ *
+ * The role names and values below are carried EXACTLY from the P2.2
+ * token/theme foundation: the Blueprint's proposed Dark table (§6.3) and
+ * Light table (§6.4) mapped verbatim into one shared semantic role set.
+ * They are STARTING VALUES: no contrast ratio is verified until the
+ * rendered pair matrix (P2.2 §4) is computed and inspected (UI-25 gate,
+ * OPEN). Components consume the semantic roles only — never raw values.
+ *
+ * Dark values for the three Light-only roles (--color-user-message,
+ * --color-warning-surface, --color-info-surface) are deliberately NOT
+ * invented here: the Light/Dark role asymmetry is the recorded OPEN
+ * review item (P2.2 §3.3). No P2.6 surface consumes those roles.
+ */
+
+:root {
+  /* Canvas and surface (P2.2 §2.1) */
+  --color-bg: #f7f5f0; /* warm main canvas */
+  --color-surface-1: #fffefb; /* main content and composer surface */
+  --color-surface-2: #f0eee8; /* sidebar and secondary surface */
+  --color-surface-3: #e2ebe3; /* selected, hover, quiet green-tinted surface */
+  --color-user-message: #eeece5; /* Light-only role (asymmetry Open, P2.2 §3.3) */
+
+  /* Borders (P2.2 §2.4) */
+  --color-border: #e3dfd6; /* quiet separators ONLY */
+  --color-control-border: #72756b; /* control identification boundary */
+
+  /* Text (P2.2 §2.2) */
+  --color-text-primary: #292d28;
+  --color-text-secondary: #5f675f;
+  --color-text-muted: #5f675f;
+
+  /* Controls (P2.2 §2.3) */
+  --color-primary: #2f684f;
+  --color-primary-hover: #214e3c;
+  --color-primary-text: #ffffff;
+  --color-link: #214e3c;
+
+  /* Focus (P2.2 §2.5) */
+  --color-focus: #214e3c;
+
+  /* Semantic status (P2.2 §2.6) */
+  --color-success: #2f684f;
+  --color-warning: #8a5614;
+  --color-danger: #99594b;
+  --color-info: #496b80;
+  --color-warning-surface: #f5edde; /* Light-only role (asymmetry Open) */
+  --color-info-surface: #e8eff2; /* Light-only role (asymmetry Open) */
+
+  /* Typography (P2.2 §2.7; Blueprint §6.6–§6.7) */
+  --font-display: Georgia, "Times New Roman", serif;
+  --font-ui:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --text-page-title-size: 28px;
+  --text-page-title-line: 1.2;
+  --text-section-title-size: 18px;
+  --text-section-title-line: 1.35;
+  --text-card-title-size: 15px;
+  --text-card-title-line: 1.4;
+  --text-body-size: 15px;
+  --text-body-line: 1.5;
+  --text-metadata-size: 13px;
+  --text-metadata-line: 1.45;
+
+  /* Spacing — 4 px base grid (P2.2 §2.8; Blueprint §6.8) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Shape (P2.2 §2.10; Blueprint §6.9) */
+  --radius-button: 8px;
+  --radius-input: 8px;
+  --radius-card: 12px;
+  --radius-dialog: 16px;
+  --radius-tooltip: 6px;
+  --radius-badge: 6px;
+  --radius-icon-button: 8px;
+
+  /* Motion (P2.2 §2.11; Blueprint §6.11: 120–180 ms ease-out; no springs;
+     tokens only — a per-component duration outside the band is an
+     exception under the open exception-review rule). */
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 180ms;
+  --motion-ease: ease-out;
+
+  /* Elevation (P2.2 §2.12; Blueprint §6.10) — centralized z-index tokens;
+     no arbitrary per-component z-index; menus/popovers never cover a
+     visible focus ring. */
+  --z-page: 0; /* level 0 page background */
+  --z-surface: 1; /* level 1 sidebar, cards, input surfaces */
+  --z-popover: 200; /* level 2 popovers, menus, command palette */
+  --z-dialog: 300; /* level 3 modal and confirmation dialogs */
+  --z-blocking: 400; /* level 4 blocking critical-error overlay only when
+                        truly necessary (unused in P2.6) */
+
+  /* Shadows: subtle and reserved for overlays (Blueprint §6.9). */
+  --shadow-popover: 0 8px 24px rgba(11, 15, 20, 0.14);
+  --shadow-dialog: 0 16px 48px rgba(11, 15, 20, 0.18);
+
+  /* Breakpoints (P2.2 §2.13; Blueprint §28.1) — documented token values;
+     CSS custom properties cannot be consumed inside media queries, so the
+     @media blocks in this codebase use these exact literals and this
+     block is the single source of their meaning:
+       wide  1440px   standard 1200px   compact 1024px   narrow 768px */
+  --breakpoint-wide: 1440px;
+  --breakpoint-standard: 1200px;
+  --breakpoint-compact: 1024px;
+  --breakpoint-narrow: 768px;
+
+  /* Shell measurements (Blueprint §5.2) */
+  --shell-sidebar-expanded: 248px;
+  --shell-sidebar-collapsed: 72px;
+  --shell-topbar: 64px;
+  --shell-content-max: 1440px;
+  --shell-page-pad: 24px;
+  --shell-page-pad-compact: 16px;
+
+  /* Control sizing (P2.2 §2.3 / P2.4 §6 pointer targets) */
+  --size-button-primary: 44px;
+  --size-button-secondary: 40px;
+  --size-icon-button: 40px;
+  --size-input: 44px;
+}
+
+/*
+ * Dark theme — same semantic role set, the Blueprint's proposed §6.3
+ * values verbatim. Dark must preserve the same hierarchy (UI-08).
+ */
+:root[data-theme="dark"] {
+  --color-bg: #0b0f14;
+  --color-surface-1: #111820;
+  --color-surface-2: #18212b;
+  --color-surface-3: #202b38;
+
+  --color-border: #2a3645;
+  --color-control-border: #6b7c93;
+
+  --color-text-primary: #f3f6fb;
+  --color-text-secondary: #b6c2d2;
+  --color-text-muted: #9aa8ba;
+
+  --color-primary: #7cc99b;
+  --color-primary-hover: #9bddad;
+  --color-primary-text: #0b0f14;
+  --color-link: #a2d7b8;
+
+  --color-focus: #a2d7b8;
+
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #fb7185;
+  --color-info: #60a5fa;
+
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+/*
+ * Reduced motion. Two sources, both honored (P2.4 §2.5): the OS setting
+ * via prefers-reduced-motion, and the in-app override (C-13: follows
+ * system + override) expressed as [data-motion="reduce"]. The in-app
+ * override may also REMOVE reduction via [data-motion="no-preference"]
+ * when the user explicitly opts out of a reducing OS setting.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="no-preference"]) {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}
+:root[data-motion="reduce"] {
+  --motion-fast: 0ms;
+  --motion-base: 0ms;
+  --motion-slow: 0ms;
+}

@@ -1,0 +1,57 @@
+{
+  "topbar": {
+    "search": "Search",
+    "openSearch": "Open search",
+    "newMenu": "New",
+    "openNewMenu": "Open the creation menu",
+    "notifications": "Notifications",
+    "openNotifications": "Open notifications"
+  },
+  "search": {
+    "title": "Search",
+    "inputLabel": "Search",
+    "unavailable": "Search is not available yet: the command palette ships in a later package, and it needs the Core search contract, which is not wired in this milestone.",
+    "shortcutHint": "Use Ctrl+K or Cmd+K to open search when not typing in an editable field."
+  },
+  "newMenu": {
+    "startChat": "Start chat",
+    "runTask": "Run a task",
+    "importKnowledge": "Import knowledge",
+    "unavailableReason": "Not available yet: this flow ships in a later release package."
+  },
+  "connection": {
+    "label": "Connection status",
+    "popoverTitle": "Connection",
+    "stateUnknown": "Unknown",
+    "unknownExplanation": "The connection state is Unknown: no Core connection is wired in this milestone, so no Core-reported state exists to display. Unknown is never shown as connected.",
+    "listUnavailable": "The connection list is unavailable: the Core connection contracts are not wired in this milestone.",
+    "switchUnavailable": "Switching connections is not offered yet: it needs the Core connection contracts."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "sourceUnavailable": "Notifications are unavailable: the Core event and notification contracts are not wired in this milestone, so there is no notification source to display.",
+    "noOsDelivery": "This panel shows in-app state only. Desktop delivery needs its own OS permission and is not requested here."
+  },
+  "session": {
+    "label": "Session",
+    "popoverTitle": "Session",
+    "stateUnavailable": "The session state is unavailable: the Core session contract is not wired in this milestone, so there is no session state to display."
+  },
+  "shortcutHelp": {
+    "trigger": "Keyboard shortcuts",
+    "openHelp": "Open keyboard shortcuts",
+    "title": "Keyboard shortcuts",
+    "shortcutColumn": "Shortcut",
+    "actionColumn": "Action",
+    "implemented": "These shortcuts are implemented in the current shell.",
+    "remapNote": "Disabling and remapping single-key shortcuts is specified for a later package; the single-key help shortcut is currently scoped so it never fires while you type in an editable field or compose text with an input method.",
+    "escNote": "Escape closes popovers and dialogs. It never cancels a durable Job; cancellation is only ever an explicit action."
+  },
+  "shortcuts": {
+    "openSearch": "Open search",
+    "openSettings": "Open settings",
+    "openShortcutHelp": "Open this shortcut help",
+    "closeSurface": "Close popover or dialog"
+  },
+  "skipToContent": "Skip to main content"
+}
