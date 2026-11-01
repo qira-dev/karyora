@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/qira-dev/karyora/internal/config"
+	"github.com/qira-dev/karyora/internal/events"
 	"github.com/qira-dev/karyora/internal/runtime"
 	"github.com/qira-dev/karyora/internal/storage"
 )
@@ -55,6 +56,18 @@ func (l *lazyStore) close() {
 		_ = l.store.Close()
 		l.store = nil
 	}
+}
+
+// Replay implements the local HTTP transport's ReplayReader port over the
+// lazily opened store: the coded journal replay read with its explicit
+// expiry/gap outcomes (C2-13 §5). Pre-open access fails like every other
+// lazy path.
+func (l *lazyStore) Replay(ctx context.Context, stream string, cursor string, limit int) ([]events.Record, events.ReplayOutcome, error) {
+	s, err := l.get()
+	if err != nil {
+		return nil, "", err
+	}
+	return s.Replay(ctx, stream, cursor, limit)
 }
 
 // lifecycleJournal emits lifecycle transitions through the journal

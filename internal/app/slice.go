@@ -224,7 +224,7 @@ func (s *Slice) Submit(ctx context.Context, req SubmitRequest) (*SubmitResult, e
 	if err := s.authorize(ctx, corr, security.Resource{Type: security.ResourceJob}, security.ActionDataWrite); err != nil {
 		return nil, err
 	}
-	if err := validateSubmit(req); err != nil {
+	if err := validateSubmit(req, corr); err != nil {
 		return nil, err
 	}
 	if _, wired := s.deps.Providers[req.Provider]; !wired {
@@ -322,27 +322,32 @@ func (s *Slice) Cancel(ctx context.Context, jobID string) error {
 	return s.deps.Relay.RequestCancel(ctx, jobID)
 }
 
-func validateSubmit(req SubmitRequest) error {
+// validateSubmit maps every request-shape refusal to the typed D-35
+// envelope with the request's correlation id (the adopted extraction
+// records these as VALIDATION_FAILED envelopes with typed `field` data —
+// an envelope requires its correlationId, so the request's id rides every
+// refusal).
+func validateSubmit(req SubmitRequest, corr string) error {
 	if strings.TrimSpace(req.IdempotencyKey) == "" {
-		return envelopeErr(errs.CodeValidationFailed, "", map[string]any{"field": "idempotency_key"})
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "idempotency_key"})
 	}
 	task := []rune(req.Task)
 	if len(task) == 0 || len(task) > MaxTaskRunes {
-		return envelopeErr(errs.CodeValidationFailed, "", map[string]any{"field": "task"})
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "task"})
 	}
 	if len([]rune(req.System)) > MaxSystemRunes {
-		return envelopeErr(errs.CodeValidationFailed, "", map[string]any{"field": "system"})
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "system"})
 	}
 	if req.Provider == "" {
-		return envelopeErr(errs.CodeValidationFailed, "", map[string]any{"field": "provider"})
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "provider"})
 	}
 	if req.DeadlineSecs < 0 {
-		return envelopeErr(errs.CodeValidationFailed, "", map[string]any{"field": "deadline_secs"})
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "deadline_secs"})
 	}
 	if len(req.Schema) > 0 {
 		var probe any
 		if err := json.Unmarshal(req.Schema, &probe); err != nil {
-			return envelopeErr(errs.CodeValidationFailed, "", map[string]any{"field": "schema", "reason": "schema is not valid JSON"})
+			return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "schema", "reason": "schema is not valid JSON"})
 		}
 	}
 	return nil

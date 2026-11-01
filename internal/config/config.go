@@ -60,6 +60,15 @@ type Config struct {
 	// metadata). The default is empty — updates stay honestly disabled until
 	// the release channel is published (C5-15 §9.6, an open owner item).
 	UpdateEndpointURL string
+	// Local HTTP transport opt-in (IMPL-1): disabled by default; when
+	// enabled the Core serves the local operation surface on the loopback
+	// bind only (the httpboundary contract's own default — the bind host is
+	// never operator-choosable here). Port 0 lets the kernel assign the
+	// loopback port. Neither value tunes any security property: the
+	// boundary predicates, session lifetimes, and CSRF policy are contract
+	// constants, not configuration.
+	TransportLocalHTTPEnabled int
+	TransportLocalHTTPPort    int
 }
 
 // defaults are the compiled-in baseline (the lowest-precedence source).
@@ -86,6 +95,8 @@ var defaults = Config{
 	KnowledgeImportMaxEntries:    2000,      // Proposed (C3-05 archive bound)
 	KnowledgeSearchMaxResults:    50,        // Proposed (C3-07 result bound)
 	KnowledgeSearchMaxExpansion:  8,         // Proposed (C3-07 relation expansion)
+	TransportLocalHTTPEnabled:    0,         // opt-in; the loopback-only default binds
+	TransportLocalHTTPPort:       0,         // Proposed (0 = kernel-assigned loopback port)
 }
 
 type valueKind int
@@ -145,6 +156,12 @@ var specs = map[string]keySpec{
 	},
 	"update.endpoint_url": {
 		env: "KARYORA_UPDATE_ENDPOINT_URL", kind: kindString,
+	},
+	"transport.local_http.enabled": {
+		env: "KARYORA_TRANSPORT_LOCAL_HTTP_ENABLED", kind: kindInt, min: 0, max: 1,
+	},
+	"transport.local_http.port": {
+		env: "KARYORA_TRANSPORT_LOCAL_HTTP_PORT", kind: kindInt, min: 0, max: 65535,
 	},
 }
 
@@ -388,6 +405,10 @@ func assign(out *Config, name string, value any) {
 		out.KnowledgeSearchMaxExpansion = value.(int)
 	case "update.endpoint_url":
 		out.UpdateEndpointURL = value.(string)
+	case "transport.local_http.enabled":
+		out.TransportLocalHTTPEnabled = value.(int)
+	case "transport.local_http.port":
+		out.TransportLocalHTTPPort = value.(int)
 	}
 }
 

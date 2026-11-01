@@ -41,3 +41,43 @@ func TestAuditDiagnosticsBoundsKeys(t *testing.T) {
 		}
 	}
 }
+
+// The local HTTP transport keys (IMPL-1): opt-in (disabled by default),
+// port bounded; neither value tunes any security property (the boundary
+// predicates and session lifetimes are contract constants, not
+// configuration).
+func TestTransportLocalHTTPKeys(t *testing.T) {
+	cfg, err := Load("corr", nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.TransportLocalHTTPEnabled != 0 || cfg.TransportLocalHTTPPort != 0 {
+		t.Fatalf("transport defaults = %+v, want disabled with a kernel-assigned port", cfg)
+	}
+
+	cfg, err = Load("corr", map[string]any{
+		"transport.local_http.enabled": 1,
+		"transport.local_http.port":    8787,
+	}, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.TransportLocalHTTPEnabled != 1 || cfg.TransportLocalHTTPPort != 8787 {
+		t.Fatalf("transport overrides = %+v", cfg)
+	}
+
+	// The enabled key is a strict 0/1 switch; the port is a bounded port.
+	for _, tc := range []struct {
+		key   string
+		value int
+	}{
+		{"transport.local_http.enabled", 2},
+		{"transport.local_http.enabled", -1},
+		{"transport.local_http.port", 65536},
+		{"transport.local_http.port", -5},
+	} {
+		if _, err := Load("corr", map[string]any{tc.key: tc.value}, nil, nil); err == nil {
+			t.Fatalf("%s=%d must fail the range check", tc.key, tc.value)
+		}
+	}
+}

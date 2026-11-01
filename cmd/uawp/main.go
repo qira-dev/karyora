@@ -224,6 +224,19 @@ func cmdStart(ctx context.Context, flags cliFlags, out *printer) int {
 	}
 	defer closeIPC()
 
+	// The opt-in local HTTP transport (IMPL-1): the same lifetime as the
+	// IPC surface. A construction failure is a startup failure (the Core
+	// never runs half-wired); the transport itself is disabled by default.
+	if cfg.TransportLocalHTTPEnabled == 1 {
+		closeHTTP, err := startLocalHTTPTransport(cfg, l, bundle, corr)
+		if err != nil {
+			env, _ := errs.New(errs.CodeInternal, corr, map[string]any{"reason": boundedDetail(err)})
+			out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitInternal})
+			return int(runtime.ExitInternal)
+		}
+		defer func() { _ = closeHTTP() }()
+	}
+
 	sigCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {

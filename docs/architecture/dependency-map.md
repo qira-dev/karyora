@@ -1,5 +1,23 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.21 (2026-11-02): the IMPL-1 implementation milestone adds
+`internal/httplocal` — the local HTTP transport adapter: the app operation
+surface (Submit/Status/Events/Result/Cancel), the journal replay read port,
+and the C-1 bootstrap/session-token exchange, over a loopback-bound HTTP
+server. Rules: the package imports only `internal/app`, `internal/security`,
+`internal/events`, `internal/aijobrelay` (the Job/Attempt wire shapes) and
+`internal/domain` (the error register); `internal/storage` stays behind the
+composition root, which adapts the lazily opened store to the transport's
+ReplayReader port (`cmd/uawp/wiring.go`). The security package's
+httpboundary predicates are enforced inside the adapter (loopback bind, the
+Host/Origin allowlists' loopback-only empty defaults, the state-changing-GET
+prohibition at route registration, CSRF for mutations, the credential-surface
+rule); the authorization decision stays the single decision port — the
+middleware rejects early and never replaces the Guard. The opt-in rides the
+closed configuration registry (`transport.local_http.enabled/port`, disabled
+by default). `internal/config` extends the registry with those two keys (no
+import change). No forbidden direction opened; the graph stays acyclic.
+
 Contract version 1.20 (2026-10-30): the release-pipeline sub-milestone 6
 (the C5-18 updater's composition-root wiring, Core CR-5.2) wires the machine
 into the product: `cmd/uawp` gains the `update` surface (check | apply |
@@ -277,6 +295,7 @@ require a version bump and an ADR.
 | `internal/platform` | OS paths and lifecycle adapters (OS APIs here only) | (ports) |
 | `internal/remotestore` | PostgreSQL remote/team authority (D-10; pgx confined here; claim/fencing/outbox core + the `teamauth.Directory` identity resolution; not wired into any surface) | security (incl. teamauth: the Directory port types) |
 | `internal/updater` | The C5-18 staged-update state machine (two-key metadata verification, staging, journal + startup reconciliation, migration gates, activation, health, binary-only rollback; every environment step a port; the rename-based Unix activator here; NOT wired into any surface — no signing operations, C5-13 §9.2) | (none) |
+| `internal/httplocal` | The local HTTP transport adapter (IMPL-1): the app operation surface + the journal replay read + the C-1 bootstrap/session-token exchange over a loopback-bound server; enforces the httpboundary predicates on every request; no canonical wire name, no published contract | app, security, events, aijobrelay, domain |
 | `cmd/uawp` | Composition root | any internal |
 
 ## Static dependency-rule check (specified; executable in C2-03 CI)

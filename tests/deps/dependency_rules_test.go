@@ -62,7 +62,15 @@ var allowedInternal = map[string]map[string]bool{
 	"remotestore": {"security": true},
 	// updater (dependency-map v1.19): the C5-18 staged-update machine —
 	// stdlib only, every environment step a port; no internal imports.
-	"updater":  {},
+	"updater": {},
+	// httplocal (dependency-map v1.21): the local HTTP transport adapter —
+	// the app operation surface, the replay read port, and the C-1
+	// exchange; storage stays behind the composition root's ReplayReader
+	// adapter.
+	"httplocal": {
+		"app": true, "security": true, "events": true,
+		"aijobrelay": true, "domain": true,
+	},
 	"platform": {},
 }
 
