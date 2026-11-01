@@ -23,7 +23,17 @@
     "label": "Connection status",
     "popoverTitle": "Connection",
     "stateUnknown": "Unknown",
-    "unknownExplanation": "The connection state is Unknown: no Core connection is wired in this milestone, so no Core-reported state exists to display. Unknown is never shown as connected.",
+    "stateConnecting": "Connecting",
+    "stateConnected": "Connected",
+    "stateDisconnected": "Disconnected",
+    "stateReconnecting": "Reconnecting",
+    "stateSessionExpired": "Session expired",
+    "unknownExplanation": "The connection state is Unknown: no Core transport answered at this app origin, so no Core-reported state exists to display. The Core's local transport is opt-in and disabled by default. Unknown is never shown as connected.",
+    "connectingExplanation": "The connection state is being checked: one real read is in flight against the Core transport at this app origin.",
+    "connectedExplanation": "The local Core answered an authorized read, so the connection is live. This state comes only from real transport responses — never from an assumption.",
+    "disconnectedExplanation": "A Core transport answered at this app origin, but no session is established yet, so no authorized operation can run. Connect from the first-run setup with a one-time bootstrap credential.",
+    "reconnectingExplanation": "The last known connection state is being re-checked against the Core transport with one real read.",
+    "sessionExpiredExplanation": "The session this page held is no longer authorized by the Core (it expired, was revoked, or is otherwise invalid). The token has been discarded from this page's memory. Reconnect from the first-run setup with a fresh one-time credential.",
     "listUnavailable": "The connection list is unavailable: the Core connection contracts are not wired in this milestone.",
     "switchUnavailable": "Switching connections is not offered yet: it needs the Core connection contracts.",
     "switch": {
@@ -45,11 +55,16 @@
   "session": {
     "label": "Session",
     "popoverTitle": "Session",
-    "stateUnavailable": "The session state is unavailable: the Core session contract is not wired in this milestone, so there is no session state to display.",
+    "stateUnavailable": "The session state is unavailable: no Core transport answered at this app origin, so there is no session state to display.",
     "stateRule": "This display shows only what the Core reports. Authentication required and Permission limited appear only when the Core reports them — never shown as connected.",
+    "stateActiveBody": "The Core session is active: it authorized a real read against the local Core. The session token is held in this page's memory only — never written to browser storage, links, or logs.",
+    "stateExpiredBody": "The session this page held is no longer authorized by the Core (it expired, was revoked, or is otherwise invalid). The token has been discarded from this page's memory.",
+    "sessionIdLabel": "Session identifier",
+    "sessionScopesLabel": "Scopes",
+    "sessionExpiresLabel": "Expires",
     "reauthLabel": "Re-authenticate",
-    "reauthUnavailable": "Re-authentication is not offered yet: the Core session contract is not wired in this milestone, so there is no session state to act on.",
-    "reauthNote": "When the Core reports Authentication required or Permission limited, this display shows it and offers the re-authentication path as a dedicated flow. Protected operations stay disabled with an explanation while that state lasts, and credentials are never stored to avoid it."
+    "reauthUnavailable": "Re-authentication is not offered yet: the dedicated re-auth flow's mechanism is a recorded open item, so there is no re-auth path to offer here.",
+    "reauthNote": "When the Core reports Authentication required or Permission limited, this display shows it and offers the re-authentication path as a dedicated flow. Protected operations stay disabled with an explanation while that state lasts, and credentials are never stored to avoid it. Recovery from an expired session runs through the first-run setup's interim bootstrap step."
   },
   "shortcutHelp": {
     "trigger": "Keyboard shortcuts",

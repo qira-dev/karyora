@@ -3,7 +3,8 @@
     "heading": "First-run setup"
   },
   "wizard": {
-    "title": "Set up your workspace",    "intro": "Three short steps. Provider setup is optional until your first model use, you can skip anything and come back later, and no advanced configuration is forced.",
+    "title": "Set up your workspace",
+    "intro": "Three short steps. Provider setup is optional until your first model use, you can skip anything and come back later, and no advanced configuration is forced.",
     "resumeIntro": "Welcome back. Re-running setup never resets your existing choices.",
     "stepsLabel": "Setup steps",
     "stepOf": "Step {{current}} of {{total}}: {{name}}",
@@ -41,7 +42,32 @@
     "localHelp": "Work with a Core running on this machine.",
     "remoteLabel": "Remote or Team Core",
     "remoteHelp": "Work with a Core over the network. Establishing a Remote or Team connection needs the Core bootstrap and session contracts, which are not wired in this milestone — the connection itself is established when those contracts are wired.",
-    "recorded": "Your choice is kept on this device and can be changed later."
+    "recorded": "Your choice is kept on this device and can be changed later.",
+    "bootstrap": {
+      "heading": "Connect to your local Core (interim manual step)",
+      "help": "When the Core's local transport is running, it can exchange a one-time bootstrap credential for a session. This panel is the interim manual path: you paste the credential the Core issued through its trusted-local channel. The full browser bootstrap flow (automatic launch and hand-off) is a separately tracked decision and is not built here.",
+      "credentialLabel": "One-time bootstrap credential",
+      "credentialHelp": "Paste the bootstrap- credential exactly as issued. It is a one-time secret: it stays in this page's memory only, is sent once to your local Core, and is never stored in the browser, in a link, or in a log.",
+      "credentialPlaceholder": "bootstrap-…",
+      "exchangeButton": "Connect to the local Core",
+      "exchanging": "Exchanging the credential…",
+      "successTitle": "Connected to the local Core",
+      "successBody": "The one-time credential was exchanged exactly once for a session. The session token is held in this page's memory only — never written to browser storage — and it expires at the Core-set time shown below.",
+      "sessionExpiredNote": "The session this page held is no longer authorized by the Core. The token has been discarded from memory; you can connect again with a fresh one-time credential.",
+      "failureNote": "Nothing was retried automatically. A new attempt is a new explicit action by you.",
+      "failureUnreachableTitle": "No local Core transport answered",
+      "failureUnreachableBody": "No Core transport answered at this app origin, so the Core received nothing to exchange. The Core's local transport is opt-in and disabled by default; verify the Core is running with its local transport enabled and that this page's origin is configured to reach it.",
+      "failureUnknownTitle": "The exchange outcome is unknown",
+      "failureUnknownBody": "The response was lost or could not be interpreted. A lost response is never proof of success or failure: a one-time credential may or may not have been consumed, and only the Core knows. If the Core shows no session, connect again with a fresh credential — never with the same one.",
+      "failureSessionInvalidTitle": "The credential was refused",
+      "failureSessionInvalidBody": "The Core refused the credential ({code}): it is unknown to this Core, already used, expired, or was issued for a different origin than this page. A credential can be exchanged exactly once, and a replayed credential also revokes the session it first minted.",
+      "failureBoundaryTitle": "The Core's boundary refused the exchange",
+      "failureBoundaryBody": "The Core's own boundary rules refused this request (reason: {reason}, code: {code}). Browser-originated requests are enforced by the Core; nothing was exchanged and nothing is worked around here.",
+      "failureValidationTitle": "The exchange request was refused as invalid",
+      "failureValidationBody": "The Core refused the exchange request as invalid ({code}{field}). Nothing was exchanged.",
+      "failureGenericTitle": "The Core refused the exchange",
+      "failureGenericBody": "The Core refused the exchange (code: {code}). Nothing was exchanged. The code above is the Core's stable machine identifier."
+    }
   },
   "step2": {
     "heading": "Connect a provider (optional)",

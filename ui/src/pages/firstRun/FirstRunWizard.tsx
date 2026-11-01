@@ -7,6 +7,7 @@ import { RecoveryPanel } from "../../components/RecoveryPanel";
 import { useT } from "../../i18n/useT";
 import { PageHeading, PageLayout } from "../PageLayout";
 import styles from "./FirstRunWizard.module.css";
+import { LocalBootstrapPanel } from "./LocalBootstrapPanel";
 import { ProviderSetupForm, type ProviderSetupFormHandle } from "./ProviderSetupForm";
 
 /**
@@ -23,13 +24,20 @@ import { ProviderSetupForm, type ProviderSetupFormHandle } from "./ProviderSetup
  * - Step 1's choice applies locally and immediately (it is a local
  *   declaration; the connection itself is established by the Core
  *   bootstrap contracts, which are not wired — the step says so).
+ * - Step 1's LOCAL choice additionally carries the IMPL-2 interim
+ *   manual bootstrap-exchange panel (C-1): the user pastes the one-time
+ *   credential the Core issued through its trusted-local channel and
+ *   the panel exchanges it exactly once, surfacing only real outcomes.
+ *   The full browser bootstrap UX (auto-launch/deep-link) stays its
+ *   recorded open item and is not built here.
  * - Setup COMPLETION is recorded only after authoritative Core success
- *   (C-06). With no transport the completion command reports
- *   `not submitted`, and the wizard says exactly that — no fake
+ *   (C-06). With no Core completion surface the completion command
+ *   reports `not submitted`, and the wizard says exactly that — no fake
  *   completed state exists anywhere.
  * - Skip/resume is preserved: skipping keeps the recorded choice and the
  *   session's non-secret draft; re-running setup preserves existing
- *   state (never resets). The API key never survives the form (X-6).
+ *   state (never resets). The API key never survives the form (X-6), and
+ *   neither does the one-time bootstrap credential (X-6).
  *
  * All three step panels stay mounted; inactive ones are `hidden`, so
  * going back preserves entries (§8.13) — the preservation policy is
@@ -168,6 +176,7 @@ export function FirstRunWizard() {
             </p>
           </fieldset>
           <p className={styles.stepHelp}>{t("step1.recorded")}</p>
+          {connectionChoice === "local" ? <LocalBootstrapPanel /> : null}
         </section>
 
         <section hidden={step !== 1} aria-labelledby="wizard-step2-heading">

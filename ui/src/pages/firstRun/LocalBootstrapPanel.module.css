@@ -1,0 +1,89 @@
+.panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-2);
+}
+
+.panelHeading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-body-size);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.panelHelp {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  max-width: 72ch;
+}
+
+.credentialRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.credentialInput {
+  flex: 1 1 18rem;
+  min-width: 0;
+  min-height: var(--size-input);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-metadata-size);
+}
+
+.credentialInput:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.metaList {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.metaList li {
+  margin: 0;
+}
+
+.exchangeButton {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.exchangeButton:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.exchangeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.expiredNote {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  max-width: 72ch;
+}
