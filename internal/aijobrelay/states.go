@@ -43,7 +43,9 @@ const (
 	SideEffectCompensated = "compensated"
 )
 
-// Typed Waiting reasons (C3-12): a Waiting job always names why.
+// Typed Waiting reasons (C3-12): a Waiting job always names why. The set is
+// a closed register: any change to it is a deliberate, recorded contract
+// change (the register's own test rule — pinned by TestWaitingReasonRegister).
 type WaitingReason string
 
 const (
@@ -52,7 +54,34 @@ const (
 	WaitUnknownSideEffect     WaitingReason = "unknown_side_effect"
 	WaitCheckpointResume      WaitingReason = "checkpoint_resume"
 	WaitDependencyUnavailable WaitingReason = "dependency_unavailable"
+	// WaitApproval is the recorded C1-10 approval reason — Waiting{reason:
+	// approval} — added to this register by the owner's card-17 decision of
+	// 2026-11-02 (a deliberate register extension): the state machine can
+	// now represent an approval-required wait. The approval command/object
+	// itself is its own later milestone and is NOT implemented here.
+	WaitApproval WaitingReason = "approval"
 )
+
+// ValidWaitingReason reports whether r is a member of the closed Waiting
+// register. The fenced-commit path refuses an unregistered reason so the
+// register stays enforced, not just pinned.
+func ValidWaitingReason(r WaitingReason) bool {
+	switch r {
+	case WaitBackoffScheduled, WaitProviderRateLimited, WaitUnknownSideEffect,
+		WaitCheckpointResume, WaitDependencyUnavailable, WaitApproval:
+		return true
+	}
+	return false
+}
+
+// RegisteredJobState reports whether s is a member of the coded Job-state
+// registry (the accepted D-34 registry above). The Jobs-list status filter
+// accepts only registry members — filter options come from the Core only
+// (P1.7 §6.1), never invented client-side.
+func RegisteredJobState(s string) bool {
+	_, ok := jobTransitions[s]
+	return ok
+}
 
 // jobTransitions is the legal Job transition table (C3-12 acceptance: only
 // legal transitions are accepted; no aggregate's states are overloaded).
@@ -73,6 +102,30 @@ var jobTransitions = map[string][]string{
 
 var terminalSet = map[string]bool{
 	JobSucceeded: true, JobFailed: true, JobCancelled: true, JobTimedOut: true,
+}
+
+// jobEventTypes is the Job transition-event register — the recorded C1-10
+// register as the code emits it at its emission sites, WITH `job.submitted`
+// added: the owner's card-6 decision of 2026-11-02 (an additive register
+// change per P1.5 §4.1; the code already emits `job.submitted` at the
+// durable submit). The list is the register pin; any change to it is a
+// deliberate, recorded contract change (the register's own test rule —
+// pinned by TestJobEventRegister, after errs.go's
+// TestRegisterMatchesSpecification pattern).
+var jobEventTypes = []string{
+	"job.cancel_requested",
+	"job.cancellation_pending",
+	"job.cancelled",
+	"job.claimed",
+	"job.failed",
+	"job.needs_reconciliation",
+	"job.paused",
+	"job.queued",
+	"job.requeued",
+	"job.submitted",
+	"job.succeeded",
+	"job.timed_out",
+	"job.waiting",
 }
 
 // TerminalJob reports whether the state is terminal (C3-12).

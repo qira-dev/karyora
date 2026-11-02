@@ -31,6 +31,12 @@ const maxBodyBytes = 32 << 20
 // contract value: no list-pagination default exists in code.
 const maxReplayLimit = 1000
 
+// maxListCursorLen bounds a Jobs-list cursor query value (the opaque list
+// cursor is a salt-hex envelope of a small JSON keyset — well under this
+// bound; anything longer is refused before decoding). A transport
+// safeguard, not a contract value.
+const maxListCursorLen = 512
+
 // maxPathID bounds a Job id or stream name parsed from a path/query value.
 const maxPathID = 128
 
@@ -147,6 +153,7 @@ func routes() []route {
 	return []route{
 		{method: http.MethodPost, prefix: "/v1/session/exchange", mutates: true, noSession: true, handler: (*Server).handleExchange},
 		{method: http.MethodPost, prefix: "/v1/jobs", mutates: true, handler: (*Server).handleSubmit},
+		{method: http.MethodGet, prefix: "/v1/jobs", handler: (*Server).handleList},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/events", handler: (*Server).handleEvents},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/result", handler: (*Server).handleResult},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, handler: (*Server).handleStatus},
@@ -388,6 +395,53 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request, token, job
 		return
 	}
 	s.writeJSON(w, http.StatusOK, statusResult{Job: job, Attempt: attempt})
+}
+
+// handleList exposes the Jobs-list operation (the card-9 working
+// candidate): server-side cursor pagination, the Core-defined created-at
+// descending order, and the optional registered-state filter. The limit is
+// optional (the slice's per-surface default applies); the cursor is opaque
+// and its absence on a response marks the final page. Authorization stays
+// the slice's decision port — the same Guard every read decides through.
+func (s *Server) handleList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.List(s.callCtx(r, token), app.ListRequest{
+		Limit:  limit,
+		Status: q.Get("status"),
+		Cursor: cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, listResult{Jobs: res.Jobs, Cursor: res.NextCursor})
+}
+
+// parseListLimit parses the OPTIONAL list limit: an absent value selects
+// the slice's per-surface default (0 passes through for that purpose); a
+// present value must be a positive integer — the page bound is the slice's
+// typed validation.
+func parseListLimit(raw string) (int, error) {
+	if raw == "" {
+		return 0, nil
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 {
+		return 0, errors.New("httplocal: limit must be a positive integer")
+	}
+	return n, nil
 }
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request, token, jobID string) {
@@ -663,6 +717,16 @@ type submitResult struct {
 type statusResult struct {
 	Job     aijobrelay.Job     `json:"job"`
 	Attempt aijobrelay.Attempt `json:"attempt"`
+}
+
+type listResult struct {
+	// jobs is the read-only probe's coded `job` key, pluralized for the
+	// list surface; cursor is the coded replay cursor's key carrying the
+	// opaque list cursor — omitted on the final page. No has_more/total
+	// vocabulary is invented (the card-9 working candidate finalizes at the
+	// freeze).
+	Jobs   []aijobrelay.Job `json:"jobs"`
+	Cursor string           `json:"cursor,omitempty"`
 }
 
 type eventsResult struct {

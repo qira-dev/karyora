@@ -160,8 +160,8 @@ func CheckCommit(commit Commit, current Job, currentAttempt Attempt) error {
 			return fmt.Errorf("aijobrelay: a terminal failure requires a terminal attempt outcome")
 		}
 	case JobWaiting:
-		if WaitingReason(commit.WaitingReason) == "" {
-			return fmt.Errorf("aijobrelay: a Waiting job must carry a typed reason")
+		if !ValidWaitingReason(WaitingReason(commit.WaitingReason)) {
+			return fmt.Errorf("aijobrelay: a Waiting commit requires a typed reason from the register")
 		}
 	}
 	return nil

@@ -61,4 +61,30 @@ type RelayStore interface {
 	ResumeJob(ctx context.Context, jobID string) error
 	// LoadIntent loads one side-effect intent by id.
 	LoadIntent(ctx context.Context, intentID string) (SideEffectIntent, error)
+	// ListJobs returns one bounded page of Jobs in the Core-defined order
+	// (created_at descending, job_id ascending tiebreak) with an optional
+	// registered-state filter — the card-9 working candidate's server-side
+	// cursor pagination (2026-11-02): the keyset position rides
+	// AfterCreatedAt/AfterJobID (zero/empty = the first page), the adapter
+	// fetches one probe row beyond Limit to report More, and the opaque
+	// cursor envelope that carries the position is the use-case layer's
+	// (never structured data on the wire).
+	ListJobs(ctx context.Context, q ListJobsQuery) (ListJobsPage, error)
+}
+
+// ListJobsQuery is one server-side list query (the card-9 working
+// candidate). Status accepts only registry members (RegisteredJobState) —
+// the caller validates; the adapter fails closed on an unknown value.
+type ListJobsQuery struct {
+	Limit          int
+	Status         string
+	AfterCreatedAt time.Time
+	AfterJobID     string
+}
+
+// ListJobsPage is one bounded page. More reports that a further page exists
+// after the returned Jobs (the adapter's internal limit+1 probe).
+type ListJobsPage struct {
+	Jobs []Job
+	More bool
 }

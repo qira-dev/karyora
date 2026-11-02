@@ -276,3 +276,134 @@ func TestCapabilityMatching(t *testing.T) {
 		t.Fatalf("a capable worker could not claim: %v %v", ok, err)
 	}
 }
+
+// listFixture submits a Job with an explicit creation instant so the
+// Core-defined list order (created_at descending) is deterministic.
+func listFixture(id, key, state string, at time.Time) aijobrelay.Job {
+	return aijobrelay.Job{
+		JobID: id, IdempotencyKey: key, InputDigest: inputDigest("input-" + id),
+		State: aijobrelay.JobCreated, Version: 1,
+		CorrelationID: "corr-" + id,
+		CreatedAt:     at,
+	}
+}
+
+// TestListJobsKeysetPagination covers the store query behind the card-9
+// working candidate: the Core-defined order, the keyset round-trip without
+// overlap or gap, the limit+1 More probe, the registered-state filter, and
+// the fail-closed guards.
+func TestListJobsKeysetPagination(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	base := time.Date(2026, 11, 2, 12, 0, 0, 0, time.UTC)
+	for i, id := range []string{"j-1", "j-2", "j-3", "j-4", "j-5"} {
+		if _, err := s.SubmitJob(ctx, listFixture(id, "key-"+id, aijobrelay.JobQueued, base.Add(time.Duration(i)*time.Second))); err != nil {
+			t.Fatalf("submit %s: %v", id, err)
+		}
+	}
+
+	// The Core-defined order: created_at descending (newest first).
+	page, err := s.ListJobs(ctx, aijobrelay.ListJobsQuery{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if page.More {
+		t.Fatal("an unbounded page must not report More")
+	}
+	if len(page.Jobs) != 5 || page.Jobs[0].JobID != "j-5" || page.Jobs[4].JobID != "j-1" {
+		t.Fatalf("order must be created_at descending: %v", jobIDs(page.Jobs))
+	}
+
+	// Keyset pagination: page size 2 walks the set with no overlap or gap.
+	var seen []string
+	cursor := aijobrelay.ListJobsQuery{Limit: 2}
+	for pages := 0; ; pages++ {
+		if pages > 10 {
+			t.Fatal("pagination did not terminate")
+		}
+		p, err := s.ListJobs(ctx, cursor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, j := range p.Jobs {
+			seen = append(seen, j.JobID)
+		}
+		if !p.More {
+			break
+		}
+		last := p.Jobs[len(p.Jobs)-1]
+		cursor.AfterCreatedAt, cursor.AfterJobID = last.CreatedAt, last.JobID
+	}
+	want := []string{"j-5", "j-4", "j-3", "j-2", "j-1"}
+	if len(seen) != len(want) {
+		t.Fatalf("keyset walk saw %d jobs, want %d: %v", len(seen), len(want), seen)
+	}
+	for i := range want {
+		if seen[i] != want[i] {
+			t.Fatalf("keyset walk position %d = %s, want %s (walk: %v)", i, seen[i], want[i], seen)
+		}
+	}
+
+	// The registered-state filter.
+	filtered, err := s.ListJobs(ctx, aijobrelay.ListJobsQuery{Limit: 10, Status: aijobrelay.JobQueued})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(filtered.Jobs) != 5 {
+		t.Fatalf("queued filter should match every fixture job, got %d", len(filtered.Jobs))
+	}
+	none, err := s.ListJobs(ctx, aijobrelay.ListJobsQuery{Limit: 10, Status: aijobrelay.JobSucceeded})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(none.Jobs) != 0 || none.Jobs == nil {
+		t.Fatalf("an empty page must be an empty (non-nil) slice, got %v", none.Jobs)
+	}
+
+	// Fail-closed guards: an unregistered filter value and a keyset
+	// position without its tiebreak are refused at the store boundary.
+	if _, err := s.ListJobs(ctx, aijobrelay.ListJobsQuery{Limit: 10, Status: "leased"}); err == nil {
+		t.Fatal("an unregistered status must be refused")
+	}
+	if _, err := s.ListJobs(ctx, aijobrelay.ListJobsQuery{Limit: 2, AfterCreatedAt: base}); err == nil {
+		t.Fatal("a keyset position without a job_id tiebreak must be refused")
+	}
+	if _, err := s.ListJobs(ctx, aijobrelay.ListJobsQuery{Limit: 0}); err == nil {
+		t.Fatal("a non-positive limit must be refused at the store boundary")
+	}
+}
+
+// TestSubmitStampsCreatedAt pins the durable record's creation timestamp:
+// a submission that carries no creation instant is stamped at the insert
+// (the Jobs-list sort key depends on created_at being a real instant), and
+// an explicitly carried instant is preserved.
+func TestSubmitStampsCreatedAt(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	stamped, err := s.SubmitJob(ctx, listFixture("j-stamp", "key-stamp", aijobrelay.JobQueued, time.Time{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stamped.CreatedAt.IsZero() || stamped.CreatedAt.Year() < 2020 {
+		t.Fatalf("a zero-createdAt submission must be stamped at the insert, got %v", stamped.CreatedAt)
+	}
+	if !stamped.UpdatedAt.Equal(stamped.CreatedAt) {
+		t.Fatalf("a fresh Job's updated_at must equal created_at, got %v vs %v", stamped.UpdatedAt, stamped.CreatedAt)
+	}
+	carried := time.Date(2026, 11, 2, 9, 30, 0, 0, time.UTC)
+	kept, err := s.SubmitJob(ctx, listFixture("j-carried", "key-carried", aijobrelay.JobQueued, carried))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !kept.CreatedAt.Equal(carried) {
+		t.Fatalf("an explicitly carried created_at must be preserved, got %v", kept.CreatedAt)
+	}
+}
+
+func jobIDs(js []aijobrelay.Job) []string {
+	out := make([]string, 0, len(js))
+	for _, j := range js {
+		out = append(out, j.JobID)
+	}
+	return out
+}

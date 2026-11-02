@@ -266,12 +266,15 @@ func (s *Slice) Submit(ctx context.Context, req SubmitRequest) (*SubmitResult, e
 		// conflict arrives typed and must not be softened.
 		return nil, err
 	}
-	replayed := saved.Version != 1 || saved.AttemptCount != 0 || saved.CreatedAt != saved.UpdatedAt
-	if replayed && saved.JobID != job.JobID {
-		// the input object we just staged belongs to the replayed original's
-		// digest — same bytes, same digest, so the reference is idempotent
-		replayed = true
-	}
+	// Replayed reports the coded SubmitResult flag truthfully: the storage
+	// adapter either stored the freshly minted Job (our JobID comes back)
+	// or returned the original Job under the same idempotency key (a
+	// different JobID — the C3-02 replay). The previous signal rode the
+	// stored created_at/updated_at discrepancy of an unstamped creation
+	// instant; stamping created_at at the insert (the Jobs-list sort key's
+	// repair) removed that artifact, so the detection reads the one signal
+	// that cannot lie.
+	replayed := saved.JobID != job.JobID
 	return &SubmitResult{Job: *saved, Replayed: replayed}, nil
 }
 

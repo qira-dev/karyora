@@ -73,8 +73,15 @@ func (s *Store) SubmitJob(ctx context.Context, job aijobrelay.Job) (*aijobrelay.
 		}
 		return nil, errStoragef(errs.CodeConflictState, "idempotency key %q was already used with a different input; replay rejected", job.IdempotencyKey)
 	}
-	now := time.Now().UTC().Format(time.RFC3339Nano)
+	now := time.Now().UTC()
 	job.State = aijobrelay.JobQueued
+	if job.CreatedAt.IsZero() {
+		// The durable record's creation timestamp is stamped at the insert
+		// when the caller carries none: the storage adapter owns the durable
+		// record's wall-clock values, and the Jobs-list Core-defined sort
+		// key depends on created_at being a real creation instant.
+		job.CreatedAt = now
+	}
 	job.UpdatedAt = job.CreatedAt
 	err := s.CommitStateChange(ctx, job.CorrelationID, func(tx *sqlTx) error {
 		_, err := tx.Exec(`INSERT INTO jobs
@@ -85,7 +92,7 @@ func (s *Store) SubmitJob(ctx context.Context, job aijobrelay.Job) (*aijobrelay.
 			job.JobID, job.IdempotencyKey, job.InputDigest, job.State, job.Version, job.AttemptCount,
 			job.WaitingReason, job.Requirements.ProviderID, job.Requirements.MinMemoryMB,
 			job.DeadlineSecs, job.ResultDigest, job.ReceiptID, job.CorrelationID,
-			job.CreatedAt.UTC().Format(time.RFC3339Nano), now)
+			job.CreatedAt.UTC().Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 		if err != nil {
 			if existing, lookupErr := s.jobByIdempotencyKey(ctx, job.IdempotencyKey); lookupErr == nil && existing != nil {
 				if existing.InputDigest == job.InputDigest {
@@ -630,4 +637,64 @@ func (s *Store) LoadIntent(ctx context.Context, intentID string) (aijobrelay.Sid
 		return in, errStoragef(errs.CodeStateCorrupt, "intent created_at does not parse: %v", err)
 	}
 	return in, nil
+}
+
+// ListJobs implements aijobrelay.RelayStore (the card-9 working candidate):
+// one bounded page in the Core-defined order — created_at descending, the
+// job_id ascending tiebreak — with an optional registered-state filter.
+// Pagination is a keyset over the SAME comparison basis the ORDER BY uses
+// (the stored RFC3339Nano created_at string, the FIFO claim order's own
+// basis), so a cursor never skips or repeats a row. A further page is
+// detected with one probe row beyond the limit; at most Limit jobs return.
+func (s *Store) ListJobs(ctx context.Context, q aijobrelay.ListJobsQuery) (aijobrelay.ListJobsPage, error) {
+	if q.Limit < 1 {
+		return aijobrelay.ListJobsPage{}, errStoragef(errs.CodeValidationFailed, "list limit must be at least 1")
+	}
+	if q.Status != "" && !aijobrelay.RegisteredJobState(q.Status) {
+		return aijobrelay.ListJobsPage{}, errStoragef(errs.CodeValidationFailed, "status %q is not a registered job state", q.Status)
+	}
+	where := ""
+	args := []any{}
+	if q.Status != "" {
+		where = ` WHERE state = ?`
+		args = append(args, q.Status)
+	}
+	if !q.AfterCreatedAt.IsZero() {
+		if q.AfterJobID == "" {
+			return aijobrelay.ListJobsPage{}, errStoragef(errs.CodeValidationFailed, "a keyset position requires its job_id tiebreak")
+		}
+		after := q.AfterCreatedAt.UTC().Format(time.RFC3339Nano)
+		if where == "" {
+			where = ` WHERE`
+		} else {
+			where += ` AND`
+		}
+		where += ` (created_at < ? OR (created_at = ? AND job_id > ?))`
+		args = append(args, after, after, q.AfterJobID)
+	}
+	args = append(args, q.Limit+1)
+	cctx, cancel := s.readerCtx(ctx)
+	defer cancel()
+	rows, err := s.readers.QueryContext(cctx,
+		`SELECT `+jobColumns+` FROM jobs`+where+` ORDER BY created_at DESC, job_id ASC LIMIT ?`, args...)
+	if err != nil {
+		return aijobrelay.ListJobsPage{}, mapVendorError(err)
+	}
+	defer rows.Close()
+	page := aijobrelay.ListJobsPage{Jobs: []aijobrelay.Job{}}
+	for rows.Next() {
+		job, err := scanJob(rows)
+		if err != nil {
+			return aijobrelay.ListJobsPage{}, mapVendorError(err)
+		}
+		page.Jobs = append(page.Jobs, job)
+	}
+	if err := rows.Err(); err != nil {
+		return aijobrelay.ListJobsPage{}, mapVendorError(err)
+	}
+	if len(page.Jobs) > q.Limit {
+		page.More = true
+		page.Jobs = page.Jobs[:q.Limit]
+	}
+	return page, nil
 }

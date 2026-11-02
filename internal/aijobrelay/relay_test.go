@@ -153,3 +153,101 @@ func TestValidateSubmit(t *testing.T) {
 		t.Fatal("submission not in created state was accepted")
 	}
 }
+
+// TestWaitingReasonRegister pins the closed Waiting register — including
+// the approval reason added by the owner's card-17 decision (2026-11-02):
+// any change to this set is a deliberate, recorded contract change.
+func TestWaitingReasonRegister(t *testing.T) {
+	if WaitApproval != "approval" {
+		t.Fatalf("the approval reason value must be the recorded C1-10 `approval`: %q", WaitApproval)
+	}
+	for _, r := range []WaitingReason{
+		WaitBackoffScheduled, WaitProviderRateLimited, WaitUnknownSideEffect,
+		WaitCheckpointResume, WaitDependencyUnavailable, WaitApproval,
+	} {
+		if !ValidWaitingReason(r) {
+			t.Fatalf("registered reason %q must validate", r)
+		}
+	}
+	for _, r := range []WaitingReason{"", "input", "timer", "network", "Approval", "APPROVAL", "unknown"} {
+		if ValidWaitingReason(r) {
+			t.Fatalf("unregistered reason %q must be refused", r)
+		}
+	}
+}
+
+// TestApprovalWaitingRepresentable proves the state machine represents the
+// approval wait exactly as the recorded register states it: a Running job
+// may enter Waiting carrying the approval reason, and the Waiting state's
+// recorded exits stay open (the transition table itself is unchanged — the
+// card extends the reason register, not the state table).
+func TestApprovalWaitingRepresentable(t *testing.T) {
+	current := jobIn(JobRunning, 2)
+	curAtt := attemptWith(1)
+	commit := Commit{JobID: "j1", JobVersion: 2, AttemptID: "att-1", WorkerID: "w1", LeaseID: "l1",
+		LeaseEpoch: 1, ToState: JobWaiting, AttemptOutcome: AttemptFailedRetryable,
+		WaitingReason: string(WaitApproval)}
+	if err := CheckCommit(commit, current, curAtt); err != nil {
+		t.Fatalf("a Waiting{approval} commit must be representable: %v", err)
+	}
+	for _, to := range []string{JobQueued, JobRunning, JobNeedsReconciliation, JobCancelRequested, JobPaused} {
+		if !CanTransition(JobWaiting, to) {
+			t.Fatalf("Waiting → %s must stay a recorded exit", to)
+		}
+	}
+	unregistered := commit
+	unregistered.WaitingReason = "input"
+	if err := CheckCommit(unregistered, current, curAtt); err == nil || !strings.Contains(err.Error(), "typed reason") {
+		t.Fatalf("an unregistered Waiting reason must be refused: %v", err)
+	}
+}
+
+// TestJobEventRegister pins the Job transition-event register — the
+// recorded C1-10 register as the code emits it, WITH `job.submitted` added
+// by the owner's card-6 decision (2026-11-02, additive): any change to this
+// set is a deliberate, recorded contract change.
+func TestJobEventRegister(t *testing.T) {
+	want := []string{
+		"job.cancel_requested", "job.cancellation_pending", "job.cancelled",
+		"job.claimed", "job.failed", "job.needs_reconciliation", "job.paused",
+		"job.queued", "job.requeued", "job.submitted", "job.succeeded",
+		"job.timed_out", "job.waiting",
+	}
+	if len(jobEventTypes) != len(want) {
+		t.Fatalf("register holds %d event types, specification lists %d", len(jobEventTypes), len(want))
+	}
+	for i, name := range want {
+		if jobEventTypes[i] != name {
+			t.Fatalf("register[%d] = %q, want %q", i, jobEventTypes[i], name)
+		}
+		if !strings.HasPrefix(name, "job.") {
+			t.Fatalf("event type %q must carry the job. prefix", name)
+		}
+	}
+	hasSubmitted := false
+	for _, name := range jobEventTypes {
+		if name == "job.submitted" {
+			hasSubmitted = true
+		}
+	}
+	if !hasSubmitted {
+		t.Fatal("the register must pin job.submitted (the card-6 addition)")
+	}
+}
+
+// TestRegisteredJobState pins the list-filter vocabulary: the closed
+// Job-state registry, nothing invented.
+func TestRegisteredJobState(t *testing.T) {
+	for _, s := range []string{JobCreated, JobQueued, JobRunning, JobWaiting, JobPaused,
+		JobCancelRequested, JobCancellationPending, JobNeedsReconciliation,
+		JobSucceeded, JobFailed, JobCancelled, JobTimedOut} {
+		if !RegisteredJobState(s) {
+			t.Fatalf("registry state %q must be registered", s)
+		}
+	}
+	for _, s := range []string{"", "leased", "waiting_approval", "Waiting", "succeeded ", "unknown"} {
+		if RegisteredJobState(s) {
+			t.Fatalf("value %q must not be a registered state", s)
+		}
+	}
+}
