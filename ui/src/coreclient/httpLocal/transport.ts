@@ -43,6 +43,15 @@ import type {
   WireApprovalDecisionResult,
   WireApprovalReadResult,
   WireAttempt,
+  WireConnectionGetResult,
+  WireConnectionListResult,
+  WireConnectionRotateResult,
+  WireConnectionSaveRequest,
+  WireConnectionSaveResult,
+  WireConnectionSwitchResult,
+  WireConnectionTestRequest,
+  WireConnectionTestResult,
+  WireConnectionView,
   WireEventRecord,
   WireEventsResult,
   WireExchangeRequest,
@@ -136,6 +145,41 @@ function isWireSessionResult(value: unknown): value is WireSessionResult {
     typeof session.expires === "string"
   );
 }
+
+/** The coded connection-view guard: the record's distinguishing fields +
+ *  the masked status + the tested-state truth + the active flag. */
+function isWireConnectionView(value: unknown): value is WireConnectionView {
+  if (value === null || typeof value !== "object") return false;
+  const view = value as Record<string, unknown>;
+  if (view.record === null || typeof view.record !== "object") return false;
+  const record = view.record as Record<string, unknown>;
+  return (
+    typeof record.connection_id === "string" &&
+    typeof record.provider === "string" &&
+    typeof record.model_id === "string" &&
+    typeof record.secret_ref === "string" &&
+    typeof view.secret_status === "string" &&
+    typeof view.test_current === "boolean" &&
+    typeof view.active === "boolean"
+  );
+}
+
+function isWireConnectionRotateResult(value: unknown): value is WireConnectionRotateResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (shaped.record === null || typeof shaped.record !== "object") return false;
+  const record = shaped.record as Record<string, unknown>;
+  return (
+    typeof record.connection_id === "string" &&
+    Array.isArray(shaped.affected_models) &&
+    typeof shaped.routing_note === "string" &&
+    typeof shaped.interruption_note === "string"
+  );
+}
+
+/** The rotate/re-authenticate request-body shape (the wire type lives in
+ *  wire.ts; this alias keeps the two methods' bodies uniform). */
+type WireConnectionRotateRequestShape = { readonly secret: string };
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
 async function request(
@@ -431,6 +475,121 @@ export function createHttpLocalTransport() {
       const params = new URLSearchParams({ stream, limit: String(limit) });
       if (cursor !== "") params.set("cursor", cursor);
       return call<WireReplayResult>(`/v1/events/replay?${params.toString()}`, get(), isWireReplayResult);
+    },
+
+    // The provider-connection surface (IMPL-8; the card-10 working
+    // candidate). The paths are the Core adapter's own — non-canonical
+    // (wire.ts's honest boundary). The truthfulness rules above apply
+    // unchanged: a lost response is `unknown`, never a save/test/rotation
+    // result; no method retries on its own (the Open-class reconciliation
+    // is the explicit re-read the owning surface performs).
+
+    /** `POST /v1/connections` — the M-24 create with its Supplied
+     *  idempotency: duplicate → the existing reference (replayed=true);
+     *  same key + different body → the typed CONFLICT_IDEMPOTENCY_KEY.
+     *  The credential VALUE rides this one body (the explicit save
+     *  action); no response ever echoes it. */
+    connectionSave(payload: WireConnectionSaveRequest): Promise<TransportOutcome<WireConnectionSaveResult>> {
+      return call<WireConnectionSaveResult>("/v1/connections", post(JSON.stringify(payload)), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (shaped.connection === null || typeof shaped.connection !== "object") return false;
+        return isWireConnectionView(shaped.connection) && typeof shaped.replayed === "boolean";
+      });
+    },
+
+    /** `GET /v1/connections?limit=&cursor=` — the connection-list read
+     *  (the card-9 list discipline): the cursorless page is the final
+     *  page; rows carry the masked secret status, never a value. */
+    connectionList(params: { limit?: number; cursor?: string } = {}): Promise<TransportOutcome<WireConnectionListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireConnectionListResult>(`/v1/connections${suffix}`, get(), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (!Array.isArray(shaped.connections)) return false;
+        return shaped.connections.every((row) => isWireConnectionView(row));
+      });
+    },
+
+    /** `GET /v1/connections/{id}` — one connection's view (the masked
+     *  status + tested-state truth). A Core NOT_FOUND is the typed
+     *  refusal surfaced verbatim. */
+    connectionGet(connectionID: string): Promise<TransportOutcome<WireConnectionGetResult>> {
+      return call<WireConnectionGetResult>(`/v1/connections/${encodeURIComponent(connectionID)}`, get(), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        return shaped.connection !== null && typeof shaped.connection === "object" && isWireConnectionView(shaped.connection);
+      });
+    },
+
+    /** `POST /v1/connections/test` — the read-only M-25 probe: either a
+     *  saved connection (the id) or an unsaved safe draft whose typed
+     *  secret rides THIS body once and is dropped after the probe. The
+     *  response is the sanitized report; a lost response proves nothing
+     *  and this method never re-issues on its own. */
+    connectionTest(payload: WireConnectionTestRequest): Promise<TransportOutcome<WireConnectionTestResult>> {
+      return call<WireConnectionTestResult>("/v1/connections/test", post(JSON.stringify(payload)), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (shaped.report === null || typeof shaped.report !== "object") return false;
+        const report = shaped.report as Record<string, unknown>;
+        return typeof report.ok === "boolean" && typeof report.provider === "string" && typeof report.correlation_id === "string";
+      });
+    },
+
+    /** `POST /v1/connections/{id}/rotate` — the M-26 rotation: the NEW
+     *  write-only key under the SAME handle (the D-37 same-handle swap).
+     *  The response carries the affected-models/routing + interruption
+     *  statement; the response never echoes the key. */
+    connectionRotate(connectionID: string, secret: string): Promise<TransportOutcome<WireConnectionRotateResult>> {
+      const body: WireConnectionRotateRequestShape = { secret };
+      return call<WireConnectionRotateResult>(
+        `/v1/connections/${encodeURIComponent(connectionID)}/rotate`,
+        post(JSON.stringify(body)),
+        isWireConnectionRotateResult,
+      );
+    },
+
+    /** `POST /v1/connections/{id}/reauthenticate` — the M-27 credential
+     *  re-entry (the rotate path's cousin): a fresh write-only key under
+     *  the same record, its own audited action. */
+    connectionReauthenticate(connectionID: string, secret: string): Promise<TransportOutcome<WireConnectionRotateResult>> {
+      const body: WireConnectionRotateRequestShape = { secret };
+      return call<WireConnectionRotateResult>(
+        `/v1/connections/${encodeURIComponent(connectionID)}/reauthenticate`,
+        post(JSON.stringify(body)),
+        isWireConnectionRotateResult,
+      );
+    },
+
+    /** `POST /v1/connections/{id}/delete` — the delete/revoke command:
+     *  the record is deleted AND the keyring entry revoked (the D-37
+     *  fail-closed order; the high-risk confirmation is the surface's). */
+    connectionDelete(connectionID: string): Promise<TransportOutcome<Record<string, never>>> {
+      return call<Record<string, never>>(
+        `/v1/connections/${encodeURIComponent(connectionID)}/delete`,
+        post("{}"),
+        (body) => body !== null && typeof body === "object",
+      );
+    },
+
+    /** `POST /v1/connections/{id}/switch` — the minimal M-34 working
+     *  candidate: the durable active-connection pointer, idempotent on
+     *  the already-active connection (replayed=true). No Job migrates
+     *  and no cache mixes. */
+    connectionSwitch(connectionID: string): Promise<TransportOutcome<WireConnectionSwitchResult>> {
+      return call<WireConnectionSwitchResult>(
+        `/v1/connections/${encodeURIComponent(connectionID)}/switch`,
+        post("{}"),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return typeof shaped.active_connection_id === "string" && typeof shaped.replayed === "boolean";
+        },
+      );
     },
 
     /** Discards the held token from memory (the expiry/recovery path).

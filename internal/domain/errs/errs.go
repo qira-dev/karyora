@@ -18,12 +18,20 @@ import (
 type Code string
 
 // The Phase 2 code register (shared-contracts specification, C2-05).
+// CONFLICT_IDEMPOTENCY_KEY joins additively at its implementation (the
+// owner's card-3 working decision of 2026-11-02: "the code's C2-05 slice
+// is the v1 canonical error envelope register; the recorded unimplemented
+// codes join additively as they implement") — the C1-07-recorded code for
+// the Supplied provider-connection create idempotency (P3.2 §3.3: same key
+// + different body → 409 with fingerprintMatch:false), implemented by the
+// connection-record milestone.
 const (
 	CodeValidationFailed       Code = "VALIDATION_FAILED"
 	CodeConfigConflict         Code = "CONFIG_CONFLICT"
 	CodeAuthzDenied            Code = "AUTHZ_DENIED"
 	CodeNotFound               Code = "NOT_FOUND"
 	CodeConflictState          Code = "CONFLICT_STATE"
+	CodeConflictIdempotencyKey Code = "CONFLICT_IDEMPOTENCY_KEY"
 	CodeSingleInstanceConflict Code = "SINGLE_INSTANCE_CONFLICT"
 	CodeStorageUnavailable     Code = "STORAGE_UNAVAILABLE"
 	CodeMigrationFailed        Code = "MIGRATION_FAILED"
@@ -57,6 +65,7 @@ var register = map[Code]codeDefault{
 	CodeAuthzDenied:            {retryable: false, class: RetryNever},
 	CodeNotFound:               {retryable: false, class: RetryNever},
 	CodeConflictState:          {retryable: false, class: RetryNever},
+	CodeConflictIdempotencyKey: {retryable: false, class: RetryNever},
 	CodeSingleInstanceConflict: {retryable: true, class: RetryBackoff},
 	CodeStorageUnavailable:     {retryable: true, class: RetryBackoff},
 	CodeMigrationFailed:        {retryable: true, class: RetryReconcile},

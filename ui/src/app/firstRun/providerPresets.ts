@@ -13,6 +13,12 @@
  * any preset: endpoint details and adapter support come from the Core
  * (O-1), and capability stays Unknown/Not verified until a real
  * verification exists (UI-13).
+ *
+ * The preset ids are the coded adapter register's ids
+ * (internal/domain/provider contract.go) — the value the save command
+ * sends as the connection's provider. The Kimi preset's id aligns with
+ * the coded `kimi-moonshot` adapter id (the display name is unchanged);
+ * the alignment is the coded-name rule applied to the wire value.
  */
 export interface ProviderPreset {
   readonly id: string;
@@ -26,7 +32,7 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
   { id: "google-gemini", name: "Google Gemini" },
   { id: "alibaba-qwen", name: "Alibaba Qwen" },
   { id: "glm-zai", name: "GLM/Z.AI" },
-  { id: "kimi", name: "Kimi" },
+  { id: "kimi-moonshot", name: "Kimi" },
   { id: "minimax", name: "MiniMax" },
   { id: "deepseek", name: "DeepSeek" },
 ];

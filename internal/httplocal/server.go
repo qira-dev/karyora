@@ -16,6 +16,7 @@ import (
 	"github.com/qira-dev/karyora/internal/aijobrelay"
 	"github.com/qira-dev/karyora/internal/app"
 	"github.com/qira-dev/karyora/internal/domain/errs"
+	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	"github.com/qira-dev/karyora/internal/events"
 	"github.com/qira-dev/karyora/internal/security"
 )
@@ -162,6 +163,14 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/cancel", mutates: true, handler: (*Server).handleCancel},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/approvals/accept", mutates: true, handler: (*Server).handleApprovalAccept},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/approvals/reject", mutates: true, handler: (*Server).handleApprovalReject},
+		{method: http.MethodPost, prefix: "/v1/connections/test", mutates: true, handler: (*Server).handleConnectionTest},
+		{method: http.MethodPost, prefix: "/v1/connections", mutates: true, handler: (*Server).handleConnectionSave},
+		{method: http.MethodGet, prefix: "/v1/connections", handler: (*Server).handleConnectionList},
+		{method: http.MethodGet, prefix: "/v1/connections/", hasID: true, handler: (*Server).handleConnectionGet},
+		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/rotate", mutates: true, handler: (*Server).handleConnectionRotate},
+		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/reauthenticate", mutates: true, handler: (*Server).handleConnectionReauthenticate},
+		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/delete", mutates: true, handler: (*Server).handleConnectionDelete},
+		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/switch", mutates: true, handler: (*Server).handleConnectionSwitch},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -560,6 +569,162 @@ func (s *Server) handleApprovalReject(w http.ResponseWriter, r *http.Request, to
 // read/replay time (C2-13 §5). The decision port decides (and records)
 // before the read; a denial resolves to the coded forbidden outcome so a
 // client is never stranded in a false permanent status.
+// handleConnectionSave exposes the provider-connection create command
+// (M-24; the card-10 working candidate): the Supplied create idempotency —
+// duplicate returns the existing connection reference (replayed=true);
+// same key + different body is the typed CONFLICT_IDEMPOTENCY_KEY
+// (fingerprintMatch:false). The credential VALUE rides the body once —
+// the Core stores it through the D-37 SecretWriter and the response
+// carries the record with the handle REFERENCE only.
+func (s *Server) handleConnectionSave(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req connectionSaveRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SaveConnection(s.callCtx(r, token), app.SaveConnectionRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		Provider:       req.Provider,
+		BaseURL:        req.BaseURL,
+		ModelID:        req.ModelID,
+		CustomHeaders:  req.CustomHeaders,
+		Secret:         []byte(req.Secret),
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, connectionSaveResult{Connection: res.Connection, Replayed: res.Replayed})
+}
+
+// handleConnectionList exposes the connection-list read (the card-9 list
+// discipline over the connection records): the optional limit, the opaque
+// cursor, the cursorless final page. Authorization stays the slice's
+// decision port.
+func (s *Server) handleConnectionList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.ListConnections(s.callCtx(r, token), app.ListConnectionsRequest{
+		Limit:  limit,
+		Cursor: cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, connectionListResult{Connections: res.Connections, Cursor: res.NextCursor})
+}
+
+// handleConnectionGet exposes one connection record's read (the masked
+// secret status + the tested-state truth included; an unknown id is the
+// typed NOT_FOUND).
+func (s *Server) handleConnectionGet(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	view, err := s.deps.Slice.GetConnection(s.callCtx(r, token), connectionID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, connectionGetResult{Connection: view})
+}
+
+// handleConnectionTest exposes the read-only test command (M-25): either a
+// saved connection (the id in the body) or an unsaved safe draft (the
+// typed secret rides the body once — sent only by this explicit action,
+// dropped after the probe, never stored, never echoed). The route rides
+// the POST class only because the draft (and its transient credential)
+// travels in a body; its effect class is a READ — safe re-issue, a lost
+// response proves nothing — and the slice authorizes it through the same
+// decision port every read decides through.
+func (s *Server) handleConnectionTest(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req connectionTestRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.TestConnection(s.callCtx(r, token), app.TestConnectionRequest{
+		ConnectionID:  req.ConnectionID,
+		Provider:      req.Provider,
+		BaseURL:       req.BaseURL,
+		ModelID:       req.ModelID,
+		CustomHeaders: req.CustomHeaders,
+		Secret:        []byte(req.Secret),
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, connectionTestResult{Report: res.Report, Record: res.Record})
+}
+
+// handleConnectionRotate exposes the credential-rotation command (M-26):
+// the replacement key is a NEW write-only value stored under the SAME
+// handle atomically (the D-37 same-handle swap); the response data carries
+// the affected-models/routing + interruption statement (the P3.2 §3.3 [P]
+// row as the working candidate).
+func (s *Server) handleConnectionRotate(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	s.handleConnectionCredentialReplace(w, r, token, connectionID, s.deps.Slice.RotateConnection)
+}
+
+// handleConnectionReauthenticate exposes the credential re-entry command
+// (M-27): a fresh write-only key under the same record — the rotate path's
+// cousin, its own audited action.
+func (s *Server) handleConnectionReauthenticate(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	s.handleConnectionCredentialReplace(w, r, token, connectionID, s.deps.Slice.ReauthenticateConnection)
+}
+
+func (s *Server) handleConnectionCredentialReplace(w http.ResponseWriter, r *http.Request, token, connectionID string, op func(context.Context, app.RotateConnectionRequest) (app.RotateConnectionResult, error)) {
+	var req connectionCredentialRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := op(s.callCtx(r, token), app.RotateConnectionRequest{ConnectionID: connectionID, Secret: []byte(req.Secret)})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
+
+// handleConnectionDelete exposes the delete/revoke command: the Core
+// deletes the record AND revokes the keyring entry (the D-37 fail-closed
+// order — a typed revoke failure refuses the delete). The high-risk
+// confirmation is the UI's.
+func (s *Server) handleConnectionDelete(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	if err := s.deps.Slice.DeleteConnection(s.callCtx(r, token), connectionID); err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]any{})
+}
+
+// handleConnectionSwitch exposes the switch command (M-34's minimal
+// working candidate): the durable active-connection pointer, idempotent on
+// the already-active connection (replayed=true). No Job migrates and no
+// cache mixes.
+func (s *Server) handleConnectionSwitch(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	res, err := s.deps.Slice.SwitchConnection(s.callCtx(r, token), connectionID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
+
 func (s *Server) handleReplay(w http.ResponseWriter, r *http.Request, token, _ string) {
 	q := r.URL.Query()
 	stream := q.Get("stream")
@@ -709,7 +874,8 @@ func statusFor(code errs.Code) int {
 		return http.StatusForbidden
 	case errs.CodeNotFound:
 		return http.StatusNotFound
-	case errs.CodeConflictState, errs.CodeConfigConflict, errs.CodeSingleInstanceConflict:
+	case errs.CodeConflictState, errs.CodeConfigConflict, errs.CodeSingleInstanceConflict,
+		errs.CodeConflictIdempotencyKey:
 		return http.StatusConflict
 	case errs.CodeRateLimited:
 		return http.StatusTooManyRequests
@@ -857,6 +1023,72 @@ type listResult struct {
 	// freeze).
 	Jobs   []aijobrelay.Job `json:"jobs"`
 	Cursor string           `json:"cursor,omitempty"`
+}
+
+// The connection wire shapes. Every key is a coded name: the record/view
+// JSON tags are the coded tags of the card-10 working candidate's object
+// (internal/domain/provider connections.go) and the app-layer view; the
+// wrapper keys are the coded struct names lowercased (the coded-name
+// rule). The credential VALUE appears in a REQUEST body only — no
+// response, log, error, or test ever carries one.
+
+type connectionSaveRequest struct {
+	// idempotency_key/provider/model_id are the record's coded tags;
+	// base_url/custom_headers are the coded Custom API field set (UI-12);
+	// secret is the write-only credential (transient entry).
+	IdempotencyKey string                       `json:"idempotency_key"`
+	Provider       string                       `json:"provider"`
+	BaseURL        string                       `json:"base_url,omitempty"`
+	ModelID        string                       `json:"model_id"`
+	CustomHeaders  []dprovider.ConnectionHeader `json:"custom_headers,omitempty"`
+	Secret         string                       `json:"secret,omitempty"`
+}
+
+type connectionSaveResult struct {
+	// connection is the app view's coded shape (the record + the masked
+	// secret status + the tested-state truth + the active flag); replayed
+	// is the honest replay flag (the duplicate save returned the existing
+	// reference).
+	Connection app.ConnectionView `json:"connection"`
+	Replayed   bool               `json:"replayed"`
+}
+
+type connectionListResult struct {
+	// connections is the coded ConnectionView list; cursor is the opaque
+	// list cursor — omitted on the final page (the card-9 discipline).
+	Connections []app.ConnectionView `json:"connections"`
+	Cursor      string               `json:"cursor,omitempty"`
+}
+
+type connectionGetResult struct {
+	Connection app.ConnectionView `json:"connection"`
+}
+
+type connectionTestRequest struct {
+	// connection_id selects a SAVED connection (its stored reference
+	// resolves); its absence makes the request an unsaved safe draft whose
+	// typed secret rides transiently (provider/base_url/model_id/
+	// custom_headers are the draft's fields — the coded record tags).
+	ConnectionID  string                       `json:"connection_id,omitempty"`
+	Provider      string                       `json:"provider,omitempty"`
+	BaseURL       string                       `json:"base_url,omitempty"`
+	ModelID       string                       `json:"model_id,omitempty"`
+	CustomHeaders []dprovider.ConnectionHeader `json:"custom_headers,omitempty"`
+	Secret        string                       `json:"secret,omitempty"`
+}
+
+type connectionTestResult struct {
+	// report is the sanitized M-25 report (the coded ConnectionTestReport
+	// tags); record is set only when the test rode a saved connection (the
+	// TC-1 tested-state stamp).
+	Report dprovider.ConnectionTestReport `json:"report"`
+	Record *dprovider.ConnectionRecord    `json:"record,omitempty"`
+}
+
+type connectionCredentialRequest struct {
+	// secret is the NEW write-only replacement key (M-26/M-27): never the
+	// decrypted old key, never echoed.
+	Secret string `json:"secret"`
 }
 
 type eventsResult struct {

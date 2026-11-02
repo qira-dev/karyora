@@ -34,6 +34,7 @@ export type CoreWireCode =
   | "AUTHZ_DENIED"
   | "NOT_FOUND"
   | "CONFLICT_STATE"
+  | "CONFLICT_IDEMPOTENCY_KEY"
   | "SINGLE_INSTANCE_CONFLICT"
   | "STORAGE_UNAVAILABLE"
   | "MIGRATION_FAILED"
@@ -398,4 +399,140 @@ export interface WireSessionResult {
   readonly id: string;
   readonly scopes: readonly string[];
   readonly expires: string;
+}
+
+/** The provider-connection record (the card-10 working candidate's coded
+ *  object — the JSON tags of `dprovider.ConnectionRecord` in
+ *  `internal/domain/provider/connections.go`): the Core-issued id, the
+ *  wired adapter id, the exact Model ID, the optional restricted custom
+ *  headers, the secret REFERENCE (handle-only on disk per D-37 — never a
+ *  value), the credential epoch (the rotation marker), the tested state
+ *  (the tested-at instant + inputs digest + epoch; the digest and epoch
+ *  are what render "tested, but changed since" truthfully), and the
+ *  created/updated instants. No field ever carries a secret value. */
+export interface WireConnectionHeader {
+  readonly name: string;
+  readonly value: string;
+}
+
+export interface WireConnectionRecord {
+  readonly connection_id: string;
+  readonly idempotency_key?: string;
+  readonly provider: string;
+  readonly base_url?: string;
+  readonly model_id: string;
+  readonly custom_headers?: readonly WireConnectionHeader[];
+  readonly secret_ref: string;
+  readonly credential_epoch: number;
+  readonly tested_at?: string;
+  readonly tested_digest?: string;
+  readonly tested_epoch?: number;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+/** The read view (the app-layer `ConnectionView`): the record plus the
+ *  safe masked secret status (the D-37 masked-status vocabulary:
+ *  present/missing/revoked/corrupt/inaccessible), the tested-state truth
+ *  (a tested result that no longer matches the current inputs renders
+ *  test_current=false — stale-truthfully), and the active flag (the M-34
+ *  switch pointer). */
+export interface WireConnectionView {
+  readonly record: WireConnectionRecord;
+  readonly secret_status: string;
+  readonly test_current: boolean;
+  readonly active: boolean;
+}
+
+/** `POST /v1/connections` request body (M-24): the Supplied create
+ *  idempotency — duplicate → the existing reference; same key + different
+ *  body → 409 CONFLICT_IDEMPOTENCY_KEY. The credential VALUE rides the
+ *  body once (the explicit save action); the response never echoes it. */
+export interface WireConnectionSaveRequest {
+  readonly idempotency_key: string;
+  readonly provider: string;
+  readonly base_url?: string;
+  readonly model_id: string;
+  readonly custom_headers?: readonly WireConnectionHeader[];
+  readonly secret?: string;
+}
+
+/** `POST /v1/connections` success (200): `{connection, replayed}`. */
+export interface WireConnectionSaveResult {
+  readonly connection: WireConnectionView;
+  readonly replayed: boolean;
+}
+
+/** `GET /v1/connections` success (200): `{connections, cursor?}` — the
+ *  cursorless page is the final page (the card-9 list discipline). */
+export interface WireConnectionListResult {
+  readonly connections: readonly WireConnectionView[];
+  readonly cursor?: string;
+}
+
+/** `GET /v1/connections/{id}` success (200): `{connection}`. */
+export interface WireConnectionGetResult {
+  readonly connection: WireConnectionView;
+}
+
+/** `POST /v1/connections/test` request body (M-25): either a saved
+ *  connection (`connection_id`) or an unsaved safe draft whose typed
+ *  secret rides transiently — sent only by this explicit action, dropped
+ *  after the probe, never stored, never echoed. */
+export interface WireConnectionTestRequest {
+  readonly connection_id?: string;
+  readonly provider?: string;
+  readonly base_url?: string;
+  readonly model_id?: string;
+  readonly custom_headers?: readonly WireConnectionHeader[];
+  readonly secret?: string;
+}
+
+/** The sanitized M-25 report (the coded `ConnectionTestReport` tags): the
+ *  verified endpoint/model + capability statuses on success; the typed
+ *  error class + the bounded redacted detail on failure. The correlation
+ *  id is the only request detail a surface needs. */
+export interface WireConnectionTestReport {
+  readonly ok: boolean;
+  readonly provider: string;
+  readonly model_id: string;
+  readonly base_url?: string;
+  readonly capabilities?: unknown;
+  readonly error_kind?: string;
+  readonly error_detail?: string;
+  readonly correlation_id: string;
+}
+
+/** `POST /v1/connections/test` success (200): `{report, record?}` — the
+ *  record is set only when the test rode a saved connection (the TC-1
+ *  tested-state stamp). */
+export interface WireConnectionTestResult {
+  readonly report: WireConnectionTestReport;
+  readonly record?: WireConnectionRecord;
+}
+
+/** `POST /v1/connections/{id}/rotate|reauthenticate` request body
+ *  (M-26/M-27): the NEW write-only replacement key — never the decrypted
+ *  old key, never echoed. */
+export interface WireConnectionCredentialRequest {
+  readonly secret: string;
+}
+
+/** `POST /v1/connections/{id}/rotate|reauthenticate` success (200): the
+ *  updated record plus the working candidate's affected-models/routing +
+ *  interruption statement (the P3.2 §3.3 [P] row as the working
+ *  candidate). */
+export interface WireConnectionRotateResult {
+  readonly record: WireConnectionRecord;
+  readonly affected_models: readonly string[];
+  readonly routing_note: string;
+  readonly interruption_note: string;
+}
+
+/** `POST /v1/connections/{id}/switch` success (200): the durable
+ *  active-connection pointer (the minimal M-34 working candidate),
+ *  idempotent on the already-active connection. */
+export interface WireConnectionSwitchResult {
+  readonly active_connection_id: string;
+  readonly replayed: boolean;
 }

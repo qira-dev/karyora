@@ -272,14 +272,16 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		executors[a.ID()] = exec
 	}
 	deps := app.SliceDeps{
-		Relay:     store,
-		Snapshots: store,
-		Objects:   store,
-		Events:    store,
-		Packs:     store,
-		Guard:     bundle.guard,
-		Providers: executors,
-		Backoff:   store,
+		Relay:       store,
+		Snapshots:   store,
+		Objects:     store,
+		Events:      store,
+		Packs:       store,
+		Guard:       bundle.guard,
+		Providers:   executors,
+		Backoff:     store,
+		Connections: store,
+		Secrets:     secrets,
 	}
 	slice, _ := app.NewSlice(deps)
 	return slice, deps, nil

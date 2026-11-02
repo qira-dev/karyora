@@ -7,7 +7,13 @@ import {
 } from "../../app/firstRun/providerPresets";
 import type { ProviderDraft } from "../../app/firstRun/firstRunState";
 import { useFirstRun } from "../../app/firstRun/firstRunState";
-import { createUnavailableCoreClient } from "../../coreclient";
+import { useCoreConnection } from "../../app/coreConnectionState";
+import type { CoreWireEnvelope } from "../../coreclient/httpLocal/wire";
+import type {
+  WireCapabilitySet,
+  WireConnectionTestReport,
+  WireConnectionView,
+} from "../../coreclient/httpLocal/wire";
 import { RecoveryPanel } from "../../components/RecoveryPanel";
 import { useT } from "../../i18n/useT";
 import styles from "./ProviderSetupForm.module.css";
@@ -22,25 +28,38 @@ import styles from "./ProviderSetupForm.module.css";
  *
  * - Presets are the UI-11 LOCKED list; Custom API unlocks the UI-12
  *   field set. The API-format selector's option source is the Core's
- *   implemented adapters (SEL-4) — with the provider contracts unwired,
- *   it renders its honest unavailable state and invents no enum.
+ *   implemented-adapter enumeration (SEL-4) — the Core supplies no
+ *   enumeration query, so it renders its honest unavailable state and
+ *   invents no enum (the recorded gap keeps its owner).
  * - Base URL client-side validation per §18.4/MB §12.5 (see baseUrl.ts):
  *   format check only — nothing here implies an endpoint was verified.
  * - The API key lives ONLY in this component's local state while the
  *   form is mounted: it never enters the app draft, localStorage,
  *   sessionStorage, URLs, logs, or telemetry (X-6; C-07). Unmounting the
  *   form discards it. The explicit reveal exists for unsaved entry only.
- * - `Test connection` (M-25) and `Save securely` (M-24) are Core-owned
- *   commands. With no transport, the CoreClient reports `unavailable` —
- *   the truthful not-submitted state (S0-with-reason) — and the outcome
- *   panel says exactly that. No fake success, no fake verification.
- * - Capability renders `Not verified` (UI-13): unknown stays unknown;
- *   nothing is inferred from provider or model names.
+ * - `Test connection` (M-25) and `Save securely` (M-24) are the Core's
+ *   connection commands (IMPL-8). A command is sent ONLY while a held
+ *   session authorizes this page's origin (the connected phase);
+ *   otherwise the outcome is the truthful not-submitted state
+ *   (S0-with-reason). The four-outcome discipline binds every command:
+ *   the Core-confirmed result, the typed refusal verbatim (the stable
+ *   code + the correlation id), and a lost response = S4 unknown — never
+ *   proof of anything, never auto-retried. The save's S4 recovery offers
+ *   the explicit SAME-KEY re-send (the Supplied create idempotency: the
+ *   same key returns the original connection, never a second one); the
+ *   test is a read-only safe re-issue. A saved key is NEVER re-displayed
+ *   and the key field clears after every settled test/save outcome (the
+ *   post-save clearing rule; the key is never restored from storage
+ *   because it is never stored).
+ * - Capability renders from what the Core actually reports (UI-13):
+ *   supported/unsupported/unknown stay DISTINCT — unknown is `Not
+ *   verified`; nothing is inferred from provider or model names. Before
+ *   any test the panel renders its honest `Not verified`.
  * - The billing label carries the UI-22 LOCKED rule: provider-billed
- *   BYOK, separate from any product maintenance plan.
- * - After an unsuccessful save the non-secret entries are preserved and
- *   the key field is cleared (the safe-retry semantics; the key is
- *   never restored from storage because it is never stored).
+ *   BYOK, separate from any product maintenance plan. The data-handling
+ *   notice renders ONLY as the Core supplies it (the notice below states
+ *   the record's own notice rules; per-provider facts come from the Core
+ *   as it supplies them — absent facts stay absent).
  */
 
 export interface ProviderSetupFormHandle {
@@ -56,7 +75,19 @@ export interface ProviderSetupFormHandle {
   isValid: () => boolean;
 }
 
-type Outcome = "test-unavailable" | "save-unavailable" | null;
+type TestOutcome =
+  | { readonly kind: "ok"; readonly report: WireConnectionTestReport }
+  | { readonly kind: "failed"; readonly report: WireConnectionTestReport }
+  | { readonly kind: "unavailable" }
+  | { readonly kind: "unknown" }
+  | null;
+
+type SaveOutcome =
+  | { readonly kind: "confirmed"; readonly connection: WireConnectionView }
+  | { readonly kind: "refused"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unavailable" }
+  | { readonly kind: "unknown"; readonly pendingKey: string }
+  | null;
 
 interface FieldErrors {
   baseUrl: string | null;
@@ -67,10 +98,20 @@ interface FieldErrors {
 
 const NO_ERRORS: FieldErrors = { baseUrl: null, modelId: null, apiKey: null, headers: null };
 
+/** The idempotency key is minted at save time (the Run-submission
+ *  pattern); a save without a unique key must never be sent. */
+function newIdempotencyKey(): string {
+  if (typeof crypto === "undefined" || typeof crypto.randomUUID !== "function") {
+    throw new Error("idempotency key source unavailable");
+  }
+  return crypto.randomUUID();
+}
+
 export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
   function ProviderSetupForm(_props, ref) {
     const t = useT();
     const { providerDraft, setProviderDraft } = useFirstRun();
+    const { transport, phase } = useCoreConnection();
 
     const [presetId, setPresetId] = useState(providerDraft.presetId);
     const [baseUrl, setBaseUrl] = useState(providerDraft.baseUrl);
@@ -82,8 +123,13 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
     const [revealSecret, setRevealSecret] = useState(false);
     const [errors, setErrors] = useState<FieldErrors>(NO_ERRORS);
     const [submitAttempted, setSubmitAttempted] = useState(false);
-    const [outcome, setOutcome] = useState<Outcome>(null);
-    const [pending, setPending] = useState(false);
+    const [testOutcome, setTestOutcome] = useState<TestOutcome>(null);
+    const [saveOutcome, setSaveOutcome] = useState<SaveOutcome>(null);
+    const [pending, setPending] = useState<null | "test" | "save">(null);
+    // The pending save's minted key: the S4 same-key re-send re-uses it
+    // verbatim (the Supplied idempotency — the same key returns the
+    // original connection); it is cleared when the attempt settles.
+    const pendingSaveKey = useRef<string | null>(null);
 
     // The clean snapshot this form instance started from (J-8: unchanged
     // data is never re-prompted; discard returns exactly here).
@@ -102,16 +148,19 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       setProviderDraft({ presetId, baseUrl, modelId, headers });
     }, [presetId, baseUrl, modelId, headers, setProviderDraft]);
 
-    const parsedHeaders = useCallback((): { ok: boolean } => {
+    const parsedHeaders = useCallback((): { ok: boolean; headers: { name: string; value: string }[] } => {
+      const out: { name: string; value: string }[] = [];
       const lines = headers.split("\n");
       for (const line of lines) {
         const trimmed = line.trim();
         if (trimmed.length === 0) continue;
         if (!/^[!#$%&'*+\-.^_`|~0-9A-Za-z]+:\s?.+$/.test(trimmed)) {
-          return { ok: false };
+          return { ok: false, headers: out };
         }
+        const idx = trimmed.indexOf(":");
+        out.push({ name: trimmed.slice(0, idx).trim(), value: trimmed.slice(idx + 1).trim() });
       }
-      return { ok: true };
+      return { ok: true, headers: out };
     }, [headers]);
 
     const computeErrors = useCallback((): FieldErrors => {
@@ -163,44 +212,175 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       else if (e.headers) headersRef.current?.focus();
     }, []);
 
-    const runCommand = useCallback(
-      async (kind: "provider-connection-test" | "provider-connection-save") => {
-        setSubmitAttempted(true);
-        const e = computeErrors();
-        setErrors(e);
-        const invalid =
-          e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
-        if (invalid) {
-          focusFirstInvalid(e);
-          return;
-        }
-        // No duplicate submit (§8.1): the pending window is closed to a
-        // second attempt. No pending UI is fabricated: the unavailable
-        // instance resolves immediately, honestly.
-        setPending(true);
-        try {
-          const client = createUnavailableCoreClient();
-          const result = await client.command(kind);
-          // The only reachable result in this milestone is
-          // `unavailable` (never submitted). Rejection/unknown/accepted
-          // would arrive only from a live transport; rendering them
-          // here would fabricate a submission that did not happen, so
-          // they fall through to the same truthful not-submitted panel.
-          if (result.kind === "unavailable") {
-            setOutcome(kind === "provider-connection-test" ? "test-unavailable" : "save-unavailable");
-            if (kind === "provider-connection-save") {
-              // Safe-retry semantics (§8.12 Save-provider row): the key
-              // is cleared and never restored from storage.
-              setApiKey("");
-              setRevealSecret(false);
-            }
+    const clearSecret = useCallback(() => {
+      // The post-save/post-test clearing rule: the typed secret is never
+      // restored (it is never stored) — the next save opens a fresh
+      // empty write-only field.
+      setApiKey("");
+      setRevealSecret(false);
+    }, []);
+
+    const runTest = useCallback((): void => {
+      setSubmitAttempted(true);
+      const e = computeErrors();
+      setErrors(e);
+      const invalid =
+        e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
+      if (invalid) {
+        focusFirstInvalid(e);
+        return;
+      }
+      // No duplicate submit (§8.1); the truthful not-submitted state when
+      // no authorized transport answers this origin.
+      if (phase !== "connected") {
+        setTestOutcome({ kind: "unavailable" });
+        return;
+      }
+      const parsed = parsedHeaders();
+      setPending("test");
+      void transport
+        .connectionTest({
+          provider: presetId,
+          ...(isCustom && baseUrl.trim() !== "" ? { base_url: baseUrl.trim() } : {}),
+          model_id: modelId.trim(),
+          ...(parsed.headers.length > 0 ? { custom_headers: parsed.headers } : {}),
+          ...(apiKey.length > 0 ? { secret: apiKey } : {}),
+        })
+        .then((outcome) => {
+          if (outcome.kind === "data") {
+            setTestOutcome(outcome.data.report.ok
+              ? { kind: "ok", report: outcome.data.report }
+              : { kind: "failed", report: outcome.data.report });
+          } else if (outcome.kind === "rejection") {
+            // A typed refusal on a READ is surfaced verbatim (the stable
+            // code + the correlation id); it is not an unknown.
+            setTestOutcome({
+              kind: "failed",
+              report: {
+                ok: false,
+                provider: presetId,
+                model_id: modelId.trim(),
+                error_kind: outcome.envelope.code,
+                error_detail: undefined,
+                correlation_id: outcome.envelope.correlationId,
+              },
+            });
+          } else if (outcome.kind === "unknown") {
+            setTestOutcome({ kind: "unknown" });
+          } else {
+            setTestOutcome({ kind: "unavailable" });
           }
-        } finally {
-          setPending(false);
-        }
-      },
-      [computeErrors, focusFirstInvalid],
-    );
+          // The typed secret is transient: cleared after the settled
+          // outcome, never restored.
+          clearSecret();
+        })
+        .finally(() => setPending(null));
+    }, [computeErrors, focusFirstInvalid, phase, transport, presetId, isCustom, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
+
+    const runSave = useCallback((): void => {
+      setSubmitAttempted(true);
+      const e = computeErrors();
+      setErrors(e);
+      const invalid =
+        e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
+      if (invalid) {
+        focusFirstInvalid(e);
+        return;
+      }
+      if (phase !== "connected") {
+        setSaveOutcome({ kind: "unavailable" });
+        return;
+      }
+      let key: string;
+      try {
+        key = newIdempotencyKey();
+      } catch {
+        setSaveOutcome({
+          kind: "refused",
+          envelope: {
+            code: "VALIDATION_FAILED",
+            retryable: false,
+            correlationId: "",
+            data: { reason: "idempotency key source unavailable" },
+          },
+        });
+        return;
+      }
+      pendingSaveKey.current = key;
+      const parsed = parsedHeaders();
+      const body = {
+        idempotency_key: key,
+        provider: presetId,
+        ...(isCustom && baseUrl.trim() !== "" ? { base_url: baseUrl.trim() } : {}),
+        model_id: modelId.trim(),
+        ...(parsed.headers.length > 0 ? { custom_headers: parsed.headers } : {}),
+        ...(apiKey.length > 0 ? { secret: apiKey } : {}),
+      };
+      setPending("save");
+      void transport
+        .connectionSave(body)
+        .then((outcome) => {
+          if (outcome.kind === "data") {
+            // The 200 IS the Core confirmation (the Supplied idempotency's
+            // replayed flag rides honestly); the confirmed state renders
+            // from what the Core returned and the connections list
+            // re-reads its own authoritative state.
+            setSaveOutcome({ kind: "confirmed", connection: outcome.data.connection });
+            pendingSaveKey.current = null;
+            clearSecret();
+          } else if (outcome.kind === "rejection") {
+            setSaveOutcome({ kind: "refused", envelope: outcome.envelope });
+            pendingSaveKey.current = null;
+            clearSecret();
+          } else if (outcome.kind === "unknown") {
+            // S4: the response was lost or uninterpretable — never proof
+            // of a save or a failure. The minted key stays held so the
+            // explicit same-key re-send resolves the Core's replay.
+            setSaveOutcome({ kind: "unknown", pendingKey: key });
+          } else {
+            setSaveOutcome({ kind: "unavailable" });
+            pendingSaveKey.current = null;
+          }
+        })
+        .finally(() => setPending(null));
+    }, [computeErrors, focusFirstInvalid, phase, transport, presetId, isCustom, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
+
+    /** The Supplied-idempotency recovery: an explicit, user-initiated
+     *  re-issue of the SAME key and the EXACT same body — the Core's
+     *  coded semantics return the original connection, never a second
+     *  one. */
+    const resendSameKey = useCallback((): void => {
+      const key = pendingSaveKey.current;
+      if (key === null || pending === "save") return;
+      const parsed = parsedHeaders();
+      setPending("save");
+      void transport
+        .connectionSave({
+          idempotency_key: key,
+          provider: presetId,
+          ...(isCustom && baseUrl.trim() !== "" ? { base_url: baseUrl.trim() } : {}),
+          model_id: modelId.trim(),
+          ...(parsed.headers.length > 0 ? { custom_headers: parsed.headers } : {}),
+          ...(apiKey.length > 0 ? { secret: apiKey } : {}),
+        })
+        .then((outcome) => {
+          if (outcome.kind === "data") {
+            setSaveOutcome({ kind: "confirmed", connection: outcome.data.connection });
+            pendingSaveKey.current = null;
+            clearSecret();
+          } else if (outcome.kind === "rejection") {
+            setSaveOutcome({ kind: "refused", envelope: outcome.envelope });
+            pendingSaveKey.current = null;
+            clearSecret();
+          } else if (outcome.kind === "unknown") {
+            setSaveOutcome({ kind: "unknown", pendingKey: key });
+          } else {
+            setSaveOutcome({ kind: "unavailable" });
+            pendingSaveKey.current = null;
+          }
+        })
+        .finally(() => setPending(null));
+    }, [pending, transport, presetId, isCustom, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
 
     useImperativeHandle(
       ref,
@@ -224,19 +404,41 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           setRevealSecret(false);
           setErrors(NO_ERRORS);
           setSubmitAttempted(false);
-          setOutcome(null);
+          setTestOutcome(null);
+          setSaveOutcome(null);
           setProviderDraft({ ...snapshot });
         },
         attemptSave: () => {
-          void runCommand("provider-connection-save");
+          runSave();
         },
         isValid: isValidNow,
       }),
-      [presetId, baseUrl, modelId, headers, apiKey, runCommand, isValidNow, setProviderDraft],
+      [presetId, baseUrl, modelId, headers, apiKey, runSave, isValidNow, setProviderDraft],
     );
 
     const errorCount =
       (errors.baseUrl ? 1 : 0) + (errors.modelId ? 1 : 0) + (errors.apiKey ? 1 : 0) + (errors.headers ? 1 : 0);
+
+    // The capability panel's truth: rendered from the Core's test report
+    // only. The coded Feature axes render DISTINCTLY — verified (the
+    // Core reports supported), unsupported, and Not verified (unknown).
+    // The capability panel's truth: rendered from the Core's test report
+    // only. The coded Feature axes render DISTINCTLY — verified (the
+    // Core reports supported), unsupported (its own distinct state), and
+    // Not verified (unknown) — never a green collapse of distinct states
+    // (P3.3 §7; UI-13).
+    const capability: WireCapabilitySet | undefined =
+      testOutcome?.kind === "ok" ? (testOutcome.report.capabilities as WireCapabilitySet | undefined) : undefined;
+    const capabilityRows: readonly { readonly label: string; readonly stateKey: "provider.capabilityVerified" | "provider.capabilityUnsupported" | "provider.capabilityNotVerified" }[] = capability
+      ? [
+          { label: t("provider.capabilityChat"), stateKey: capabilityStateKey(capability.chat) },
+          { label: t("provider.capabilityStreaming"), stateKey: capabilityStateKey(capability.streaming) },
+          { label: t("provider.capabilityTools"), stateKey: capabilityStateKey(capability.tools) },
+          { label: t("provider.capabilityStructured"), stateKey: capabilityStateKey(capability.structured_output) },
+          { label: t("provider.capabilityVision"), stateKey: capabilityStateKey(capability.vision) },
+          { label: t("provider.capabilityEmbeddings"), stateKey: capabilityStateKey(capability.embeddings) },
+        ]
+      : [];
 
     return (
       <div className={styles.form}>
@@ -411,16 +613,16 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           <button
             type="button"
             className={styles.secondaryButton}
-            disabled={pending}
-            onClick={() => void runCommand("provider-connection-test")}
+            disabled={pending !== null}
+            onClick={runTest}
           >
             {t("provider.test")}
           </button>
           <button
             type="button"
             className={styles.primaryButton}
-            disabled={pending}
-            onClick={() => void runCommand("provider-connection-save")}
+            disabled={pending !== null}
+            onClick={runSave}
           >
             {t("provider.save")}
           </button>
@@ -434,31 +636,106 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
         ) : null}
 
         <div className={styles.capability}>
-          <p className={styles.capabilityRow}>
-            <span className={styles.capabilityLabel}>{t("provider.capabilityTitle")}: </span>
-            <span className={styles.capabilityValue}>{t("provider.capabilityNotVerified")}</span>
-          </p>
-          <p className={styles.help}>{t("provider.capabilityNote")}</p>
+          {capabilityRows.length === 0 ? (
+            <>
+              <p className={styles.capabilityRow}>
+                <span className={styles.capabilityLabel}>{t("provider.capabilityTitle")}: </span>
+                <span className={styles.capabilityValue}>{t("provider.capabilityNotVerified")}</span>
+              </p>
+              <p className={styles.help}>{t("provider.capabilityNote")}</p>
+            </>
+          ) : (
+            <div role="list" aria-label={t("provider.capabilityTitle")}>
+              {capabilityRows.map((row) => (
+                <p key={row.label} role="listitem" className={styles.capabilityRow}>
+                  <span className={styles.capabilityLabel}>{row.label}: </span>
+                  <span className={styles.capabilityValue}>{t(row.stateKey)}</span>
+                </p>
+              ))}
+              <p className={styles.help}>{t("provider.capabilityTestedNote")}</p>
+            </div>
+          )}
         </div>
 
-        {outcome === "test-unavailable" ? (
+        {testOutcome?.kind === "unavailable" ? (
           <RecoveryPanel
             title={t("provider.testUnavailableTitle")}
             body={t("provider.testUnavailableBody")}
             note={t("provider.testUnavailableNote")}
             actions={[
-              { label: t("provider.retry"), onAction: () => void runCommand("provider-connection-test") },
-              { label: t("provider.dismiss"), onAction: () => setOutcome(null) },
+              { label: t("provider.retry"), onAction: runTest },
+              { label: t("provider.dismiss"), onAction: () => setTestOutcome(null) },
             ]}
           />
         ) : null}
-        {outcome === "save-unavailable" ? (
+        {testOutcome?.kind === "unknown" ? (
+          <RecoveryPanel
+            title={t("provider.testUnknownTitle")}
+            body={t("provider.testUnknownBody")}
+            note={t("provider.testUnknownNote")}
+            actions={[
+              { label: t("provider.retry"), onAction: runTest },
+              { label: t("provider.dismiss"), onAction: () => setTestOutcome(null) },
+            ]}
+          />
+        ) : null}
+        {testOutcome?.kind === "ok" ? (
+          <RecoveryPanel
+            title={t("provider.testOkTitle")}
+            body={t("provider.testOkBody", {
+              endpoint: testOutcome.report.base_url ?? testOutcome.report.provider,
+              model: testOutcome.report.model_id,
+            })}
+            note={t("provider.testOkNote", { correlationId: testOutcome.report.correlation_id })}
+            actions={[{ label: t("provider.dismiss"), onAction: () => setTestOutcome(null) }]}
+          />
+        ) : null}
+        {testOutcome?.kind === "failed" ? (
+          <RecoveryPanel
+            title={t("provider.testFailedTitle")}
+            body={t("provider.testFailedBody", {
+              errorKind: testOutcome.report.error_kind ?? "",
+            })}
+            note={t("provider.testFailedNote", { correlationId: testOutcome.report.correlation_id })}
+            actions={[
+              { label: t("provider.retry"), onAction: runTest },
+              { label: t("provider.dismiss"), onAction: () => setTestOutcome(null) },
+            ]}
+          />
+        ) : null}
+
+        {saveOutcome?.kind === "confirmed" ? (
+          <RecoveryPanel
+            title={t("provider.saveConfirmedTitle")}
+            body={t("provider.saveConfirmedBody", { connectionId: saveOutcome.connection.record.connection_id })}
+            note={t("provider.saveConfirmedNote")}
+            actions={[{ label: t("provider.dismiss"), onAction: () => setSaveOutcome(null) }]}
+          />
+        ) : null}
+        {saveOutcome?.kind === "refused" ? (
+          <RecoveryPanel
+            title={t("provider.saveRefusedTitle")}
+            body={t("provider.saveRefusedBody", { code: saveOutcome.envelope.code })}
+            note={t("provider.saveRefusedNote", { correlationId: saveOutcome.envelope.correlationId })}
+            actions={[{ label: t("provider.dismiss"), onAction: () => setSaveOutcome(null) }]}
+          />
+        ) : null}
+        {saveOutcome?.kind === "unavailable" ? (
           <RecoveryPanel
             title={t("provider.saveUnavailableTitle")}
             body={t("provider.saveUnavailableBody")}
             note={t("provider.saveUnavailableNote")}
+            actions={[{ label: t("provider.dismiss"), onAction: () => setSaveOutcome(null) }]}
+          />
+        ) : null}
+        {saveOutcome?.kind === "unknown" ? (
+          <RecoveryPanel
+            title={t("provider.saveUnknownTitle")}
+            body={t("provider.saveUnknownBody")}
+            note={t("provider.saveUnknownNote")}
             actions={[
-              { label: t("provider.dismiss"), onAction: () => setOutcome(null) },
+              { label: t("provider.saveResendSameKey"), onAction: resendSameKey },
+              { label: t("provider.dismiss"), onAction: () => setSaveOutcome(null) },
             ]}
           />
         ) : null}
@@ -466,3 +743,15 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
     );
   },
 );
+
+/** The coded CapabilityState renderer (UI-13's distinct display): the
+ *  Core's `supported` resolves the verified key, `unsupported` its own
+ *  distinct key, and `unknown` the Not-verified key — never a green
+ *  collapse of distinct states. */
+function capabilityStateKey(
+  state: unknown,
+): "provider.capabilityVerified" | "provider.capabilityUnsupported" | "provider.capabilityNotVerified" {
+  if (state === "supported") return "provider.capabilityVerified";
+  if (state === "unsupported") return "provider.capabilityUnsupported";
+  return "provider.capabilityNotVerified";
+}

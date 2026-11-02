@@ -240,36 +240,13 @@ func NewClient(policy EgressPolicy) *http.Client {
 	}
 }
 
-// forbiddenConnectionHeaders are the header names a CONNECTION record may
-// never set (C3-18): the Host override, hop-by-hop machinery, the proxy/
-// forwarded/internal-routing family, and every credential-bearing header
-// the adapter itself must own. Comparison is case-insensitive.
-var forbiddenConnectionHeaders = map[string]bool{
-	"host": true, "content-length": true, "connection": true,
-	"transfer-encoding": true, "upgrade": true, "te": true, "trailer": true,
-	"keep-alive": true, "proxy-connection": true, "proxy-authorization": true,
-	"proxy-authenticate": true, "expect": true, "authorization": true,
-	"x-api-key": true, "x-goog-api-key": true,
-	"x-forwarded-for": true, "x-forwarded-host": true, "x-forwarded-proto": true,
-	"x-forwarded-port": true, "x-forwarded-server": true, "x-real-ip": true,
-	"forwarded": true, "via": true, "cookie": true, "set-cookie": true,
-}
-
 // ValidateExtraHeader refuses a connection-supplied header that is
-// forbidden or malformed. Header VALUE hygiene (no newlines) is enforced
-// here too — header injection never passes (C3-18 evidence).
+// forbidden or malformed. The rule itself lives in the domain package
+// (the connection-record contract owns it — the single rule, never two);
+// this adapter-side wrapper delegates so request construction and record
+// validation can never drift.
 func ValidateExtraHeader(name, value string) error {
-	if name == "" || strings.ContainsAny(name, " \t\r\n:") {
-		return dprovider.NewError(dprovider.ErrInvalidRequest, "egress", "malformed header name")
-	}
-	if forbiddenConnectionHeaders[strings.ToLower(name)] {
-		return dprovider.NewError(dprovider.ErrEgressPolicy, "egress",
-			"connection header "+name+" is forbidden (Host/hop-by-hop/authorization-override/internal-routing)")
-	}
-	if strings.ContainsAny(value, "\r\n") || len(value) > 1024 {
-		return dprovider.NewError(dprovider.ErrInvalidRequest, "egress", "header value for "+name+" is malformed or oversized")
-	}
-	return nil
+	return dprovider.ValidateConnectionHeader(name, value)
 }
 
 // SetCredentialHeader writes the family's credential header from the

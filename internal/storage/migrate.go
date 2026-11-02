@@ -284,6 +284,40 @@ CREATE TABLE IF NOT EXISTS approvals (
 CREATE INDEX IF NOT EXISTS idx_approvals_job ON approvals (job_id, created_at);
 `,
 	},
+	{
+		Version: 8,
+		Name:    "0008-provider-connections",
+		SQL: `
+CREATE TABLE IF NOT EXISTS provider_connections (
+    connection_id    TEXT PRIMARY KEY,
+    idempotency_key  TEXT NOT NULL UNIQUE,
+    provider         TEXT NOT NULL,
+    base_url         TEXT NOT NULL DEFAULT '',
+    model_id         TEXT NOT NULL,
+    custom_headers   TEXT NOT NULL DEFAULT '',
+    secret_ref       TEXT NOT NULL,
+    credential_epoch INTEGER NOT NULL DEFAULT 0,
+    fingerprint      TEXT NOT NULL DEFAULT '',
+    tested_at        TEXT NOT NULL DEFAULT '',
+    tested_digest    TEXT NOT NULL DEFAULT '',
+    tested_epoch     INTEGER NOT NULL DEFAULT 0,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_connections_created
+    ON provider_connections (created_at, connection_id);
+
+CREATE TABLE IF NOT EXISTS connection_state (
+    id                  INTEGER PRIMARY KEY CHECK (id = 1),
+    active_connection_id TEXT NOT NULL DEFAULT '',
+    updated_at          TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO connection_state (id, active_connection_id, updated_at)
+    VALUES (1, '', '');
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -291,7 +325,7 @@ CREATE INDEX IF NOT EXISTS idx_approvals_job ON approvals (job_id, created_at);
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 7
+	schemaVersionMax = 8
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

@@ -98,6 +98,14 @@ func (s *slowExecutor) Capabilities(profile dprovider.ProfileID) dprovider.Capab
 	return s.inner.Capabilities(profile)
 }
 
+func (s *slowExecutor) TestConnection(ctx context.Context, plan *dprovider.RequestPlan) error {
+	return s.inner.TestConnection(ctx, plan)
+}
+
+func (s *slowExecutor) TestConnectionWith(ctx context.Context, secrets security.SecretStore, plan *dprovider.RequestPlan) error {
+	return s.inner.TestConnectionWith(ctx, secrets, plan)
+}
+
 func (s *slowExecutor) DataHandling(profile dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool) {
 	return s.inner.DataHandling(profile, feature)
 }
@@ -144,20 +152,40 @@ func newTestEnv(t *testing.T) *testEnv {
 		t.Fatalf("provider executor: %v", err)
 	}
 
+	// One direct adapter beside the fixture: the deepseek executor (its
+	// data-handling record refuses every probe label typed, so no wire
+	// test can dial out) gives the connection surface a credential-bearing
+	// posture for its masked-status and idempotency pins.
+	ds := providers.NewDirectAdapters()
+	var deepseek providers.Adapter
+	for _, a := range ds {
+		if a.ID() == dprovider.ProviderDeepSeek {
+			deepseek = a
+		}
+	}
+	dreg := dprovider.NewRegistry(nil)
+	dreg.Upsert(deepseek.SeedDataHandling(deepseek.DefaultProfile("m")))
+	dexec, err := providers.NewExecutor(deepseek, providers.DefaultEgressPolicy(providers.CoreLocal), security.UnavailableStore{}, dreg)
+	if err != nil {
+		t.Fatalf("direct executor: %v", err)
+	}
+
 	sessions := security.NewSessionService("inst-httplocal-test", filepath.Join(t.TempDir(), "data"))
 	guard := &security.Guard{
 		Policy: security.NewLocalPolicy(sessions),
 		Audit:  security.NewAuditService(&memoryAuditStore{}, 64, 1000),
 	}
 	deps := app.SliceDeps{
-		Relay:     st,
-		Snapshots: st,
-		Objects:   st,
-		Events:    st,
-		Packs:     st,
-		Guard:     guard,
-		Providers: map[string]app.ProviderExecutor{dprovider.ProviderMock: exec},
-		Backoff:   st,
+		Relay:       st,
+		Snapshots:   st,
+		Objects:     st,
+		Events:      st,
+		Packs:       st,
+		Guard:       guard,
+		Providers:   map[string]app.ProviderExecutor{dprovider.ProviderMock: exec, dprovider.ProviderDeepSeek: dexec},
+		Backoff:     st,
+		Connections: st,
+		Secrets:     newWireFakeSecrets(),
 	}
 	slice, err := app.NewSlice(deps)
 	if err != nil {

@@ -43,6 +43,12 @@ func (s *staticFactsExecutor) DataHandling(profile dprovider.ProfileID, feature 
 	}
 	return s.rec, true
 }
+func (s *staticFactsExecutor) TestConnection(ctx context.Context, plan *dprovider.RequestPlan) error {
+	return s.inner.TestConnection(ctx, plan)
+}
+func (s *staticFactsExecutor) TestConnectionWith(ctx context.Context, secrets security.SecretStore, plan *dprovider.RequestPlan) error {
+	return s.inner.TestConnectionWith(ctx, secrets, plan)
+}
 
 func baseReview() ReviewRequest {
 	return ReviewRequest{

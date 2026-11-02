@@ -61,6 +61,14 @@ type ProviderExecutor interface {
 	// egress gate's own input). False when no record governs — the caller
 	// fails closed.
 	DataHandling(profile dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool)
+	// TestConnection runs the bounded, non-destructive readiness probe
+	// (M-25; C3-18) with the executor's own wired resolution store.
+	TestConnection(ctx context.Context, plan *dprovider.RequestPlan) error
+	// TestConnectionWith is the store-parameterized form: the connection
+	// record surface resolves saved credentials through the slice's wired
+	// store and an unsaved draft's typed secret through a request-scoped
+	// transient store. The full gate set applies either way.
+	TestConnectionWith(ctx context.Context, secrets security.SecretStore, plan *dprovider.RequestPlan) error
 }
 
 // BackoffRequeue moves Waiting backoff jobs back to Queued (the accepted
@@ -72,15 +80,21 @@ type BackoffRequeue interface {
 // SliceDeps wires the slice. Every port is an interface — the adapters
 // (storage, providers) are composed at cmd/uawp.
 type SliceDeps struct {
-	Relay     aijobrelay.RelayStore
-	Snapshots contextengineStore
-	Objects   ObjectStore
-	Events    EventReader
-	Packs     knowledgepackStore // optional: nil disables retrieval
-	Guard     *security.Guard
-	Providers map[string]ProviderExecutor
-	Backoff   BackoffRequeue // optional
-	Now       func() time.Time
+	Relay       aijobrelay.RelayStore
+	Snapshots   contextengineStore
+	Objects     ObjectStore
+	Events      EventReader
+	Packs       knowledgepackStore // optional: nil disables retrieval
+	Guard       *security.Guard
+	Providers   map[string]ProviderExecutor
+	Backoff     BackoffRequeue  // optional
+	Connections ConnectionStore // optional: nil disables the connection surface (typed refusals)
+	// Secrets is the D-37 SecretWriter face the connection operations use
+	// (the keyring store implements both faces). Nil disables credential
+	// persistence — the connection writes then refuse with the typed
+	// SECRET_UNAVAILABLE family (fail closed).
+	Secrets security.SecretWriter
+	Now     func() time.Time
 }
 
 // SubmitRequest is the API submission contract (C3-31 acceptance: the same

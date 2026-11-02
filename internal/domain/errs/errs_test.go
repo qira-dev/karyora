@@ -12,11 +12,16 @@ import (
 // deliberate, recorded contract change.
 func TestRegisterMatchesSpecification(t *testing.T) {
 	want := map[Code]codeDefault{
-		CodeValidationFailed:       {retryable: false, class: RetryNever},
-		CodeConfigConflict:         {retryable: false, class: RetryNever},
-		CodeAuthzDenied:            {retryable: false, class: RetryNever},
-		CodeNotFound:               {retryable: false, class: RetryNever},
-		CodeConflictState:          {retryable: false, class: RetryNever},
+		CodeValidationFailed: {retryable: false, class: RetryNever},
+		CodeConfigConflict:   {retryable: false, class: RetryNever},
+		CodeAuthzDenied:      {retryable: false, class: RetryNever},
+		CodeNotFound:         {retryable: false, class: RetryNever},
+		CodeConflictState:    {retryable: false, class: RetryNever},
+		// The C1-07-recorded code for the Supplied provider-connection
+		// create idempotency (P3.2 §3.3), joined additively at its
+		// implementation per the owner's card-3 working decision: the
+		// recorded unimplemented codes join additively as they implement.
+		CodeConflictIdempotencyKey: {retryable: false, class: RetryNever},
 		CodeSingleInstanceConflict: {retryable: true, class: RetryBackoff},
 		CodeStorageUnavailable:     {retryable: true, class: RetryBackoff},
 		CodeMigrationFailed:        {retryable: true, class: RetryReconcile},

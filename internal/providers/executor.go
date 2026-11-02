@@ -516,13 +516,33 @@ func classifyStreamReadError(err error) *dprovider.ProviderError {
 // TestConnection performs the bounded, non-destructive readiness probe
 // (C3-18 acceptance). It never generates content and never persists state.
 func (e *Executor) TestConnection(ctx context.Context, plan *dprovider.RequestPlan) error {
+	return e.TestConnectionWith(ctx, e.Secrets, plan)
+}
+
+// TestConnectionWith is TestConnection with the resolution store supplied
+// by the caller: the connection-test path for an UNSAVED draft resolves a
+// TRANSIENT typed secret through a request-scoped store (a typed secret is
+// transient and sent only by the explicit test action — P3.2 §3.3; P3.3
+// §6 rule 5) instead of the wired keyring. The full gate set still applies;
+// the transient store lives only for the call and is dropped after it.
+func (e *Executor) TestConnectionWith(ctx context.Context, secrets security.SecretStore, plan *dprovider.RequestPlan) error {
+	if secrets == nil {
+		secrets = security.UnavailableStore{}
+	}
 	if plan == nil {
 		return dprovider.NewError(dprovider.ErrInvalidRequest, e.Adapter.ID(), "nil plan")
 	}
 	if err := plan.Validate(); err != nil {
 		return dprovider.NewError(dprovider.ErrInvalidRequest, e.Adapter.ID(), err.Error())
 	}
-	if _, err := e.gate(ctx, plan); err != nil {
+	if !e.Adapter.Capabilities(plan.Profile).Supported(dprovider.FeatureForPlan(plan)) {
+		return dprovider.NewError(dprovider.ErrUnsupported, e.Adapter.ID(),
+			"capability "+string(dprovider.FeatureForPlan(plan))+" is not supported (unknown means unsupported)")
+	}
+	if err := e.Registry.EgressAllowed(plan.Profile, dprovider.FeatureForPlan(plan), plan.Metadata[dprovider.ClassificationKey]); err != nil {
+		if pe, ok := err.(*dprovider.ProviderError); ok {
+			pe.Provider = e.Adapter.ID()
+		}
 		return err
 	}
 	var secret string
@@ -531,7 +551,7 @@ func (e *Executor) TestConnection(ctx context.Context, plan *dprovider.RequestPl
 		if err != nil {
 			return dprovider.NewError(dprovider.ErrInvalidRequest, e.Adapter.ID(), "secret reference does not parse")
 		}
-		b, err := security.ResolveForUse(ctx, e.Secrets, handle)
+		b, err := security.ResolveForUse(ctx, secrets, handle)
 		if err != nil {
 			return dprovider.NewError(dprovider.ErrAuth, e.Adapter.ID(), "credential unavailable through the secret boundary")
 		}

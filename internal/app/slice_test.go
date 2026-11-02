@@ -115,6 +115,14 @@ func (f *flippingExecutor) DataHandling(profile dprovider.ProfileID, feature dpr
 	return f.inner.DataHandling(profile, feature)
 }
 
+func (f *flippingExecutor) TestConnection(ctx context.Context, plan *dprovider.RequestPlan) error {
+	return f.inner.TestConnection(ctx, plan)
+}
+
+func (f *flippingExecutor) TestConnectionWith(ctx context.Context, secrets security.SecretStore, plan *dprovider.RequestPlan) error {
+	return f.inner.TestConnectionWith(ctx, secrets, plan)
+}
+
 // newTestEnv builds the fixture environment; it accepts testing.TB so the
 // C5-10 benchmark harnesses (bench_c510_test.go) reuse the identical
 // wiring the conformance fixtures use.
@@ -507,6 +515,14 @@ func (s *slowExecutor) Execute(ctx context.Context, plan *dprovider.RequestPlan)
 	case <-time.After(s.delay):
 		return s.inner.Execute(ctx, plan)
 	}
+}
+
+func (s *slowExecutor) TestConnection(ctx context.Context, plan *dprovider.RequestPlan) error {
+	return s.inner.TestConnection(ctx, plan)
+}
+
+func (s *slowExecutor) TestConnectionWith(ctx context.Context, secrets security.SecretStore, plan *dprovider.RequestPlan) error {
+	return s.inner.TestConnectionWith(ctx, secrets, plan)
 }
 
 // TestAuthorizationDeniedByDefault proves the C2-14 rule on the slice: a

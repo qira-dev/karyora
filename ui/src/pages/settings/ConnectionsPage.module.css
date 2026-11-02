@@ -110,3 +110,173 @@
 .resumeButton:hover {
   background: var(--color-surface-3);
 }
+
+/* The connection list (IMPL-8): the real Core records with their
+   per-connection commands. CSS logical properties per the P2.4 §4.5
+   discipline. */
+
+.connectionList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+  max-width: 72ch;
+}
+
+.connectionRow {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  padding: var(--space-3) var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.connectionRow[data-active="true"] {
+  border-inline-start: 3px solid var(--color-info);
+}
+
+.connectionMeta {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.connectionName {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.connectionProvider {
+  font-family: var(--font-mono, monospace);
+}
+
+.connectionModel {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.activeBadge {
+  font-size: var(--text-metadata-size);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 999px);
+  padding: 0 var(--space-2);
+}
+
+.connectionLine {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  overflow-wrap: anywhere;
+}
+
+.connectionLabel {
+  color: var(--color-text-secondary);
+}
+
+.connectionValue {
+  overflow-wrap: anywhere;
+}
+
+.connectionId {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.connectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control, var(--radius-card));
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+}
+
+.secondaryButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.dangerButton {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control, var(--radius-card));
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+  border-inline-start: 3px solid var(--color-danger, var(--color-border));
+}
+
+.dangerButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The confirmation and credential dialogs. */
+
+.dialogBody {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 60ch;
+}
+
+.dialogBodyText {
+  margin: 0;
+}
+
+.dialogEffects {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  line-height: var(--text-metadata-line);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-info);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.dialogField {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.dialogLabel {
+  font-weight: 600;
+}
+
+.dialogInput {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control, var(--radius-card));
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+}
+
+.dialogHint {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
