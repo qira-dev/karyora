@@ -157,8 +157,11 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/jobs", handler: (*Server).handleList},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/events", handler: (*Server).handleEvents},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/result", handler: (*Server).handleResult},
+		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/approval", handler: (*Server).handleJobApproval},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, handler: (*Server).handleStatus},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/cancel", mutates: true, handler: (*Server).handleCancel},
+		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/approvals/accept", mutates: true, handler: (*Server).handleApprovalAccept},
+		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/approvals/reject", mutates: true, handler: (*Server).handleApprovalReject},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -505,6 +508,53 @@ func (s *Server) handleCancel(w http.ResponseWriter, r *http.Request, token, job
 	s.writeJSON(w, http.StatusAccepted, map[string]any{})
 }
 
+// handleJobApproval exposes the Job's approval-request read (the card-14
+// working candidate's queryable identity): the latest raised approval for
+// the Job, authorized through the same decision port every read decides
+// through. The read creates nothing and mutates nothing — a notification
+// read/dismiss never implies approval.
+func (s *Server) handleJobApproval(w http.ResponseWriter, r *http.Request, token, jobID string) {
+	approval, err := s.deps.Slice.JobApproval(s.callCtx(r, token), jobID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, approvalResult{Approval: approval})
+}
+
+// handleApprovalDecision exposes one approval decision command (the card-14
+// working candidate): the Core-issued approval identity rides the body; the
+// response is the Core-confirmed post-decision state (requirement (d) —
+// the transition is durable when the response returns). The replayed flag
+// reports the honest replay (the same decision re-presented returns the
+// recorded outcome without re-applying).
+func (s *Server) handleApprovalDecision(w http.ResponseWriter, r *http.Request, token, jobID, decision string) {
+	var req approvalDecisionRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.DecideApproval(s.callCtx(r, token), app.ApprovalDecisionRequest{
+		JobID:      jobID,
+		ApprovalID: req.ApprovalID,
+		Decision:   decision,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, approvalDecisionResult{Approval: res.Approval, Job: res.Job, Replayed: res.Replayed})
+}
+
+func (s *Server) handleApprovalAccept(w http.ResponseWriter, r *http.Request, token, jobID string) {
+	s.handleApprovalDecision(w, r, token, jobID, aijobrelay.DecisionAccept)
+}
+
+func (s *Server) handleApprovalReject(w http.ResponseWriter, r *http.Request, token, jobID string) {
+	s.handleApprovalDecision(w, r, token, jobID, aijobrelay.DecisionReject)
+}
+
 // handleReplay exposes the coded journal replay read: the opaque cursor,
 // the explicit expiry/gap outcomes, and authorization applied at
 // read/replay time (C2-13 §5). The decision port decides (and records)
@@ -750,6 +800,29 @@ type submitResult struct {
 type statusResult struct {
 	Job     aijobrelay.Job     `json:"job"`
 	Attempt aijobrelay.Attempt `json:"attempt"`
+}
+
+type approvalResult struct {
+	// approval carries the aijobrelay.Approval coded JSON tags (the card-14
+	// working candidate's approval-request object schema: approval_id,
+	// job_id, state, decision?, decided_by?, correlation_id?, created_at,
+	// decided_at?).
+	Approval aijobrelay.Approval `json:"approval"`
+}
+
+type approvalDecisionRequest struct {
+	// approval_id is the Core-issued approval identity the decision command
+	// carries (requirement (a) of the card-14 working candidate — the
+	// decision's scope is exactly this presented identity, never broader).
+	ApprovalID string `json:"approval_id"`
+}
+
+type approvalDecisionResult struct {
+	// approval/job are the coded struct tags; replayed is the coded
+	// ApprovalDecisionResult field lowercased (the coded-name rule).
+	Approval aijobrelay.Approval `json:"approval"`
+	Job      aijobrelay.Job      `json:"job"`
+	Replayed bool                `json:"replayed"`
 }
 
 type reviewRequest struct {

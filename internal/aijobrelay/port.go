@@ -70,6 +70,27 @@ type RelayStore interface {
 	// cursor envelope that carries the position is the use-case layer's
 	// (never structured data on the wire).
 	ListJobs(ctx context.Context, q ListJobsQuery) (ListJobsPage, error)
+	// LoadApproval loads one approval request by its Core-issued id
+	// (NOT_FOUND when absent) — the card-14 identity's queryable half.
+	LoadApproval(ctx context.Context, approvalID string) (Approval, error)
+	// LoadLatestApprovalForJob loads the Job's latest raised approval
+	// request (NOT_FOUND when the Job has none) — the query the Job detail
+	// inspection consumes.
+	LoadLatestApprovalForJob(ctx context.Context, jobID string) (Approval, error)
+	// DecideApproval applies one approval decision command (the card-14
+	// working candidate) under the fenced single-writer path: a pending
+	// approval resolves exactly once to accepted (the Job re-queues:
+	// Waiting → Queued) or rejected (the Job's terminal disposition:
+	// Waiting → Failed, the register-consistent extension); the Job update
+	// is version-fenced and the approval update is state-fenced in ONE
+	// transaction. A replayed decision (same decision on an already
+	// decided approval) returns the recorded outcome WITHOUT re-applying —
+	// no state change, no second event, Replayed=true; a contradicting
+	// decision is the typed CONFLICT_STATE. The decision's scope is exactly
+	// the presented approval identity bound to the presented Job: an
+	// approval bound to another Job is the same typed NOT_FOUND shape as an
+	// unknown identity (the no-existence-leak rule).
+	DecideApproval(ctx context.Context, dec ApprovalDecision) (ApprovalDecisionResult, error)
 }
 
 // ListJobsQuery is one server-side list query (the card-9 working

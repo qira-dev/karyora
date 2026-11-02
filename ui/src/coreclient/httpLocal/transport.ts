@@ -39,6 +39,9 @@ import {
 } from "./session";
 import type {
   CoreWireEnvelope,
+  WireApprovalDecisionRequest,
+  WireApprovalDecisionResult,
+  WireApprovalReadResult,
   WireAttempt,
   WireEventRecord,
   WireEventsResult,
@@ -353,6 +356,70 @@ export function createHttpLocalTransport() {
         `/v1/jobs/${encodeURIComponent(jobID)}/cancel`,
         post("{}"),
         (body) => body !== null && typeof body === "object",
+      );
+    },
+
+    /** `GET /v1/jobs/{id}/approval` — the Job's raised approval request
+     *  (the card-14 working candidate's queryable identity). The read
+     *  mutates nothing: a notification read/dismiss never implies
+     *  approval. A Core NOT_FOUND (no approval record for this job) is
+     *  the typed refusal surfaced verbatim — never reinterpreted. */
+    jobApproval(jobID: string): Promise<TransportOutcome<WireApprovalReadResult>> {
+      return call<WireApprovalReadResult>(
+        `/v1/jobs/${encodeURIComponent(jobID)}/approval`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          if (shaped.approval === null || typeof shaped.approval !== "object") return false;
+          const approval = shaped.approval as Record<string, unknown>;
+          return (
+            typeof approval.approval_id === "string" &&
+            typeof approval.job_id === "string" &&
+            typeof approval.state === "string" &&
+            typeof approval.created_at === "string"
+          );
+        },
+      );
+    },
+
+    /** `POST /v1/jobs/{id}/approvals/{decision}` — one approval decision
+     *  command (the card-14 working candidate): the Core-issued approval
+     *  identity rides the body; the 200 response is the Core-CONFIRMED
+     *  post-decision state (the transition is durable when it returns) —
+     *  still rendered only from the authoritative re-read. The `replayed`
+     *  flag reports the honest replay: the same decision re-presented
+     *  returns the recorded outcome without re-applying. A lost response
+     *  is `unknown` — NEVER proof the decision was recorded or not; the
+     *  Open-class reconciliation is a QUERY by the approval identity, so
+     *  this method never retries on its own. */
+    decideApproval(
+      jobID: string,
+      decision: "accept" | "reject",
+      approvalID: string,
+    ): Promise<TransportOutcome<WireApprovalDecisionResult>> {
+      const body: WireApprovalDecisionRequest = { approval_id: approvalID };
+      return call<WireApprovalDecisionResult>(
+        `/v1/jobs/${encodeURIComponent(jobID)}/approvals/${decision}`,
+        post(JSON.stringify(body)),
+        (result) => {
+          if (result === null || typeof result !== "object") return false;
+          const shaped = result as Record<string, unknown>;
+          if (
+            shaped.approval === null ||
+            typeof shaped.approval !== "object" ||
+            !isWireJob(shaped.job) ||
+            typeof shaped.replayed !== "boolean"
+          ) {
+            return false;
+          }
+          const approval = shaped.approval as Record<string, unknown>;
+          return (
+            typeof approval.approval_id === "string" &&
+            typeof approval.job_id === "string" &&
+            typeof approval.state === "string"
+          );
+        },
       );
     },
 

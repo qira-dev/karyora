@@ -5,7 +5,12 @@ import { useCoreConnection } from "../../app/coreConnectionState";
 import { Dialog } from "../../components/Dialog";
 import { RecoveryPanel } from "../../components/RecoveryPanel";
 import type { CoreWireEnvelope } from "../../coreclient/httpLocal";
-import type { WireAttempt, WireEventRecord, WireJob } from "../../coreclient/httpLocal";
+import type {
+  WireApproval,
+  WireAttempt,
+  WireEventRecord,
+  WireJob,
+} from "../../coreclient/httpLocal";
 import { useT, useTranslation } from "../../i18n/useT";
 import { PageHeading, PageLayout, PageSection } from "../PageLayout";
 import styles from "./JobDetailPage.module.css";
@@ -48,11 +53,30 @@ import {
  * - Escape never cancels a durable Job (P2.3 §4.8): the dialog's Escape
  *   (and every navigation path) only closes the surface.
  *
- * The approval `Waiting` display (card 17 as delivered in IMPL-4): a job
- * in `waiting` with the coded `approval` reason renders the P3.7 §5.2
- * approval label and the truthful note that no approval action exists in
- * this surface — there is NO accept/reject affordance anywhere (card
- * 14's approval commands are a later milestone).
+ * The approval `Waiting` display and its decision commands (card 14's
+ * working candidate as delivered in IMPL-7 over the card-17 display of
+ * IMPL-4/IMPL-5): a job in `waiting` with the coded `approval` reason
+ * renders the P3.7 §5.2 approval label, the approval-request inspection
+ * (the Core-issued identity — `GET /v1/jobs/{id}/approval`), and the
+ * accept/reject affordances (`POST /v1/jobs/{id}/approvals/accept|reject`,
+ * the coded decision commands). The inspection precedes the decision: no
+ * affordance renders without the Core's approval record. Each decision is
+ * explicit (dialog, scope stated — the job and the approval identity being
+ * decided) and follows the cancel command's four-outcome discipline:
+ * - The Core-confirmed result is NEVER rendered from the response alone —
+ *   the page immediately re-reads the authoritative state, and the state
+ *   chip shows what the Core reports (accepted → re-queued; rejected → the
+ *   terminal disposition).
+ * - The typed refusal is surfaced verbatim; the honest `replayed` flag is
+ *   rendered as the Core's own replay report.
+ * - A lost response is `unknown` (S4): never proof the decision was
+ *   recorded or not, never labeled decided, never auto-retried — the
+ *   recovery is the explicit status re-check (the Open-class
+ *   reconciliation: a QUERY by the approval identity, never a blind
+ *   re-decision).
+ * - A notification read/dismiss never implies approval (requirement (f)):
+ *   viewing this job, its events, or this page records no decision — the
+ *   copy states it where the decision is made.
  *
  * The result read (`GET /v1/jobs/{id}/result`) is fetched ONLY on
  * explicit request — large outputs are never fetched unbounded
@@ -77,6 +101,22 @@ type CancelState =
   | { readonly kind: "accepted" }
   | { readonly kind: "refused"; readonly envelope: CoreWireEnvelope }
   | { readonly kind: "unknown" };
+
+type ApprovalRead =
+  | { readonly kind: "idle" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "data"; readonly approval: WireApproval }
+  | { readonly kind: "failure"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unknown" };
+
+type ApprovalDecisionState =
+  | { readonly kind: "idle" }
+  | { readonly kind: "pending" }
+  | { readonly kind: "recorded"; readonly replayed: boolean }
+  | { readonly kind: "refused"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unknown" };
+
+type ApprovalDialog = "accept" | "reject" | null;
 
 type ResultState =
   | { readonly kind: "notLoaded" }
@@ -125,19 +165,26 @@ export function JobDetailPage() {
   const { transport } = useCoreConnection();
   const locale = i18n.resolvedLanguage ?? i18n.language;
   const dialogLabelId = `jobs-cancel-label-${useId()}`;
+  const approvalAcceptLabelId = `jobs-approval-accept-label-${useId()}`;
+  const approvalRejectLabelId = `jobs-approval-reject-label-${useId()}`;
 
   const [statusRead, setStatusRead] = useState<StatusRead>({ kind: "loading" });
   const [eventsRead, setEventsRead] = useState<EventsRead>({ kind: "loading" });
   const [resultState, setResultState] = useState<ResultState>({ kind: "notLoaded" });
   const [cancelState, setCancelState] = useState<CancelState>({ kind: "idle" });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [approvalRead, setApprovalRead] = useState<ApprovalRead>({ kind: "idle" });
+  const [decisionState, setDecisionState] = useState<ApprovalDecisionState>({ kind: "idle" });
+  const [approvalDialog, setApprovalDialog] = useState<ApprovalDialog>(null);
   const [stateAnnouncement, setStateAnnouncement] = useState("");
   const cancelTriggerRef = useRef<HTMLButtonElement>(null);
+  const approvalTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Read sequencing: only the latest issued read of each kind applies,
   // so a refresh supersedes an in-flight read and nothing applies twice.
   const statusSeqRef = useRef(0);
   const eventsSeqRef = useRef(0);
+  const approvalSeqRef = useRef(0);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -222,6 +269,81 @@ export function JobDetailPage() {
     });
   }, [cancelState.kind, jobId, readStatus, transport]);
 
+  // The approval-request inspection (the queryable Core-issued identity):
+  // issued ONLY while the authoritative status read reports the approval
+  // wait; the inspection precedes the decision (P3.6 §6.1), so no
+  // affordance renders without it. The read mutates nothing — a read never
+  // implies approval.
+  const readApproval = useCallback(() => {
+    if (jobId === "") return;
+    const seq = ++approvalSeqRef.current;
+    setApprovalRead({ kind: "loading" });
+    void transport.jobApproval(jobId).then((outcome) => {
+      if (!mountedRef.current || seq !== approvalSeqRef.current) return;
+      if (outcome.kind === "data") {
+        setApprovalRead({ kind: "data", approval: outcome.data.approval });
+      } else if (outcome.kind === "rejection") {
+        setApprovalRead({ kind: "failure", envelope: outcome.envelope });
+      } else {
+        setApprovalRead({ kind: "unknown" });
+      }
+    });
+  }, [jobId, transport]);
+
+  const approvalWaitingNow =
+    statusRead.kind === "data" &&
+    statusRead.job.state === "waiting" &&
+    statusRead.job.waiting_reason === CODED_WAITING_REASON_APPROVAL;
+
+  // Rising edge: a fresh approval wait — reset any prior decision outcome
+  // and read the raised identity. Falling edge: the wait resolved (the
+  // Core-confirmed transition re-read from the authoritative status) — the
+  // panel goes away while the decision outcome note persists above.
+  useEffect(() => {
+    if (approvalWaitingNow) {
+      setDecisionState({ kind: "idle" });
+      readApproval();
+    } else {
+      setApprovalRead({ kind: "idle" });
+    }
+  }, [approvalWaitingNow, readApproval]);
+
+  // The approval decision command: one explicit decision at a time; the
+  // Core-confirmed result is never rendered from the response alone — the
+  // page immediately re-reads the authoritative status and the raised
+  // approval. A lost response is `unknown` (S4): never labeled decided,
+  // never retried on its own — the reconciliation is the explicit status
+  // re-check (a QUERY by the approval identity, never a blind
+  // re-decision).
+  const decideApproval = useCallback(
+    (decision: "accept" | "reject") => {
+      if (
+        jobId === "" ||
+        approvalRead.kind !== "data" ||
+        decisionState.kind === "pending"
+      ) {
+        return;
+      }
+      setDecisionState({ kind: "pending" });
+      setApprovalDialog(null);
+      void transport
+        .decideApproval(jobId, decision, approvalRead.approval.approval_id)
+        .then((outcome) => {
+          if (!mountedRef.current) return;
+          if (outcome.kind === "data") {
+            setDecisionState({ kind: "recorded", replayed: outcome.data.replayed });
+            readStatus({ markRefreshing: true });
+            readApproval();
+          } else if (outcome.kind === "rejection") {
+            setDecisionState({ kind: "refused", envelope: outcome.envelope });
+          } else {
+            setDecisionState({ kind: "unknown" });
+          }
+        });
+    },
+    [approvalRead, decisionState.kind, jobId, readApproval, readStatus, transport],
+  );
+
   const loadResult = useCallback(() => {
     if (jobId === "" || resultState.kind === "loading") return;
     setResultState({ kind: "loading" });
@@ -299,6 +421,7 @@ export function JobDetailPage() {
               className={styles.control}
               onClick={() => {
                 setCancelState({ kind: "idle" });
+                setDecisionState({ kind: "idle" });
                 readStatus({ markRefreshing: true });
               }}
               disabled={cancelPending}
@@ -309,6 +432,17 @@ export function JobDetailPage() {
           <p className={styles.confirmed}>
             {t("jobs.detail.lastConfirmed", { time: formatTimestamp(statusRead.confirmedAt, locale) })}
           </p>
+          {decisionState.kind === "recorded" ? (
+            <p className={styles.outcomeNote} role="status">
+              {t("jobs.detail.approval.recorded")}
+              {decisionState.replayed ? ` ${t("jobs.detail.approval.replayed")}` : ""}
+            </p>
+          ) : null}
+          {decisionState.kind === "pending" ? (
+            <p className={styles.outcomeNote} role="status">
+              {t("jobs.detail.approval.pending")}
+            </p>
+          ) : null}
           {cancelState.kind === "accepted" ? (
             <p className={styles.outcomeNote} role="status">
               {t("jobs.detail.cancel.accepted")}
@@ -321,7 +455,88 @@ export function JobDetailPage() {
           ) : null}
           {isApprovalWaiting ? (
             <div className={styles.approvalPanel}>
-              <p>{t("jobs.detail.approvalWaiting.body")}</p>
+              <h2 className={styles.approvalHeading}>{t("jobs.detail.approval.heading")}</h2>
+              <p>{t("jobs.detail.approval.body")}</p>
+              {approvalRead.kind === "loading" ? (
+                <p className={styles.approvalMeta}>{t("jobs.list.loading")}</p>
+              ) : null}
+              {approvalRead.kind === "failure" ? (
+                approvalRead.envelope.code === "NOT_FOUND" ? (
+                  <p className={styles.approvalMeta}>{t("jobs.detail.approval.noApprovalRecord")}</p>
+                ) : (
+                  <>
+                    <RecoveryPanel
+                      title={t("jobs.detail.approval.readFailureTitle")}
+                      body={t("jobs.detail.approval.readFailureBody")}
+                      referenceId={approvalRead.envelope.correlationId}
+                      actions={[
+                        { label: t("jobs.detail.refresh"), onAction: readApproval },
+                      ]}
+                    />
+                    <p className={styles.code}>
+                      <span className="visually-hidden">Code: </span>
+                      <code>{approvalRead.envelope.code}</code>
+                    </p>
+                  </>
+                )
+              ) : null}
+              {approvalRead.kind === "unknown" ? (
+                <RecoveryPanel
+                  title={t("jobs.detail.approval.readUnknownTitle")}
+                  body={t("jobs.detail.approval.readUnknownBody")}
+                  actions={[{ label: t("jobs.detail.refresh"), onAction: readApproval }]}
+                />
+              ) : null}
+              {approvalRead.kind === "data" ? (
+                <>
+                  <div className={styles.approvalMeta}>
+                    <span className={styles.fieldLabel}>{t("jobs.detail.approval.approvalId")}</span>
+                    <CopyIdButton
+                      id={approvalRead.approval.approval_id}
+                      label={t("jobs.detail.approval.copyApprovalId")}
+                      copiedLabel={t("jobs.list.copied")}
+                      failedLabel={t("jobs.list.copyFailed")}
+                      className={styles.approvalCopy}
+                    />
+                  </div>
+                  <p className={styles.approvalMeta}>
+                    {t("jobs.detail.approval.requestedAt", {
+                      time: formatWireTimestamp(approvalRead.approval.created_at, locale),
+                    })}
+                  </p>
+                  <p className={styles.approvalMeta}>
+                    {t("jobs.detail.approval.scope", { jobId })}
+                  </p>
+                  {approvalRead.approval.state === "pending" ? (
+                    <div className={styles.actionsRow}>
+                      <button
+                        type="button"
+                        ref={approvalTriggerRef}
+                        className={styles.primaryControl}
+                        onClick={() => setApprovalDialog("accept")}
+                        disabled={decisionState.kind === "pending"}
+                      >
+                        {t("jobs.detail.approval.acceptButton")}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.control}
+                        onClick={() => setApprovalDialog("reject")}
+                        disabled={decisionState.kind === "pending"}
+                      >
+                        {t("jobs.detail.approval.rejectButton")}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className={styles.approvalMeta}>
+                      {t("jobs.detail.approval.alreadyDecided", {
+                        decision: approvalRead.approval.decision ?? "",
+                        state: approvalRead.approval.state,
+                      })}
+                    </p>
+                  )}
+                </>
+              ) : null}
             </div>
           ) : null}
           {cancelEligible ? (
@@ -541,6 +756,35 @@ export function JobDetailPage() {
         />
       ) : null}
 
+      {decisionState.kind === "refused" ? (
+        <>
+          <RecoveryPanel
+            title={t("jobs.detail.approval.refusedTitle")}
+            body={t("jobs.detail.approval.refusedBody")}
+            referenceId={decisionState.envelope.correlationId}
+          />
+          <p className={styles.code}>
+            <span className="visually-hidden">Code: </span>
+            <code>{decisionState.envelope.code}</code>
+          </p>
+        </>
+      ) : null}
+      {decisionState.kind === "unknown" ? (
+        <RecoveryPanel
+          title={t("jobs.detail.approval.unknownTitle")}
+          body={t("jobs.detail.approval.unknownBody")}
+          actions={[
+            {
+              label: t("jobs.detail.cancel.checkStatus"),
+              onAction: () => {
+                setDecisionState({ kind: "idle" });
+                readStatus({ markRefreshing: true });
+              },
+            },
+          ]}
+        />
+      ) : null}
+
       <Dialog
         labelId={dialogLabelId}
         title={t("jobs.detail.cancel.dialogTitle")}
@@ -559,6 +803,62 @@ export function JobDetailPage() {
             {t("jobs.detail.cancel.confirm")}
           </button>
           <button type="button" className={styles.control} onClick={() => setCancelDialogOpen(false)}>
+            {t("actions.close")}
+          </button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        labelId={approvalAcceptLabelId}
+        title={t("jobs.detail.approval.acceptDialogTitle")}
+        open={approvalDialog === "accept"}
+        onClose={() => setApprovalDialog(null)}
+        returnFocusRef={approvalTriggerRef}
+      >
+        <p>
+          {t("jobs.detail.approval.acceptDialogBody", {
+            approvalId: approvalRead.kind === "data" ? approvalRead.approval.approval_id : "",
+            jobId,
+          })}
+        </p>
+        <div className={styles.dialogActions}>
+          <button
+            type="button"
+            className={styles.primaryControl}
+            onClick={() => decideApproval("accept")}
+            disabled={decisionState.kind === "pending"}
+          >
+            {t("jobs.detail.approval.confirmAccept")}
+          </button>
+          <button type="button" className={styles.control} onClick={() => setApprovalDialog(null)}>
+            {t("actions.close")}
+          </button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        labelId={approvalRejectLabelId}
+        title={t("jobs.detail.approval.rejectDialogTitle")}
+        open={approvalDialog === "reject"}
+        onClose={() => setApprovalDialog(null)}
+        returnFocusRef={approvalTriggerRef}
+      >
+        <p>
+          {t("jobs.detail.approval.rejectDialogBody", {
+            approvalId: approvalRead.kind === "data" ? approvalRead.approval.approval_id : "",
+            jobId,
+          })}
+        </p>
+        <div className={styles.dialogActions}>
+          <button
+            type="button"
+            className={styles.primaryControl}
+            onClick={() => decideApproval("reject")}
+            disabled={decisionState.kind === "pending"}
+          >
+            {t("jobs.detail.approval.confirmReject")}
+          </button>
+          <button type="button" className={styles.control} onClick={() => setApprovalDialog(null)}>
             {t("actions.close")}
           </button>
         </div>

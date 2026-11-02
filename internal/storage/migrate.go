@@ -266,6 +266,24 @@ CREATE TABLE IF NOT EXISTS job_receipts (
 );
 `,
 	},
+	{
+		Version: 7,
+		Name:    "0007-approval-requests",
+		SQL: `
+CREATE TABLE IF NOT EXISTS approvals (
+    approval_id    TEXT PRIMARY KEY,
+    job_id         TEXT NOT NULL REFERENCES jobs(job_id),
+    state          TEXT NOT NULL,
+    decision       TEXT NOT NULL DEFAULT '',
+    decided_by     TEXT NOT NULL DEFAULT '',
+    correlation_id TEXT NOT NULL DEFAULT '',
+    created_at     TEXT NOT NULL,
+    decided_at     TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_approvals_job ON approvals (job_id, created_at);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -273,7 +291,7 @@ CREATE TABLE IF NOT EXISTS job_receipts (
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 6
+	schemaVersionMax = 7
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

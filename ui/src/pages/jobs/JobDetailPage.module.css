@@ -81,6 +81,31 @@
   margin: 0;
 }
 
+.approvalHeading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.approvalMeta {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.approvalMeta .fieldLabel {
+  margin-inline-end: var(--space-2);
+}
+
+.approvalCopy button {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+}
+
 .actionsRow {
   display: flex;
   flex-wrap: wrap;

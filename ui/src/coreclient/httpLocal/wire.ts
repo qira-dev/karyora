@@ -299,6 +299,48 @@ export interface WireStatusResult {
   readonly attempt: WireAttempt;
 }
 
+/** `internal/aijobrelay.Approval` — the coded JSON tags exactly: the
+ *  Core-issued, stable, queryable approval identity bound to the raised
+ *  request (the card-14 working candidate's approval-request object
+ *  schema). The `state` values are the coded approval register
+ *  (`pending` / `accepted` / `rejected`); the decision values are the
+ *  coded accept/reject command vocabulary. */
+export interface WireApproval {
+  readonly approval_id: string;
+  readonly job_id: string;
+  readonly state: string;
+  readonly decision?: string;
+  readonly decided_by?: string;
+  readonly correlation_id?: string;
+  readonly created_at: string;
+  readonly decided_at?: string;
+}
+
+/** `GET /v1/jobs/{id}/approval` success (200): `{approval}` — the Job's
+ *  latest raised approval request. The read mutates nothing: a read never
+ *  implies approval. */
+export interface WireApprovalReadResult {
+  readonly approval: WireApproval;
+}
+
+/** The approval decision command body (`approvalDecisionRequest` in
+ *  `internal/httplocal/server.go`): the Core-issued approval identity the
+ *  decision carries — the decision's scope is exactly this presented
+ *  identity, never broader. */
+export interface WireApprovalDecisionRequest {
+  readonly approval_id: string;
+}
+
+/** `POST /v1/jobs/{id}/approvals/accept|reject` success (200): the
+ *  Core-confirmed post-decision state — the recorded approval, the
+ *  post-decision Job, and the honest `replayed` flag (the same decision
+ *  re-presented returns the recorded outcome without re-applying). */
+export interface WireApprovalDecisionResult {
+  readonly approval: WireApproval;
+  readonly job: WireJob;
+  readonly replayed: boolean;
+}
+
 /** The `GET /v1/jobs` query parameters (the card-9 working candidate's
  *  list semantics, as delivered in IMPL-4). Every field is optional: an
  *  omitted `limit` selects the Core's per-surface default (50 — the

@@ -546,6 +546,18 @@ func (s *Store) CommitAttempt(ctx context.Context, commit aijobrelay.Commit) err
 			commit.ReceiptID, commit.ReceiptID, now, commit.JobID, commit.JobVersion, job.State); err != nil {
 			return mapVendorError(err)
 		}
+		// The Core raises its approval request when a Job durably enters
+		// Waiting{reason: approval} (the card-14 working candidate's identity
+		// issuance, IMPL-7): the pending approval row is minted in the SAME
+		// transaction as the state change, so a Waiting{approval} Job always
+		// carries its Core-issued, queryable approval identity. A later
+		// raised request on the same Job mints a new identity; a decision
+		// never re-opens one.
+		if commit.ToState == aijobrelay.JobWaiting && commit.WaitingReason == string(aijobrelay.WaitApproval) {
+			if err := mintPendingApprovalTx(tx, commit.JobID); err != nil {
+				return err
+			}
+		}
 		if _, err := tx.Exec(`UPDATE attempts SET outcome = ?, ends_at = ? WHERE attempt_id = ? AND lease_epoch = ? AND outcome = ?`,
 			commit.AttemptOutcome, now, commit.AttemptID, commit.LeaseEpoch, aijobrelay.AttemptRunning); err != nil {
 			return mapVendorError(err)

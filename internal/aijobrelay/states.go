@@ -85,11 +85,17 @@ func RegisteredJobState(s string) bool {
 
 // jobTransitions is the legal Job transition table (C3-12 acceptance: only
 // legal transitions are accepted; no aggregate's states are overloaded).
+// The Waiting → Failed exit is the card-14 working candidate's
+// register-consistent extension (IMPL-7, 2026-11-02): a rejected approval
+// is a known policy refusal, so the Job's terminal disposition is the
+// Core-reported terminal Failed — the durable approval record and the
+// decision event carry the typed reason. Nothing else changed; every
+// previously recorded exit stays open.
 var jobTransitions = map[string][]string{
 	JobCreated:             {JobQueued, JobCancelled},
 	JobQueued:              {JobRunning, JobCancelled, JobPaused},
 	JobRunning:             {JobWaiting, JobPaused, JobCancelRequested, JobCancellationPending, JobSucceeded, JobFailed, JobTimedOut},
-	JobWaiting:             {JobQueued, JobRunning, JobNeedsReconciliation, JobCancelRequested, JobPaused},
+	JobWaiting:             {JobQueued, JobRunning, JobNeedsReconciliation, JobCancelRequested, JobPaused, JobFailed},
 	JobPaused:              {JobQueued, JobCancelled},
 	JobCancelRequested:     {JobCancellationPending, JobCancelled, JobFailed},
 	JobCancellationPending: {JobCancelled, JobFailed},

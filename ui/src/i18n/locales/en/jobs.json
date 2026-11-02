@@ -134,8 +134,34 @@
         "checkStatus": "Check status",
         "notOffered": "Cancellation is offered only while the Core's authoritative state accepts it (queued, running, or waiting)."
       },
-      "approvalWaiting": {
-        "body": "This job is waiting for an approval decision. No approval action exists in this surface: accepting or rejecting an approval is a separately tracked capability that is not delivered here, so nothing is offered — the job simply waits until the Core moves it."
+      "approval": {
+        "heading": "Approval required",
+        "body": "This job is waiting for an approval decision. A decision is recorded only through the explicit accept or reject command below — viewing this job, its events, or its notifications never records a decision.",
+        "approvalId": "Approval ID",
+        "copyApprovalId": "Copy Approval ID",
+        "requestedAt": "Requested: {{time}}",
+        "scope": "Scope: job {{jobId}}. The decision acts on exactly this approval request for this job — nothing broader.",
+        "acceptButton": "Accept approval",
+        "rejectButton": "Reject approval",
+        "alreadyDecided": "The Core records this approval as {{state}} (decision: {{decision}}); no further decision is offered.",
+        "acceptDialogTitle": "Accept approval",
+        "acceptDialogBody": "This accepts approval {{approvalId}} for job {{jobId}}. The Core re-queues the job and its work proceeds. This records a durable decision; the job state below always shows what the Core reports.",
+        "rejectDialogTitle": "Reject approval",
+        "rejectDialogBody": "This rejects approval {{approvalId}} for job {{jobId}}. The Core ends the job as failed and its work does not run. This records a durable decision; the job state below always shows what the Core reports.",
+        "confirmAccept": "Accept approval",
+        "confirmReject": "Reject approval",
+        "pending": "Recording the decision…",
+        "recorded": "The Core confirmed the approval decision. The authoritative state is re-checked below — the outcome is shown only from what the Core reports.",
+        "replayed": "The Core reports this approval was already decided; the recorded outcome is the Core's own record and nothing was applied twice.",
+        "refusedTitle": "The Core refused the approval decision",
+        "refusedBody": "The code below is the Core's stable machine identifier; the reference is the safe correlation ID for diagnostics. The decision was not applied.",
+        "unknownTitle": "The approval decision outcome is not known",
+        "unknownBody": "No confirmed response arrived for the approval decision. A lost response is never proof that the decision was recorded or that it was not, and this surface never retries on its own. Check the authoritative state — the job may still be waiting for approval.",
+        "readFailureTitle": "The approval request could not be loaded",
+        "readFailureBody": "The Core refused the approval read. No decision affordance is offered without the Core's approval record — the inspection precedes the decision.",
+        "readUnknownTitle": "The approval request could not be confirmed",
+        "readUnknownBody": "No confirmed response arrived for the approval read. Nothing about the approval request is known until a read is confirmed; no decision affordance is offered.",
+        "noApprovalRecord": "The Core reports no approval record for this job. No decision affordance is offered without the Core's approval identity — the job simply waits until the Core moves it."
       }
     }
   }
