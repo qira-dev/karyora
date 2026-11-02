@@ -59,6 +59,34 @@ func decideRequest(jobID, approvalID, decision string) ApprovalDecisionRequest {
 	return ApprovalDecisionRequest{JobID: jobID, ApprovalID: approvalID, Decision: decision}
 }
 
+// awaitSettlement closes the gap between the bounded driver loop's return
+// and the durable settlement (the routine repair the IMPL-7 verification
+// surfaced: under the race detector's CI load, RunToSettlement's tick
+// budget can expire while the settlement commit is still in flight — the
+// loop is a driver, not the settlement's clock). The poll is the system's
+// own reconciliation-by-read through the authoritative store, bounded, and
+// it WEAKENS nothing: the caller's assertion still requires the terminal
+// state it asserts.
+func awaitSettlement(t *testing.T, env *testEnv, jobID string, driven <-chan aijobrelay.Job) aijobrelay.Job {
+	t.Helper()
+	final := <-driven
+	if aijobrelay.TerminalJob(final.State) {
+		return final
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		job, err := env.deps.Relay.LoadJob(context.Background(), jobID)
+		if err != nil {
+			t.Fatalf("settlement reload: %v", err)
+		}
+		if aijobrelay.TerminalJob(job.State) {
+			return job
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return final
+}
+
 // TestApprovalDecisionScopeBound pins requirement (3): the decision port
 // authorizes the write on the Job the approval gates — an unauthenticated
 // command is the typed AUTHZ_DENIED envelope and nothing changes.

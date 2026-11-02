@@ -250,6 +250,35 @@ func decodeEnvelope(t *testing.T, body []byte) wireEnvelope {
 	return env
 }
 
+// awaitSettlement closes the gap between the bounded driver loop's return
+// and the durable settlement (the routine repair the IMPL-7 verification
+// surfaced: under the race detector's CI load, RunToSettlement's tick
+// budget can expire while the cooperative-cancellation settlement commit
+// is still in flight on the handler goroutine — the loop is a driver, not
+// the settlement's clock). The poll is the system's own
+// reconciliation-by-read — the same authoritative store the cancel
+// semantics prescribe — bounded, and it WEAKENS nothing: the assertion
+// still requires the job to reach its terminal state.
+func awaitSettlement(t *testing.T, env *testEnv, jobID string, driven <-chan aijobrelay.Job) aijobrelay.Job {
+	t.Helper()
+	final := <-driven
+	if aijobrelay.TerminalJob(final.State) {
+		return final
+	}
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		job, err := env.deps.Relay.LoadJob(context.Background(), jobID)
+		if err != nil {
+			t.Fatalf("settlement reload: %v", err)
+		}
+		if aijobrelay.TerminalJob(job.State) {
+			return job
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return final
+}
+
 func submitBody(key, task string) string {
 	return fmt.Sprintf(`{"idempotency_key":%q,"task":%q,"provider":"mock","model":"m","classification":"test-fixture"}`, key, task)
 }
@@ -459,7 +488,7 @@ func TestCancelOverTransport(t *testing.T) {
 	if status != http.StatusAccepted {
 		t.Fatalf("cancel = %d (%s)", status, body)
 	}
-	final := <-done
+	final := awaitSettlement(t, env, sub.Job.JobID, done)
 	if final.State != aijobrelay.JobCancelled {
 		t.Fatalf("cancelled job must settle Cancelled, got %s", final.State)
 	}

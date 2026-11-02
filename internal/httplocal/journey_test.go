@@ -245,7 +245,7 @@ func TestLiveEndToEndJourney(t *testing.T) {
 	if status != http.StatusAccepted {
 		t.Fatalf("cancel in flight = %d (%s)", status, body)
 	}
-	cancelled := <-cancelDone
+	cancelled := awaitSettlement(t, env, csub.Job.JobID, cancelDone)
 	if cancelled.State != aijobrelay.JobCancelled {
 		t.Fatalf("the cancelled Job must settle Cancelled, got %s", cancelled.State)
 	}

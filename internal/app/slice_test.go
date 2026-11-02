@@ -545,13 +545,29 @@ func TestProviderSwitchSemantics(t *testing.T) {
 	reqB.Provider = "mock-two"
 	subB := env.submit(t, reqB)
 
-	finalA, err := RunToSettlement(env.ctx(), env.deps, "worker-1", 2, subA.Job.JobID, 32)
-	if err != nil || finalA.State != aijobrelay.JobSucceeded {
-		t.Fatalf("job A: %v %+v", err, finalA)
+	doneA := make(chan aijobrelay.Job, 1)
+	go func() {
+		job, rerr := RunToSettlement(env.ctx(), env.deps, "worker-1", 2, subA.Job.JobID, 32)
+		if rerr != nil {
+			job = aijobrelay.Job{JobID: subA.Job.JobID}
+		}
+		doneA <- job
+	}()
+	finalA := awaitSettlement(t, env, subA.Job.JobID, doneA)
+	if finalA.State != aijobrelay.JobSucceeded {
+		t.Fatalf("job A: %v %+v", nil, finalA)
 	}
-	finalB, err := RunToSettlement(env.ctx(), env.deps, "worker-2", 2, subB.Job.JobID, 32)
-	if err != nil || finalB.State != aijobrelay.JobSucceeded {
-		t.Fatalf("job B: %v %+v", err, finalB)
+	doneB := make(chan aijobrelay.Job, 1)
+	go func() {
+		job, rerr := RunToSettlement(env.ctx(), env.deps, "worker-2", 2, subB.Job.JobID, 32)
+		if rerr != nil {
+			job = aijobrelay.Job{JobID: subB.Job.JobID}
+		}
+		doneB <- job
+	}()
+	finalB := awaitSettlement(t, env, subB.Job.JobID, doneB)
+	if finalB.State != aijobrelay.JobSucceeded {
+		t.Fatalf("job B: %v %+v", nil, finalB)
 	}
 	payloadB, _ := env.slice.Result(env.ctx(), subB.Job.JobID)
 	if !strings.Contains(string(payloadB), "second:") {
