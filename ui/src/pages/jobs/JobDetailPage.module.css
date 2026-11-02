@@ -317,3 +317,83 @@
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+
+/* Context snapshot panel (IMPL-9): the same non-color, logical-property
+   discipline as the rest of the surface. Machine identifiers wrap instead
+   of widening the page; the badge is text + border, never color alone. */
+.snapshotPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.snapshotSubheading {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-body-size);
+  font-weight: 600;
+}
+
+.snapshotList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.snapshotItem {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.snapshotItemHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.snapshotRef {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.snapshotBadge {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-metadata-size);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.snapshotBadgeOmitted {
+  border-style: dashed;
+}
+
+.snapshotItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-block-start: var(--space-1);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.snapshotItemMeta code {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.snapshotRequestedLabel {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}

@@ -58,6 +58,7 @@ import type {
   WireJob,
   WireJobsListParams,
   WireJobsListResult,
+  WireJobSnapshotResult,
   WireReplayResult,
   WireReviewRequest,
   WireReviewResult,
@@ -390,6 +391,40 @@ export function createHttpLocalTransport() {
         `/v1/jobs/${encodeURIComponent(jobID)}/result`,
         get(),
         () => true, // the CAS bytes are the payload; their schema is the Job's own
+      );
+    },
+
+    /** `GET /v1/jobs/{id}/snapshot` — the context-snapshot read (the
+     *  card-11 working candidate): one stored snapshot's STRUCTURE per
+     *  the P3.2 §3.5 Supplied semantics. The optional `attempt` selects a
+     *  specific attempt's snapshot; its absence resolves the Job's
+     *  current attempt. A Core NOT_FOUND (no stored snapshot for the
+     *  attempt) is the typed refusal surfaced verbatim — never
+     *  reinterpreted as an empty structure. */
+    jobSnapshot(jobID: string, attempt?: number): Promise<TransportOutcome<WireJobSnapshotResult>> {
+      const query = new URLSearchParams();
+      if (attempt !== undefined) query.set("attempt", String(attempt));
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireJobSnapshotResult>(
+        `/v1/jobs/${encodeURIComponent(jobID)}/snapshot${suffix}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          if (shaped.snapshot === null || typeof shaped.snapshot !== "object") return false;
+          const snapshot = shaped.snapshot as Record<string, unknown>;
+          return (
+            typeof snapshot.snapshot_id === "string" &&
+            typeof snapshot.task_ref === "string" &&
+            typeof snapshot.scope === "string" &&
+            typeof snapshot.created_at === "string" &&
+            Array.isArray(snapshot.included) &&
+            Array.isArray(snapshot.omitted) &&
+            snapshot.budget !== null &&
+            typeof snapshot.budget === "object" &&
+            typeof snapshot.exact_vs_approximate === "string"
+          );
+        },
       );
     },
 

@@ -114,7 +114,7 @@ func (h *RelayHandler) execute(ctx context.Context, claim aijobrelay.Claim, corr
 		budget.ReservedOutputTokens = input.MaxOutputTokens
 	}
 	snapshot, err := contextengine.Compile(
-		"snap-"+claim.Job.JobID+"-"+fmt.Sprint(claim.Attempt.Seq),
+		SnapshotIDFor(claim.Job.JobID, claim.Attempt.Seq),
 		claim.Job.JobID, input.Task, candidates,
 		contextengine.Policy{
 			Scope:               "local",

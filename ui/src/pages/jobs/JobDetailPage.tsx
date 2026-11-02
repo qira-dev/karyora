@@ -10,6 +10,9 @@ import type {
   WireAttempt,
   WireEventRecord,
   WireJob,
+  WireSnapshotItem,
+  WireSnapshotOmission,
+  WireSnapshotView,
 } from "../../coreclient/httpLocal";
 import { useT, useTranslation } from "../../i18n/useT";
 import { PageHeading, PageLayout, PageSection } from "../PageLayout";
@@ -125,6 +128,18 @@ type ResultState =
   | { readonly kind: "failure"; readonly envelope: CoreWireEnvelope }
   | { readonly kind: "unknown" };
 
+/** The context-snapshot read (the card-11 working candidate's Inspector
+ *  read): loading / the structured view / the typed refusal / the
+ *  truthful unknown. A Core NOT_FOUND is its own honest state (no
+ *  snapshot stored for the attempt), distinct from other refusals. */
+type SnapshotRead =
+  | { readonly kind: "notLoaded" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "data"; readonly snapshot: WireSnapshotView; readonly confirmedAt: Date }
+  | { readonly kind: "noSnapshot" }
+  | { readonly kind: "failure"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unknown" };
+
 function formatTimestamp(value: Date, locale: string | undefined): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "medium" }).format(value);
 }
@@ -171,6 +186,7 @@ export function JobDetailPage() {
   const [statusRead, setStatusRead] = useState<StatusRead>({ kind: "loading" });
   const [eventsRead, setEventsRead] = useState<EventsRead>({ kind: "loading" });
   const [resultState, setResultState] = useState<ResultState>({ kind: "notLoaded" });
+  const [snapshotRead, setSnapshotRead] = useState<SnapshotRead>({ kind: "notLoaded" });
   const [cancelState, setCancelState] = useState<CancelState>({ kind: "idle" });
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [approvalRead, setApprovalRead] = useState<ApprovalRead>({ kind: "idle" });
@@ -185,6 +201,7 @@ export function JobDetailPage() {
   const statusSeqRef = useRef(0);
   const eventsSeqRef = useRef(0);
   const approvalSeqRef = useRef(0);
+  const snapshotSeqRef = useRef(0);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -358,6 +375,31 @@ export function JobDetailPage() {
       }
     });
   }, [jobId, resultState.kind, transport]);
+
+  // The context-snapshot read (the card-11 working candidate's
+  // Inspector read): an explicit, user-initiated QUERY — server-side,
+  // read-sequence-guarded, and mutating nothing. The Core's NOT_FOUND is
+  // its own honest state (no snapshot stored for this attempt), never an
+  // empty structure and never an error panel.
+  const readSnapshot = useCallback(() => {
+    if (jobId === "" || snapshotRead.kind === "loading") return;
+    const seq = ++snapshotSeqRef.current;
+    setSnapshotRead({ kind: "loading" });
+    void transport.jobSnapshot(jobId).then((outcome) => {
+      if (!mountedRef.current || seq !== snapshotSeqRef.current) return;
+      if (outcome.kind === "data") {
+        setSnapshotRead({ kind: "data", snapshot: outcome.data.snapshot, confirmedAt: new Date() });
+      } else if (outcome.kind === "rejection") {
+        setSnapshotRead(
+          outcome.envelope.code === "NOT_FOUND"
+            ? { kind: "noSnapshot" }
+            : { kind: "failure", envelope: outcome.envelope },
+        );
+      } else {
+        setSnapshotRead({ kind: "unknown" });
+      }
+    });
+  }, [jobId, snapshotRead.kind, transport]);
 
   // Job lifecycle transitions announce politely at meaningful changes
   // only (P2.4 §2.4, the C-C row) — never per refetch.
@@ -727,6 +769,58 @@ export function JobDetailPage() {
         ) : null}
       </PageSection>
 
+      <PageSection>
+        <h2 className={styles.sectionTitle}>{t("jobs.detail.context.heading")}</h2>
+        <p className={styles.note}>{t("jobs.detail.context.description")}</p>
+        {snapshotRead.kind === "notLoaded" ? (
+          <div className={styles.actionsRow}>
+            <button type="button" className={styles.control} onClick={readSnapshot}>
+              {t("jobs.detail.context.load")}
+            </button>
+          </div>
+        ) : null}
+        {snapshotRead.kind === "notLoaded" ? (
+          <p className={styles.note}>{t("jobs.detail.context.notLoaded")}</p>
+        ) : null}
+        {snapshotRead.kind === "loading" ? (
+          <p className={styles.note}>{t("jobs.detail.context.loading")}</p>
+        ) : null}
+        {snapshotRead.kind === "noSnapshot" ? (
+          <>
+            <p className={styles.note}>{t("jobs.detail.context.noSnapshot")}</p>
+            <div className={styles.actionsRow}>
+              <button type="button" className={styles.control} onClick={readSnapshot}>
+                {t("jobs.detail.context.refresh")}
+              </button>
+            </div>
+          </>
+        ) : null}
+        {snapshotRead.kind === "failure" ? (
+          <>
+            <RecoveryPanel
+              title={t("jobs.detail.context.failureTitle")}
+              body={t("jobs.detail.context.failureBody")}
+              referenceId={snapshotRead.envelope.correlationId}
+              actions={[{ label: t("jobs.detail.context.refresh"), onAction: readSnapshot }]}
+            />
+            <p className={styles.code}>
+              <span className="visually-hidden">Code: </span>
+              <code>{snapshotRead.envelope.code}</code>
+            </p>
+          </>
+        ) : null}
+        {snapshotRead.kind === "unknown" ? (
+          <RecoveryPanel
+            title={t("jobs.detail.context.unknownTitle")}
+            body={t("jobs.detail.context.unknownBody")}
+            actions={[{ label: t("jobs.detail.context.refresh"), onAction: readSnapshot }]}
+          />
+        ) : null}
+        {snapshotRead.kind === "data" ? (
+          <SnapshotViewPanel snapshot={snapshotRead.snapshot} confirmedAt={snapshotRead.confirmedAt} locale={locale} />
+        ) : null}
+      </PageSection>
+
       {cancelState.kind === "refused" ? (
         <>
           <RecoveryPanel
@@ -975,5 +1069,185 @@ function EventItem({ event }: { event: WireEventRecord }) {
         <pre className={styles.payload}>{renderJsonValue(event.inline_payload)}</pre>
       )}
     </li>
+  );
+}
+
+/** The Context Inspector's structured snapshot view (the card-11 working
+ *  candidate; P3.2 §3.5 + P3.5 §6): the included/omitted lists with their
+ *  Core-supplied reasons, the budget pair, and the exact-vs-approximate
+ *  label — rendered EXACTLY as the Core returns them. Machine identifiers
+ *  (refs, digests, trust labels, omission reasons, estimator/renderer
+ *  versions, the exact_vs_approximate value) render verbatim as the
+ *  language-neutral identifiers they are. Missing facts render their
+ *  honest Not-set/Not-reported state — never zero, never invented
+ *  coverage; the compiled content itself is never part of this shape. */
+function SnapshotViewPanel({
+  snapshot,
+  confirmedAt,
+  locale,
+}: {
+  snapshot: WireSnapshotView;
+  confirmedAt: Date;
+  locale: string | undefined;
+}) {
+  const t = useT();
+  const coreProduced = snapshot.exact_vs_approximate === "core_produced";
+
+  return (
+    <div className={styles.snapshotPanel}>
+      <p className={styles.confirmed}>
+        {t("jobs.detail.lastConfirmed", { time: formatTimestamp(confirmedAt, locale) })}
+      </p>
+
+      <h3 className={styles.snapshotSubheading}>{t("jobs.detail.context.identityHeading")}</h3>
+      <div className={styles.fieldList}>
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.fields.snapshotId")}</span>
+          <span className={`${styles.fieldValue} ${styles.fieldMono}`}>
+            <code>{snapshot.snapshot_id}</code>
+          </span>
+        </div>
+        <JobField label={t("jobs.detail.context.fields.taskRef")} value={snapshot.task_ref} mono />
+        <JobField label={t("jobs.detail.context.fields.scope")} value={snapshot.scope} mono />
+        <JobField
+          label={t("jobs.detail.context.fields.schemaVersion")}
+          value={String(snapshot.schema_version)}
+          numeric
+        />
+        <JobField
+          label={t("jobs.detail.context.fields.createdAt")}
+          value={formatWireTimestamp(snapshot.created_at, locale)}
+        />
+        <JobField
+          label={t("jobs.detail.context.fields.assembledDigest")}
+          value={snapshot.assembled_digest}
+          mono
+        />
+        <JobField
+          label={t("jobs.detail.context.fields.userInputDigest")}
+          value={snapshot.user_input_digest}
+          mono
+        />
+        <JobField
+          label={t("jobs.detail.context.fields.rendererVersion")}
+          value={snapshot.renderer_version}
+          mono
+        />
+        <JobField
+          label={t("jobs.detail.context.fields.compressionMethod")}
+          value={snapshot.compression_method}
+          mono
+        />
+        <JobField
+          label={t("jobs.detail.context.fields.retrievalConfigVersion")}
+          value={snapshot.retrieval_config_version}
+          mono
+        />
+      </div>
+
+      <h3 className={styles.snapshotSubheading}>{t("jobs.detail.context.exactnessHeading")}</h3>
+      <div className={styles.fieldList}>
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.exactnessHeading")}</span>
+          <span className={`${styles.fieldValue} ${styles.fieldMono}`}>
+            {coreProduced ? t("jobs.detail.context.exactCoreProduced") : snapshot.exact_vs_approximate}
+          </span>
+        </div>
+        {coreProduced ? <p className={styles.note}>{t("jobs.detail.context.exactCoreProducedNote")}</p> : null}
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.estimateLabel")}</span>
+          <span className={`${styles.fieldValue} ${styles.fieldNumeric}`}>{snapshot.budget.estimated_input_tokens}</span>
+        </div>
+        <p className={styles.note}>
+          {t("jobs.detail.context.estimateNote", { estimator: snapshot.budget.estimator_version })}
+        </p>
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.providerActualLabel")}</span>
+          <span className={`${styles.fieldValue} ${styles.fieldMono}`}>
+            {t("jobs.detail.context.providerActualMissing")}
+          </span>
+        </div>
+        <p className={styles.note}>{t("jobs.detail.context.providerActualNote")}</p>
+      </div>
+
+      <h3 className={styles.snapshotSubheading}>{t("jobs.detail.context.budgetHeading")}</h3>
+      <div className={styles.fieldList}>
+        <p className={styles.snapshotRequestedLabel}>
+          {t("jobs.detail.context.budgetRequestedHeading")}
+        </p>
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.budgetMaxInput")}</span>
+          <span className={styles.fieldValue}>
+            {snapshot.budget.requested.max_input_tokens === undefined
+              ? t("jobs.detail.context.budgetNotReported")
+              : snapshot.budget.requested.max_input_tokens}
+          </span>
+        </div>
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.budgetReservedOutput")}</span>
+          <span className={styles.fieldValue}>
+            {snapshot.budget.requested.reserved_output_tokens === undefined
+              ? t("jobs.detail.context.budgetNotReported")
+              : snapshot.budget.requested.reserved_output_tokens}
+          </span>
+        </div>
+        <div className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>{t("jobs.detail.context.budgetMaxItems")}</span>
+          <span className={styles.fieldValue}>
+            {snapshot.budget.requested.max_items === undefined
+              ? t("jobs.detail.context.budgetNotReported")
+              : snapshot.budget.requested.max_items}
+          </span>
+        </div>
+        <p className={styles.note}>{t("jobs.detail.context.budgetNote")}</p>
+      </div>
+
+      <h3 className={styles.snapshotSubheading}>{t("jobs.detail.context.includedHeading")}</h3>
+      {snapshot.included.length === 0 ? (
+        <p className={styles.note}>{t("jobs.detail.context.includedEmpty")}</p>
+      ) : (
+        <ul className={styles.snapshotList}>
+          {snapshot.included.map((item: WireSnapshotItem) => (
+            <li key={item.ref} className={styles.snapshotItem}>
+              <div className={styles.snapshotItemHead}>
+                <code className={styles.snapshotRef}>{item.ref}</code>
+                <span className={styles.snapshotBadge}>
+                  <span className="visually-hidden">
+                    {t("jobs.detail.context.includedTrustLabel")}:{" "}
+                  </span>
+                  {item.trust_label}
+                </span>
+              </div>
+              <div className={styles.snapshotItemMeta}>
+                <code>{item.digest}</code>
+              </div>
+              <div className={styles.snapshotItemMeta}>
+                <span className={styles.fieldLabel}>{t("jobs.detail.context.includedReasonLabel")}: </span>
+                <code>{item.reason}</code>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h3 className={styles.snapshotSubheading}>{t("jobs.detail.context.omittedHeading")}</h3>
+      {snapshot.omitted.length === 0 ? (
+        <p className={styles.note}>{t("jobs.detail.context.omittedEmpty")}</p>
+      ) : (
+        <ul className={styles.snapshotList}>
+          {snapshot.omitted.map((omission: WireSnapshotOmission) => (
+            <li key={omission.ref} className={styles.snapshotItem}>
+              <div className={styles.snapshotItemHead}>
+                <code className={styles.snapshotRef}>{omission.ref}</code>
+                <span className={`${styles.snapshotBadge} ${styles.snapshotBadgeOmitted}`}>
+                  {omission.reason}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className={styles.note}>{t("jobs.detail.context.omittedNote")}</p>
+    </div>
   );
 }

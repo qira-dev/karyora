@@ -158,6 +158,7 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/jobs", handler: (*Server).handleList},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/events", handler: (*Server).handleEvents},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/result", handler: (*Server).handleResult},
+		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/snapshot", handler: (*Server).handleJobSnapshot},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/approval", handler: (*Server).handleJobApproval},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, handler: (*Server).handleStatus},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/cancel", mutates: true, handler: (*Server).handleCancel},
@@ -507,6 +508,34 @@ func (s *Server) handleResult(w http.ResponseWriter, r *http.Request, token, job
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(payload)
+}
+
+// handleJobSnapshot exposes the context-snapshot read (the owner's card-11
+// working candidate): one stored snapshot's STRUCTURE per the P3.2 §3.5
+// Supplied semantics — the included/omitted lists with their Core-supplied
+// reasons, the budget pair, the exact-vs-approximate label, the identity.
+// The compiled CONTENT (the assembled representation) never rides this
+// read — the view shape excludes it by construction. The optional
+// `attempt` query value selects a specific attempt's snapshot; its absence
+// resolves the Job's current attempt. Authorization stays the slice's
+// decision port; a missing snapshot is the typed NOT_FOUND.
+func (s *Server) handleJobSnapshot(w http.ResponseWriter, r *http.Request, token, jobID string) {
+	attempt := 0
+	if raw := r.URL.Query().Get("attempt"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 1 {
+			s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+				map[string]any{"field": "attempt"}))
+			return
+		}
+		attempt = n
+	}
+	view, err := s.deps.Slice.JobContextSnapshot(s.callCtx(r, token), jobID, attempt)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, snapshotResult{Snapshot: *view})
 }
 
 func (s *Server) handleCancel(w http.ResponseWriter, r *http.Request, token, jobID string) {
@@ -966,6 +995,15 @@ type submitResult struct {
 type statusResult struct {
 	Job     aijobrelay.Job     `json:"job"`
 	Attempt aijobrelay.Attempt `json:"attempt"`
+}
+
+// The context-snapshot read shape (the card-11 working candidate): the
+// app-layer SnapshotView's coded JSON tags inside the snapshot wrapper
+// (the coded-name rule: the coded Go name lowercased). The compiled
+// content is absent from the shape by construction — the view carries the
+// structure only.
+type snapshotResult struct {
+	Snapshot app.SnapshotView `json:"snapshot"`
 }
 
 type approvalResult struct {

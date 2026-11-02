@@ -67,6 +67,54 @@ func TestSnapshotStoreImmutable(t *testing.T) {
 	}
 }
 
+// TestSnapshotConflictOnDuplicate pins the store's conflict-on-duplicate
+// AS CODED (the card-11 adopted behavior): saving an id that already
+// exists is the typed CONFLICT_STATE — never an overwrite, with either
+// the identical record or a different one — and the original record
+// survives every refused duplicate intact.
+func TestSnapshotConflictOnDuplicate(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	original := snapshotFixture("snap-dup")
+	if err := s.SaveSnapshot(ctx, original); err != nil {
+		t.Fatalf("first save: %v", err)
+	}
+
+	t.Run("identical_duplicate", func(t *testing.T) {
+		err := s.SaveSnapshot(ctx, snapshotFixture("snap-dup"))
+		if err == nil {
+			t.Fatal("a duplicate save must conflict")
+		}
+		env, ok := err.(*Error)
+		if !ok || env.Code != errs.CodeConflictState {
+			t.Fatalf("the conflict must be the typed CONFLICT_STATE, got %v", err)
+		}
+	})
+	t.Run("different_body_same_id", func(t *testing.T) {
+		replacement := snapshotFixture("snap-dup")
+		replacement.TaskRef = "a-different-task"
+		replacement.AssembledRepresentation = "### system policy (other) ###\ndifferent content"
+		replacement.AssembledDigest = sha256ForTest("different content")
+		err := s.SaveSnapshot(ctx, replacement)
+		if err == nil {
+			t.Fatal("a different body under a stored id must conflict")
+		}
+		env, ok := err.(*Error)
+		if !ok || env.Code != errs.CodeConflictState {
+			t.Fatalf("the conflict must be the typed CONFLICT_STATE, got %v", err)
+		}
+	})
+	t.Run("original_survives", func(t *testing.T) {
+		got, err := s.LoadSnapshot(ctx, "snap-dup")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.AssembledDigest != original.AssembledDigest || got.TaskRef != original.TaskRef {
+			t.Fatalf("the refused duplicate must never overwrite the original: %+v", got)
+		}
+	})
+}
+
 func TestMemoryStoreScopeIsolationAndLifecycle(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()

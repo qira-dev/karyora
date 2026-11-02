@@ -300,6 +300,68 @@ export interface WireStatusResult {
   readonly attempt: WireAttempt;
 }
 
+/** The context-snapshot view (the card-11 working candidate as the Core
+ *  projects it — the app-layer `SnapshotView` JSON tags): the STRUCTURE of
+ *  one compilation per the P3.2 §3.5 Supplied semantics. The compiled
+ *  CONTENT (the assembled representation) is absent from the shape by
+ *  construction — the read returns references, digests, labels, reasons,
+ *  and budget facts, never a bulk content dump. */
+export interface WireSnapshotItem {
+  readonly ref: string;
+  readonly digest: string;
+  readonly trust_label: string;
+  readonly reason: string;
+}
+
+export interface WireSnapshotOmission {
+  readonly ref: string;
+  readonly reason: string;
+}
+
+/** The requested bounds (the coded `BudgetRequested`). The Core's zero
+ *  means "no bound of this kind" — such a bound is ABSENT on the wire,
+ *  never zero (the UI-22 label discipline). */
+export interface WireSnapshotBudgetRequested {
+  readonly max_input_tokens?: number;
+  readonly reserved_output_tokens?: number;
+  readonly max_items?: number;
+}
+
+/** The budget pair: the requested bounds vs what the Core reports (its
+ *  compiled estimate, labeled by the estimator version it names). No
+ *  provider-reported usage and no cost member exist — missing renders
+ *  Not-reported upstream, never zero, never an invented price. */
+export interface WireSnapshotBudget {
+  readonly requested: WireSnapshotBudgetRequested;
+  readonly estimated_input_tokens: number;
+  readonly estimator_version: string;
+}
+
+export interface WireSnapshotView {
+  readonly schema_version: number;
+  readonly snapshot_id: string;
+  readonly task_ref: string;
+  readonly scope: string;
+  readonly user_input_digest: string;
+  readonly assembled_digest: string;
+  readonly created_at: string;
+  readonly included: readonly WireSnapshotItem[];
+  readonly omitted: readonly WireSnapshotOmission[];
+  readonly budget: WireSnapshotBudget;
+  readonly estimator_version: string;
+  readonly renderer_version: string;
+  readonly compression_method: string;
+  readonly retrieval_config_version: string;
+  readonly exact_vs_approximate: string;
+}
+
+/** `GET /v1/jobs/{id}/snapshot` success (200): `{snapshot}` — the
+ *  job-scoped read (the optional `attempt` query value selects a specific
+ *  attempt; its absence resolves the Job's current attempt). */
+export interface WireJobSnapshotResult {
+  readonly snapshot: WireSnapshotView;
+}
+
 /** `internal/aijobrelay.Approval` — the coded JSON tags exactly: the
  *  Core-issued, stable, queryable approval identity bound to the raised
  *  request (the card-14 working candidate's approval-request object
