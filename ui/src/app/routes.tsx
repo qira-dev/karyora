@@ -7,6 +7,7 @@ import { HomePage } from "../pages/home/HomePage";
 import { JobsListPage } from "../pages/jobs/JobsListPage";
 import { JobDetailPage } from "../pages/jobs/JobDetailPage";
 import { RunTaskPage } from "../pages/run/RunTaskPage";
+import { ChatPage } from "../pages/chat/ChatPage";
 import { SettingsLayout } from "../pages/settings/SettingsLayout";
 import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
@@ -38,6 +39,16 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
  * no placeholder screen exists for them here (the no-dead-stub rule).
  * Unknown URLs resolve to `/` (no dead route).
  *
+ * IMPL-11 adds the conversation/Ask surface's routes exactly as the
+ * records name them (P1.1 #3/#4; P3.5 §2's scope): `/chat` (no
+ * conversation selected — the landing) and `/chat/:conversationId` (the
+ * selected conversation's authoritative timeline + composer). The two
+ * render one surface component: the id selects the conversation; a
+ * selection is navigation, never a mutation. The Chat surface stays the
+ * Ask surface only — it never submits a Run (X-1: the Run path keeps its
+ * own explicit entry at `/jobs/new`), and no Job card renders from any
+ * conversation send.
+ *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
  * by the J-8 dirty-form navigation guard's useBlocker); `AppRoutes`
@@ -47,6 +58,8 @@ export const appRouteElements: ReactElement = (
   <Fragment>
     <Route element={<AppShell />}>
     <Route index element={<HomePage />} />
+    <Route path="chat" element={<ChatPage />} />
+    <Route path="chat/:conversationId" element={<ChatPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />

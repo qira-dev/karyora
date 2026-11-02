@@ -598,3 +598,134 @@ export interface WireConnectionSwitchResult {
   readonly active_connection_id: string;
   readonly replayed: boolean;
 }
+
+// The conversation surface (IMPL-10; the adopted S5 mapping, P-S5-01…05
+// as the working candidates). The JSON tags below are the coded tags of
+// the domain conversation contract (internal/domain/conversation) and the
+// adapter's coded wire structs (internal/httplocal/server.go): the
+// wrapper keys are the coded struct names lowercased (the coded-name
+// rule). Honest boundary (the same class as every family above):
+// - The `/v1/conversations...` paths are the adapter's OWN non-canonical
+//   paths — no published contract carries them.
+// - NO answer, stream, stop, or steering member exists anywhere in these
+//   shapes: the answering/stream production path is the named owner gap
+//   (S5 §4 P-S5-03 gap (a)) — a send RECORDS the exchange and returns no
+//   answer; the timeline honestly ends at the recorded message.
+// - NO attachment field exists (P-S5-06…11 are their owners' supply) and
+//   NO lifecycle member exists (UI-28 gated, the owner's decision 8) —
+//   no rename, archive, delete, export, edit, or regenerate shape.
+// - NO idempotency key exists on the send (the send-idempotency class
+//   stays Open — no C1-07 row): the send carries the caller-presented
+//   correlation ID (the P1.6 §3.9 M-1 request identity), which is NOT an
+//   idempotency key; a duplicate identity on a recorded exchange is the
+//   Core's typed CONFLICT_STATE refusal.
+
+/** `internal/domain/conversation.Conversation` — the coded JSON tags
+ *  exactly: the Core-issued stable conversation identity, the display
+ *  title (empty when untitled — the identity renders then), and the
+ *  created/updated instants (RFC 3339). Safe metadata only (X-6). */
+export interface WireConversation {
+  readonly conversation_id: string;
+  readonly title: string;
+  readonly created_at: string;
+  readonly updated_at: string;
+}
+
+/** `internal/domain/conversation.Message` — the coded JSON tags exactly:
+ *  the stable per-message identity, the intra-conversation ordering key
+ *  (`seq` — 1-based, the timeline's authoritative order), the closed
+ *  role register's value (`user` is the only coded value today — an
+ *  unknown future value renders verbatim as the neutral unknown it is),
+ *  the content, the correlation-ID linkage to the send that produced it
+ *  (absent on a message with no send linkage), and the created instant.
+ *  No revisions, no edit history, no answer member (UI-28 + the owner
+ *  gap). */
+export interface WireConversationMessage {
+  readonly message_id: string;
+  readonly conversation_id: string;
+  readonly seq: number;
+  readonly role: string;
+  readonly content: string;
+  readonly correlation_id?: string;
+  readonly created_at: string;
+}
+
+/** `internal/domain/conversation.Exchange` — the coded JSON tags exactly:
+ *  the send's durable linkage row bound to (conversation identity,
+ *  correlation ID). The correlation ID is PRIMARY — the identity the S4
+ *  query-before-retry read resolves through. `state` carries the closed
+ *  exchange-state register (`recorded` is the only coded value today). */
+export interface WireConversationExchange {
+  readonly correlation_id: string;
+  readonly conversation_id: string;
+  readonly user_message_id: string;
+  readonly state: string;
+  readonly created_at: string;
+}
+
+/** `POST /v1/conversations` request body (`conversationCreateRequest`):
+ *  the optional bounded display title only — the Core mints the stable
+ *  conversation identity; the body never carries one. */
+export interface WireConversationCreateRequest {
+  readonly title: string;
+}
+
+/** `POST /v1/conversations/{id}/send` request body
+ *  (`conversationSendRequest`): the message content plus the send's
+ *  correlation ID — the request identity the caller carries (P1.6 §3.9
+ *  M-1). It is NOT an idempotency key: the class stays Open, no replay
+ *  semantics ride it, and no client-side retry loop exists anywhere. */
+export interface WireConversationSendRequest {
+  readonly content: string;
+  readonly correlation_id: string;
+}
+
+/** `POST /v1/conversations` and `GET /v1/conversations/{id}` success
+ *  (200): `{conversation}`. */
+export interface WireConversationResult {
+  readonly conversation: WireConversation;
+}
+
+/** The `GET /v1/conversations` query parameters (the card-9 working
+ *  candidate's list semantics as delivered in IMPL-10): an omitted
+ *  `limit` selects the Core's per-surface default (50 — the client
+ *  invents no limit of its own); `q` is the optional server-side search
+ *  term (empty = the plain list); `cursor` is the opaque continuation
+ *  cursor. */
+export interface WireConversationsListParams {
+  readonly limit?: number;
+  readonly q?: string;
+  readonly cursor?: string;
+}
+
+/** `GET /v1/conversations` success (200): `{conversations, cursor?}` —
+ *  the coded `conversationListResult` shape. The order is the Core's own
+ *  (updated_at descending, conversation_id ascending tiebreak); `cursor`
+ *  is OMITTED on the final page: the cursorless response IS the end
+ *  marker (no has_more/total vocabulary exists). An empty page IS the
+ *  honest no-match answer for a search — never an error. */
+export interface WireConversationListResult {
+  readonly conversations: readonly WireConversation[];
+  readonly cursor?: string;
+}
+
+/** `GET /v1/conversations/{id}/messages` success (200):
+ *  `{messages, cursor?}` — the coded `conversationMessagesResult`
+ *  shape: the authoritative Core state in timeline order (seq
+ *  ascending), one bounded page at a time; the cursorless page IS the
+ *  final page. */
+export interface WireConversationMessagesResult {
+  readonly messages: readonly WireConversationMessage[];
+  readonly cursor?: string;
+}
+
+/** `POST /v1/conversations/{id}/send` and
+ *  `GET /v1/conversations/{id}/exchange?correlation_id=` success (200):
+ *  `{exchange, message}` — the coded `conversationExchangeResult`
+ *  shape. The send response carries NO answer — no answering production
+ *  path exists. The exchange read is the S4 query-by-correlation-ID
+ *  resolution: the authoritative exchange state for one send. */
+export interface WireConversationExchangeResult {
+  readonly exchange: WireConversationExchange;
+  readonly message: WireConversationMessage;
+}

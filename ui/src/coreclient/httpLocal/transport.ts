@@ -52,6 +52,16 @@ import type {
   WireConnectionTestRequest,
   WireConnectionTestResult,
   WireConnectionView,
+  WireConversation,
+  WireConversationCreateRequest,
+  WireConversationExchange,
+  WireConversationExchangeResult,
+  WireConversationListResult,
+  WireConversationMessage,
+  WireConversationMessagesResult,
+  WireConversationResult,
+  WireConversationsListParams,
+  WireConversationSendRequest,
   WireEventRecord,
   WireEventsResult,
   WireExchangeRequest,
@@ -181,6 +191,45 @@ function isWireConnectionRotateResult(value: unknown): value is WireConnectionRo
 /** The rotate/re-authenticate request-body shape (the wire type lives in
  *  wire.ts; this alias keeps the two methods' bodies uniform). */
 type WireConnectionRotateRequestShape = { readonly secret: string };
+
+/** The coded conversation guards: each response must carry its
+ *  distinguishing coded fields to be presented as data; anything else
+ *  stays unknown — never reinterpreted, never fabricated. */
+function isWireConversation(value: unknown): value is WireConversation {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.conversation_id === "string" &&
+    typeof record.title === "string" &&
+    typeof record.created_at === "string" &&
+    typeof record.updated_at === "string"
+  );
+}
+
+function isWireConversationMessage(value: unknown): value is WireConversationMessage {
+  if (value === null || typeof value !== "object") return false;
+  const message = value as Record<string, unknown>;
+  return (
+    typeof message.message_id === "string" &&
+    typeof message.conversation_id === "string" &&
+    typeof message.seq === "number" &&
+    typeof message.role === "string" &&
+    typeof message.content === "string" &&
+    typeof message.created_at === "string"
+  );
+}
+
+function isWireConversationExchange(value: unknown): value is WireConversationExchange {
+  if (value === null || typeof value !== "object") return false;
+  const exchange = value as Record<string, unknown>;
+  return (
+    typeof exchange.correlation_id === "string" &&
+    typeof exchange.conversation_id === "string" &&
+    typeof exchange.user_message_id === "string" &&
+    typeof exchange.state === "string" &&
+    typeof exchange.created_at === "string"
+  );
+}
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
 async function request(
@@ -627,8 +676,137 @@ export function createHttpLocalTransport() {
       );
     },
 
+    /** The conversation surface (IMPL-10; the adopted S5 mapping, P-S5-01…05
+     *  as the working candidates). The paths are the Core adapter's own —
+     *  non-canonical (wire.ts's honest boundary). The truthfulness rules
+     *  above apply unchanged: a lost response is `unknown`, never a
+     *  create/send result; no method retries on its own — the S4
+     *  resolution is the explicit query-by-correlation-ID read the owning
+     *  surface performs (the send-idempotency class stays Open — no
+     *  auto-retry anywhere in the conversation client path). */
+
+    /** `POST /v1/conversations` — the aggregate create (P-S5-01): the Core
+     *  mints the stable conversation identity; the body carries the
+     *  optional bounded title only. */
+    conversationCreate(payload: WireConversationCreateRequest): Promise<TransportOutcome<WireConversationResult>> {
+      return call<WireConversationResult>("/v1/conversations", post(JSON.stringify(payload)), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        return isWireConversation(shaped.conversation);
+      });
+    },
+
+    /** `GET /v1/conversations?limit=&q=&cursor=` — the server-side
+     *  list/search read (P-S5-04; the card-9 working candidate). The
+     *  Core-defined order returns as served; the cursorless page IS the
+     *  final page; an empty page IS the honest no-match answer. */
+    conversationList(params: WireConversationsListParams = {}): Promise<TransportOutcome<WireConversationListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.q !== undefined && params.q !== "") query.set("q", params.q);
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireConversationListResult>(`/v1/conversations${suffix}`, get(), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (!Array.isArray(shaped.conversations)) return false;
+        return (
+          shaped.conversations.every((row) => isWireConversation(row)) &&
+          (shaped.cursor === undefined || typeof shaped.cursor === "string")
+        );
+      });
+    },
+
+    /** `GET /v1/conversations/{id}` — one conversation aggregate's read
+     *  (safe metadata only). A Core NOT_FOUND is the typed refusal
+     *  surfaced verbatim — never reinterpreted (the no-leak rule is the
+     *  Core's; the UI never fabricates a count or a title). */
+    conversationGet(conversationID: string): Promise<TransportOutcome<WireConversationResult>> {
+      return call<WireConversationResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return isWireConversation(shaped.conversation);
+        },
+      );
+    },
+
+    /** `GET /v1/conversations/{id}/messages?limit=&cursor=` — the
+     *  authoritative timeline read (P-S5-02): the Core's stored state in
+     *  seq order, one bounded page at a time; the cursorless page IS the
+     *  final page. */
+    conversationMessages(
+      conversationID: string,
+      params: { limit?: number; cursor?: string } = {},
+    ): Promise<TransportOutcome<WireConversationMessagesResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireConversationMessagesResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/messages${suffix}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          if (!Array.isArray(shaped.messages)) return false;
+          return (
+            shaped.messages.every((row) => isWireConversationMessage(row)) &&
+            (shaped.cursor === undefined || typeof shaped.cursor === "string")
+          );
+        },
+      );
+    },
+
+    /** `POST /v1/conversations/{id}/send` — the Ask send (P-S5-05): the
+     *  caller-presented correlation ID rides the body (the P1.6 §3.9 M-1
+     *  request identity — the caller carries it; this method never mints
+     *  a second identity). The response is the recorded exchange plus the
+     *  persisted user message — NO answer (no answering production path
+     *  exists). A lost response is `unknown` and this method NEVER
+     *  re-issues on its own: the resolution is the explicit S4 query
+     *  below, never a duplicate send. */
+    conversationSend(
+      conversationID: string,
+      payload: WireConversationSendRequest,
+    ): Promise<TransportOutcome<WireConversationExchangeResult>> {
+      return call<WireConversationExchangeResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/send`,
+        post(JSON.stringify(payload)),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return isWireConversationExchange(shaped.exchange) && isWireConversationMessage(shaped.message);
+        },
+      );
+    },
+
+    /** `GET /v1/conversations/{id}/exchange?correlation_id=` — the S4
+     *  query-before-retry read (P-S5-05): the authoritative exchange
+     *  state for one send, resolved by the correlation ID. A pure query —
+     *  it never re-sends, never mutates. A Core NOT_FOUND (including the
+     *  no-leak foreign-binding case) is the typed refusal surfaced
+     *  verbatim — never reinterpreted. */
+    conversationExchangeStatus(
+      conversationID: string,
+      correlationID: string,
+    ): Promise<TransportOutcome<WireConversationExchangeResult>> {
+      const query = new URLSearchParams({ correlation_id: correlationID });
+      return call<WireConversationExchangeResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/exchange?${query.toString()}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return isWireConversationExchange(shaped.exchange) && isWireConversationMessage(shaped.message);
+        },
+      );
+    },
+
     /** Discards the held token from memory (the expiry/recovery path).
-     *  Returns the safe metadata snapshot for the truthful display. */
+     * Returns the safe metadata snapshot for the truthful display. */
     discardSession(): CoreSessionMetadata | null {
       return discardHeldSecret();
     },

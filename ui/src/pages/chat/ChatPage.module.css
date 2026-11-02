@@ -1,0 +1,407 @@
+/* Chat page — the conversation and Ask surface (IMPL-11). Layout uses
+   CSS logical properties (P2.4 §4.5); two regions: the history pane and
+   the conversation column. At narrower widths the conversation is
+   primary (P3.5 §2's narrow rule): it stacks first and the history pane
+   follows below — no drawer machinery is invented, and no two-
+   dimensional scrolling is required by this surface. */
+
+.surface {
+  display: grid;
+  grid-template-areas: "history conversation";
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.history {
+  grid-area: history;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.conversation {
+  grid-area: conversation;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+@media (max-width: 1199px) {
+  .surface {
+    grid-template-areas:
+      "conversation"
+      "history";
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.paneHeading,
+.conversationHeading {
+  margin: 0;
+  font-size: var(--text-section-title-size);
+  font-weight: 600;
+}
+
+.conversationHeading {
+  overflow-wrap: anywhere;
+}
+
+.identityCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  font-weight: 400;
+}
+
+.createRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.createTitle {
+  flex: 1 1 8rem;
+  min-width: 0;
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.searchInput {
+  flex: 1 1 8rem;
+  min-width: 0;
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.control:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rows li {
+  min-width: 0;
+}
+
+.rowLink {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  color: inherit;
+  text-decoration: none;
+}
+
+.rowLink:hover {
+  background: var(--color-surface-2);
+}
+
+.rowLinkActive {
+  border-color: var(--color-link);
+}
+
+.rowTitle {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.rowTime {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.confirmed {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.moreRow {
+  margin: 0;
+}
+
+.empty {
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.empty p {
+  margin: 0;
+}
+
+.emptyTitle {
+  font-size: var(--text-section-title-size);
+  font-weight: 600;
+}
+
+.empty button {
+  align-self: flex-start;
+  margin-block-start: var(--space-2);
+}
+
+.messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.message {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  min-width: 0;
+}
+
+.messageMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+.roleChip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-badge);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.roleChipUnknown {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-badge);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-size: var(--text-metadata-size);
+}
+
+.messageTime {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.messageContent {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.noJobMarker {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.noAnswerNote {
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+/* The pre-send disclosure block: the mode, provider/egress truth, the
+   Run pointer, and the draft note — visible before send, keyboard-
+   reachable, plain text at every width. */
+.disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.disclosureLine {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.runLink {
+  color: var(--color-link);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.composerLabel {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.composerInput {
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.composerInput:disabled {
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.composerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.primary {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-3);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+
+.primary:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.enterHint {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.pending {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.help {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.sendOutcome {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sendOutcome p {
+  margin: 0;
+}
+
+.sendFacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.keyLabel {
+  color: var(--color-text-secondary);
+}
+
+.linkRow {
+  margin: 0;
+}

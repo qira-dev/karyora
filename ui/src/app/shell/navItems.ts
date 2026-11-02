@@ -54,7 +54,12 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     labelKey: "groups.main",
     items: [
       { id: "overview", labelKey: "items.overview", icon: LayoutDashboard, disabled: true },
-      { id: "chat", labelKey: "items.chat", icon: MessageCircle, disabled: true },
+      // The Chat surface ships in this milestone (IMPL-11): the item
+      // activates its accepted §4.1 route target — `/chat` (the landing)
+      // and `/chat/:conversationId` (the selected conversation). The
+      // surface is the Ask surface only (X-1): it never submits a Run,
+      // and the Run path keeps its own explicit entry at `/jobs/new`.
+      { id: "chat", labelKey: "items.chat", icon: MessageCircle, route: "/chat" },
       // The Jobs surface ships in this milestone (IMPL-5): the item
       // activates its accepted §4.1 route target — the list is `/jobs`,
       // and every Job link opens the ONE canonical detail route
