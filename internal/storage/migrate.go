@@ -318,6 +318,49 @@ INSERT OR IGNORE INTO connection_state (id, active_connection_id, updated_at)
     VALUES (1, '', '');
 `,
 	},
+	{
+		Version: 9,
+		Name:    "0009-conversation-aggregates",
+		SQL: `
+CREATE TABLE IF NOT EXISTS conversations (
+    conversation_id TEXT PRIMARY KEY,
+    title           TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_conversations_updated
+    ON conversations (updated_at, conversation_id);
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    message_id      TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL REFERENCES conversations(conversation_id),
+    seq             INTEGER NOT NULL,
+    role            TEXT NOT NULL,
+    content         TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    UNIQUE (conversation_id, seq)
+);
+
+CREATE INDEX IF NOT EXISTS idx_conv_messages_seq
+    ON conversation_messages (conversation_id, seq);
+
+CREATE INDEX IF NOT EXISTS idx_conv_messages_corr
+    ON conversation_messages (correlation_id);
+
+CREATE TABLE IF NOT EXISTS conversation_exchanges (
+    correlation_id  TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL REFERENCES conversations(conversation_id),
+    user_message_id TEXT NOT NULL REFERENCES conversation_messages(message_id),
+    state           TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_conv_exchanges_conv
+    ON conversation_exchanges (conversation_id, created_at);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -325,7 +368,7 @@ INSERT OR IGNORE INTO connection_state (id, active_connection_id, updated_at)
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 8
+	schemaVersionMax = 9
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

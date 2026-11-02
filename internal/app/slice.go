@@ -89,6 +89,10 @@ type SliceDeps struct {
 	Providers   map[string]ProviderExecutor
 	Backoff     BackoffRequeue  // optional
 	Connections ConnectionStore // optional: nil disables the connection surface (typed refusals)
+	// Conversations is the durable conversation-aggregate port (the adopted
+	// S5 mapping, P-S5-01). Optional: nil disables the conversation surface
+	// (typed refusals, fail closed).
+	Conversations ConversationStore
 	// Secrets is the D-37 SecretWriter face the connection operations use
 	// (the keyring store implements both faces). Nil disables credential
 	// persistence — the connection writes then refuse with the typed

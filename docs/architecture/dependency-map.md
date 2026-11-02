@@ -1,5 +1,23 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.22 (2026-11-03): the IMPL-10 implementation milestone
+adds the conversation surface over the adopted S5 mapping (P-S5-01…05).
+`internal/domain/conversation` is the new pure-domain subpackage carrying
+the conversation-aggregate contract (the record/message/exchange shapes,
+the closed role and exchange-state registers, the list/search query and
+page shapes; no internal imports — the domain rule). `internal/app` gains
+the `ConversationStore` port and the conversation operations (create, read,
+send, messages, list/search, the S4 exchange-status query) — no new import
+edge (domain was already allowed). `internal/storage` implements the port
+structurally over migration `0009-conversation-aggregates` (conversations /
+conversation_messages / conversation_exchanges; schemaVersionMax 8 → 9).
+`internal/security` adds the `conversation` resource type to the closed
+register ADDITIVELY (the fail-closed default-deny machinery unchanged).
+`internal/httplocal` exposes the operations on its own non-canonical paths
+(no streaming/stop/steering endpoint exists — the stream-transport
+mechanism is a named owner gap). The composition root wires the store. No
+forbidden direction opened; the graph stays acyclic.
+
 Contract version 1.21 (2026-11-02): the IMPL-1 implementation milestone adds
 `internal/httplocal` — the local HTTP transport adapter: the app operation
 surface (Submit/Status/Events/Result/Cancel), the journal replay read port,

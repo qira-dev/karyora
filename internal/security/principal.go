@@ -75,18 +75,27 @@ const (
 	ResourceRestore     = "restore"     // controlled restore (C2-17)
 	ResourceSecret      = "secret"      // secret handle administration
 	ResourceJob         = "job"         // durable AI Jobs (Phase 3 C3-31 slice)
+	// ResourceConversation is the conversation aggregate surface (the
+	// adopted S5 mapping, P-S5-01: the conversation is a first-class
+	// Core-owned durable aggregate). It joins this register ADDITIVELY —
+	// the deliberate, recorded register-extension class (the IMPL-4
+	// Waiting-reason precedent): the fail-closed default-deny machinery,
+	// its predicates, and every existing row are unchanged; unknown types
+	// deny exactly as before.
+	ResourceConversation = "conversation"
 )
 
 var localResourceTypes = map[string]bool{
-	ResourceCore:        true,
-	ResourceConfig:      true,
-	ResourceStorage:     true,
-	ResourceAudit:       true,
-	ResourceDiagnostics: true,
-	ResourceBackup:      true,
-	ResourceRestore:     true,
-	ResourceSecret:      true,
-	ResourceJob:         true,
+	ResourceCore:         true,
+	ResourceConfig:       true,
+	ResourceStorage:      true,
+	ResourceAudit:        true,
+	ResourceDiagnostics:  true,
+	ResourceBackup:       true,
+	ResourceRestore:      true,
+	ResourceSecret:       true,
+	ResourceJob:          true,
+	ResourceConversation: true,
 }
 
 func (r Resource) validate() error {

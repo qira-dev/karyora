@@ -15,6 +15,7 @@ import (
 
 	"github.com/qira-dev/karyora/internal/aijobrelay"
 	"github.com/qira-dev/karyora/internal/app"
+	"github.com/qira-dev/karyora/internal/domain/conversation"
 	"github.com/qira-dev/karyora/internal/domain/errs"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	"github.com/qira-dev/karyora/internal/events"
@@ -37,6 +38,11 @@ const maxReplayLimit = 1000
 // bound; anything longer is refused before decoding). A transport
 // safeguard, not a contract value.
 const maxListCursorLen = 512
+
+// maxSearchQueryLen bounds a conversation search-term query value (a
+// transport safeguard; the domain's own content bound is the authoritative
+// one).
+const maxSearchQueryLen = 1 << 16
 
 // maxPathID bounds a Job id or stream name parsed from a path/query value.
 const maxPathID = 128
@@ -172,6 +178,18 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/reauthenticate", mutates: true, handler: (*Server).handleConnectionReauthenticate},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/delete", mutates: true, handler: (*Server).handleConnectionDelete},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/switch", mutates: true, handler: (*Server).handleConnectionSwitch},
+		// The conversation surface (the adopted S5 mapping, P-S5-01…05): the
+		// aggregate create, the list/search query, the aggregate read, the
+		// messages read, the Ask send, and the S4 exchange-status query.
+		// The paths are this adapter's own (the IMPL-4/6/7/8/9 convention);
+		// no streaming, stop, or steering endpoint exists anywhere (the
+		// stream-transport mechanism is the named owner gap, P-S5-03).
+		{method: http.MethodPost, prefix: "/v1/conversations", mutates: true, handler: (*Server).handleConversationCreate},
+		{method: http.MethodGet, prefix: "/v1/conversations", handler: (*Server).handleConversationList},
+		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, suffix: "/messages", handler: (*Server).handleConversationMessages},
+		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, suffix: "/exchange", handler: (*Server).handleConversationExchange},
+		{method: http.MethodPost, prefix: "/v1/conversations/", hasID: true, suffix: "/send", mutates: true, handler: (*Server).handleConversationSend},
+		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, handler: (*Server).handleConversationGet},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -754,6 +772,155 @@ func (s *Server) handleConnectionSwitch(w http.ResponseWriter, r *http.Request, 
 	s.writeJSON(w, http.StatusOK, res)
 }
 
+// The conversation surface handlers (the adopted S5 mapping, P-S5-01…05).
+// Every handler rides the existing boundary middleware (the Host allowlist,
+// the credential-surface rule, CSRF for mutations, the loopback-only bind);
+// the slice's decision port is the authoritative check inside. The paths
+// are this adapter's own — no published contract carries them, and no
+// streaming, stop, or steering endpoint exists anywhere (P-S5-03's
+// transport mechanism is the named owner gap).
+
+// handleConversationCreate exposes the aggregate-create operation: the Core
+// mints the stable conversation identity; the body carries the optional
+// bounded title only.
+func (s *Server) handleConversationCreate(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req conversationCreateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	conv, err := s.deps.Slice.CreateConversation(s.callCtx(r, token), app.ConversationRecordRequest{Title: req.Title})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationResult{Conversation: conv})
+}
+
+// handleConversationList exposes the server-side list/search query (the
+// card-9 working candidate): server-side cursor pagination, the
+// Core-defined updated-at descending order, the optional `q` search term.
+// The limit is optional (the slice's per-surface default applies); the
+// cursor is opaque and its absence on a response marks the final page. An
+// empty page IS the honest no-match answer for a search — never an error
+// shape that invents one.
+func (s *Server) handleConversationList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	query := q.Get("q")
+	if len(query) > maxSearchQueryLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "q"}))
+		return
+	}
+	res, err := s.deps.Slice.ListConversations(s.callCtx(r, token), app.ListConversationsRequest{
+		Limit:  limit,
+		Query:  query,
+		Cursor: cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationListResult{Conversations: res.Conversations, Cursor: res.NextCursor})
+}
+
+// handleConversationGet exposes one conversation aggregate's read (safe
+// metadata only); an unknown id is the typed NOT_FOUND.
+func (s *Server) handleConversationGet(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	conv, err := s.deps.Slice.Conversation(s.callCtx(r, token), conversationID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationResult{Conversation: conv})
+}
+
+// handleConversationMessages exposes one conversation's authoritative
+// messages read (P-S5-02) in timeline order, one bounded page at a time.
+func (s *Server) handleConversationMessages(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.ConversationMessages(s.callCtx(r, token), conversationID, app.ConversationMessagePageRequest{
+		Limit:  limit,
+		Cursor: cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationMessagesResult{Messages: res.Messages, Cursor: res.NextCursor})
+}
+
+// handleConversationSend exposes the Ask send (P-S5-05): the body carries
+// the message content only — no idempotency key exists (the class stays
+// Open). The response is the recorded exchange with its Core-issued
+// correlation ID (the identity the S4 query resolves through) plus the
+// persisted user message. The send NEVER creates a Job, and the response
+// carries NO answer — no answering production path exists (the named owner
+// gap).
+func (s *Server) handleConversationSend(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	var req conversationSendRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.Send(s.callCtx(r, token), app.ConversationSendRequest{
+		ConversationID: conversationID,
+		Content:        req.Content,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationExchangeResult{Exchange: res.Exchange, Message: res.Message})
+}
+
+// handleConversationExchange exposes the S4 query-by-correlation-ID read
+// (P-S5-05): the authoritative exchange state for one send, resolved by the
+// correlation ID. A pure query — it never re-sends, never mutates. A
+// correlation ID bound to a different conversation is the SAME typed
+// NOT_FOUND as an unknown id (the no-leak rule).
+func (s *Server) handleConversationExchange(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	corr := r.URL.Query().Get("correlation_id")
+	if corr == "" || len(corr) > maxPathID {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "correlation_id"}))
+		return
+	}
+	exchange, msg, err := s.deps.Slice.ConversationExchangeStatus(s.callCtx(r, token), conversationID, corr)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationExchangeResult{Exchange: exchange, Message: msg})
+}
+
 func (s *Server) handleReplay(w http.ResponseWriter, r *http.Request, token, _ string) {
 	q := r.URL.Query()
 	stream := q.Get("stream")
@@ -1061,6 +1228,64 @@ type listResult struct {
 	// freeze).
 	Jobs   []aijobrelay.Job `json:"jobs"`
 	Cursor string           `json:"cursor,omitempty"`
+}
+
+// The conversation wire shapes (the adopted S5 mapping, P-S5-01…05): the
+// JSON tags are the coded tags of the domain conversation contract
+// (internal/domain/conversation — the Core's own durable message shape,
+// never the provider-layer request-plan `Message`); the wrapper keys are
+// the coded struct names lowercased (the coded-name rule). No answer,
+// stream, stop, or steering member exists anywhere in these shapes — the
+// answering/stream production path is the named owner gap (P-S5-03).
+
+type conversationCreateRequest struct {
+	// title is the optional bounded display title (the domain's own shape
+	// law bounds it; the Core mints the identity, the body never carries
+	// one).
+	Title string `json:"title"`
+}
+
+type conversationSendRequest struct {
+	// content is the user's message content; correlation_id is the send's
+	// request identity (the P1.6 §3.9 M-1 register row) — the identity the
+	// S4 query resolves through. It is NOT an idempotency key (the class
+	// stays Open): a duplicate identity on the same conversation refuses —
+	// never a duplicate exchange, never a replay claim.
+	Content       string `json:"content"`
+	CorrelationID string `json:"correlation_id"`
+}
+
+type conversationResult struct {
+	// conversation carries the conversation.Conversation coded tags
+	// (conversation_id, title, created_at, updated_at).
+	Conversation conversation.Conversation `json:"conversation"`
+}
+
+type conversationListResult struct {
+	// conversations carries the coded tags; cursor is the coded replay
+	// cursor's key carrying the opaque list cursor — omitted on the final
+	// page (the cursorless page IS the end marker; no has_more/total
+	// vocabulary exists). An empty page IS the honest no-match answer.
+	Conversations []conversation.Conversation `json:"conversations"`
+	Cursor        string                      `json:"cursor,omitempty"`
+}
+
+type conversationMessagesResult struct {
+	// messages carries the conversation.Message coded tags (message_id,
+	// conversation_id, seq, role, content, correlation_id?, created_at) —
+	// the authoritative Core state inside the aggregate (P-S5-02), in
+	// timeline order (Seq ascending).
+	Messages []conversation.Message `json:"messages"`
+	Cursor   string                 `json:"cursor,omitempty"`
+}
+
+type conversationExchangeResult struct {
+	// exchange carries the conversation.Exchange coded tags
+	// (correlation_id, conversation_id, user_message_id, state, created_at)
+	// — the S4 query's authoritative exchange state (P-S5-05); message is
+	// the send's persisted user message.
+	Exchange conversation.Exchange `json:"exchange"`
+	Message  conversation.Message  `json:"message"`
 }
 
 // The connection wire shapes. Every key is a coded name: the record/view

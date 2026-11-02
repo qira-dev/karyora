@@ -176,16 +176,17 @@ func newTestEnv(t *testing.T) *testEnv {
 		Audit:  security.NewAuditService(&memoryAuditStore{}, 64, 1000),
 	}
 	deps := app.SliceDeps{
-		Relay:       st,
-		Snapshots:   st,
-		Objects:     st,
-		Events:      st,
-		Packs:       st,
-		Guard:       guard,
-		Providers:   map[string]app.ProviderExecutor{dprovider.ProviderMock: exec, dprovider.ProviderDeepSeek: dexec},
-		Backoff:     st,
-		Connections: st,
-		Secrets:     newWireFakeSecrets(),
+		Relay:         st,
+		Snapshots:     st,
+		Objects:       st,
+		Events:        st,
+		Packs:         st,
+		Guard:         guard,
+		Providers:     map[string]app.ProviderExecutor{dprovider.ProviderMock: exec, dprovider.ProviderDeepSeek: dexec},
+		Backoff:       st,
+		Connections:   st,
+		Secrets:       newWireFakeSecrets(),
+		Conversations: st,
 	}
 	slice, err := app.NewSlice(deps)
 	if err != nil {
