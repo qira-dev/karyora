@@ -55,6 +55,12 @@ interface CoreConnectionContextValue {
   refresh: () => void;
   /** The C-1 exchange with the pasted one-time credential. */
   exchange: (credential: string) => Promise<ExchangeOutcome>;
+  /** The ONE transport instance for the app. The Jobs surfaces (IMPL-5)
+   *  consume it for their reads and the cancellation command; every
+   *  outcome they render comes from this instance's real transport
+   *  results. The session secret stays inside the holder — this object
+   *  exposes no token, and no method here retries on its own. */
+  transport: HttpLocalTransport;
 }
 
 const CoreConnectionContext = createContext<CoreConnectionContextValue | undefined>(undefined);
@@ -138,8 +144,8 @@ export function CoreConnectionProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<CoreConnectionContextValue>(
-    () => ({ phase, session, refresh, exchange }),
-    [phase, session, refresh, exchange],
+    () => ({ phase, session, refresh, exchange, transport }),
+    [phase, session, refresh, exchange, transport],
   );
 
   return <CoreConnectionContext.Provider value={value}>{children}</CoreConnectionContext.Provider>;

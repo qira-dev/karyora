@@ -4,6 +4,8 @@ import type { ReactElement } from "react";
 
 import { AppShell } from "./shell/AppShell";
 import { HomePage } from "../pages/home/HomePage";
+import { JobsListPage } from "../pages/jobs/JobsListPage";
+import { JobDetailPage } from "../pages/jobs/JobDetailPage";
 import { SettingsLayout } from "../pages/settings/SettingsLayout";
 import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
@@ -14,14 +16,18 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
- * ten accepted settings routes. P2.7 adds NO route: the first-run wizard
+ * ten accepted settings routes. P2.7 added NO route: the first-run wizard
  * rides `/` exactly as C-06 records ("entered at `/` on first use"), and
  * the connection surfaces live on the already-frozen
- * `/settings/connections` route (C-14). The remaining §31.5 feature
- * routes are NOT Phase 2 surfaces — their screens are the owning
- * packages' deliverables (UIR-4–UIR-8), so no route, no stub, and no
- * placeholder screen exists for them here (the no-dead-stub rule).
- * Unknown URLs resolve to `/` (no dead route).
+ * `/settings/connections` route (C-14).
+ *
+ * IMPL-5 adds the Jobs surface's routes exactly as the records name
+ * them: `/jobs` (the server-paginated list) and `/jobs/:jobId` (the ONE
+ * canonical Job detail route — every Job link anywhere opens it, R-1).
+ * The remaining §31.5 feature routes are still NOT surfaces — their
+ * screens are the owning packages' deliverables (UIR-4, UIR-6–UIR-8), so
+ * no route, no stub, and no placeholder screen exists for them here (the
+ * no-dead-stub rule). Unknown URLs resolve to `/` (no dead route).
  *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
@@ -32,6 +38,8 @@ export const appRouteElements: ReactElement = (
   <Fragment>
     <Route element={<AppShell />}>
     <Route index element={<HomePage />} />
+    <Route path="jobs" element={<JobsListPage />} />
+    <Route path="jobs/:jobId" element={<JobDetailPage />} />
     <Route path="settings" element={<SettingsLayout />}>
       <Route index element={<SettingsHub />} />
       <Route path="appearance" element={<AppearancePage />} />

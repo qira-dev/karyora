@@ -13,10 +13,10 @@ import type nav from "../../i18n/locales/en/nav.json";
  *   Access, UI-23) are ABSENT — their glyphs never render.
  * - Plugins sits ONLY under EXTENSIONS; Providers & Models under
  *   BUILD & CONNECT (UI-35).
- * - Feature destinations whose screens are later packages (UIR-4–UIR-8)
- *   render as disabled items with an inline explanation (no dead
- *   controls, C-01/§4.3) — their routes do not exist in this milestone's
- *   frozen route set.
+ * - Feature destinations whose screens ship in a later package render as
+ *   disabled items with an inline explanation (no dead controls,
+ *   C-01/§4.3) — their routes do not exist yet. As a surface ships (the
+ *   Jobs surface, IMPL-5), its item activates its route target.
  * - Help & Documentation renders disabled: its TARGET is the recorded
  *   deferred item (in-app help vs external docs — P2.1 §5 row 1); the
  *   §4.1 icon/label rule still binds.
@@ -55,7 +55,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { id: "overview", labelKey: "items.overview", icon: LayoutDashboard, disabled: true },
       { id: "chat", labelKey: "items.chat", icon: MessageCircle, disabled: true },
-      { id: "jobs", labelKey: "items.jobs", icon: ListTodo, disabled: true },
+      // The Jobs surface ships in this milestone (IMPL-5): the item
+      // activates its accepted §4.1 route target — the list is `/jobs`,
+      // and every Job link opens the ONE canonical detail route
+      // `/jobs/:jobId` (R-1).
+      { id: "jobs", labelKey: "items.jobs", icon: ListTodo, route: "/jobs" },
       { id: "knowledge", labelKey: "items.knowledge", icon: BookOpen, disabled: true },
       { id: "memory", labelKey: "items.memory", icon: Bookmark, disabled: true },
       { id: "context", labelKey: "items.context", icon: Filter, disabled: true },

@@ -44,6 +44,8 @@ import type {
   WireEventsResult,
   WireExchangeRequest,
   WireJob,
+  WireJobsListParams,
+  WireJobsListResult,
   WireReplayResult,
   WireSessionResult,
   WireStatusResult,
@@ -252,6 +254,30 @@ export function createHttpLocalTransport() {
         if (body === null || typeof body !== "object") return false;
         const shaped = body as Record<string, unknown>;
         return typeof shaped.replayed === "boolean" && isWireJob(shaped.job);
+      });
+    },
+
+    /** `GET /v1/jobs?limit=&status=&cursor=` — the Jobs list read (the
+     *  card-9 working candidate's server-side cursor pagination as
+     *  delivered in IMPL-4). Omitted parameters are not sent: the Core's
+     *  per-surface default limit applies, no status filter selects all,
+     *  and the cursorless first page is the list head. A response whose
+     *  `cursor` is absent is the FINAL page — the cursorless page is the
+     *  coded end marker; the client invents no has_more/total of its
+     *  own. */
+    list(params: WireJobsListParams = {}): Promise<TransportOutcome<WireJobsListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.status !== undefined && params.status !== "") query.set("status", params.status);
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireJobsListResult>(`/v1/jobs${suffix}`, get(), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (!Array.isArray(shaped.jobs)) return false;
+        // The cursor key is absent on the final page: absence is data
+        // (the end marker), never an error.
+        return shaped.cursor === undefined || typeof shaped.cursor === "string";
       });
     },
 

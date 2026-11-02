@@ -4,6 +4,7 @@ import type shell from "./locales/en/shell.json";
 import type settings from "./locales/en/settings.json";
 import type home from "./locales/en/home.json";
 import type firstrun from "./locales/en/firstrun.json";
+import type jobs from "./locales/en/jobs.json";
 
 /**
  * The typed translation-key union (G-10's second, type-level parity
@@ -38,8 +39,14 @@ type Merge<A, B> = {
 };
 
 export type SourceTree = Merge<
-  Merge<Merge<Merge<Merge<typeof common, typeof nav>, typeof shell>, typeof settings>, typeof home>,
-  typeof firstrun
+  Merge<
+    Merge<
+      Merge<Merge<Merge<typeof common, typeof nav>, typeof shell>, typeof settings>,
+      typeof home
+    >,
+    typeof firstrun
+  >,
+  typeof jobs
 >;
 
 /** Dot-joined LEAF key paths of a nested resource object (the keys `t()`

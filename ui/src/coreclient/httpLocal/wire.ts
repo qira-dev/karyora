@@ -155,6 +155,29 @@ export interface WireStatusResult {
   readonly attempt: WireAttempt;
 }
 
+/** The `GET /v1/jobs` query parameters (the card-9 working candidate's
+ *  list semantics, as delivered in IMPL-4). Every field is optional: an
+ *  omitted `limit` selects the Core's per-surface default (50 — the
+ *  client invents no limit of its own); `status` is the closed coded
+ *  Job-state registry (an unknown value is the Core's typed refusal, not
+ *  a client-side guess); `cursor` is the opaque continuation cursor. */
+export interface WireJobsListParams {
+  readonly limit?: number;
+  readonly status?: string;
+  readonly cursor?: string;
+}
+
+/** `GET /v1/jobs` success (200): `{jobs, cursor?}` — the coded
+ *  `listResult` shape (internal/httplocal/server.go). `cursor` is the
+ *  opaque list cursor and is OMITTED on the final page: the cursorless
+ *  response IS the end marker (no has_more/total vocabulary exists —
+ *  the working candidate finalizes at the freeze). The empty list is an
+ *  empty `jobs` array, never null. */
+export interface WireJobsListResult {
+  readonly jobs: readonly WireJob[];
+  readonly cursor?: string;
+}
+
 /** `GET /v1/jobs/{id}/events` success (200): `{events}`. */
 export interface WireEventsResult {
   readonly events: readonly WireEventRecord[];

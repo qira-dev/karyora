@@ -28,6 +28,8 @@ export type {
   WireExchangeRequest,
   WireJob,
   WireJobRequirements,
+  WireJobsListParams,
+  WireJobsListResult,
   WireReplayOutcome,
   WireReplayResult,
   WireSessionResult,

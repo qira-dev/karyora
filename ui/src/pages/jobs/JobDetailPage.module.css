@@ -1,0 +1,294 @@
+/* Job detail page (IMPL-5). Layout uses CSS logical properties (P2.4
+   §4.5); long machine identifiers wrap instead of widening the page
+   (§28.2); color is never the only state signal. */
+
+.backRow {
+  margin: 0 0 var(--space-2);
+}
+
+.backLink {
+  font-size: var(--text-metadata-size);
+}
+
+.headingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.headingId {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.headingCopy button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.headingCopy span[role="status"] {
+  display: block;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+.confirmed {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.outcomeNote {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-info);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.approvalPanel {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-warning);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.approvalPanel p {
+  margin: 0;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.control:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.primaryControl {
+  min-height: var(--size-button-primary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryControl:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.primaryControl:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.note {
+  color: var(--color-text-secondary);
+}
+
+.code {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.fieldList {
+  display: flex;
+  flex-direction: column;
+}
+
+.fieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.fieldRow:last-child {
+  border-block-end: 0;
+}
+
+.fieldLabel {
+  flex: 0 0 auto;
+  min-width: 14ch;
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.fieldValue {
+  flex: 1 1 20ch;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fieldMono {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+}
+
+.fieldNumeric {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The state chip: icon + text; the tone classes supplement with color
+   only — the text label always carries the state (§7.2). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-badge);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.neutral {
+  color: var(--color-text-secondary);
+}
+
+.info {
+  color: var(--color-info);
+}
+
+.success {
+  color: var(--color-success);
+}
+
+.warning {
+  color: var(--color-warning);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.eventItem {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.eventHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+}
+
+.eventType {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.eventSeq,
+.eventTime {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.eventMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-block-start: var(--space-1);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.eventMeta code {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.eventNoPayload {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-muted);
+}
+
+.payload {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  max-height: 24rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
