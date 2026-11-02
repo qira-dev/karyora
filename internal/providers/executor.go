@@ -137,6 +137,24 @@ func (e *Executor) Connection() dprovider.Connection {
 	return e.Adapter.DefaultConnection()
 }
 
+// Capabilities reports the adapter's capability facts for one profile
+// (the pre-submit review fact port; the same tested claims the gate
+// consults — unknown means unsupported).
+func (e *Executor) Capabilities(p dprovider.ProfileID) dprovider.CapabilitySet {
+	return e.Adapter.Capabilities(p)
+}
+
+// DataHandling reports the governing per-profile data-handling record for
+// one feature scope (the review fact port; the fail-closed egress gate's
+// own input). False when no record governs — the caller fails closed.
+func (e *Executor) DataHandling(p dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool) {
+	rec, ok := e.Registry.Lookup(p, feature)
+	if !ok {
+		return dprovider.DataHandlingProfile{}, false
+	}
+	return *rec, true
+}
+
 // Execute performs one bounded, capability-checked, gated provider call.
 func (e *Executor) Execute(ctx context.Context, plan *dprovider.RequestPlan) (*dprovider.Result, error) {
 	if plan == nil {

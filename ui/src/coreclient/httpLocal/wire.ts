@@ -149,6 +149,150 @@ export interface WireSubmitResult {
   readonly replayed: boolean;
 }
 
+/** The pre-submit review request (`reviewRequest` in
+ *  `internal/httplocal/server.go`): exactly the submit request's shape
+ *  keys minus the idempotency key — a review never carries one (the key
+ *  is minted at submit time, never at review time). */
+export interface WireReviewRequest {
+  readonly task: string;
+  readonly system?: string;
+  readonly schema?: unknown;
+  readonly pack_ref?: string;
+  readonly provider: string;
+  readonly model?: string;
+  readonly max_output_tokens?: number;
+  readonly classification?: string;
+  readonly base_url?: string;
+}
+
+/** Field 2 — the selected sources (the coded KnowledgePack-reference
+ *  resolution; `state` is `none` | `resolved` | `unresolved` |
+ *  `unavailable`). */
+export interface WireReviewSources {
+  readonly state: string;
+  readonly pack_ref?: string;
+  readonly pack_id?: string;
+  readonly version?: number;
+  readonly status?: string;
+  readonly reason?: string;
+  readonly scope?: string;
+}
+
+/** The coded capability facts of one profile
+ *  (`internal/domain/provider.CapabilitySet`): supported/unsupported/
+ *  unknown per axis — unknown means unsupported wherever it gates a call,
+ *  rendered by the UI as its not-verified state, never a granted badge. */
+export interface WireCapabilitySet {
+  readonly chat: string;
+  readonly streaming: string;
+  readonly tools: string;
+  readonly parallel_tool_calls: string;
+  readonly structured_output: string;
+  readonly vision: string;
+  readonly audio: string;
+  readonly embeddings: string;
+  readonly batch: string;
+  readonly context_caching: string;
+  readonly conversation_continuation: string;
+  readonly max_context_tokens?: number;
+  readonly max_output_tokens?: number;
+  readonly token_estimator_ref?: string;
+  readonly notes?: string;
+}
+
+/** Field 3 — the provider/model: the wired truth, the effective profile,
+ *  and the coded capability facts (absent when the provider is unwired —
+ *  never invented). */
+export interface WireReviewProviderModel {
+  readonly provider: string;
+  readonly wired: boolean;
+  readonly model?: string;
+  readonly profile?: {
+    readonly provider: string;
+    readonly endpoint: string;
+    readonly model: string;
+    readonly region?: string;
+    readonly api_version?: string;
+  };
+  readonly capabilities?: WireCapabilitySet;
+}
+
+/** Field 4 — one projected effect of the v1 task execution path, in the
+ *  workflow effect vocabulary (`class`: none|local|external; `retry`:
+ *  safe|scoped|never; `unknown_outcome`: fail|needs_reconciliation). The
+ *  class value `unknown` is the projection's honest fail-closed value:
+ *  undetermined means unknown, never a guessed class. */
+export interface WireReviewEffect {
+  readonly effect: string;
+  readonly class: string;
+  readonly retry: string;
+  readonly idempotency_scope?: string;
+  readonly unknown_outcome: string;
+}
+
+/** Field 5 — the permission state the Core reports (the pure decision-port
+ *  outcome for the submit-class check; UI visibility is not enforcement —
+ *  the Submit path's own Guard decision stays authoritative). */
+export interface WireReviewPermission {
+  readonly allowed: boolean;
+  readonly reason: string;
+  readonly action: string;
+}
+
+/** Field 6 — the policy snapshot the Core applies: the data-handling
+ *  record's coded facts verbatim (unknown facts carry the coded
+ *  `unknown`), the record's review status, and the fail-closed egress
+ *  decision with its typed blocking reason. */
+export interface WireReviewPolicy {
+  readonly profile_known: boolean;
+  readonly review?: string;
+  readonly deployment?: string;
+  readonly training_use?: string;
+  readonly abuse_retention?: string;
+  readonly application_state_ttl?: string;
+  readonly subprocessors?: string;
+  readonly deletion_eligibility?: string;
+  readonly egress_allowed: boolean;
+  readonly egress_reason?: string;
+}
+
+/** Field 7 — the approval need: the Core's report of its own coded
+ *  posture, never an assumption either way. */
+export interface WireReviewApprovalNeed {
+  readonly required: boolean;
+  readonly basis: string;
+}
+
+/** Field 8 — the estimated budget: only determinable facts are present;
+ *  an ABSENT field renders Not-available, never zero (no cost source
+ *  exists in code, so no cost value is ever invented). */
+export interface WireReviewBudget {
+  readonly reserved_output_tokens?: number;
+}
+
+/** The eight-field pre-submit review payload, exactly the recorded field
+ *  set (P3.6 §4.1) as the Core projects it. */
+export interface WireReviewPayload {
+  readonly intent: {
+    readonly task: string;
+    readonly system?: string;
+    readonly schema_provided: boolean;
+  };
+  readonly sources: WireReviewSources;
+  readonly provider_model: WireReviewProviderModel;
+  readonly tool_effects: readonly WireReviewEffect[];
+  readonly permission: WireReviewPermission;
+  readonly policy: WireReviewPolicy;
+  readonly approval_need: WireReviewApprovalNeed;
+  readonly budget: WireReviewBudget;
+}
+
+/** `POST /v1/jobs/review` success (200): `{review}` — the review
+ *  operation's own name lowercased (the coded-name rule). */
+export interface WireReviewResult {
+  readonly review: WireReviewPayload;
+}
+
 /** `GET /v1/jobs/{id}` success (200): `{job, attempt}`. */
 export interface WireStatusResult {
   readonly job: WireJob;

@@ -94,6 +94,14 @@ func (s *slowExecutor) Connection() dprovider.Connection {
 	return s.inner.Connection()
 }
 
+func (s *slowExecutor) Capabilities(profile dprovider.ProfileID) dprovider.CapabilitySet {
+	return s.inner.Capabilities(profile)
+}
+
+func (s *slowExecutor) DataHandling(profile dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool) {
+	return s.inner.DataHandling(profile, feature)
+}
+
 type testEnv struct {
 	slice    *app.Slice
 	deps     app.SliceDeps

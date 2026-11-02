@@ -107,6 +107,14 @@ func (f *flippingExecutor) Connection() dprovider.Connection {
 	return f.inner.Connection()
 }
 
+func (f *flippingExecutor) Capabilities(profile dprovider.ProfileID) dprovider.CapabilitySet {
+	return f.inner.Capabilities(profile)
+}
+
+func (f *flippingExecutor) DataHandling(profile dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool) {
+	return f.inner.DataHandling(profile, feature)
+}
+
 // newTestEnv builds the fixture environment; it accepts testing.TB so the
 // C5-10 benchmark harnesses (bench_c510_test.go) reuse the identical
 // wiring the conformance fixtures use.
@@ -483,6 +491,14 @@ type slowExecutor struct {
 func (s *slowExecutor) ProfileFor(model string) dprovider.ProfileID { return s.inner.ProfileFor(model) }
 
 func (s *slowExecutor) Connection() dprovider.Connection { return s.inner.Connection() }
+
+func (s *slowExecutor) Capabilities(profile dprovider.ProfileID) dprovider.CapabilitySet {
+	return s.inner.Capabilities(profile)
+}
+
+func (s *slowExecutor) DataHandling(profile dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool) {
+	return s.inner.DataHandling(profile, feature)
+}
 
 func (s *slowExecutor) Execute(ctx context.Context, plan *dprovider.RequestPlan) (*dprovider.Result, error) {
 	select {

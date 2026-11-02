@@ -152,6 +152,7 @@ type route struct {
 func routes() []route {
 	return []route{
 		{method: http.MethodPost, prefix: "/v1/session/exchange", mutates: true, noSession: true, handler: (*Server).handleExchange},
+		{method: http.MethodPost, prefix: "/v1/jobs/review", mutates: true, handler: (*Server).handleReview},
 		{method: http.MethodPost, prefix: "/v1/jobs", mutates: true, handler: (*Server).handleSubmit},
 		{method: http.MethodGet, prefix: "/v1/jobs", handler: (*Server).handleList},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/events", handler: (*Server).handleEvents},
@@ -386,6 +387,38 @@ func (s *Server) handleSubmit(w http.ResponseWriter, r *http.Request, token, _ s
 		return
 	}
 	s.writeJSON(w, http.StatusAccepted, submitResult{Job: res.Job, Replayed: res.Replayed})
+}
+
+// handleReview exposes the pre-submit review read (the owner's card-13
+// working candidate): the eight review fields the Core projects from its
+// own gates and execution path. The route rides the POST class only
+// because the draft submission travels in a body (a GET URL cannot carry
+// a 1<<20-rune task); its effect class is a READ — it creates no durable
+// state — and the slice authorizes it through the same decision port
+// every read decides through.
+func (s *Server) handleReview(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req reviewRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	payload, err := s.deps.Slice.Review(s.callCtx(r, token), app.ReviewRequest{
+		Task:            req.Task,
+		System:          req.System,
+		Schema:          req.Schema,
+		PackRef:         req.PackRef,
+		Provider:        req.Provider,
+		Model:           req.Model,
+		MaxOutputTokens: req.MaxOutputTokens,
+		Classification:  req.Classification,
+		BaseURL:         req.BaseURL,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, reviewResult{Review: *payload})
 }
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request, token, jobID string) {
@@ -717,6 +750,30 @@ type submitResult struct {
 type statusResult struct {
 	Job     aijobrelay.Job     `json:"job"`
 	Attempt aijobrelay.Attempt `json:"attempt"`
+}
+
+type reviewRequest struct {
+	// task/system/schema/pack_ref/provider/model/max_output_tokens/
+	// classification/base_url are the coded JobInput tags — exactly the
+	// submit request's shape keys minus the idempotency key, which a
+	// pre-submit review never carries (the key is minted at submit time).
+	Task            string          `json:"task"`
+	System          string          `json:"system,omitempty"`
+	Schema          json.RawMessage `json:"schema,omitempty"`
+	PackRef         string          `json:"pack_ref,omitempty"`
+	Provider        string          `json:"provider"`
+	Model           string          `json:"model,omitempty"`
+	MaxOutputTokens int             `json:"max_output_tokens,omitempty"`
+	Classification  string          `json:"classification,omitempty"`
+	BaseURL         string          `json:"base_url,omitempty"`
+}
+
+type reviewResult struct {
+	// review is the review operation's own name lowercased (the coded-name
+	// rule: the coded Go name lowercased); the payload inside is the
+	// app-layer ReviewPayload's coded JSON tags (the eight recorded review
+	// fields).
+	Review app.ReviewPayload `json:"review"`
 }
 
 type listResult struct {

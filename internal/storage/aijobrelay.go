@@ -60,18 +60,48 @@ func appendEventTx(tx *sqlTx, rec events.Record) error {
 	return nil
 }
 
+// IdempotencyReplayWindow is the post-terminal idempotency replay window:
+// the owner's card-8 working value of 2026-11-02 (the 72 h post-terminal
+// retention accepted as the working value — decision 10's implementation
+// acceptance; both it and the 30-day replay window finalize at their
+// freeze). Within the window after a Job reaches a terminal state, the
+// same idempotency key + same input digest replays the original Job;
+// outside it, the replay is REFUSED with the coded CONFLICT_STATE — the
+// code's own replay-refusal shape, preserved: never a silent second Job
+// under a spent key, never a fabricated replay of a Job past its window.
+// A non-terminal Job always replays (the window starts at the terminal
+// transition; a terminal Job's updated_at IS that transition's instant,
+// because terminal states accept no further transitions).
+const IdempotencyReplayWindow = 72 * time.Hour
+
+// resolveIdempotentReplay applies the C3-02 idempotency semantics plus the
+// post-terminal replay window to one existing-Job lookup: same digest
+// inside the window (or the Job still live) → the existing Job; same
+// digest past the window, or a different digest → the typed CONFLICT_STATE
+// with its bounded reason.
+func (s *Store) resolveIdempotentReplay(existing *aijobrelay.Job, incoming aijobrelay.Job) (*aijobrelay.Job, error) {
+	if existing.InputDigest != incoming.InputDigest {
+		return nil, errStoragef(errs.CodeConflictState, "idempotency key %q was already used with a different input; replay rejected", incoming.IdempotencyKey)
+	}
+	if !aijobrelay.TerminalJob(existing.State) {
+		return existing, nil
+	}
+	if s.now().Sub(existing.UpdatedAt) > IdempotencyReplayWindow {
+		return nil, errStoragef(errs.CodeConflictState, "idempotency key %q replay window has elapsed (%s after the job reached a terminal state); replay rejected", incoming.IdempotencyKey, IdempotencyReplayWindow)
+	}
+	return existing, nil
+}
+
 // SubmitJob implements aijobrelay.RelayStore with the C3-02 idempotency
-// semantics: same key + same input digest returns the existing Job; same
-// key + different input digest is a CONFLICT.
+// semantics: same key + same input digest returns the existing Job (inside
+// the post-terminal replay window); same key + different input digest — or
+// the same key past the window after a terminal Job — is a CONFLICT.
 func (s *Store) SubmitJob(ctx context.Context, job aijobrelay.Job) (*aijobrelay.Job, error) {
 	if err := aijobrelay.ValidateSubmit(&job); err != nil {
 		return nil, errStoragef(errs.CodeValidationFailed, "%v", err)
 	}
 	if existing, err := s.jobByIdempotencyKey(ctx, job.IdempotencyKey); err == nil && existing != nil {
-		if existing.InputDigest == job.InputDigest {
-			return existing, nil
-		}
-		return nil, errStoragef(errs.CodeConflictState, "idempotency key %q was already used with a different input; replay rejected", job.IdempotencyKey)
+		return s.resolveIdempotentReplay(existing, job)
 	}
 	now := time.Now().UTC()
 	job.State = aijobrelay.JobQueued
@@ -113,7 +143,13 @@ func (s *Store) SubmitJob(ctx context.Context, job aijobrelay.Job) (*aijobrelay.
 		})
 	})
 	if err == errIdempotentDuplicate {
-		return s.jobByIdempotencyKey(ctx, job.IdempotencyKey)
+		// The concurrent writer stored the same key + same digest; the
+		// reloaded original still passes through the replay-window rule.
+		original, loadErr := s.jobByIdempotencyKey(ctx, job.IdempotencyKey)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		return s.resolveIdempotentReplay(original, job)
 	}
 	if err != nil {
 		return nil, err

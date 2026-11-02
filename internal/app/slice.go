@@ -52,6 +52,15 @@ type ProviderExecutor interface {
 	// Connection returns the wired connection posture (base URL, credential
 	// class, secret reference) — never invented by the use-case layer.
 	Connection() dprovider.Connection
+	// Capabilities reports the coded capability facts for one profile (the
+	// pre-submit review's fact source; the same tested claims the gate
+	// consults — unknown means unsupported).
+	Capabilities(profile dprovider.ProfileID) dprovider.CapabilitySet
+	// DataHandling reports the governing per-profile data-handling record
+	// for one feature scope (the review's policy source; the fail-closed
+	// egress gate's own input). False when no record governs — the caller
+	// fails closed.
+	DataHandling(profile dprovider.ProfileID, feature dprovider.Feature) (dprovider.DataHandlingProfile, bool)
 }
 
 // BackoffRequeue moves Waiting backoff jobs back to Queued (the accepted
@@ -334,22 +343,29 @@ func validateSubmit(req SubmitRequest, corr string) error {
 	if strings.TrimSpace(req.IdempotencyKey) == "" {
 		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "idempotency_key"})
 	}
-	task := []rune(req.Task)
-	if len(task) == 0 || len(task) > MaxTaskRunes {
-		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "task"})
-	}
-	if len([]rune(req.System)) > MaxSystemRunes {
-		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "system"})
-	}
-	if req.Provider == "" {
-		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "provider"})
-	}
 	if req.DeadlineSecs < 0 {
 		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "deadline_secs"})
 	}
-	if len(req.Schema) > 0 {
+	return validateSubmissionShape(req.Task, req.System, req.Provider, req.Schema, corr)
+}
+
+// validateSubmissionShape is the request-shape rule set shared by the
+// submit path and the pre-submit review read (the same field rules, the
+// same typed envelopes — one shape law, never two).
+func validateSubmissionShape(task, system, provider string, schema json.RawMessage, corr string) error {
+	taskRunes := []rune(task)
+	if len(taskRunes) == 0 || len(taskRunes) > MaxTaskRunes {
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "task"})
+	}
+	if len([]rune(system)) > MaxSystemRunes {
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "system"})
+	}
+	if provider == "" {
+		return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "provider"})
+	}
+	if len(schema) > 0 {
 		var probe any
-		if err := json.Unmarshal(req.Schema, &probe); err != nil {
+		if err := json.Unmarshal(schema, &probe); err != nil {
 			return envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "schema", "reason": "schema is not valid JSON"})
 		}
 	}

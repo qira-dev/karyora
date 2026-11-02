@@ -90,6 +90,10 @@ type Store struct {
 	pub          *Publisher
 	m            *Metrics
 	instanceUUID string
+	// now is the store's clock, used by the idempotency replay-window
+	// check. It defaults to time.Now and is injectable for tests; no
+	// other store behavior reads it.
+	now func() time.Time
 }
 
 // Metrics carries the C2-05 §3 storage/WAL/queue signals exported to health.
@@ -255,7 +259,7 @@ func openConnections(opts Options) (*Store, error) {
 			return nil, fmt.Errorf("storage: %s lives on network filesystem %q; WAL is local-only (D-08)", opts.Path, kind)
 		}
 	}
-	s := &Store{opts: opts, m: newMetrics()}
+	s := &Store{opts: opts, m: newMetrics(), now: time.Now}
 	s.gate = newWriterGate(opts.WriterQueueDepth, opts.WriterDeadline)
 	readers := sql.OpenDB(verifiedConnector{opts: opts})
 	readers.SetMaxOpenConns(opts.PoolMaxOpen)

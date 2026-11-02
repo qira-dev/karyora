@@ -47,6 +47,8 @@ import type {
   WireJobsListParams,
   WireJobsListResult,
   WireReplayResult,
+  WireReviewRequest,
+  WireReviewResult,
   WireSessionResult,
   WireStatusResult,
   WireSubmitRequest,
@@ -254,6 +256,39 @@ export function createHttpLocalTransport() {
         if (body === null || typeof body !== "object") return false;
         const shaped = body as Record<string, unknown>;
         return typeof shaped.replayed === "boolean" && isWireJob(shaped.job);
+      });
+    },
+
+    /** `POST /v1/jobs/review` — the pre-submit review read (the owner's
+     *  card-13 working candidate). It is a READ despite the POST class:
+     *  the draft travels in a body (a GET URL cannot carry a large task),
+     *  and the Core creates nothing — the eight review fields project
+     *  what its own gates determine. The route rides the same POST
+     *  boundary posture as every mutation (same-origin carve-out with a
+     *  validated session), never weakening it. */
+    review(payload: WireReviewRequest): Promise<TransportOutcome<WireReviewResult>> {
+      return call<WireReviewResult>("/v1/jobs/review", post(JSON.stringify(payload)), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (shaped.review === null || typeof shaped.review !== "object") return false;
+        const review = shaped.review as Record<string, unknown>;
+        return (
+          review.intent !== null &&
+          typeof review.intent === "object" &&
+          review.sources !== null &&
+          typeof review.sources === "object" &&
+          review.provider_model !== null &&
+          typeof review.provider_model === "object" &&
+          Array.isArray(review.tool_effects) &&
+          review.permission !== null &&
+          typeof review.permission === "object" &&
+          review.policy !== null &&
+          typeof review.policy === "object" &&
+          review.approval_need !== null &&
+          typeof review.approval_need === "object" &&
+          review.budget !== null &&
+          typeof review.budget === "object"
+        );
       });
     },
 

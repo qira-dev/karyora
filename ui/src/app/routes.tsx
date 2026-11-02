@@ -6,6 +6,7 @@ import { AppShell } from "./shell/AppShell";
 import { HomePage } from "../pages/home/HomePage";
 import { JobsListPage } from "../pages/jobs/JobsListPage";
 import { JobDetailPage } from "../pages/jobs/JobDetailPage";
+import { RunTaskPage } from "../pages/run/RunTaskPage";
 import { SettingsLayout } from "../pages/settings/SettingsLayout";
 import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
@@ -24,10 +25,18 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
  * IMPL-5 adds the Jobs surface's routes exactly as the records name
  * them: `/jobs` (the server-paginated list) and `/jobs/:jobId` (the ONE
  * canonical Job detail route — every Job link anywhere opens it, R-1).
- * The remaining §31.5 feature routes are still NOT surfaces — their
- * screens are the owning packages' deliverables (UIR-4, UIR-6–UIR-8), so
- * no route, no stub, and no placeholder screen exists for them here (the
- * no-dead-stub rule). Unknown URLs resolve to `/` (no dead route).
+ *
+ * IMPL-6 adds the Run submission flow's route: `/jobs/new` — the
+ * submission entry inside the Jobs family, reached ONLY through the
+ * explicit `+ New → Run a task` act (X-1: a Run requires intentional
+ * entry; Ask never submits). The static segment outranks the dynamic
+ * `jobs/:jobId` in the router's ranking, so it can never be captured as
+ * a job id. The DURABLE outcome still lives at `/jobs/:jobId` (R-1) —
+ * the submission flow itself owns no durable state. The remaining §31.5
+ * feature routes are still NOT surfaces — their screens are the owning
+ * packages' deliverables (UIR-4, UIR-6–UIR-8), so no route, no stub, and
+ * no placeholder screen exists for them here (the no-dead-stub rule).
+ * Unknown URLs resolve to `/` (no dead route).
  *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
@@ -39,6 +48,7 @@ export const appRouteElements: ReactElement = (
     <Route element={<AppShell />}>
     <Route index element={<HomePage />} />
     <Route path="jobs" element={<JobsListPage />} />
+    <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />
     <Route path="settings" element={<SettingsLayout />}>
       <Route index element={<SettingsHub />} />
