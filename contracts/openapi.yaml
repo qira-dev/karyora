@@ -1,19 +1,745 @@
 openapi: 3.2.1
 info:
-  title: Karyora Core API (Phase 1 tooling evaluation)
-  version: 0.1.0-eval
+  title: Karyora Core API
+  version: 0.1.0
+  description: |
+    The canonical published contract set of the Karyora Core's durable-execution
+    surface — the frozen contract families at their recorded version.
+
+    Version semantics (the P1.5 freeze discipline): a 0.x version carries NO
+    stability promise and no external compatibility guarantee. Additive changes
+    are safe; a breaking change requires a version bump, an ADR, and fixture
+    updates on both schema dialects.
+
+    Frozen families carried by this document (each frozen by its own recorded
+    owner LIVE act; the version values recorded at the acts):
+      - F1  error envelope (the D-35 four-field envelope; the coded error register)
+      - F3  provider credential/connection records and operations
+      - F5  the context-snapshot read
+      - F6  the run submission path (the pre-submit review, the Supplied submit
+            idempotency, the 72 h post-terminal replay window)
+      - F7  Job / Attempt / lease / artifact (the Job machine, the artifact
+            access rule, the approval `Waiting` reason, the Jobs list semantics)
+      - F8  permission/approval (the accept/reject command identity)
+      - F10 the event record, the cursor scope, the replay outcomes
+
+    The operation names are the canonical wire vocabulary (the owner's recorded
+    decision). The serving paths of the local loopback transport adapter are
+    that adapter's own implementation and map onto this published contract;
+    this document is the canonical vocabulary, not any one adapter's route table.
+
+    Family F2 (the capability descriptor) is NOT frozen: every `capabilities`
+    member below is typed as the Core's coded capability set carried as an open
+    object until that family's own recorded act.
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 paths:
   /jobs:
     post:
       operationId: submitJob
-      summary: Submit a durable job (evaluation surface only; idempotency semantics are specified in Phase 1 task C1-07, not here).
+      summary: Submit a durable job (F6/F7; the Supplied create idempotency).
+      description: >-
+        202 Accepted means accepted for processing, never completion. Same
+        idempotency key + same input digest replays the original job while it
+        is live or within 72 h after its terminal transition; the same key with
+        a different body is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the
+        window is 409 CONFLICT_STATE.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: 'schemas/job-submit-request.schema.json'
+              $ref: '#/components/schemas/SubmitRequest'
       responses:
         '202':
-          description: Accepted
+          description: Accepted for processing (the Core-confirmed reference).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResult'
+    get:
+      operationId: listJobs
+      summary: List jobs (F7; the keyset list semantics).
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/JobState' }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+  /jobs/{id}:
+    get:
+      operationId: getJobStatus
+      summary: Read one job's authoritative state with its current attempt (F7).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The job and its current attempt (empty attempt_id = none recorded).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job, attempt]
+                properties:
+                  job: { $ref: '#/components/schemas/Job' }
+                  attempt: { $ref: '#/components/schemas/Attempt' }
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+  /jobs/{id}/events:
+    get:
+      operationId: listJobEvents
+      summary: Read one job's event records (F10).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The job's event records in the Core's returned order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events]
+                properties:
+                  events:
+                    type: array
+                    items: { $ref: '#/components/schemas/EventRecord' }
+  /jobs/{id}/result:
+    get:
+      operationId: getJobResult
+      summary: Read one job's stored result (F7; the CAS bytes, digest-re-verified).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The stored result bytes.
+          content:
+            application/json:
+              schema: { type: string, contentEncoding: base64 }
+  /jobs/{id}/cancel:
+    post:
+      operationId: cancelJob
+      summary: Request one job's cancellation (F7; 202 = accepted for processing).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '202':
+          description: Accepted for processing; the authoritative state read confirms.
+          content:
+            application/json:
+              schema: { type: object }
+  /jobs/{id}/snapshot:
+    get:
+      operationId: getJobContextSnapshot
+      summary: Read one attempt's context-snapshot structure (F5; no compiled content).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - name: attempt
+          in: query
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: The snapshot's structural view; the compiled content is never carried.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [snapshot]
+                properties:
+                  snapshot: { $ref: '#/components/schemas/SnapshotView' }
+  /jobs/{id}/approval:
+    get:
+      operationId: getJobApproval
+      summary: Read one job's raised approval request (F8; a read never records a decision).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The latest raised approval, or 404 when none is raised.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approval]
+                properties:
+                  approval: { $ref: '#/components/schemas/Approval' }
+  /jobs/{id}/approvals/accept:
+    post:
+      operationId: acceptJobApproval
+      summary: Accept one approval (F8; the Core-confirmed transition re-queues the job).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approval_id]
+              properties:
+                approval_id: { type: string }
+      responses:
+        '200':
+          description: The recorded decision result (replayed=true on a same-decision replay).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDecisionResult'
+  /jobs/{id}/approvals/reject:
+    post:
+      operationId: rejectJobApproval
+      summary: Reject one approval (F8; the Core-confirmed transition ends the job failed).
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approval_id]
+              properties:
+                approval_id: { type: string }
+      responses:
+        '200':
+          description: The recorded decision result (replayed=true on a same-decision replay).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalDecisionResult'
+  /jobs/review:
+    post:
+      operationId: reviewJob
+      summary: Build the pre-submit review payload (F6; a read that creates nothing).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+      responses:
+        '200':
+          description: The eight-field review payload.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [review]
+                properties:
+                  review: { $ref: '#/components/schemas/ReviewPayload' }
+  /connections:
+    post:
+      operationId: saveConnection
+      summary: Save one provider connection (F3; the Supplied create idempotency).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionSaveRequest'
+      responses:
+        '200':
+          description: The saved connection view (replayed=true on a duplicate).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [connection, replayed]
+                properties:
+                  connection: { $ref: '#/components/schemas/ConnectionView' }
+                  replayed: { type: boolean }
+    get:
+      operationId: listConnections
+      summary: List connections (F3; the keyset list semantics).
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [connections]
+                properties:
+                  connections:
+                    type: array
+                    items: { $ref: '#/components/schemas/ConnectionView' }
+                  cursor: { type: string }
+  /connections/test:
+    post:
+      operationId: testConnection
+      summary: Run the bounded, read-only connection test (F3; safe re-issue).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionSaveRequest'
+      responses:
+        '200':
+          description: The sanitized test report (a saved test stamps the tested state).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report]
+                properties:
+                  report: { $ref: '#/components/schemas/ConnectionTestReport' }
+                  record:
+                    allOf:
+                      - $ref: '#/components/schemas/ConnectionRecord'
+  /connections/{id}:
+    get:
+      operationId: getConnection
+      summary: Read one connection (F3; masked status, never a secret value).
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: The connection view.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [connection]
+                properties:
+                  connection: { $ref: '#/components/schemas/ConnectionView' }
+    parameters:
+      - $ref: '#/components/parameters/ConnectionId'
+  /connections/{id}/rotate:
+    post:
+      operationId: rotateConnection
+      summary: Replace one connection's credential under the same handle (F3).
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [secret]
+              properties:
+                secret: { type: string, writeOnly: true }
+      responses:
+        '200':
+          description: The updated record with the working candidate's response data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionRotateResult'
+  /connections/{id}/reauthenticate:
+    post:
+      operationId: reauthenticateConnection
+      summary: Re-enter one connection's credential (F3; the rotate path's cousin).
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [secret]
+              properties:
+                secret: { type: string, writeOnly: true }
+      responses:
+        '200':
+          description: The updated record with the working candidate's response data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionRotateResult'
+  /connections/{id}/delete:
+    post:
+      operationId: deleteConnection
+      summary: Revoke then delete one connection (F3; revocation fails closed).
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: The credential revoked and the record deleted.
+          content:
+            application/json:
+              schema: { type: object }
+  /connections/{id}/switch:
+    post:
+      operationId: switchConnection
+      summary: Set one connection active (F3; the minimal M-34 pointer).
+      parameters:
+        - $ref: '#/components/parameters/ConnectionId'
+      responses:
+        '200':
+          description: The active pointer set (replayed=true when already active).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [active_connection_id, replayed]
+                properties:
+                  active_connection_id: { type: string }
+                  replayed: { type: boolean }
+components:
+  parameters:
+    JobId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    ConnectionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  schemas:
+    ErrorEnvelope:
+      type: object
+      description: The D-35 four-field envelope (F1); the machine code set is the coded register.
+      required: [code, retryable, correlationId]
+      properties:
+        code: { type: string }
+        retryable: { type: boolean }
+        correlationId: { type: string }
+        data:
+          type: object
+          additionalProperties: true
+    Requirements:
+      type: object
+      required: [provider_id, min_memory_mb]
+      properties:
+        provider_id: { type: string }
+        min_memory_mb: { type: integer }
+    JobState:
+      type: string
+      description: The closed coded Job-state register (lowercase, as coded).
+    Job:
+      type: object
+      description: The durable Job (F7).
+      required: [job_id, idempotency_key, input_digest, state, version, attempt_count, requirements, created_at, updated_at]
+      properties:
+        job_id: { type: string }
+        idempotency_key: { type: string }
+        input_digest: { type: string }
+        state: { $ref: '#/components/schemas/JobState' }
+        version: { type: integer }
+        attempt_count: { type: integer }
+        waiting_reason: { type: string }
+        requirements: { $ref: '#/components/schemas/Requirements' }
+        deadline_secs: { type: integer }
+        result_digest: { type: string }
+        receipt_id: { type: string }
+        correlation_id: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Attempt:
+      type: object
+      description: One bounded execution of a Job (F7); empty attempt_id = none recorded.
+      required: [attempt_id, job_id, seq, worker_id, lease_id, lease_epoch, outcome, started_at]
+      properties:
+        attempt_id: { type: string }
+        job_id: { type: string }
+        seq: { type: integer }
+        worker_id: { type: string }
+        lease_id: { type: string }
+        lease_epoch: { type: integer }
+        outcome: { type: string }
+        started_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+    EventRecord:
+      type: object
+      description: The event record (F10; the frozen field set).
+      required: [event_id, aggregate_type, aggregate_id, sequence, event_type, schema_version, occurred_at, producer]
+      properties:
+        event_id: { type: string }
+        aggregate_type: { type: string }
+        aggregate_id: { type: string }
+        sequence: { type: integer }
+        event_type: { type: string }
+        schema_version: { type: integer }
+        occurred_at: { type: string, format: date-time }
+        causation_id: { type: string }
+        correlation_id: { type: string }
+        producer: { type: string }
+        inline_payload: { type: object, additionalProperties: true }
+        payload_digest: { type: string }
+        blob_ref: { type: string }
+    SubmitRequest:
+      type: object
+      description: The durable submission (F6; the idempotency key rides the request; the classification's empty value is protected-unlabeled and blocks every real provider).
+      required: [idempotency_key, task, provider]
+      properties:
+        idempotency_key: { type: string }
+        task: { type: string }
+        system: { type: string }
+        schema: { type: object, additionalProperties: true }
+        pack_ref:
+          type: string
+          description: '"packID" or "packID@version"; empty = no retrieval.'
+        provider: { type: string }
+        model: { type: string }
+        max_output_tokens: { type: integer }
+        deadline_secs: { type: integer }
+        classification: { type: string }
+        base_url: { type: string }
+    SubmitResult:
+      type: object
+      required: [job, replayed]
+      properties:
+        job: { $ref: '#/components/schemas/Job' }
+        replayed: { type: boolean }
+    JobList:
+      type: object
+      required: [jobs]
+      properties:
+        jobs:
+          type: array
+          items: { $ref: '#/components/schemas/Job' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    ReviewIntent:
+      type: object
+      required: [task, schema_provided]
+      properties:
+        task: { type: string }
+        system: { type: string }
+        schema_provided: { type: boolean }
+    ReviewSources:
+      type: object
+      required: [state]
+      properties:
+        state: { type: string, description: 'none | resolved | unresolved | unavailable' }
+        pack_ref: { type: string }
+        pack_id: { type: string }
+        version: { type: integer }
+        status: { type: string }
+        reason: { type: string }
+        scope: { type: string }
+    ReviewProviderModel:
+      type: object
+      required: [provider, wired]
+      properties:
+        provider: { type: string }
+        wired: { type: boolean }
+        model: { type: string }
+        profile: { type: object, additionalProperties: true }
+        capabilities:
+          type: object
+          additionalProperties: true
+          description: The coded capability set (F2 unfrozen — the open object form).
+    ReviewEffect:
+      type: object
+      required: [effect, class, retry, unknown_outcome]
+      properties:
+        effect: { type: string }
+        class: { type: string, description: 'local | external | unknown' }
+        retry: { type: string }
+        idempotency_scope: { type: string }
+        unknown_outcome: { type: string }
+    ReviewPermission:
+      type: object
+      required: [allowed, reason, action]
+      properties:
+        allowed: { type: boolean }
+        reason: { type: string }
+        action: { type: string }
+    ReviewPolicy:
+      type: object
+      required: [profile_known, egress_allowed]
+      properties:
+        profile_known: { type: boolean }
+        review: { type: string }
+        deployment: { type: string }
+        training_use: { type: string }
+        abuse_retention: { type: string }
+        application_state_ttl: { type: string }
+        subprocessors: { type: string }
+        deletion_eligibility: { type: string }
+        egress_allowed: { type: boolean }
+        egress_reason: { type: string }
+    ReviewApprovalNeed:
+      type: object
+      required: [required, basis]
+      properties:
+        required: { type: boolean }
+        basis: { type: string }
+    ReviewBudget:
+      type: object
+      properties:
+        reserved_output_tokens: { type: integer }
+    ReviewPayload:
+      type: object
+      description: The pre-submit review payload (F6; the eight fields).
+      required: [intent, sources, provider_model, tool_effects, permission, policy, approval_need, budget]
+      properties:
+        intent: { $ref: '#/components/schemas/ReviewIntent' }
+        sources: { $ref: '#/components/schemas/ReviewSources' }
+        provider_model: { $ref: '#/components/schemas/ReviewProviderModel' }
+        tool_effects:
+          type: array
+          items: { $ref: '#/components/schemas/ReviewEffect' }
+        permission: { $ref: '#/components/schemas/ReviewPermission' }
+        policy: { $ref: '#/components/schemas/ReviewPolicy' }
+        approval_need: { $ref: '#/components/schemas/ReviewApprovalNeed' }
+        budget: { $ref: '#/components/schemas/ReviewBudget' }
+    SnapshotItem:
+      type: object
+      required: [ref, digest, trust_label, reason]
+      properties:
+        ref: { type: string }
+        digest: { type: string }
+        trust_label: { type: string }
+        reason: { type: string }
+    SnapshotOmission:
+      type: object
+      required: [ref, reason]
+      properties:
+        ref: { type: string }
+        reason: { type: string, description: The coded C3-09 omission-reason vocabulary. }
+    SnapshotBudgetRequested:
+      type: object
+      properties:
+        max_input_tokens: { type: integer, description: Absent when unbounded — never zero. }
+        reserved_output_tokens: { type: integer, description: Absent when unbounded — never zero. }
+        max_items: { type: integer, description: Absent when unbounded — never zero. }
+    SnapshotBudget:
+      type: object
+      required: [requested, estimated_input_tokens, estimator_version]
+      properties:
+        requested: { $ref: '#/components/schemas/SnapshotBudgetRequested' }
+        estimated_input_tokens: { type: integer }
+        estimator_version: { type: string }
+    SnapshotView:
+      type: object
+      description: The structural snapshot view (F5); the compiled content is never carried.
+      required: [schema_version, snapshot_id, task_ref, scope, user_input_digest, assembled_digest, created_at, included, omitted, budget, exact_vs_approximate, estimator_version, renderer_version, compression_method, retrieval_config_version]
+      properties:
+        schema_version: { type: integer }
+        snapshot_id: { type: string }
+        task_ref: { type: string }
+        scope: { type: string }
+        user_input_digest: { type: string }
+        assembled_digest: { type: string }
+        created_at: { type: string, format: date-time }
+        included:
+          type: array
+          items: { $ref: '#/components/schemas/SnapshotItem' }
+        omitted:
+          type: array
+          items: { $ref: '#/components/schemas/SnapshotOmission' }
+        budget: { $ref: '#/components/schemas/SnapshotBudget' }
+        estimator_version: { type: string }
+        renderer_version: { type: string }
+        compression_method: { type: string }
+        retrieval_config_version: { type: string }
+        exact_vs_approximate:
+          type: string
+          description: 'core_produced for the Core''s own stored snapshot; the approximate case is the pre-compile preview read''s (unfrozen).'
+    Approval:
+      type: object
+      description: The Core-issued approval request (F8).
+      required: [approval_id, job_id, state, created_at]
+      properties:
+        approval_id: { type: string }
+        job_id: { type: string }
+        state: { type: string, description: 'pending | accepted | rejected' }
+        decision: { type: string, description: 'accept | reject' }
+        decided_by: { type: string }
+        correlation_id: { type: string }
+        created_at: { type: string, format: date-time }
+        decided_at: { type: string, format: date-time }
+    ApprovalDecisionResult:
+      type: object
+      required: [approval, job, replayed]
+      properties:
+        approval: { $ref: '#/components/schemas/Approval' }
+        job: { $ref: '#/components/schemas/Job' }
+        replayed: { type: boolean }
+    ConnectionHeader:
+      type: object
+      required: [name, value]
+      properties:
+        name: { type: string }
+        value: { type: string, writeOnly: true }
+    ConnectionRecord:
+      type: object
+      description: The durable connection record (F3); the secret is a handle reference, never a value.
+      required: [connection_id, provider, model_id, secret_ref, credential_epoch, created_at, updated_at]
+      properties:
+        connection_id: { type: string }
+        idempotency_key: { type: string }
+        provider: { type: string }
+        base_url: { type: string }
+        model_id: { type: string }
+        custom_headers:
+          type: array
+          items: { $ref: '#/components/schemas/ConnectionHeader' }
+        secret_ref: { type: string }
+        credential_epoch: { type: integer }
+        tested_at: { type: string, format: date-time }
+        tested_digest: { type: string }
+        tested_epoch: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ConnectionView:
+      type: object
+      required: [record, secret_status, test_current, active]
+      properties:
+        record: { $ref: '#/components/schemas/ConnectionRecord' }
+        secret_status: { type: string, description: 'The masked status vocabulary — present | missing | revoked | corrupt | inaccessible.' }
+        test_current: { type: boolean, description: 'false = tested, but changed since (stale-truthful).' }
+        active: { type: boolean }
+    ConnectionSaveRequest:
+      type: object
+      description: The save/test request form (F3); the credential value rides the request only.
+      required: [idempotency_key, provider, model_id]
+      properties:
+        idempotency_key: { type: string }
+        provider: { type: string }
+        base_url: { type: string }
+        model_id: { type: string }
+        custom_headers:
+          type: array
+          items: { $ref: '#/components/schemas/ConnectionHeader' }
+        secret: { type: string, writeOnly: true }
+        classification: { type: string }
+    ConnectionTestReport:
+      type: object
+      required: [ok, provider, model_id, correlation_id]
+      properties:
+        ok: { type: boolean }
+        provider: { type: string }
+        model_id: { type: string }
+        base_url: { type: string }
+        capabilities:
+          type: object
+          additionalProperties: true
+          description: The coded capability set (F2 unfrozen — the open object form).
+        error_kind: { type: string, description: The sanitized failure kind; no upstream body. }
+        error_detail: { type: string }
+        correlation_id: { type: string }
+    ConnectionRotateResult:
+      type: object
+      required: [record, affected_models, routing_note, interruption_note]
+      properties:
+        record: { $ref: '#/components/schemas/ConnectionRecord' }
+        affected_models:
+          type: array
+          items: { type: string }
+        routing_note: { type: string }
+        interruption_note: { type: string }

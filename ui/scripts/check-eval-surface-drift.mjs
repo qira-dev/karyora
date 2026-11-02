@@ -5,15 +5,18 @@
  * regenerated from the versioned contract source and must match the
  * committed snapshot byte-for-byte, or a drift is reported.
  *
- * Honest scope (recorded, not hidden): the only contract document in the
- * repository today is `contracts/openapi.yaml`, the explicitly
+ * Honest scope (recorded, not hidden): the contract document in the
+ * repository is `contracts/openapi.yaml`. It carried the explicitly
  * NON-CANONICAL `0.1.0-eval` evaluation surface (one indicative
- * `submitJob` operation). The committed snapshot under
+ * `submitJob` operation) until the owner's recorded contract publication
+ * act (2026-11-03) switched it to the canonical `0.1.0` published set of
+ * the frozen contract families (F1/F3/F5/F6/F7/F8/F10) — this script's
+ * own recorded switch condition. The committed snapshot under
  * src/coreclient/generated-eval-surface/ is the drift-check baseline for
- * THIS chain proof only; it is consumed by no component, and no exact
- * wire name is treated as canonical (P2.1 O-1 keeps every wire name Open
- * with the Core/API owner). When a canonical contract surface is
- * published, this script's target switches to it.
+ * that published set: it is regenerated from the contract source and must
+ * match it byte-for-byte. The family-specific wire shapes the UI
+ * components consume remain their hand-typed typed boundaries; this
+ * generated snapshot is the contract-derived check surface.
  *
  * Run: node scripts/check-eval-surface-drift.mjs (wired into CI's ui job).
  */

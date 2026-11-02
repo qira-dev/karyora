@@ -11,10 +11,291 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** List jobs (F7; the keyset list semantics). */
+        get: operations["listJobs"];
+        put?: never;
+        /**
+         * Submit a durable job (F6/F7; the Supplied create idempotency).
+         * @description 202 Accepted means accepted for processing, never completion. Same idempotency key + same input digest replays the original job while it is live or within 72 h after its terminal transition; the same key with a different body is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE.
+         */
+        post: operations["submitJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        /** Read one job's authoritative state with its current attempt (F7). */
+        get: operations["getJobStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one job's event records (F10). */
+        get: operations["listJobEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one job's stored result (F7; the CAS bytes, digest-re-verified). */
+        get: operations["getJobResult"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         get?: never;
         put?: never;
-        /** Submit a durable job (evaluation surface only; idempotency semantics are specified in Phase 1 task C1-07, not here). */
-        post: operations["submitJob"];
+        /** Request one job's cancellation (F7; 202 = accepted for processing). */
+        post: operations["cancelJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one attempt's context-snapshot structure (F5; no compiled content). */
+        get: operations["getJobContextSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one job's raised approval request (F8; a read never records a decision). */
+        get: operations["getJobApproval"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/approvals/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept one approval (F8; the Core-confirmed transition re-queues the job). */
+        post: operations["acceptJobApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/approvals/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject one approval (F8; the Core-confirmed transition ends the job failed). */
+        post: operations["rejectJobApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build the pre-submit review payload (F6; a read that creates nothing). */
+        post: operations["reviewJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List connections (F3; the keyset list semantics). */
+        get: operations["listConnections"];
+        put?: never;
+        /** Save one provider connection (F3; the Supplied create idempotency). */
+        post: operations["saveConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run the bounded, read-only connection test (F3; safe re-issue). */
+        post: operations["testConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConnectionId"];
+            };
+            cookie?: never;
+        };
+        /** Read one connection (F3; masked status, never a secret value). */
+        get: operations["getConnection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace one connection's credential under the same handle (F3). */
+        post: operations["rotateConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections/{id}/reauthenticate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-enter one connection's credential (F3; the rotate path's cousin). */
+        post: operations["reauthenticateConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections/{id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke then delete one connection (F3; revocation fails closed). */
+        post: operations["deleteConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/connections/{id}/switch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set one connection active (F3; the minimal M-34 pointer). */
+        post: operations["switchConnection"];
         delete?: never;
         options?: never;
         head?: never;
@@ -25,27 +306,330 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * JobSubmitRequest
-         * @description Phase 1 tooling-evaluation payload. Not an API freeze; candidate validators are compared against the shared fixtures using this schema.
-         */
-        "job-submit-request.schema": {
-            /** Format: uuid */
-            workspaceId: string;
-            prompt: string;
-            /** @enum {string} */
-            providerId: "openai" | "anthropic" | "google-gemini" | "alibaba-qwen" | "glm-zai" | "kimi-moonshot" | "minimax" | "deepseek" | "custom";
-            idempotencyKey: string;
+        /** @description The D-35 four-field envelope (F1); the machine code set is the coded register. */
+        ErrorEnvelope: {
+            code: string;
+            retryable: boolean;
+            correlationId: string;
+            data?: {
+                [key: string]: unknown;
+            };
+        };
+        Requirements: {
+            provider_id: string;
+            min_memory_mb: number;
+        };
+        /** @description The closed coded Job-state register (lowercase, as coded). */
+        JobState: string;
+        /** @description The durable Job (F7). */
+        Job: {
+            job_id: string;
+            idempotency_key: string;
+            input_digest: string;
+            state: components["schemas"]["JobState"];
+            version: number;
+            attempt_count: number;
+            waiting_reason?: string;
+            requirements: components["schemas"]["Requirements"];
+            deadline_secs?: number;
+            result_digest?: string;
+            receipt_id?: string;
+            correlation_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description One bounded execution of a Job (F7); empty attempt_id = none recorded. */
+        Attempt: {
+            attempt_id: string;
+            job_id: string;
+            seq: number;
+            worker_id: string;
+            lease_id: string;
+            lease_epoch: number;
+            outcome: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            ends_at?: string;
+        };
+        /** @description The event record (F10; the frozen field set). */
+        EventRecord: {
+            event_id: string;
+            aggregate_type: string;
+            aggregate_id: string;
+            sequence: number;
+            event_type: string;
+            schema_version: number;
+            /** Format: date-time */
+            occurred_at: string;
+            causation_id?: string;
+            correlation_id?: string;
+            producer: string;
+            inline_payload?: {
+                [key: string]: unknown;
+            };
+            payload_digest?: string;
+            blob_ref?: string;
+        };
+        /** @description The durable submission (F6; the idempotency key rides the request; the classification's empty value is protected-unlabeled and blocks every real provider). */
+        SubmitRequest: {
+            idempotency_key: string;
+            task: string;
+            system?: string;
+            schema?: {
+                [key: string]: unknown;
+            };
+            /** @description "packID" or "packID@version"; empty = no retrieval. */
+            pack_ref?: string;
+            provider: string;
+            model?: string;
+            max_output_tokens?: number;
+            deadline_secs?: number;
+            classification?: string;
+            base_url?: string;
+        };
+        SubmitResult: {
+            job: components["schemas"]["Job"];
+            replayed: boolean;
+        };
+        JobList: {
+            jobs: components["schemas"]["Job"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        ReviewIntent: {
+            task: string;
+            system?: string;
+            schema_provided: boolean;
+        };
+        ReviewSources: {
+            /** @description none | resolved | unresolved | unavailable */
+            state: string;
+            pack_ref?: string;
+            pack_id?: string;
+            version?: number;
+            status?: string;
+            reason?: string;
+            scope?: string;
+        };
+        ReviewProviderModel: {
+            provider: string;
+            wired: boolean;
+            model?: string;
+            profile?: {
+                [key: string]: unknown;
+            };
+            /** @description The coded capability set (F2 unfrozen — the open object form). */
+            capabilities?: {
+                [key: string]: unknown;
+            };
+        };
+        ReviewEffect: {
+            effect: string;
+            /** @description local | external | unknown */
+            class: string;
+            retry: string;
+            idempotency_scope?: string;
+            unknown_outcome: string;
+        };
+        ReviewPermission: {
+            allowed: boolean;
+            reason: string;
+            action: string;
+        };
+        ReviewPolicy: {
+            profile_known: boolean;
+            review?: string;
+            deployment?: string;
+            training_use?: string;
+            abuse_retention?: string;
+            application_state_ttl?: string;
+            subprocessors?: string;
+            deletion_eligibility?: string;
+            egress_allowed: boolean;
+            egress_reason?: string;
+        };
+        ReviewApprovalNeed: {
+            required: boolean;
+            basis: string;
+        };
+        ReviewBudget: {
+            reserved_output_tokens?: number;
+        };
+        /** @description The pre-submit review payload (F6; the eight fields). */
+        ReviewPayload: {
+            intent: components["schemas"]["ReviewIntent"];
+            sources: components["schemas"]["ReviewSources"];
+            provider_model: components["schemas"]["ReviewProviderModel"];
+            tool_effects: components["schemas"]["ReviewEffect"][];
+            permission: components["schemas"]["ReviewPermission"];
+            policy: components["schemas"]["ReviewPolicy"];
+            approval_need: components["schemas"]["ReviewApprovalNeed"];
+            budget: components["schemas"]["ReviewBudget"];
+        };
+        SnapshotItem: {
+            ref: string;
+            digest: string;
+            trust_label: string;
+            reason: string;
+        };
+        SnapshotOmission: {
+            ref: string;
+            /** @description The coded C3-09 omission-reason vocabulary. */
+            reason: string;
+        };
+        SnapshotBudgetRequested: {
+            /** @description Absent when unbounded — never zero. */
+            max_input_tokens?: number;
+            /** @description Absent when unbounded — never zero. */
+            reserved_output_tokens?: number;
+            /** @description Absent when unbounded — never zero. */
+            max_items?: number;
+        };
+        SnapshotBudget: {
+            requested: components["schemas"]["SnapshotBudgetRequested"];
+            estimated_input_tokens: number;
+            estimator_version: string;
+        };
+        /** @description The structural snapshot view (F5); the compiled content is never carried. */
+        SnapshotView: {
+            schema_version: number;
+            snapshot_id: string;
+            task_ref: string;
+            scope: string;
+            user_input_digest: string;
+            assembled_digest: string;
+            /** Format: date-time */
+            created_at: string;
+            included: components["schemas"]["SnapshotItem"][];
+            omitted: components["schemas"]["SnapshotOmission"][];
+            budget: components["schemas"]["SnapshotBudget"];
+            estimator_version: string;
+            renderer_version: string;
+            compression_method: string;
+            retrieval_config_version: string;
+            /** @description core_produced for the Core's own stored snapshot; the approximate case is the pre-compile preview read's (unfrozen). */
+            exact_vs_approximate: string;
+        };
+        /** @description The Core-issued approval request (F8). */
+        Approval: {
+            approval_id: string;
+            job_id: string;
+            /** @description pending | accepted | rejected */
+            state: string;
+            /** @description accept | reject */
+            decision?: string;
+            decided_by?: string;
+            correlation_id?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            decided_at?: string;
+        };
+        ApprovalDecisionResult: {
+            approval: components["schemas"]["Approval"];
+            job: components["schemas"]["Job"];
+            replayed: boolean;
+        };
+        ConnectionHeader: {
+            name: string;
+            value: string;
+        };
+        /** @description The durable connection record (F3); the secret is a handle reference, never a value. */
+        ConnectionRecord: {
+            connection_id: string;
+            idempotency_key?: string;
+            provider: string;
+            base_url?: string;
+            model_id: string;
+            custom_headers?: components["schemas"]["ConnectionHeader"][];
+            secret_ref: string;
+            credential_epoch: number;
+            /** Format: date-time */
+            tested_at?: string;
+            tested_digest?: string;
+            tested_epoch?: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        ConnectionView: {
+            record: components["schemas"]["ConnectionRecord"];
+            /** @description The masked status vocabulary — present | missing | revoked | corrupt | inaccessible. */
+            secret_status: string;
+            /** @description false = tested, but changed since (stale-truthful). */
+            test_current: boolean;
+            active: boolean;
+        };
+        /** @description The save/test request form (F3); the credential value rides the request only. */
+        ConnectionSaveRequest: {
+            idempotency_key: string;
+            provider: string;
+            base_url?: string;
+            model_id: string;
+            custom_headers?: components["schemas"]["ConnectionHeader"][];
+            secret?: string;
+            classification?: string;
+        };
+        ConnectionTestReport: {
+            ok: boolean;
+            provider: string;
+            model_id: string;
+            base_url?: string;
+            /** @description The coded capability set (F2 unfrozen — the open object form). */
+            capabilities?: {
+                [key: string]: unknown;
+            };
+            /** @description The sanitized failure kind; no upstream body. */
+            error_kind?: string;
+            error_detail?: string;
+            correlation_id: string;
+        };
+        ConnectionRotateResult: {
+            record: components["schemas"]["ConnectionRecord"];
+            affected_models: string[];
+            routing_note: string;
+            interruption_note: string;
         };
     };
     responses: never;
-    parameters: never;
+    parameters: {
+        JobId: string;
+        ConnectionId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listJobs: {
+        parameters: {
+            query?: {
+                limit?: number;
+                status?: components["schemas"]["JobState"];
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobList"];
+                };
+            };
+        };
+    };
     submitJob: {
         parameters: {
             query?: never;
@@ -55,16 +639,450 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["job-submit-request.schema"];
+                "application/json": components["schemas"]["SubmitRequest"];
             };
         };
         responses: {
-            /** @description Accepted */
+            /** @description Accepted for processing (the Core-confirmed reference). */
             202: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SubmitResult"];
+                };
+            };
+        };
+    };
+    getJobStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The job and its current attempt (empty attempt_id = none recorded). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job: components["schemas"]["Job"];
+                        attempt: components["schemas"]["Attempt"];
+                    };
+                };
+            };
+        };
+    };
+    listJobEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The job's event records in the Core's returned order. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        events: components["schemas"]["EventRecord"][];
+                    };
+                };
+            };
+        };
+    };
+    getJobResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stored result bytes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    cancelJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted for processing; the authoritative state read confirms. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    getJobContextSnapshot: {
+        parameters: {
+            query?: {
+                attempt?: number;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The snapshot's structural view; the compiled content is never carried. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        snapshot: components["schemas"]["SnapshotView"];
+                    };
+                };
+            };
+        };
+    };
+    getJobApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The latest raised approval, or 404 when none is raised. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        approval: components["schemas"]["Approval"];
+                    };
+                };
+            };
+        };
+    };
+    acceptJobApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    approval_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The recorded decision result (replayed=true on a same-decision replay). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDecisionResult"];
+                };
+            };
+        };
+    };
+    rejectJobApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    approval_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The recorded decision result (replayed=true on a same-decision replay). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovalDecisionResult"];
+                };
+            };
+        };
+    };
+    reviewJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description The eight-field review payload. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        review: components["schemas"]["ReviewPayload"];
+                    };
+                };
+            };
+        };
+    };
+    listConnections: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        connections: components["schemas"]["ConnectionView"][];
+                        cursor?: string;
+                    };
+                };
+            };
+        };
+    };
+    saveConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description The saved connection view (replayed=true on a duplicate). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        connection: components["schemas"]["ConnectionView"];
+                        replayed: boolean;
+                    };
+                };
+            };
+        };
+    };
+    testConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description The sanitized test report (a saved test stamps the tested state). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        report: components["schemas"]["ConnectionTestReport"];
+                        record?: components["schemas"]["ConnectionRecord"];
+                    };
+                };
+            };
+        };
+    };
+    getConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConnectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The connection view. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        connection: components["schemas"]["ConnectionView"];
+                    };
+                };
+            };
+        };
+    };
+    rotateConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConnectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    secret: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The updated record with the working candidate's response data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRotateResult"];
+                };
+            };
+        };
+    };
+    reauthenticateConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConnectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    secret: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The updated record with the working candidate's response data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionRotateResult"];
+                };
+            };
+        };
+    };
+    deleteConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConnectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The credential revoked and the record deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    switchConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConnectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The active pointer set (replayed=true when already active). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        active_connection_id: string;
+                        replayed: boolean;
+                    };
+                };
             };
         };
     };
