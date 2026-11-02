@@ -60,13 +60,13 @@
       "failureUnknownTitle": "The exchange outcome is unknown",
       "failureUnknownBody": "The response was lost or could not be interpreted. A lost response is never proof of success or failure: a one-time credential may or may not have been consumed, and only the Core knows. If the Core shows no session, connect again with a fresh credential — never with the same one.",
       "failureSessionInvalidTitle": "The credential was refused",
-      "failureSessionInvalidBody": "The Core refused the credential ({code}): it is unknown to this Core, already used, expired, or was issued for a different origin than this page. A credential can be exchanged exactly once, and a replayed credential also revokes the session it first minted.",
+      "failureSessionInvalidBody": "The Core refused the credential ({{code}}): it is unknown to this Core, already used, expired, or was issued for a different origin than this page. A credential can be exchanged exactly once, and a replayed credential also revokes the session it first minted.",
       "failureBoundaryTitle": "The Core's boundary refused the exchange",
-      "failureBoundaryBody": "The Core's own boundary rules refused this request (reason: {reason}, code: {code}). Browser-originated requests are enforced by the Core; nothing was exchanged and nothing is worked around here.",
+      "failureBoundaryBody": "The Core's own boundary rules refused this request (reason: {{reason}}, code: {{code}}). Browser-originated requests are enforced by the Core; nothing was exchanged and nothing is worked around here.",
       "failureValidationTitle": "The exchange request was refused as invalid",
-      "failureValidationBody": "The Core refused the exchange request as invalid ({code}{field}). Nothing was exchanged.",
+      "failureValidationBody": "The Core refused the exchange request as invalid ({{code}}{{field}}). Nothing was exchanged.",
       "failureGenericTitle": "The Core refused the exchange",
-      "failureGenericBody": "The Core refused the exchange (code: {code}). Nothing was exchanged. The code above is the Core's stable machine identifier."
+      "failureGenericBody": "The Core refused the exchange (code: {{code}}). Nothing was exchanged. The code above is the Core's stable machine identifier."
     }
   },
   "step2": {
