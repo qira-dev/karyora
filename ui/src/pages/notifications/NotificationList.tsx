@@ -266,7 +266,7 @@ export function NotificationList({
   );
 
   const announce = (() => {
-    if (blockReason !== null) return t("notifications.blocked.connecting");
+    if (blockReason !== null) return t(`notifications.blocked.${blockReason}`);
     switch (listPhase) {
       case "loading":
         return t("notifications.loading");
