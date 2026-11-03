@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/qira-dev/karyora/internal/security"
 	"github.com/qira-dev/karyora/internal/security/teamauth"
@@ -83,6 +82,37 @@ func referenceState(t *testing.T, s *Store, workspaceID, digest string) string {
 		t.Fatalf("read reference row: %v", err)
 	}
 	return state
+}
+
+// cleanGCBaseline clears every leftover orphan the shared test database
+// may carry from an earlier fixture before a GC fixture measures its own
+// rows. The suite runs all object fixtures against ONE PostgreSQL
+// database, and the GC sweep is global across workspaces by design — a
+// fixture that aborts (or a fixture whose grace window elapsed under CI
+// load) can leave orphan rows whose only later effect is to pollute the
+// NEXT fixture's exact-count assertion (marked/Swept/Removed measure the
+// whole table). Every leftover is an unreferenced garbage object by
+// definition — no fixture asserts another fixture's leftovers — so one
+// mark pass plus one grace-0 sweep changes no assertion's subject or
+// strength; it makes each fixture's counts measure ITS OWN rows only.
+// The sweep itself removes nothing referenced or pinned (the structural
+// exclusion these GC fixtures prove), so a clean baseline can never hide
+// a real violation.
+//
+// This baseline is the second-order half of the recorded CI flake (run
+// 41711301551): an aborted fixture's leftovers polluting the next
+// fixture's exact counts. The first-order half — the grace fixture's own
+// 50 ms window elapsing under race-detector load before its
+// inside-grace sweep — is fixed in that fixture itself (a load-proof
+// window plus the server-side backdate), not here.
+func cleanGCBaseline(t *testing.T, s *Store) {
+	t.Helper()
+	if _, err := s.MarkStoreOrphans(context.Background()); err != nil {
+		t.Fatalf("baseline mark: %v", err)
+	}
+	if _, err := s.SweepOrphanedObjects(context.Background(), 0); err != nil {
+		t.Fatalf("baseline sweep: %v", err)
+	}
 }
 
 func TestObjectRoundTripAndTenantIsolation(t *testing.T) {
@@ -211,7 +241,18 @@ func TestOrphanGCGraceSecondPassRecheck(t *testing.T) {
 	ctx := context.Background()
 	ws := uid("ws-gc")
 	seedWorkspace(t, s, ws)
-	s.GCGrace = 50 * time.Millisecond // Proposed numeric; the SERVER clock decides
+	cleanGCBaseline(t, s)
+	// The fixture's OWN window must outlive any load between the drop and
+	// the inside-grace sweep: CI's race-detector load did elapse the
+	// previous 50 ms window mid-fixture (run 41711301551 — the sweep
+	// removed the fixture's own dropped row before the inside-grace
+	// assertion ran). The coded Proposed default (24 h) is load-proof;
+	// the assertion's subject is unchanged — the grace-window respect,
+	// with the SERVER clock deciding eligibility. The past-grace state is
+	// produced server-side below (clock_timestamp() arithmetic — the pin
+	// fixture's forced-state precedent), never by a host-side sleep
+	// racing the window.
+	s.GCGrace = DefaultGCGrace
 
 	// Origin 1: the designed deletion path.
 	dropped := []byte("gc dropped reference " + fmt.Sprint(runStamp))
@@ -242,7 +283,17 @@ func TestOrphanGCGraceSecondPassRecheck(t *testing.T) {
 	if !blobHas(t, s, ws, dropDigest) || !blobHas(t, s, ws, strayDigest) {
 		t.Fatal("objects must survive inside the grace period")
 	}
-	time.Sleep(120 * time.Millisecond) // the SERVER clock passes the grace
+	// The SERVER clock passes the grace: the two rows' grace start moves
+	// back TWO window-widths inside the server (clock_timestamp()
+	// arithmetic), deterministically past grace — no host-side sleep
+	// races the window, and the eligibility check stays entirely
+	// server-side.
+	if _, err := s.pool.Exec(ctx, `
+		UPDATE object_refs SET orphan_since = clock_timestamp() - make_interval(secs => $1)
+		WHERE workspace_id = $2 AND digest = ANY($3)`,
+		2*s.GCGrace.Seconds(), ws, []string{dropDigest, strayDigest}); err != nil {
+		t.Fatalf("pass the grace server-side: %v", err)
+	}
 
 	// The sweep removes both after grace; no rows dangle, no bytes dangle.
 	res, err := s.SweepOrphanedObjects(ctx, s.GCGrace)
@@ -280,6 +331,7 @@ func TestSweepLeaseBlocksReferenceCommit(t *testing.T) {
 	ctx := context.Background()
 	ws := uid("ws-lease")
 	seedWorkspace(t, s, ws)
+	cleanGCBaseline(t, s)
 
 	content := []byte("sweep lease fixture " + fmt.Sprint(runStamp))
 	digest := DigestOf(content)
@@ -330,6 +382,7 @@ func TestGCNeverRemovesReferencedOrPinned(t *testing.T) {
 	ctx := context.Background()
 	ws := uid("ws-pins")
 	seedWorkspace(t, s, ws)
+	cleanGCBaseline(t, s)
 
 	plain := []byte("gc-protected referenced object " + fmt.Sprint(runStamp))
 	plainDigest := DigestOf(plain)
