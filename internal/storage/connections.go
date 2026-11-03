@@ -22,13 +22,13 @@ import (
 // single-row connection_state table carries the active-connection
 // reference (the minimal M-34 switch working candidate).
 
-const connectionColumns = `connection_id, idempotency_key, provider, base_url, model_id, custom_headers, secret_ref, credential_epoch, fingerprint, tested_at, tested_digest, tested_epoch, created_at, updated_at`
+const connectionColumns = `connection_id, idempotency_key, provider, base_url, model_id, custom_headers, display_name, secret_ref, credential_epoch, fingerprint, tested_at, tested_digest, tested_epoch, created_at, updated_at`
 
 func scanConnection(row rowScanner) (dprovider.ConnectionRecord, error) {
 	var r dprovider.ConnectionRecord
 	var headersJSON string
 	err := row.Scan(&r.ConnectionID, &r.IdempotencyKey, &r.Provider, &r.BaseURL, &r.ModelID,
-		&headersJSON, &r.SecretRef, &r.CredentialEpoch, &r.Fingerprint,
+		&headersJSON, &r.DisplayName, &r.SecretRef, &r.CredentialEpoch, &r.Fingerprint,
 		&r.TestedAt, &r.TestedDigest, &r.TestedEpoch, &r.CreatedAt, &r.UpdatedAt)
 	if err != nil {
 		return r, err
@@ -246,6 +246,112 @@ func (s *Store) BumpConnectionCredential(ctx context.Context, connectionID strin
 		return dprovider.ConnectionRecord{}, mapVendorError(err)
 	}
 	return connectionByID(ctx, s, connectionID)
+}
+
+// RenameConnection sets the record's display name (the M-27 register row's
+// rename portion as implemented — the adopted S8 supply's working
+// candidate): the display name ONLY. The connection identity, the secret
+// reference, the credential epoch, the fingerprint, the tested state, and
+// the timestamps' history are all untouched; the write bumps updated_at
+// (the record's mutation marker). The write is FENCED on the record's
+// current updated_at marker (the concurrent-edit guard): a concurrent
+// writer that moved the marker makes the UPDATE match no row, the record
+// is re-read to separate not-found from the stale marker, and the stale
+// case returns the domain's ErrConnectionStaleMarker for the use-case
+// layer's typed CONFLICT_STATE envelope with currentState.
+func (s *Store) RenameConnection(ctx context.Context, connectionID, displayName, expectedUpdatedAt string) (dprovider.ConnectionRecord, error) {
+	if connectionID == "" || expectedUpdatedAt == "" {
+		return dprovider.ConnectionRecord{}, errStoragef(errs.CodeValidationFailed, "a rename requires its connection id and the marker it was read under")
+	}
+	name := strings.TrimSpace(displayName)
+	if err := dprovider.ValidateDisplayName(name); err != nil {
+		return dprovider.ConnectionRecord{}, errStoragef(errs.CodeValidationFailed, "%v", err)
+	}
+	if _, err := connectionByID(ctx, s, connectionID); err != nil {
+		return dprovider.ConnectionRecord{}, err
+	}
+	res, err := s.writers.ExecContext(ctx, `UPDATE provider_connections
+		SET display_name = ?, updated_at = ?
+		WHERE connection_id = ? AND updated_at = ?`,
+		name, time.Now().UTC().Format(time.RFC3339Nano), connectionID, expectedUpdatedAt)
+	if err != nil {
+		return dprovider.ConnectionRecord{}, mapVendorError(err)
+	}
+	if n, rerr := res.RowsAffected(); rerr == nil && n == 0 {
+		return dprovider.ConnectionRecord{}, connectionFenceOutcome(ctx, s, connectionID)
+	}
+	return connectionByID(ctx, s, connectionID)
+}
+
+// UpdateConnectionFields is one non-secret field update's field set (the
+// adopted S8 supply's P-S8-02 working candidate): EXACTLY the coded create
+// shape's non-secret fields. No secret field exists on this shape — the
+// secret path stays the coded rotate/re-authenticate contract, and the
+// record's secret reference, credential epoch, and create fingerprint are
+// carried over untouched by the store. Port type alias: the shape lives in
+// the domain package so the storage adapter and the use-case layer share
+// one shape (the ListConnectionsQuery precedent).
+type UpdateConnectionFields = dprovider.UpdateConnectionFields
+
+// UpdateConnection replaces the record's non-secret fields (the P-S8-02
+// working candidate: the coded create shape's non-secret field set —
+// provider, base URL, model id, custom headers). The write is FENCED on
+// the record's current updated_at marker (the concurrent-edit guard, the
+// same chosen class the rename rides): a concurrent writer that moved the
+// marker makes the UPDATE match no row and the stale case returns the
+// domain's ErrConnectionStaleMarker. Any accepted update changes the
+// record's inputs digest, so the tested state renders stale-truthfully
+// afterward (the coded staleness rule's own behavior — never a refusal).
+// The secret reference, the credential epoch, and the create fingerprint
+// are carried over untouched: the create-idempotency replay ruling stays
+// keyed to the CREATE body.
+func (s *Store) UpdateConnection(ctx context.Context, connectionID string, fields UpdateConnectionFields, expectedUpdatedAt string) (dprovider.ConnectionRecord, error) {
+	if connectionID == "" || expectedUpdatedAt == "" {
+		return dprovider.ConnectionRecord{}, errStoragef(errs.CodeValidationFailed, "an update requires its connection id and the marker it was read under")
+	}
+	current, err := connectionByID(ctx, s, connectionID)
+	if err != nil {
+		return dprovider.ConnectionRecord{}, err
+	}
+	merged := current
+	merged.Provider = fields.Provider
+	merged.BaseURL = fields.BaseURL
+	merged.ModelID = fields.ModelID
+	merged.CustomHeaders = fields.CustomHeaders
+	if err := dprovider.ValidateRecord(merged); err != nil {
+		return dprovider.ConnectionRecord{}, errStoragef(errs.CodeValidationFailed, "%v", err)
+	}
+	headersJSON := ""
+	if len(fields.CustomHeaders) > 0 {
+		b, err := json.Marshal(fields.CustomHeaders)
+		if err != nil {
+			return dprovider.ConnectionRecord{}, errStoragef(errs.CodeValidationFailed, "connection headers are not encodable")
+		}
+		headersJSON = string(b)
+	}
+	res, err := s.writers.ExecContext(ctx, `UPDATE provider_connections
+		SET provider = ?, base_url = ?, model_id = ?, custom_headers = ?, updated_at = ?
+		WHERE connection_id = ? AND updated_at = ?`,
+		fields.Provider, fields.BaseURL, fields.ModelID, headersJSON,
+		time.Now().UTC().Format(time.RFC3339Nano), connectionID, expectedUpdatedAt)
+	if err != nil {
+		return dprovider.ConnectionRecord{}, mapVendorError(err)
+	}
+	if n, rerr := res.RowsAffected(); rerr == nil && n == 0 {
+		return dprovider.ConnectionRecord{}, connectionFenceOutcome(ctx, s, connectionID)
+	}
+	return connectionByID(ctx, s, connectionID)
+}
+
+// connectionFenceOutcome resolves a conditional write that matched no row:
+// the record is re-read so not-found (a concurrent delete) stays the typed
+// NOT_FOUND, and a still-stored record reports the stale-marker fence
+// signal (the concurrent-edit guard's store side).
+func connectionFenceOutcome(ctx context.Context, s *Store, connectionID string) error {
+	if _, err := connectionByID(ctx, s, connectionID); err != nil {
+		return err
+	}
+	return dprovider.ErrConnectionStaleMarker
 }
 
 // DeleteConnection removes the record; the caller revokes the keyring

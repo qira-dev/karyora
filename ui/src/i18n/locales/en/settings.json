@@ -80,12 +80,11 @@
     "providerSectionTitle": "Provider connection setup",
     "providerIntro": "This is the same provider setup step the first-run wizard uses. You can also reach it from the first-run setup on the home page. Re-running setup never resets existing state.",
     "operationsTitle": "Connection operations",
-    "operationsIntro": "The dedicated connection flow offers add, rename, remove, test, and re-authenticate. Each operation runs only through the Core connection contracts, which are not wired in this milestone, so each control states its real availability.",
+    "operationsIntro": "The dedicated connection flow offers add and switch here; each saved connection's row carries its own commands (rename, edit, test, replace key, re-enter key, set active, remove), every one running only through the Core connection contracts.",
     "opAdd": "Add connection",
     "opAddNote": "Opens the provider connection setup below — the only connection type whose setup fields are specified in this phase. Setup for other connection types needs the Core bootstrap contracts, which are not wired yet.",
     "opAddGo": "Add a provider connection",
     "opRename": "Rename connection",
-    "opRenameUnavailable": "Renaming a connection is not part of the connection contract this milestone implements — the disabled control states that reason.",
     "opRemove": "Remove connection",
     "opRemoveUnavailable": "Remove applies to a connection in the list. The connection list is unavailable, so there is nothing to remove yet. Removal is destructive and always asks for an explicit confirmation that states its scope and effects before it runs.",
     "opTest": "Test connection",
@@ -152,8 +151,27 @@
       "rotate": "Replace key",
       "reauth": "Re-enter key",
       "delete": "Remove connection",
-      "switch": "Set active"
-    }
+      "switch": "Set active",
+      "rename": "Rename connection",
+      "update": "Edit connection"
+    },
+    "opEdit": "Edit connection",
+    "renameTitle": "Rename connection",
+    "renameBody": "Choose a display name for connection {{connectionId}}.",
+    "renameEffects": "A rename changes the display name only: it never changes the connection identity, and no job, credential, or execution history moves.",
+    "renameInputLabel": "Display name",
+    "renameConfirm": "Rename",
+    "editTitle": "Edit connection",
+    "editBody": "Edit connection {{connectionId}}’s non-secret fields below.",
+    "editEffects": "Only the non-secret fields change. The stored key is never shown or edited here: to change the key, use Replace key or Re-enter key. After a confirmed edit the connection’s last test no longer counts as current until you run the test again.",
+    "editProviderLabel": "Provider",
+    "editBaseUrlLabel": "Base URL (optional)",
+    "editModelLabel": "Model ID",
+    "editHeadersLabel": "Custom headers (optional)",
+    "editHeadersHelp": "One header per line, as Name: value.",
+    "editHeadersInvalid": "Enter headers one per line, as Name: value.",
+    "editConfirm": "Save changes",
+    "conflictNote": "This connection changed since it was read (CONFLICT_STATE). Nothing was overwritten: check the status to re-read the current state, then re-apply your change from what the list shows."
   },
   "updates": {
     "body": "Update and maintenance status is not shown: the update-status contract is not wired in this milestone. This surface never implies checkout, expiry lockout, or any maintenance behavior."

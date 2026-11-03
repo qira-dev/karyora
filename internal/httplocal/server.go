@@ -179,6 +179,18 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/reauthenticate", mutates: true, handler: (*Server).handleConnectionReauthenticate},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/delete", mutates: true, handler: (*Server).handleConnectionDelete},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/switch", mutates: true, handler: (*Server).handleConnectionSwitch},
+		// The connection-record rename and the non-secret field update (the
+		// adopted S8 supply's P-S8-01/P-S8-02 working candidates, the M-27
+		// register row's rename portion + the coded create shape's
+		// non-secret field set). The concurrent-edit guard rides both: the
+		// request carries the updated_at marker the caller read, and a
+		// stale marker is the typed CONFLICT_STATE 409 with
+		// data.currentState. NO secret field exists on either request —
+		// the secret path stays the coded rotate/re-authenticate routes
+		// above, byte-identical. The paths are this adapter's own (the
+		// IMPL-4/6/7/8 convention); no published contract carries them.
+		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/rename", mutates: true, handler: (*Server).handleConnectionRename},
+		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/update", mutates: true, handler: (*Server).handleConnectionUpdate},
 		// The conversation surface (the adopted S5 mapping, P-S5-01…05): the
 		// aggregate create, the list/search query, the aggregate read, the
 		// messages read, the Ask send, and the S4 exchange-status query.
@@ -761,6 +773,60 @@ func (s *Server) handleConnectionCredentialReplace(w http.ResponseWriter, r *htt
 		return
 	}
 	s.writeJSON(w, http.StatusOK, res)
+}
+
+// handleConnectionRename exposes the connection-record rename command (the
+// M-27 register row's rename portion as implemented — the adopted S8
+// supply's P-S8-01 working candidate): the display name ONLY, fenced on
+// the updated_at marker the caller read (the concurrent-edit guard; a
+// stale marker is the typed CONFLICT_STATE 409 with data.currentState).
+// The request carries NO secret field — the secret path stays the coded
+// rotate/re-authenticate routes.
+func (s *Server) handleConnectionRename(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	var req connectionRenameRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.RenameConnection(s.callCtx(r, token), app.RenameConnectionRequest{
+		ConnectionID:      connectionID,
+		DisplayName:       req.DisplayName,
+		ExpectedUpdatedAt: req.ExpectedUpdatedAt,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, connectionRenameResult{Connection: res.Connection})
+}
+
+// handleConnectionUpdate exposes the non-secret field update command (the
+// adopted S8 supply's P-S8-02 working candidate): EXACTLY the coded create
+// shape's non-secret fields, fenced on the updated_at marker the caller
+// read (the same concurrent-edit guard the rename rides). The request
+// carries NO secret field — a credential change stays the coded
+// rotate/re-authenticate routes, and no update path ever writes a secret.
+func (s *Server) handleConnectionUpdate(w http.ResponseWriter, r *http.Request, token, connectionID string) {
+	var req connectionUpdateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.UpdateConnection(s.callCtx(r, token), app.UpdateConnectionRequest{
+		ConnectionID:      connectionID,
+		Provider:          req.Provider,
+		BaseURL:           req.BaseURL,
+		ModelID:           req.ModelID,
+		CustomHeaders:     req.CustomHeaders,
+		ExpectedUpdatedAt: req.ExpectedUpdatedAt,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, connectionUpdateResult{Connection: res.Connection})
 }
 
 // handleConnectionDelete exposes the delete/revoke command: the Core
@@ -1511,6 +1577,41 @@ type connectionCredentialRequest struct {
 	// secret is the NEW write-only replacement key (M-26/M-27): never the
 	// decrypted old key, never echoed.
 	Secret string `json:"secret"`
+}
+
+type connectionRenameRequest struct {
+	// display_name is the record's display label (the M-27 rename portion
+	// as implemented — the display name ONLY, never the connection
+	// identity, never the execution history); expected_updated_at is the
+	// marker the caller read the record under — the concurrent-edit
+	// guard's input (a stale marker is the typed CONFLICT_STATE 409 with
+	// data.currentState). NO secret field exists on this request.
+	DisplayName       string `json:"display_name"`
+	ExpectedUpdatedAt string `json:"expected_updated_at"`
+}
+
+type connectionRenameResult struct {
+	// connection is the Core-confirmed view (the record + the masked
+	// secret status + the tested-state truth + the active flag).
+	Connection app.ConnectionView `json:"connection"`
+}
+
+type connectionUpdateRequest struct {
+	// provider/base_url/model_id/custom_headers are EXACTLY the coded
+	// create shape's non-secret field set (P-S8-02); expected_updated_at
+	// is the concurrent-edit guard's marker. NO secret field exists on
+	// this request — no update path ever writes a credential.
+	Provider          string                       `json:"provider"`
+	BaseURL           string                       `json:"base_url,omitempty"`
+	ModelID           string                       `json:"model_id"`
+	CustomHeaders     []dprovider.ConnectionHeader `json:"custom_headers,omitempty"`
+	ExpectedUpdatedAt string                       `json:"expected_updated_at"`
+}
+
+type connectionUpdateResult struct {
+	// connection is the Core-confirmed view; any accepted update renders
+	// the tested state stale-truthfully (the coded inputs digest).
+	Connection app.ConnectionView `json:"connection"`
 }
 
 type eventsResult struct {

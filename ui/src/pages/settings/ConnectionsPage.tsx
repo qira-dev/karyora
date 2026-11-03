@@ -13,6 +13,7 @@ import { PageHeading, PageLayout, PageSection } from "../PageLayout";
 import styles from "./ConnectionsPage.module.css";
 import { ProviderSetupForm, type ProviderSetupFormHandle } from "../firstRun/ProviderSetupForm";
 import { ConnectionCredentialDialog } from "./ConnectionCredentialDialog";
+import { ConnectionEditDialog, ConnectionRenameDialog } from "./ConnectionRecordDialogs";
 
 /**
  * `/settings/connections` (C-14) — the Settings home of the connection
@@ -54,10 +55,27 @@ import { ConnectionCredentialDialog } from "./ConnectionCredentialDialog";
  *   verified time; Saved-untested visibly labeled; Untested-after-change
  *   rendered stale-truthfully via the Core's tested-state truth
  *   (test_current=false with a tested instant = tested, changed since).
- * - Rename stays absent: the connection-record rename command is not in
- *   the card-10 implemented set (the recorded gap keeps its owner) — the
- *   disabled row states that reason, no dead affordance pretends
- *   otherwise. The C-09 Core-switch flow (the dialog below) is its own
+ * - Rename (IMPL-17 — the adopted S8 supply's P-S8-01 working candidate,
+ *   the M-27 register row's rename portion as implemented) is a real
+ *   per-row command over the Core's rename operation: the display name
+ *   ONLY — never the connection identity, never the Job identity, never
+ *   the execution history (the P3.1 M-27 row's binding rule). The row
+ *   renders the record's display name when the record carries one.
+ * - Edit (IMPL-17 — the adopted S8 supply's P-S8-02 working candidate)
+ *   rides the Core's non-secret field update: EXACTLY the coded create
+ *   shape's non-secret fields. The secret is NEVER re-displayed and NO
+ *   secret field exists on the edit flow — a key change rides Replace
+ *   key / Re-enter key (the coded rotate/re-authenticate contract). Any
+ *   accepted edit renders the tested state stale-truthfully (the Core's
+ *   coded inputs digest).
+ * - The concurrent-edit guard (the adopted S8 supply's CHOSEN class,
+ *   disclosed at implementation): both commands send the `updated_at`
+ *   marker the row was read under; a stale marker is the Core's typed
+ *   CONFLICT_STATE — rendered verbatim with the truthful no-overwrite
+ *   note (the P1.6 §5 interim rule's rendering duty: the Core's typed
+ *   outcome renders; the UI performs NO overwrite and NO merge; the
+ *   recovery is the explicit list re-read, never a resend).
+ * - The C-09 Core-switch flow (the dialog below) is its own
  *   contract and rides unchanged.
  */
 export function ConnectionsPage() {
@@ -120,7 +138,7 @@ export function ConnectionsPage() {
     load({ append: false, markRefreshing: true });
   }, [load]);
 
-  type PendingAction = { readonly connectionID: string; readonly action: "test" | "rotate" | "reauth" | "delete" | "switch" } | null;
+  type PendingAction = { readonly connectionID: string; readonly action: "test" | "rotate" | "reauth" | "delete" | "switch" | "rename" | "update" } | null;
 
   // Static key lookups — typed keys (G-10) admit no dynamic keys.
   const SECRET_STATUS_KEYS: Record<string, "connections.secretStatus.present" | "connections.secretStatus.missing" | "connections.secretStatus.revoked" | "connections.secretStatus.corrupt" | "connections.secretStatus.inaccessible"> = {
@@ -130,26 +148,32 @@ export function ConnectionsPage() {
     corrupt: "connections.secretStatus.corrupt",
     inaccessible: "connections.secretStatus.inaccessible",
   };
-  const ACTION_KEYS: Record<"test" | "rotate" | "reauth" | "delete" | "switch", "connections.action.test" | "connections.action.rotate" | "connections.action.reauth" | "connections.action.delete" | "connections.action.switch"> = {
+  const ACTION_KEYS: Record<"test" | "rotate" | "reauth" | "delete" | "switch" | "rename" | "update", "connections.action.test" | "connections.action.rotate" | "connections.action.reauth" | "connections.action.delete" | "connections.action.switch" | "connections.action.rename" | "connections.action.update"> = {
     test: "connections.action.test",
     rotate: "connections.action.rotate",
     reauth: "connections.action.reauth",
     delete: "connections.action.delete",
     switch: "connections.action.switch",
+    rename: "connections.action.rename",
+    update: "connections.action.update",
   };
   const [pending, setPending] = useState<PendingAction>(null);
   const [dialog, setDialog] = useState<
     | { readonly kind: "rotate" | "reauthenticate"; readonly connection: WireConnectionView }
     | { readonly kind: "delete"; readonly connection: WireConnectionView }
     | { readonly kind: "switch"; readonly connection: WireConnectionView }
+    | { readonly kind: "rename"; readonly connection: WireConnectionView }
+    | { readonly kind: "edit"; readonly connection: WireConnectionView }
     | null
   >(null);
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
   const rotateTriggerRef = useRef<HTMLButtonElement>(null);
   const reauthTriggerRef = useRef<HTMLButtonElement>(null);
   const switchConnectionTriggerRef = useRef<HTMLButtonElement>(null);
+  const renameTriggerRef = useRef<HTMLButtonElement>(null);
+  const editTriggerRef = useRef<HTMLButtonElement>(null);
 
-  type ConnAction = "test" | "rotate" | "reauth" | "delete" | "switch";
+  type ConnAction = "test" | "rotate" | "reauth" | "delete" | "switch" | "rename" | "update";
   type ActionOutcome =
     | { readonly kind: "confirmed"; readonly action: ConnAction; readonly connectionID: string; readonly detail: string }
     | { readonly kind: "refused"; readonly action: ConnAction; readonly envelope: CoreWireEnvelope }
@@ -261,6 +285,47 @@ export function ConnectionsPage() {
     [pending, transport, handleOutcome],
   );
 
+  // The rename command (the M-27 rename portion as implemented): the
+  // display name ONLY, carrying the marker the row was read under — a
+  // stale marker is the Core's typed CONFLICT_STATE (the concurrent-edit
+  // guard), rendered verbatim with the truthful no-overwrite note.
+  const runRename = useCallback(
+    (connectionID: string, displayName: string, expectedUpdatedAt: string) => {
+      if (pending !== null) return;
+      setPending({ connectionID, action: "rename" });
+      void transport
+        .connectionRename(connectionID, { display_name: displayName, expected_updated_at: expectedUpdatedAt })
+        .then((outcome) => {
+          handleOutcome("rename", connectionID)(outcome);
+        })
+        .finally(() => setPending(null));
+    },
+    [pending, transport, handleOutcome],
+  );
+
+  // The non-secret field update (the P-S8-02 working candidate): the
+  // coded create shape's non-secret fields ONLY — no secret field exists
+  // on this flow; the same concurrency marker and no-retry rule ride it.
+  const runUpdate = useCallback(
+    (connectionID: string, fields: { provider: string; base_url: string; model_id: string; custom_headers: { name: string; value: string }[] }, expectedUpdatedAt: string) => {
+      if (pending !== null) return;
+      setPending({ connectionID, action: "update" });
+      void transport
+        .connectionUpdate(connectionID, {
+          provider: fields.provider,
+          ...(fields.base_url ? { base_url: fields.base_url } : {}),
+          model_id: fields.model_id,
+          ...(fields.custom_headers.length > 0 ? { custom_headers: fields.custom_headers } : {}),
+          expected_updated_at: expectedUpdatedAt,
+        })
+        .then((outcome) => {
+          handleOutcome("update", connectionID)(outcome);
+        })
+        .finally(() => setPending(null));
+    },
+    [pending, transport, handleOutcome],
+  );
+
   const openProviderSetup = useCallback(() => {
     providerSectionRef.current?.scrollIntoView({ block: "start" });
     providerSectionRef.current?.focus();
@@ -305,6 +370,9 @@ export function ConnectionsPage() {
               <li key={connection.record.connection_id} className={styles.connectionRow} data-active={connection.active ? "true" : undefined}>
                 <div className={styles.connectionMeta}>
                   <p className={styles.connectionName}>
+                    {connection.record.display_name ? (
+                      <span className={styles.connectionDisplayName}>{connection.record.display_name}</span>
+                    ) : null}
                     <span className={styles.connectionProvider}>{connection.record.provider}</span>
                     <span className={styles.connectionModel}>{connection.record.model_id}</span>
                     {connection.active ? <span className={styles.activeBadge}>{t("connections.activeBadge")}</span> : null}
@@ -331,6 +399,24 @@ export function ConnectionsPage() {
                   <p className={styles.connectionId}>{connection.record.connection_id}</p>
                 </div>
                 <div className={styles.connectionActions}>
+                  <button
+                    ref={renameTriggerRef}
+                    type="button"
+                    className={styles.secondaryButton}
+                    disabled={pending !== null}
+                    onClick={() => setDialog({ kind: "rename", connection })}
+                  >
+                    {t("connections.opRename")}
+                  </button>
+                  <button
+                    ref={editTriggerRef}
+                    type="button"
+                    className={styles.secondaryButton}
+                    disabled={pending !== null}
+                    onClick={() => setDialog({ kind: "edit", connection })}
+                  >
+                    {t("connections.opEdit")}
+                  </button>
                   <button
                     type="button"
                     className={styles.secondaryButton}
@@ -405,12 +491,6 @@ export function ConnectionsPage() {
             </p>
           </li>
           <li className={styles.operationItem}>
-            <button type="button" className={styles.operationButton} disabled aria-disabled="true">
-              {t("connections.opRename")}
-            </button>
-            <p className={styles.operationReason}>{t("connections.opRenameUnavailable")}</p>
-          </li>
-          <li className={styles.operationItem}>
             <button
               ref={switchTriggerRef}
               type="button"
@@ -448,6 +528,24 @@ export function ConnectionsPage() {
         onConfirm={(connectionID, secret) => runCredential(dialog?.kind === "reauthenticate" ? "reauth" : "rotate", connectionID, secret)}
         onClose={() => setDialog(null)}
         returnFocusRef={dialog?.kind === "reauthenticate" ? reauthTriggerRef : rotateTriggerRef}
+      />
+
+      <ConnectionRenameDialog
+        open={dialog?.kind === "rename"}
+        connection={dialog?.kind === "rename" ? dialog.connection : null}
+        pending={pending?.action === "rename"}
+        onConfirm={runRename}
+        onClose={() => setDialog(null)}
+        returnFocusRef={renameTriggerRef}
+      />
+
+      <ConnectionEditDialog
+        open={dialog?.kind === "edit"}
+        connection={dialog?.kind === "edit" ? dialog.connection : null}
+        pending={pending?.action === "update"}
+        onConfirm={runUpdate}
+        onClose={() => setDialog(null)}
+        returnFocusRef={editTriggerRef}
       />
 
       {dialog?.kind === "delete" ? (
@@ -504,10 +602,22 @@ export function ConnectionsPage() {
       {actionOutcome?.kind === "refused" ? (
         <RecoveryPanel
           title={t("connections.outcomeRefusedTitle")}
-          body={t("connections.outcomeRefusedBody", {
-            action: t(ACTION_KEYS[actionOutcome.action]),
-            code: actionOutcome.envelope.code,
-          })}
+          body={
+            actionOutcome.envelope.code === "CONFLICT_STATE"
+              ? // The concurrent-edit guard's typed refusal (the P1.6 §5
+                // interim rule's rendering duty): the code verbatim PLUS the
+                // truthful no-overwrite note — the Core's typed outcome
+                // renders; the UI performs no overwrite and no merge; the
+                // recovery is the explicit list re-read.
+                `${t("connections.outcomeRefusedBody", {
+                  action: t(ACTION_KEYS[actionOutcome.action]),
+                  code: actionOutcome.envelope.code,
+                })} ${t("connections.conflictNote")}`
+              : t("connections.outcomeRefusedBody", {
+                  action: t(ACTION_KEYS[actionOutcome.action]),
+                  code: actionOutcome.envelope.code,
+                })
+          }
           note={t("connections.outcomeRefusedNote", { correlationId: actionOutcome.envelope.correlationId })}
           actions={[
             { label: t("connections.checkStatus"), onAction: () => load({ append: false, markRefreshing: false }) },

@@ -3,6 +3,7 @@ package provider
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -35,20 +36,27 @@ type ConnectionHeader struct {
 // form INCLUDING the credential bytes — never a value, never reversible)
 // and is internal: it is never marshaled to the wire.
 type ConnectionRecord struct {
-	ConnectionID    string             `json:"connection_id"`
-	IdempotencyKey  string             `json:"idempotency_key,omitempty"`
-	Provider        string             `json:"provider"`
-	BaseURL         string             `json:"base_url,omitempty"`
-	ModelID         string             `json:"model_id"`
-	CustomHeaders   []ConnectionHeader `json:"custom_headers,omitempty"`
-	SecretRef       string             `json:"secret_ref"`
-	CredentialEpoch int                `json:"credential_epoch"`
-	Fingerprint     string             `json:"-"`
-	TestedAt        string             `json:"tested_at,omitempty"`
-	TestedDigest    string             `json:"tested_digest,omitempty"`
-	TestedEpoch     int                `json:"tested_epoch,omitempty"`
-	CreatedAt       string             `json:"created_at"`
-	UpdatedAt       string             `json:"updated_at"`
+	ConnectionID   string             `json:"connection_id"`
+	IdempotencyKey string             `json:"idempotency_key,omitempty"`
+	Provider       string             `json:"provider"`
+	BaseURL        string             `json:"base_url,omitempty"`
+	ModelID        string             `json:"model_id"`
+	CustomHeaders  []ConnectionHeader `json:"custom_headers,omitempty"`
+	// DisplayName is the record's optional user-facing display label (the
+	// M-27 register row's rename portion as implemented — the adopted S8
+	// supply's working candidate). A rename changes ONLY this field: never
+	// the connection identity, never the Job identity, never the execution
+	// history (the P3.1 M-27 row's binding rule). Empty means untitled —
+	// the surfaces then render the provider/model identity as before.
+	DisplayName     string `json:"display_name,omitempty"`
+	SecretRef       string `json:"secret_ref"`
+	CredentialEpoch int    `json:"credential_epoch"`
+	Fingerprint     string `json:"-"`
+	TestedAt        string `json:"tested_at,omitempty"`
+	TestedDigest    string `json:"tested_digest,omitempty"`
+	TestedEpoch     int    `json:"tested_epoch,omitempty"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
 }
 
 // Tested reports whether a successful bounded test exists for the record.
@@ -185,6 +193,36 @@ func ValidateRecord(r ConnectionRecord) error {
 	return ValidateHeaders(r.CustomHeaders)
 }
 
+// ValidateDisplayName applies the display-name law the M-27 rename
+// enforces (the adopted S8 supply's working candidate; the bound class the
+// record's other bounded fields ride): a display name is optional, is
+// trimmed before it is stored, and is bounded. An empty TRIMMED name
+// refuses — a rename that clears the label is a clearing, not a rename,
+// and the typed refusal names it so. The connection identity and the
+// execution history are never touched by this law's caller (the M-27
+// rename row's binding rule).
+func ValidateDisplayName(name string) error {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return fmt.Errorf("provider: connection display name must not be empty")
+	}
+	if len(trimmed) > 256 {
+		return fmt.Errorf("provider: connection display name is unbounded (max 256)")
+	}
+	return nil
+}
+
+// ErrConnectionStaleMarker is the concurrent-edit guard's store-side fence
+// signal (the adopted S8 supply's working candidate — the chosen class is
+// the P3.3-recorded typed `CONFLICT_STATE` guard with `currentState`, the
+// P1.6 §5 recorded typed-outcome class): a rename/update's conditional
+// write matched no row because the record's `updated_at` marker moved
+// since the caller read it. The store separates not-found from the stale
+// marker by re-reading; the use-case layer converts this signal into the
+// typed CONFLICT_STATE envelope whose data carries the record's current
+// state (safe metadata only — never secret content, P1.6 §5's rule 9).
+var ErrConnectionStaleMarker = errors.New("provider: connection record changed since the caller read it")
+
 // ConnectionTestReport is the read-only test-connection report (M-25; the
 // P3.2 §3.3 [S] rules): the verified endpoint/model + the capability
 // statuses the wired executor reports + the sanitized bounded error +
@@ -216,4 +254,19 @@ type ListConnectionsQuery struct {
 type ListConnectionsPage struct {
 	Connections []ConnectionRecord
 	More        bool
+}
+
+// UpdateConnectionFields is one non-secret field update's field set (the
+// adopted S8 supply's P-S8-02 working candidate): EXACTLY the coded create
+// shape's non-secret fields. No secret field exists on this shape — the
+// secret path stays the coded rotate/re-authenticate contract, and the
+// record's secret reference, credential epoch, and create fingerprint are
+// carried over untouched by any updater. It lives in the domain package so
+// the storage adapter and the use-case layer share one shape (the
+// ListConnectionsQuery precedent).
+type UpdateConnectionFields struct {
+	Provider      string
+	BaseURL       string
+	ModelID       string
+	CustomHeaders []ConnectionHeader
 }

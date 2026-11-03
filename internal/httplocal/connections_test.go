@@ -373,3 +373,217 @@ func TestConnectionWireRefusals(t *testing.T) {
 		t.Fatalf("the unknown rotate is 404: %d %s", status, body)
 	}
 }
+
+// TestConnectionRouteRegister pins the EXACT connection route register
+// after the IMPL-17 addition: the eight delivered routes PLUS the two new
+// ones (the rename and the non-secret update, the adopted S8 supply's
+// P-S8-01/P-S8-02 working candidates) — and no other connection-shaped
+// path can silently appear (the absences still pinned: no secret-bearing
+// rename/update path exists anywhere; the secret path stays exactly the
+// coded rotate/re-authenticate routes).
+func TestConnectionRouteRegister(t *testing.T) {
+	var got []string
+	for _, rt := range routes() {
+		if strings.HasPrefix(rt.prefix, "/v1/connections") {
+			got = append(got, rt.method+" "+rt.prefix+rt.suffix)
+		}
+	}
+	want := []string{
+		"POST /v1/connections/test",
+		"POST /v1/connections",
+		"GET /v1/connections",
+		"GET /v1/connections/",
+		"POST /v1/connections//rotate",
+		"POST /v1/connections//reauthenticate",
+		"POST /v1/connections//delete",
+		"POST /v1/connections//switch",
+		"POST /v1/connections//rename",
+		"POST /v1/connections//update",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("the connection route register carries %d routes, want %d: %v", len(got), len(want), got)
+	}
+	for _, w := range want {
+		found := false
+		for _, g := range got {
+			if g == w {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("route %q missing from the register: %v", w, got)
+		}
+	}
+	for _, g := range got {
+		if strings.Contains(g, "secret") || strings.Contains(g, "credential") || strings.Contains(g, "key") {
+			t.Fatalf("no secret-bearing rename/update path may exist — the secret path stays rotate/re-authenticate: %q", g)
+		}
+	}
+}
+
+// TestConnectionRenameUpdateWire drives the two new operations end to end
+// over the wire: the rename (the display name in the record, the identity
+// untouched, no credential echo), the non-secret update (the new fields in
+// the authoritative read; the secret reference/epoch carried over), the
+// concurrent-edit conflict (a stale marker is the typed 409
+// CONFLICT_STATE whose data.currentState carries the record's current safe
+// metadata), and the fresh-marker recovery.
+func TestConnectionRenameUpdateWire(t *testing.T) {
+	env := newTestEnv(t)
+	h := map[string]string{"Origin": "http://127.0.0.1:1"}
+
+	status, body := env.do(t, "POST", "/v1/connections", connectionSaveBody("idem-1", "mock", "m", false), env.token, h)
+	if status != 200 {
+		t.Fatalf("save: %d %s", status, body)
+	}
+	var saved struct {
+		Connection struct {
+			Record dprovider.ConnectionRecord `json:"record"`
+		} `json:"connection"`
+	}
+	if err := json.Unmarshal([]byte(body), &saved); err != nil {
+		t.Fatalf("save shape: %v (%s)", err, body)
+	}
+	connID := saved.Connection.Record.ConnectionID
+
+	// Rename: 200 with the display name in the record; the connection
+	// identity and the secret reference untouched; no credential echo.
+	status, body = env.do(t, "POST", "/v1/connections/"+connID+"/rename",
+		`{"display_name":"My Work Connection","expected_updated_at":"`+saved.Connection.Record.UpdatedAt+`"}`, env.token, h)
+	if status != 200 {
+		t.Fatalf("rename: %d %s", status, body)
+	}
+	var renamed struct {
+		Connection struct {
+			Record       dprovider.ConnectionRecord `json:"record"`
+			SecretStatus string                     `json:"secret_status"`
+		} `json:"connection"`
+	}
+	if err := json.Unmarshal([]byte(body), &renamed); err != nil {
+		t.Fatalf("rename shape: %v (%s)", err, body)
+	}
+	if renamed.Connection.Record.DisplayName != "My Work Connection" || renamed.Connection.Record.ConnectionID != connID {
+		t.Fatalf("rename result: %+v", renamed.Connection)
+	}
+	if renamed.Connection.Record.SecretRef != saved.Connection.Record.SecretRef || renamed.Connection.Record.CredentialEpoch != saved.Connection.Record.CredentialEpoch {
+		t.Fatalf("a rename must change ONLY the display name: %+v", renamed.Connection.Record)
+	}
+	if renamed.Connection.SecretStatus == "" {
+		t.Fatal("the masked status rides the rename view")
+	}
+	if strings.Contains(string(body), wireTestCanary) {
+		t.Fatal("the rename response never echoes a credential")
+	}
+
+	// The non-secret update: 200 with the new fields; the authoritative
+	// read confirms them; the secret/epoch set carried over.
+	status, body = env.do(t, "POST", "/v1/connections/"+connID+"/update",
+		`{"provider":"mock","base_url":"https://api.example.internal/v1","model_id":"m2","custom_headers":[{"name":"X-Karyora-Test","value":"1"}],"expected_updated_at":"`+renamed.Connection.Record.UpdatedAt+`"}`, env.token, h)
+	if status != 200 {
+		t.Fatalf("update: %d %s", status, body)
+	}
+	var updated struct {
+		Connection struct {
+			Record dprovider.ConnectionRecord `json:"record"`
+		} `json:"connection"`
+	}
+	if err := json.Unmarshal([]byte(body), &updated); err != nil {
+		t.Fatalf("update shape: %v (%s)", err, body)
+	}
+	if updated.Connection.Record.ModelID != "m2" || updated.Connection.Record.BaseURL != "https://api.example.internal/v1" || len(updated.Connection.Record.CustomHeaders) != 1 {
+		t.Fatalf("update result: %+v", updated.Connection)
+	}
+	if updated.Connection.Record.SecretRef != saved.Connection.Record.SecretRef || updated.Connection.Record.Fingerprint != saved.Connection.Record.Fingerprint {
+		t.Fatalf("an update must never touch the secret/fingerprint set: %+v", updated.Connection.Record)
+	}
+	status, body = env.do(t, "GET", "/v1/connections/"+connID, "", env.token, nil)
+	if status != 200 {
+		t.Fatalf("get after update: %d %s", status, body)
+	}
+	var fetched struct {
+		Connection struct {
+			Record dprovider.ConnectionRecord `json:"record"`
+		} `json:"connection"`
+	}
+	if err := json.Unmarshal([]byte(body), &fetched); err != nil {
+		t.Fatalf("get shape: %v", err)
+	}
+	if fetched.Connection.Record.ModelID != "m2" || fetched.Connection.Record.DisplayName != "My Work Connection" {
+		t.Fatalf("the authoritative read confirms the update: %+v", fetched.Connection)
+	}
+
+	// The concurrent-edit conflict: a stale marker (the pre-update one) is
+	// the typed 409 CONFLICT_STATE with data.currentState — and the
+	// current state carries safe metadata only.
+	status, body = env.do(t, "POST", "/v1/connections/"+connID+"/update",
+		`{"provider":"mock","model_id":"m3","expected_updated_at":"`+saved.Connection.Record.UpdatedAt+`"}`, env.token, h)
+	if status != 409 || !strings.Contains(string(body), string(errs.CodeConflictState)) {
+		t.Fatalf("a stale-marker update is 409 CONFLICT_STATE: %d %s", status, body)
+	}
+	if !strings.Contains(string(body), "currentState") {
+		t.Fatalf("the conflict envelope carries currentState: %s", body)
+	}
+	if strings.Contains(string(body), wireTestCanary) {
+		t.Fatal("no conflict envelope echoes a credential")
+	}
+	// The fresh marker then lands.
+	status, body = env.do(t, "POST", "/v1/connections/"+connID+"/update",
+		`{"provider":"mock","model_id":"m3","expected_updated_at":"`+updated.Connection.Record.UpdatedAt+`"}`, env.token, h)
+	if status != 200 {
+		t.Fatalf("the fresh-marker update: %d %s", status, body)
+	}
+}
+
+// TestConnectionRenameUpdateWireRefusals pins the wire refusals of the two
+// new routes: the unauthenticated calls are 403 through the boundary; a
+// malformed body and a missing marker are 400; an unknown id is 404; and
+// no refusal ever echoes a credential.
+func TestConnectionRenameUpdateWireRefusals(t *testing.T) {
+	env := newTestEnv(t)
+	h := map[string]string{"Origin": "http://127.0.0.1:1"}
+
+	// The unauthenticated rename/update are 403 through the boundary.
+	status, body := env.do(t, "POST", "/v1/connections/conn-x/rename", `{"display_name":"N","expected_updated_at":"m"}`, "", h)
+	if status != 403 {
+		t.Fatalf("the unauthenticated rename is 403: %d %s", status, body)
+	}
+	status, body = env.do(t, "POST", "/v1/connections/conn-x/update", `{"provider":"mock","model_id":"m","expected_updated_at":"m"}`, "", h)
+	if status != 403 {
+		t.Fatalf("the unauthenticated update is 403: %d %s", status, body)
+	}
+
+	// A malformed body is 400 VALIDATION_FAILED on both routes.
+	status, body = env.do(t, "POST", "/v1/connections/conn-x/rename", `{not-json`, env.token, h)
+	if status != 400 || !strings.Contains(string(body), string(errs.CodeValidationFailed)) {
+		t.Fatalf("a malformed rename body is 400: %d %s", status, body)
+	}
+	status, body = env.do(t, "POST", "/v1/connections/conn-x/update", `{not-json`, env.token, h)
+	if status != 400 || !strings.Contains(string(body), string(errs.CodeValidationFailed)) {
+		t.Fatalf("a malformed update body is 400: %d %s", status, body)
+	}
+
+	// The missing marker is the typed 400 (the guard is mandatory on the
+	// coded path; the refusal names its field).
+	status, body = env.do(t, "POST", "/v1/connections/conn-x/rename", `{"display_name":"N"}`, env.token, h)
+	if status != 400 || !strings.Contains(string(body), "expected_updated_at") {
+		t.Fatalf("a missing marker is the typed 400: %d %s", status, body)
+	}
+	status, body = env.do(t, "POST", "/v1/connections/conn-x/update", `{"provider":"mock","model_id":"m"}`, env.token, h)
+	if status != 400 || !strings.Contains(string(body), "expected_updated_at") {
+		t.Fatalf("a missing update marker is the typed 400: %d %s", status, body)
+	}
+
+	// An unknown id is the typed NOT_FOUND on both routes.
+	status, body = env.do(t, "POST", "/v1/connections/conn-unknown/rename", `{"display_name":"N","expected_updated_at":"m"}`, env.token, h)
+	if status != 404 || !strings.Contains(string(body), string(errs.CodeNotFound)) {
+		t.Fatalf("the unknown rename is 404: %d %s", status, body)
+	}
+	status, body = env.do(t, "POST", "/v1/connections/conn-unknown/update", `{"provider":"mock","model_id":"m","expected_updated_at":"m"}`, env.token, h)
+	if status != 404 || !strings.Contains(string(body), string(errs.CodeNotFound)) {
+		t.Fatalf("the unknown update is 404: %d %s", status, body)
+	}
+	if strings.Contains(string(body), wireTestCanary) {
+		t.Fatal("no refusal echoes a credential")
+	}
+}

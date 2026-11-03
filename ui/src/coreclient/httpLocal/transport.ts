@@ -45,12 +45,16 @@ import type {
   WireAttempt,
   WireConnectionGetResult,
   WireConnectionListResult,
+  WireConnectionRenameRequest,
+  WireConnectionRenameResult,
   WireConnectionRotateResult,
   WireConnectionSaveRequest,
   WireConnectionSaveResult,
   WireConnectionSwitchResult,
   WireConnectionTestRequest,
   WireConnectionTestResult,
+  WireConnectionUpdateRequest,
+  WireConnectionUpdateResult,
   WireConnectionView,
   WireConversation,
   WireConversationCreateRequest,
@@ -192,6 +196,15 @@ function isWireConnectionRotateResult(value: unknown): value is WireConnectionRo
     typeof shaped.routing_note === "string" &&
     typeof shaped.interruption_note === "string"
   );
+}
+
+/** The rename/update response guard (IMPL-17): the response must carry
+ *  the Core-confirmed view's distinguishing coded fields to be presented
+ *  as data; anything else stays unknown — never reinterpreted. */
+function isWireConnectionRecordResult<T extends { readonly connection: WireConnectionView }>(value: unknown): value is T {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return shaped.connection !== null && typeof shaped.connection === "object" && isWireConnectionView(shaped.connection);
 }
 
 /** The rotate/re-authenticate request-body shape (the wire type lives in
@@ -727,6 +740,38 @@ export function createHttpLocalTransport() {
           const shaped = body as Record<string, unknown>;
           return typeof shaped.active_connection_id === "string" && typeof shaped.replayed === "boolean";
         },
+      );
+    },
+
+    /** `POST /v1/connections/{id}/rename` — the connection-record rename
+     *  (IMPL-17; the adopted S8 supply's P-S8-01 working candidate): the
+     *  display name ONLY — never the connection identity, never the Job
+     *  identity, never the execution history. `expected_updated_at` is
+     *  the concurrency marker the caller read the record under: a stale
+     *  marker is the typed 409 CONFLICT_STATE (the concurrent-edit
+     *  guard); no method retries on its own — the recovery is the
+     *  explicit re-read, never a blind re-send. NO secret field exists
+     *  on this request. */
+    connectionRename(connectionID: string, payload: WireConnectionRenameRequest): Promise<TransportOutcome<WireConnectionRenameResult>> {
+      return call<WireConnectionRenameResult>(
+        `/v1/connections/${encodeURIComponent(connectionID)}/rename`,
+        post(JSON.stringify(payload)),
+        isWireConnectionRecordResult,
+      );
+    },
+
+    /** `POST /v1/connections/{id}/update` — the non-secret field update
+     *  (IMPL-17; the adopted S8 supply's P-S8-02 working candidate):
+     *  EXACTLY the coded create shape's non-secret fields. NO secret
+     *  field exists on this request — a credential change stays the
+     *  rotate/re-authenticate flows, and no update path ever writes a
+     *  credential. The same concurrency marker and the same no-retry
+     *  rule ride this method. */
+    connectionUpdate(connectionID: string, payload: WireConnectionUpdateRequest): Promise<TransportOutcome<WireConnectionUpdateResult>> {
+      return call<WireConnectionUpdateResult>(
+        `/v1/connections/${encodeURIComponent(connectionID)}/update`,
+        post(JSON.stringify(payload)),
+        isWireConnectionRecordResult,
       );
     },
 

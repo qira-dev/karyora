@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -640,4 +641,290 @@ func TestConnectionAuditRecords(t *testing.T) {
 func isAuthzDenied(err error) bool {
 	ee, ok := err.(*EnvelopeError)
 	return ok && ee.Envelope.Code == errs.CodeAuthzDenied
+}
+
+// TestConnectionRenameDisplayOnly pins the M-27 rename row's binding rule
+// at the API surface: a rename changes the record's display name ONLY —
+// never the connection identity, never the Job identity, never the
+// execution history — audited like every connection command, the view
+// carrying the masked secret status and the tested-state truth, and the
+// credential VALUE never appearing in any response.
+func TestConnectionRenameDisplayOnly(t *testing.T) {
+	env := connEnv(t)
+	saved, err := env.slice.SaveConnection(env.ctx(), saveReq("idem-1"))
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	before := saved.Connection.Record
+	res, err := env.slice.RenameConnection(env.ctx(), RenameConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		DisplayName:       "  My Work Key  ",
+		ExpectedUpdatedAt: before.UpdatedAt,
+	})
+	if err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	after := res.Connection.Record
+	if after.DisplayName != "My Work Key" {
+		t.Fatalf("display name = %q, want the trimmed value", after.DisplayName)
+	}
+	if after.ConnectionID != before.ConnectionID || after.Provider != before.Provider || after.ModelID != before.ModelID ||
+		after.SecretRef != before.SecretRef || after.CredentialEpoch != before.CredentialEpoch ||
+		after.Fingerprint != before.Fingerprint || after.CreatedAt != before.CreatedAt || after.TestedAt != before.TestedAt {
+		t.Fatalf("a rename must change ONLY the display name: before %+v after %+v", before, after)
+	}
+	if status := res.Connection.SecretStatus; status != string(security.SecretPresent) && status != string(security.SecretMissing) {
+		t.Fatalf("the masked status rides the rename view: %+v", res.Connection)
+	}
+	b, _ := json.Marshal(res)
+	if strings.Contains(string(b), connTestCanary) {
+		t.Fatal("the rename result never carries the credential value")
+	}
+	// The audit carries connection.rename.
+	sink := &memoryAuditStore{}
+	env.deps.Guard.Audit = security.NewAuditService(sink, 64, 1000)
+	if _, err := env.slice.RenameConnection(env.ctx(), RenameConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		DisplayName:       "Audited Name",
+		ExpectedUpdatedAt: after.UpdatedAt,
+	}); err != nil {
+		t.Fatalf("rename 2: %v", err)
+	}
+	records, err := sink.Records()
+	if err != nil {
+		t.Fatalf("audit read: %v", err)
+	}
+	found := false
+	for _, raw := range records {
+		var ar security.AuditRecord
+		if err := json.Unmarshal(raw.Payload, &ar); err != nil {
+			t.Fatalf("audit payload: %v", err)
+		}
+		if ar.Action == "connection.rename" {
+			found = true
+			if strings.Contains(ar.Scope, connTestCanary) || strings.Contains(ar.CorrelationID, connTestCanary) {
+				t.Fatal("the rename audit never carries secret content")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("the audit trail lacks connection.rename")
+	}
+}
+
+// TestConnectionUpdateNonSecretFields pins the P-S8-02 working candidate
+// at the API surface: the update carries EXACTLY the coded create shape's
+// non-secret fields; the secret path is NEVER folded in — zero credential
+// writes on the path, the secret reference/epoch/fingerprint/idempotency
+// key carried over untouched, the create-idempotency replay ruling still
+// resolving the ORIGINAL create body, and the tested state rendering
+// stale-truthfully after an accepted update (the coded staleness rule's
+// own outcome — the epoch-class precedent's behavior, unchanged).
+func TestConnectionUpdateNonSecretFields(t *testing.T) {
+	env := connEnv(t)
+	req := saveReq("idem-1")
+	saved, err := env.slice.SaveConnection(env.ctx(), req)
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	before := saved.Connection.Record
+	writesBefore := env.deps.Secrets.(*fakeConnectionSecrets).writeCount()
+	updated, err := env.slice.UpdateConnection(env.ctx(), UpdateConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		Provider:          req.Provider,
+		BaseURL:           "https://api.example.internal/v1",
+		ModelID:           "m2",
+		CustomHeaders:     []dprovider.ConnectionHeader{{Name: "X-Karyora-Test", Value: "1"}},
+		ExpectedUpdatedAt: before.UpdatedAt,
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	after := updated.Connection.Record
+	if after.BaseURL != "https://api.example.internal/v1" || after.ModelID != "m2" || len(after.CustomHeaders) != 1 {
+		t.Fatalf("the update must carry the new non-secret fields: %+v", after)
+	}
+	if after.SecretRef != before.SecretRef || after.CredentialEpoch != before.CredentialEpoch ||
+		after.Fingerprint != before.Fingerprint || after.IdempotencyKey != before.IdempotencyKey ||
+		after.CreatedAt != before.CreatedAt || after.ConnectionID != before.ConnectionID {
+		t.Fatalf("an update must never touch the secret/epoch/fingerprint/identity set: before %+v after %+v", before, after)
+	}
+	if writes := env.deps.Secrets.(*fakeConnectionSecrets).writeCount(); writes != writesBefore {
+		t.Fatalf("an update must never write a credential: %d -> %d writes", writesBefore, writes)
+	}
+	if after.TestCurrent() {
+		t.Fatal("an accepted update renders the tested state stale-truthfully (the inputs digest changed)")
+	}
+	b, _ := json.Marshal(updated)
+	if strings.Contains(string(b), connTestCanary) {
+		t.Fatal("the update result never carries the credential value")
+	}
+	// The create-idempotency replay ruling stays keyed to the CREATE body:
+	// the original save still resolves as a replay (never a second
+	// connection, never a second credential write).
+	replay, err := env.slice.SaveConnection(env.ctx(), req)
+	if err != nil {
+		t.Fatalf("replay save: %v", err)
+	}
+	if !replay.Replayed || replay.Connection.Record.ConnectionID != before.ConnectionID {
+		t.Fatalf("the create replay ruling must survive an update: %+v", replay)
+	}
+	if replay.Connection.Record.ModelID != "m2" {
+		t.Fatal("the replayed view is the record's CURRENT body (the update stands)")
+	}
+	if writes := env.deps.Secrets.(*fakeConnectionSecrets).writeCount(); writes != writesBefore {
+		t.Fatalf("a replayed save must never write a second credential: %d writes", writes)
+	}
+}
+
+// TestConnectionConcurrentEditConflict pins the concurrent-edit guard (the
+// adopted S8 supply's CHOSEN class disclosed at implementation: the
+// P3.3-recorded typed CONFLICT_STATE guard with currentState — one guard
+// over rename AND update alike): a stale expected_updated_at marker is the
+// typed CONFLICT_STATE 409 whose data.currentState carries the record's
+// current safe metadata, NOTHING changed by the refusal, and the fresh
+// marker then succeeds. The coded staleness class's own outcome (the
+// epoch-class precedent) rides the same case unchanged.
+func TestConnectionConcurrentEditConflict(t *testing.T) {
+	env := connEnv(t)
+	saved, err := env.slice.SaveConnection(env.ctx(), saveReq("idem-1"))
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	before := saved.Connection.Record
+	// A concurrent editor moves the record first (a rename).
+	if _, err := env.slice.RenameConnection(env.ctx(), RenameConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		DisplayName:       "Concurrent Editor",
+		ExpectedUpdatedAt: before.UpdatedAt,
+	}); err != nil {
+		t.Fatalf("concurrent rename: %v", err)
+	}
+	// The stale-marker update refuses typed with the current state.
+	_, err = env.slice.UpdateConnection(env.ctx(), UpdateConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		Provider:          dprovider.ProviderMock,
+		ModelID:           "m2",
+		ExpectedUpdatedAt: before.UpdatedAt,
+	})
+	ee, ok := err.(*EnvelopeError)
+	if !ok || ee.Envelope.Code != errs.CodeConflictState {
+		t.Fatalf("a stale-marker update must be the coded CONFLICT_STATE envelope, got %v", err)
+	}
+	current, ok := ee.Envelope.Data["currentState"].(map[string]any)
+	if !ok {
+		t.Fatalf("the conflict data carries currentState, got %v", ee.Envelope.Data)
+	}
+	if current["credential_epoch"] != before.CredentialEpoch {
+		t.Fatalf("the current state carries the credential epoch, got %v", current)
+	}
+	if _, ok := current["updated_at"].(string); !ok {
+		t.Fatalf("the current state carries the record's marker, got %v", current)
+	}
+	if tc, ok := current["test_current"].(bool); !ok || tc {
+		t.Fatalf("the current state carries the tested-state truth, got %v", current)
+	}
+	// Nothing changed by the refusal.
+	mid, err := env.slice.GetConnection(env.ctx(), before.ConnectionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mid.Record.ModelID != before.ModelID || mid.Record.DisplayName != "Concurrent Editor" {
+		t.Fatalf("a fenced refusal changes nothing: %+v", mid.Record)
+	}
+	// The same stale-marker class refuses the rename.
+	_, err = env.slice.RenameConnection(env.ctx(), RenameConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		DisplayName:       "Second Name",
+		ExpectedUpdatedAt: before.UpdatedAt,
+	})
+	ee, ok = err.(*EnvelopeError)
+	if !ok || ee.Envelope.Code != errs.CodeConflictState {
+		t.Fatalf("a stale-marker rename must be the coded CONFLICT_STATE envelope, got %v", err)
+	}
+	// The fresh marker then succeeds (the guard's recover path).
+	fresh, err := env.slice.UpdateConnection(env.ctx(), UpdateConnectionRequest{
+		ConnectionID:      before.ConnectionID,
+		Provider:          dprovider.ProviderMock,
+		ModelID:           "m2",
+		ExpectedUpdatedAt: mid.Record.UpdatedAt,
+	})
+	if err != nil {
+		t.Fatalf("update with the fresh marker: %v", err)
+	}
+	if fresh.Connection.Record.ModelID != "m2" {
+		t.Fatalf("the fresh-marker update lands: %+v", fresh.Connection.Record)
+	}
+}
+
+// TestConnectionRenameUpdateRefusals pins the request-shape law over the
+// two new operations: the empty marker (the guard is mandatory on the
+// coded path), the empty display name, the unwired provider, the
+// URL-embedded credential, and the forbidden header are each the typed
+// VALIDATION_FAILED refusal naming its field and changing nothing; an
+// unknown id is the typed NOT_FOUND.
+func TestConnectionRenameUpdateRefusals(t *testing.T) {
+	env := connEnv(t)
+	saved, err := env.slice.SaveConnection(env.ctx(), saveReq("idem-1"))
+	if err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	connID := saved.Connection.Record.ConnectionID
+	marker := saved.Connection.Record.UpdatedAt
+	cases := []struct {
+		name      string
+		code      errs.Code
+		renameReq *RenameConnectionRequest
+		updateReq *UpdateConnectionRequest
+	}{
+		{name: "rename empty marker", code: errs.CodeValidationFailed,
+			renameReq: &RenameConnectionRequest{ConnectionID: connID, DisplayName: "N", ExpectedUpdatedAt: ""}},
+		{name: "rename empty display name", code: errs.CodeValidationFailed,
+			renameReq: &RenameConnectionRequest{ConnectionID: connID, DisplayName: "   ", ExpectedUpdatedAt: marker}},
+		{name: "rename unknown id", code: errs.CodeNotFound,
+			renameReq: &RenameConnectionRequest{ConnectionID: "conn-absent", DisplayName: "N", ExpectedUpdatedAt: marker}},
+		{name: "update empty marker", code: errs.CodeValidationFailed,
+			updateReq: &UpdateConnectionRequest{ConnectionID: connID, Provider: dprovider.ProviderMock, ModelID: "m", ExpectedUpdatedAt: ""}},
+		{name: "update empty provider", code: errs.CodeValidationFailed,
+			updateReq: &UpdateConnectionRequest{ConnectionID: connID, Provider: "", ModelID: "m", ExpectedUpdatedAt: marker}},
+		{name: "update empty model", code: errs.CodeValidationFailed,
+			updateReq: &UpdateConnectionRequest{ConnectionID: connID, Provider: dprovider.ProviderMock, ModelID: "", ExpectedUpdatedAt: marker}},
+		{name: "update unwired provider", code: errs.CodeValidationFailed,
+			updateReq: &UpdateConnectionRequest{ConnectionID: connID, Provider: "not-a-wired-provider", ModelID: "m", ExpectedUpdatedAt: marker}},
+		{name: "update url-embedded credential", code: errs.CodeValidationFailed,
+			updateReq: &UpdateConnectionRequest{ConnectionID: connID, Provider: dprovider.ProviderMock, ModelID: "m", BaseURL: "https://user:pass@example.internal/v1", ExpectedUpdatedAt: marker}},
+		{name: "update forbidden header", code: errs.CodeValidationFailed,
+			updateReq: &UpdateConnectionRequest{ConnectionID: connID, Provider: dprovider.ProviderMock, ModelID: "m", CustomHeaders: []dprovider.ConnectionHeader{{Name: "Authorization", Value: "x"}}, ExpectedUpdatedAt: marker}},
+		{name: "update unknown id", code: errs.CodeNotFound,
+			updateReq: &UpdateConnectionRequest{ConnectionID: "conn-absent", Provider: dprovider.ProviderMock, ModelID: "m", ExpectedUpdatedAt: marker}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var err error
+			if tc.renameReq != nil {
+				_, err = env.slice.RenameConnection(env.ctx(), *tc.renameReq)
+			} else {
+				_, err = env.slice.UpdateConnection(env.ctx(), *tc.updateReq)
+			}
+			if codeOf(t, err) != tc.code {
+				t.Fatalf("want %s, got %v", tc.code, err)
+			}
+			if tc.code == errs.CodeValidationFailed {
+				var ee *EnvelopeError
+				if errors.As(err, &ee) {
+					if _, hasField := ee.Envelope.Data["field"]; !hasField {
+						t.Fatalf("the refusal names its field, got %v", ee.Envelope.Data)
+					}
+				}
+			}
+		})
+	}
+	// The refusal class changes nothing: the record is byte-identical.
+	after, err := env.slice.GetConnection(env.ctx(), connID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Record.UpdatedAt != marker || after.Record.DisplayName != "" {
+		t.Fatalf("the refusals changed nothing: %+v", after.Record)
+	}
 }

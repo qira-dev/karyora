@@ -155,6 +155,15 @@
   font-family: var(--font-mono, monospace);
 }
 
+/* The record's display label (the M-27 rename row as implemented) leads
+ * the row's name line when the record carries one; the provider/model
+ * identity follows unchanged. */
+.connectionDisplayName::after {
+  content: "·";
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
 .connectionModel {
   font-size: var(--text-metadata-size);
   color: var(--color-text-secondary);
@@ -267,6 +276,28 @@
   color: var(--color-text-primary);
   padding: var(--space-2) var(--space-3);
   font: inherit;
+}
+
+/* The rename/edit dialogs' select and textarea ride the same form
+ * grammar as .dialogInput (the design tokens; CSS logical properties). */
+.dialogSelect {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control, var(--radius-card));
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+}
+
+.dialogTextarea {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control, var(--radius-card));
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  min-block-size: 4.5rem;
+  resize: vertical;
 }
 
 .dialogHint {

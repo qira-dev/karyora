@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -285,5 +286,183 @@ func TestConnectionRecordHasNoSecretValue(t *testing.T) {
 		if strings.Contains(b, canary) {
 			t.Fatal("the credential value must never appear in any stored or listed record")
 		}
+	}
+}
+
+// TestConnectionDisplayNameMigration pins migration 0011: a fresh apply
+// reaches the current schema version, the recorded migrations 7–11 are all
+// `applied` (the checksum authority verifying 0007–0010 byte-identical on
+// every open), and the display_name column exists on the connection
+// records (the M-27 rename row's storage: the coded record carried no
+// display-name field, so a NEW migration is the genuinely required form —
+// never an edit to any recorded migration's SQL).
+func TestConnectionDisplayNameMigration(t *testing.T) {
+	st, ctx := newConnTestStore(t)
+	v, err := st.SchemaVersion(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != schemaVersionMax {
+		t.Fatalf("schema version = %d, want %d (migration 0011 applied)", v, schemaVersionMax)
+	}
+	for _, version := range []int64{7, 8, 9, 10, 11} {
+		state, err := st.migrationState(ctx, version)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if state != migStateApplied {
+			t.Fatalf("migration %d state = %s, want applied", version, state)
+		}
+	}
+	var n int
+	if err := st.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info('provider_connections') WHERE name = 'display_name'`).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("the provider_connections table does not carry the display_name column")
+	}
+}
+
+// TestConnectionRenameUpdatesDisplayNameOnly pins the M-27 rename row's
+// binding rule at the store: a rename changes the record's display name
+// (and its mutation marker) ONLY — the connection identity, the provider
+// identity, the secret reference, the credential epoch, the fingerprint,
+// the tested state, and the created instant are all byte-identical. The
+// fence: a stale expected marker is the domain's stale-marker signal; an
+// unknown id is the typed NOT_FOUND.
+func TestConnectionRenameUpdatesDisplayNameOnly(t *testing.T) {
+	st, ctx := newConnTestStore(t)
+	rec := fakeRecord(t, st, ctx, "idem-1", fakeSaveBody{Provider: "mock", ModelID: "m", Secret: []byte("karyora-test-canary-rename-not-a-real-key")})
+	renamed, err := st.RenameConnection(ctx, rec.ConnectionID, "  My Work Connection  ", rec.UpdatedAt)
+	if err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	if renamed.DisplayName != "My Work Connection" {
+		t.Fatalf("display name = %q, want the trimmed value", renamed.DisplayName)
+	}
+	if renamed.ConnectionID != rec.ConnectionID || renamed.Provider != rec.Provider || renamed.ModelID != rec.ModelID ||
+		renamed.BaseURL != rec.BaseURL || renamed.SecretRef != rec.SecretRef || renamed.CredentialEpoch != rec.CredentialEpoch ||
+		renamed.Fingerprint != rec.Fingerprint || renamed.TestedAt != rec.TestedAt || renamed.CreatedAt != rec.CreatedAt ||
+		renamed.TestedDigest != rec.TestedDigest || renamed.TestedEpoch != rec.TestedEpoch || renamed.IdempotencyKey != rec.IdempotencyKey || renamed.DisplayName != "My Work Connection" {
+		t.Fatalf("a rename must change ONLY the display name: before %+v after %+v", rec, renamed)
+	}
+	if renamed.UpdatedAt == rec.UpdatedAt {
+		t.Fatal("a rename bumps the record's mutation marker")
+	}
+	// The fence: a stale marker refuses and changes nothing.
+	if _, err := st.RenameConnection(ctx, rec.ConnectionID, "Second Name", rec.UpdatedAt); !errors.Is(err, dprovider.ErrConnectionStaleMarker) {
+		t.Fatalf("a stale marker must be the stale-marker fence signal, got %v", err)
+	}
+	after, err := st.LoadConnection(ctx, rec.ConnectionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.DisplayName != "My Work Connection" || after.UpdatedAt != renamed.UpdatedAt {
+		t.Fatalf("a fenced refusal changes nothing: %+v", after)
+	}
+	// The fresh marker succeeds (the guard's recover path).
+	if _, err := st.RenameConnection(ctx, rec.ConnectionID, "Second Name", renamed.UpdatedAt); err != nil {
+		t.Fatalf("rename with the fresh marker: %v", err)
+	}
+	// An unknown id is the typed NOT_FOUND.
+	if _, err := st.RenameConnection(ctx, "conn-absent", "Name", "2026-11-04T00:00:00Z"); err == nil || !strings.Contains(err.Error(), string(errs.CodeNotFound)) {
+		t.Fatalf("an unknown id must be the typed NOT_FOUND, got %v", err)
+	}
+	// The empty display name refuses (a clearing is not a rename).
+	if _, err := st.RenameConnection(ctx, rec.ConnectionID, "   ", "2026-11-04T00:00:00Z"); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("an empty display name must refuse, got %v", err)
+	}
+	// The empty marker refuses (the guard is mandatory on the coded path).
+	if _, err := st.RenameConnection(ctx, rec.ConnectionID, "Name", ""); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("an empty marker must refuse, got %v", err)
+	}
+}
+
+// TestConnectionUpdateChangesNonSecretFieldsAndFences pins the P-S8-02
+// working candidate at the store: the update replaces EXACTLY the coded
+// create shape's non-secret fields; the secret reference, the credential
+// epoch, the create fingerprint, the idempotency key, and the created
+// instant are carried over untouched (zero credential writes happen on
+// this path); the tested state renders stale-truthfully afterward (the
+// coded staleness rule's own outcome — the epoch-class precedent's
+// behavior, unchanged); the fence refuses a stale marker; the merged
+// record's shape law holds.
+func TestConnectionUpdateChangesNonSecretFieldsAndFences(t *testing.T) {
+	st, ctx := newConnTestStore(t)
+	rec := fakeRecord(t, st, ctx, "idem-1", fakeSaveBody{Provider: "mock", ModelID: "m", Secret: []byte("karyora-test-canary-update-not-a-real-key")})
+	// Stamp a successful test first so the stale-truthful outcome is provable.
+	stamped, err := st.RecordConnectionTest(ctx, rec.ConnectionID, "2026-11-04T00:00:00Z")
+	if err != nil {
+		t.Fatalf("stamp: %v", err)
+	}
+	if !stamped.TestCurrent() {
+		t.Fatal("the stamped record must test current before the update")
+	}
+	updated, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{
+		Provider:      "mock",
+		BaseURL:       "https://api.example.internal/v1",
+		ModelID:       "m2",
+		CustomHeaders: []dprovider.ConnectionHeader{{Name: "X-Karyora-Test", Value: "1"}},
+	}, stamped.UpdatedAt)
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if updated.BaseURL != "https://api.example.internal/v1" || updated.ModelID != "m2" || len(updated.CustomHeaders) != 1 {
+		t.Fatalf("the update must carry the new non-secret fields: %+v", updated)
+	}
+	if updated.SecretRef != rec.SecretRef || updated.CredentialEpoch != rec.CredentialEpoch ||
+		updated.Fingerprint != rec.Fingerprint || updated.IdempotencyKey != rec.IdempotencyKey ||
+		updated.CreatedAt != rec.CreatedAt || updated.ConnectionID != rec.ConnectionID {
+		t.Fatalf("an update must never touch the secret/epoch/fingerprint/identity set: before %+v after %+v", rec, updated)
+	}
+	if updated.TestCurrent() {
+		t.Fatal("an accepted update must render the tested state stale-truthfully (the inputs digest changed)")
+	}
+	// The fence: a stale marker refuses and changes nothing.
+	if _, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{Provider: "mock", ModelID: "m3"}, stamped.UpdatedAt); !errors.Is(err, dprovider.ErrConnectionStaleMarker) {
+		t.Fatalf("a stale marker must be the stale-marker fence signal, got %v", err)
+	}
+	after, err := st.LoadConnection(ctx, rec.ConnectionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.ModelID != "m2" || after.UpdatedAt != updated.UpdatedAt {
+		t.Fatalf("a fenced refusal changes nothing: %+v", after)
+	}
+	// An unknown id is the typed NOT_FOUND; the merged record's shape law
+	// refuses an empty provider/model id; the empty marker refuses.
+	if _, err := st.UpdateConnection(ctx, "conn-absent", UpdateConnectionFields{Provider: "mock", ModelID: "m"}, "2026-11-04T00:00:00Z"); err == nil || !strings.Contains(err.Error(), string(errs.CodeNotFound)) {
+		t.Fatalf("an unknown id must be the typed NOT_FOUND, got %v", err)
+	}
+	if _, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{Provider: "", ModelID: "m"}, updated.UpdatedAt); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("an empty provider must refuse, got %v", err)
+	}
+	if _, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{Provider: "mock", ModelID: ""}, updated.UpdatedAt); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("an empty model id must refuse, got %v", err)
+	}
+	if _, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{Provider: "mock", ModelID: "m", CustomHeaders: []dprovider.ConnectionHeader{{Name: "Authorization", Value: "x"}}}, updated.UpdatedAt); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("a forbidden header must refuse, got %v", err)
+	}
+	if _, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{Provider: "mock", ModelID: "m", BaseURL: "https://user:pass@example.internal/v1"}, updated.UpdatedAt); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("a URL-embedded credential must refuse, got %v", err)
+	}
+	if _, err := st.UpdateConnection(ctx, rec.ConnectionID, UpdateConnectionFields{Provider: "mock", ModelID: "m"}, ""); err == nil || !strings.Contains(err.Error(), string(errs.CodeValidationFailed)) {
+		t.Fatalf("an empty marker must refuse, got %v", err)
+	}
+	// The create-idempotency replay ruling stays keyed to the CREATE body:
+	// a replayed save under the original key still resolves (the update
+	// never re-computed the fingerprint).
+	replay := dprovider.ConnectionRecord{
+		ConnectionID:   "conn-other-mint",
+		IdempotencyKey: rec.IdempotencyKey,
+		Provider:       rec.Provider,
+		BaseURL:        rec.BaseURL,
+		ModelID:        rec.ModelID,
+		SecretRef:      "connection:conn-other-mint/api-key",
+		Fingerprint:    rec.Fingerprint,
+	}
+	saved, replayed, err := st.SaveConnection(ctx, replay)
+	if err != nil || !replayed || saved.ConnectionID != rec.ConnectionID {
+		t.Fatalf("the create replay ruling must survive an update: %+v replayed=%v err=%v", saved, replayed, err)
 	}
 }

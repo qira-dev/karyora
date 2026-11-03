@@ -484,6 +484,10 @@ export interface WireConnectionRecord {
   readonly base_url?: string;
   readonly model_id: string;
   readonly custom_headers?: readonly WireConnectionHeader[];
+  /** The record's optional user-facing display label (the M-27 rename
+   *  row as implemented — a rename changes ONLY this field). Empty means
+   *  untitled: the surfaces render the provider/model identity as before. */
+  readonly display_name?: string;
   readonly secret_ref: string;
   readonly credential_epoch: number;
   readonly tested_at?: string;
@@ -597,6 +601,56 @@ export interface WireConnectionRotateResult {
 export interface WireConnectionSwitchResult {
   readonly active_connection_id: string;
   readonly replayed: boolean;
+}
+
+/** The connection-record rename and the non-secret field update (IMPL-17;
+ *  the adopted S8 supply's P-S8-01/P-S8-02 working candidates — the M-27
+ *  register row's rename portion and the coded create shape's non-secret
+ *  field set). The honest boundary (the same class as every family
+ *  above):
+ * - The `/v1/connections...` paths are the adapter's OWN non-canonical
+ *   paths — no published contract carries them.
+ * - `expected_updated_at` is the marker the caller read the record under:
+ *   the concurrent-edit guard's input (the adopted S8 supply's CHOSEN
+ *   class, disclosed at implementation — the P3.3-recorded typed
+ *   CONFLICT_STATE guard with `currentState`, the P1.6 §5 recorded
+ *   typed-outcome class). A stale marker is the typed 409 CONFLICT_STATE;
+ *   the surface renders it verbatim and performs NO overwrite and NO
+ *   merge (the P1.6 §5 interim rule's rendering duty).
+ * - NO secret field exists on either request: the secret path stays the
+ *   coded rotate/re-authenticate flows — an update NEVER touches a
+ *   credential, and the rename touches ONLY the display name (never the
+ *   connection identity, never the Job identity, never the execution
+ *   history). */
+
+/** `POST /v1/connections/{id}/rename` request body: the display name ONLY
+ *  (trimmed and bounded by the Core's law) plus the concurrency marker. */
+export interface WireConnectionRenameRequest {
+  readonly display_name: string;
+  readonly expected_updated_at: string;
+}
+
+/** `POST /v1/connections/{id}/rename` success (200): the Core-confirmed
+ *  view. */
+export interface WireConnectionRenameResult {
+  readonly connection: WireConnectionView;
+}
+
+/** `POST /v1/connections/{id}/update` request body: EXACTLY the coded
+ *  create shape's non-secret field set plus the concurrency marker. */
+export interface WireConnectionUpdateRequest {
+  readonly provider: string;
+  readonly base_url?: string;
+  readonly model_id: string;
+  readonly custom_headers?: readonly WireConnectionHeader[];
+  readonly expected_updated_at: string;
+}
+
+/** `POST /v1/connections/{id}/update` success (200): the Core-confirmed
+ *  view; any accepted update renders the tested state stale-truthfully
+ *  (the Core's coded inputs digest). */
+export interface WireConnectionUpdateResult {
+  readonly connection: WireConnectionView;
 }
 
 // The conversation surface (IMPL-10; the adopted S5 mapping, P-S5-01…05

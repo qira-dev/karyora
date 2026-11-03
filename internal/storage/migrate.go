@@ -390,6 +390,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_event
     ON notification_records (source_event_id) WHERE source_event_id != '';
 `,
 	},
+	{
+		Version: 11,
+		Name:    "0011-connection-display-name",
+		SQL: `
+ALTER TABLE provider_connections ADD COLUMN display_name TEXT NOT NULL DEFAULT '';
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -397,7 +404,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_event
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 10
+	schemaVersionMax = 11
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

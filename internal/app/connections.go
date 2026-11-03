@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -62,6 +63,37 @@ import (
 //     the adopted card-9 list-semantics working candidate (the IMPL-4
 //     List pattern) — created_at descending, connection_id tiebreak, a
 //     bounded page, an opaque keyset cursor.
+//   - rename (the M-27 register row's rename portion, the adopted S8
+//     supply's P-S8-01 working candidate): a Core connection-record change
+//     that changes the record's display name ONLY — never the connection
+//     identity, never the Job identity, never the execution history (the
+//     P3.1 M-27 row's binding rule). Open-class per P1.6 §4 (no C1-07 key
+//     row exists for this record type): no idempotency key, no auto-retry;
+//     a lost response is reconciled by re-reading the record.
+//   - update (the adopted S8 supply's P-S8-02 working candidate): the
+//     non-secret field update over an EXISTING connection — EXACTLY the
+//     coded create shape's non-secret fields (provider, base URL, model
+//     id, custom headers). The secret path is NEVER folded in: no secret
+//     field exists on the request, the record's secret reference and
+//     credential epoch are carried over untouched, and credential changes
+//     stay the coded rotate/re-authenticate contract (the replacement-key
+//     discipline; the epoch bump-first ordering untouched). Any accepted
+//     update changes the inputs digest, so the tested state renders
+//     stale-truthfully (the coded staleness rule's own behavior). Also
+//     Open-class: no idempotency key, no auto-retry, re-read reconciliation.
+//
+// The concurrent-edit guard (the adopted S8 supply's P-S8-03 working
+// candidate — the CHOSEN class disclosed at implementation): the
+// P3.3-recorded typed CONFLICT_STATE guard with currentState (the P1.6 §5
+// recorded typed-outcome class). Both record mutations (rename AND
+// update) carry it alike: the request carries the updated_at marker the
+// caller read (expected_updated_at); the store enforces it through its
+// conditional one-statement write (the coded RecordConnectionTest fencing
+// shape) against that existing marker; a stale marker is the typed
+// CONFLICT_STATE 409 whose data.currentState carries the record's current
+// safe metadata (updated_at, credential_epoch, test_current) — never
+// secret content (P1.6 §5's rule 9). The UI renders the refusal verbatim
+// and performs no overwrite and no merge (the P1.6 §5 interim rule).
 
 // Port type aliases: the list query/page shapes live in the domain
 // package so the storage adapter and the use-case layer share one shape.
@@ -79,6 +111,8 @@ type ConnectionStore interface {
 	ListConnections(ctx context.Context, q ListConnectionsQuery) (ListConnectionsPage, error)
 	RecordConnectionTest(ctx context.Context, connectionID, testedAt string) (dprovider.ConnectionRecord, error)
 	BumpConnectionCredential(ctx context.Context, connectionID string) (dprovider.ConnectionRecord, error)
+	RenameConnection(ctx context.Context, connectionID, displayName, expectedUpdatedAt string) (dprovider.ConnectionRecord, error)
+	UpdateConnection(ctx context.Context, connectionID string, fields dprovider.UpdateConnectionFields, expectedUpdatedAt string) (dprovider.ConnectionRecord, error)
 	DeleteConnection(ctx context.Context, connectionID string) (dprovider.ConnectionRecord, error)
 	SetActiveConnection(ctx context.Context, connectionID string) (string, error)
 	ActiveConnectionID(ctx context.Context) (string, error)
@@ -660,6 +694,231 @@ func (s *Slice) replaceConnectionCredential(ctx context.Context, req RotateConne
 		RoutingNote:      "connection_scoped_routing_only",
 		InterruptionNote: "next_call_resolves_new_value_no_inflight_reread",
 	}, nil
+}
+
+// RenameConnectionRequest is one connection-record rename command (the
+// M-27 register row's rename portion, the adopted S8 supply's P-S8-01
+// working candidate): the display name ONLY, fenced on the marker the
+// caller read (the concurrent-edit guard).
+type RenameConnectionRequest struct {
+	ConnectionID      string
+	DisplayName       string
+	ExpectedUpdatedAt string
+}
+
+// RenameConnectionResult reports the Core-confirmed rename through its
+// read view (the masked secret status + tested-state truth + active flag).
+type RenameConnectionResult struct {
+	Connection ConnectionView `json:"connection"`
+}
+
+// RenameConnection changes one connection record's display name (the M-27
+// rename row as implemented): authorize → the request-shape law → the
+// typed NOT_FOUND on an unknown id → audited (fail closed, before the
+// effect) → the fenced store write. The write changes the record's display
+// name ONLY — never the connection identity, never the Job identity, never
+// the execution history (the P3.1 M-27 row's binding rule). A stale
+// expected_updated_at marker (a concurrent editor moved the record) is the
+// typed CONFLICT_STATE 409 whose data.currentState carries the record's
+// current safe metadata — the concurrent-edit guard's recorded outcome.
+// The operation is Open-class (P1.6 §4: no C1-07 key row exists for this
+// record type): no idempotency key, no auto-retry anywhere; a lost
+// response is reconciled by re-reading the record.
+func (s *Slice) RenameConnection(ctx context.Context, req RenameConnectionRequest) (RenameConnectionResult, error) {
+	corr := errs.NewCorrelationID()
+	if s.deps.Connections == nil {
+		return RenameConnectionResult{}, envelopeErr(errs.CodeStorageUnavailable, corr, map[string]any{"reason": "connection store is not wired"})
+	}
+	decision, err := s.authorizeCapture(ctx, corr, security.Resource{Type: security.ResourceConfig, ID: req.ConnectionID}, security.ActionDataWrite)
+	if err != nil {
+		return RenameConnectionResult{}, err
+	}
+	// The request-shape law: typed refusals, never silent coercion.
+	if strings.TrimSpace(req.ConnectionID) == "" {
+		return RenameConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "connection_id"})
+	}
+	if strings.TrimSpace(req.ExpectedUpdatedAt) == "" {
+		return RenameConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "expected_updated_at"})
+	}
+	if err := dprovider.ValidateDisplayName(req.DisplayName); err != nil {
+		return RenameConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "display_name"})
+	}
+	rec, err := s.deps.Connections.LoadConnection(ctx, req.ConnectionID)
+	if err != nil {
+		return RenameConnectionResult{}, err
+	}
+	// The audited record BEFORE the effect (fail closed, C2-15 §5); the
+	// audit never carries secret content.
+	actor := string(security.PrincipalLocalUser) + ":" + principalID(ctx)
+	if err := s.deps.Guard.Audit.Record(security.AuditRecord{
+		SchemaVersion:   security.AuditSchemaVersion,
+		Actor:           actor,
+		Action:          "connection.rename",
+		Scope:           (security.Resource{Type: security.ResourceConfig, ID: rec.ConnectionID}).String(),
+		PolicyDecision:  "allow",
+		PolicyReference: decision.ReasonCode,
+		ProviderID:      rec.Provider,
+		Outcome:         "rename",
+		CorrelationID:   corr,
+	}); err != nil {
+		return RenameConnectionResult{}, err
+	}
+	renamed, err := s.deps.Connections.RenameConnection(ctx, req.ConnectionID, req.DisplayName, req.ExpectedUpdatedAt)
+	if err != nil {
+		if errors.Is(err, dprovider.ErrConnectionStaleMarker) {
+			return RenameConnectionResult{}, s.connectionStaleConflict(ctx, corr, req.ConnectionID)
+		}
+		return RenameConnectionResult{}, err
+	}
+	view, err := s.connectionViewWithActive(ctx, renamed)
+	if err != nil {
+		return RenameConnectionResult{}, err
+	}
+	return RenameConnectionResult{Connection: view}, nil
+}
+
+// UpdateConnectionRequest is one non-secret field update (the adopted S8
+// supply's P-S8-02 working candidate): EXACTLY the coded create shape's
+// non-secret fields, fenced on the marker the caller read. NO secret field
+// exists on this request — the secret path stays the coded
+// rotate/re-authenticate contract (the replacement-key discipline; the
+// epoch bump-first ordering untouched), and this milestone's law is that
+// an update NEVER touches a credential.
+type UpdateConnectionRequest struct {
+	ConnectionID      string
+	Provider          string
+	BaseURL           string
+	ModelID           string
+	CustomHeaders     []dprovider.ConnectionHeader
+	ExpectedUpdatedAt string
+}
+
+// UpdateConnectionResult reports the Core-confirmed update through its
+// read view (the masked secret status + the tested-state truth — which any
+// accepted update renders stale-truthfully via the coded inputs digest —
+// plus the active flag).
+type UpdateConnectionResult struct {
+	Connection ConnectionView `json:"connection"`
+}
+
+// UpdateConnection replaces one connection record's non-secret fields (the
+// coded create shape's non-secret field set): authorize → the request-shape
+// law (the save's own law set: the wired-provider check, the bounds, the
+// URL-embedded-credential refusal, the header restriction) → the typed
+// NOT_FOUND on an unknown id → audited (fail closed, before the effect) →
+// the fenced store write. The record's secret reference, credential epoch,
+// and create fingerprint are carried over untouched: zero credential
+// writes happen on this path, and the create-idempotency replay ruling
+// stays keyed to the CREATE body. A stale expected_updated_at marker is
+// the typed CONFLICT_STATE 409 with currentState (the concurrent-edit
+// guard). Open-class per P1.6 §4: no idempotency key, no auto-retry
+// anywhere; a lost response is reconciled by re-reading the record.
+func (s *Slice) UpdateConnection(ctx context.Context, req UpdateConnectionRequest) (UpdateConnectionResult, error) {
+	corr := errs.NewCorrelationID()
+	if s.deps.Connections == nil {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeStorageUnavailable, corr, map[string]any{"reason": "connection store is not wired"})
+	}
+	decision, err := s.authorizeCapture(ctx, corr, security.Resource{Type: security.ResourceConfig, ID: req.ConnectionID}, security.ActionDataWrite)
+	if err != nil {
+		return UpdateConnectionResult{}, err
+	}
+	// The request-shape law: the save's law set applied to the four
+	// non-secret fields; typed refusals naming their field, never silent
+	// coercion. The secret path is not part of this law set: no secret
+	// field exists on the request to validate.
+	if strings.TrimSpace(req.ConnectionID) == "" {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "connection_id"})
+	}
+	if strings.TrimSpace(req.ExpectedUpdatedAt) == "" {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "expected_updated_at"})
+	}
+	if strings.TrimSpace(req.Provider) == "" {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "provider"})
+	}
+	if strings.TrimSpace(req.ModelID) == "" {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "model_id"})
+	}
+	if len(req.ModelID) > 256 || len(req.BaseURL) > 2048 {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "model_id"})
+	}
+	if strings.Contains(req.BaseURL, "@") {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "base_url"})
+	}
+	if _, wired := s.saveRequiresSecret(req.Provider); !wired {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{
+			"field": "provider", "reason": "provider is not wired for this core",
+		})
+	}
+	if err := dprovider.ValidateHeaders(req.CustomHeaders); err != nil {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "custom_headers"})
+	}
+	rec, err := s.deps.Connections.LoadConnection(ctx, req.ConnectionID)
+	if err != nil {
+		return UpdateConnectionResult{}, err
+	}
+	actor := string(security.PrincipalLocalUser) + ":" + principalID(ctx)
+	if err := s.deps.Guard.Audit.Record(security.AuditRecord{
+		SchemaVersion:   security.AuditSchemaVersion,
+		Actor:           actor,
+		Action:          "connection.update",
+		Scope:           (security.Resource{Type: security.ResourceConfig, ID: rec.ConnectionID}).String(),
+		PolicyDecision:  "allow",
+		PolicyReference: decision.ReasonCode,
+		ProviderID:      rec.Provider,
+		Outcome:         "update",
+		CorrelationID:   corr,
+	}); err != nil {
+		return UpdateConnectionResult{}, err
+	}
+	updated, err := s.deps.Connections.UpdateConnection(ctx, req.ConnectionID, dprovider.UpdateConnectionFields{
+		Provider:      req.Provider,
+		BaseURL:       req.BaseURL,
+		ModelID:       req.ModelID,
+		CustomHeaders: req.CustomHeaders,
+	}, req.ExpectedUpdatedAt)
+	if err != nil {
+		if errors.Is(err, dprovider.ErrConnectionStaleMarker) {
+			return UpdateConnectionResult{}, s.connectionStaleConflict(ctx, corr, req.ConnectionID)
+		}
+		return UpdateConnectionResult{}, err
+	}
+	view, err := s.connectionViewWithActive(ctx, updated)
+	if err != nil {
+		return UpdateConnectionResult{}, err
+	}
+	return UpdateConnectionResult{Connection: view}, nil
+}
+
+// connectionStaleConflict converts the store's stale-marker fence signal
+// into the typed CONFLICT_STATE envelope whose data carries the record's
+// CURRENT state — the P1.6 §5 recorded typed-outcome class (CONFLICT_STATE
+// 409 with data.currentState; the adopted S8 supply's chosen concurrent-
+// edit candidate). The current state carries SAFE metadata only: the
+// marker, the credential epoch, and the tested-state truth — never secret
+// content (P1.6 §5's rule 9).
+func (s *Slice) connectionStaleConflict(ctx context.Context, corr, connectionID string) error {
+	rec, err := s.deps.Connections.LoadConnection(ctx, connectionID)
+	if err != nil {
+		return err
+	}
+	return envelopeErr(errs.CodeConflictState, corr, map[string]any{
+		"currentState": map[string]any{
+			"updated_at":       rec.UpdatedAt,
+			"credential_epoch": rec.CredentialEpoch,
+			"test_current":     rec.TestCurrent(),
+		},
+	})
+}
+
+// connectionViewWithActive projects a record through the masked status and
+// the tested-state truth with the REAL active pointer (the mutation
+// results' view is the authoritative read the surface re-renders from).
+func (s *Slice) connectionViewWithActive(ctx context.Context, rec dprovider.ConnectionRecord) (ConnectionView, error) {
+	activeID, err := s.deps.Connections.ActiveConnectionID(ctx)
+	if err != nil {
+		return ConnectionView{}, err
+	}
+	return s.connectionView(ctx, rec, activeID), nil
 }
 
 // DeleteConnection deletes the record AND revokes its keyring entry (the
