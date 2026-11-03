@@ -1080,8 +1080,14 @@ function EventItem({ event }: { event: WireEventRecord }) {
  *  versions, the exact_vs_approximate value) render verbatim as the
  *  language-neutral identifiers they are. Missing facts render their
  *  honest Not-set/Not-reported state — never zero, never invented
- *  coverage; the compiled content itself is never part of this shape. */
-function SnapshotViewPanel({
+ *  coverage; the compiled content itself is never part of this shape.
+ *
+ *  EXPORTED for the Run flow's post-submission snapshot region (IMPL-16,
+ *  the one-surface-two-containers pattern): ONE rendering of the exact
+ *  snapshot's structure, two containers — the job detail's context
+ *  section and the Run flow's post-submission read. The panel renders
+ *  EXACTLY what the Core returns; no container-specific content exists. */
+export function SnapshotViewPanel({
   snapshot,
   confirmedAt,
   locale,

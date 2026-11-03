@@ -8,6 +8,7 @@ import type {
   WireCapabilitySet,
   WireReviewEffect,
   WireReviewPayload,
+  WireSnapshotView,
   WireSubmitRequest,
   WireSubmitResult,
 } from "../../coreclient/httpLocal";
@@ -15,6 +16,7 @@ import { useT, useTranslation } from "../../i18n/useT";
 import { PageHeading, PageLayout, PageSection } from "../PageLayout";
 import styles from "./RunTaskPage.module.css";
 import { jobStateChip } from "../jobs/jobStates";
+import { SnapshotViewPanel } from "../jobs/JobDetailPage";
 
 /**
  * `/jobs/new` — the Run task submission flow (IMPL-6; the owner's card-13
@@ -40,6 +42,16 @@ import { jobStateChip } from "../jobs/jobStates";
  * - The draft-safe rule: the draft lives in this component's memory for
  *   the page's lifetime only — never persisted, and no secret belongs in
  *   a task.
+ * - IMPL-16 (the exact-only boundary — the owner's 2026-11-04 LIVE
+ *   decision): the pre-send context-snapshot disclosure renders the
+ *   truthful Not available / Not reported states for every fact the
+ *   delivered Core does not supply before compile — no pre-compile
+ *   preview, no approximation, no fabricated token count, no missing
+ *   cost as $0; the `approximate` case stays the Core/API owner's
+ *   recorded item. The post-submission snapshot region consumes ONLY
+ *   the delivered exact snapshot read (IMPL-9's `jobSnapshot`) —
+ *   explicit, user-initiated, read-sequence-guarded, never auto-retried;
+ *   a Core NOT_FOUND is the honest not-yet-compiled state.
  * - Machine identifiers (effect vocabulary values, denial reasons,
  *   capability values, classification labels) render verbatim as the
  *   language-neutral identifiers they are; only section labels are
@@ -78,6 +90,20 @@ const CODED_CLASSIFICATIONS: readonly { readonly value: string; readonly labelKe
 
 type ReviewPhase = "idle" | "loading" | "data" | "failure" | "unknown";
 type SubmitPhase = "idle" | "submitting" | "accepted" | "rejected" | "unknown";
+
+/** The post-submission context-snapshot read (IMPL-16; the delivered
+ *  exact read — IMPL-9's `jobSnapshot`): loading / the structured view /
+ *  the honest not-yet-compiled state (a Core NOT_FOUND — the Core
+ *  compiles per executed attempt) / the typed refusal / the truthful
+ *  unknown. The same truthful-state shape the Job detail's Context
+ *  Inspector read uses (JobDetailPage's SnapshotRead pattern). */
+type SnapshotPreviewRead =
+  | { readonly kind: "notLoaded" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "data"; readonly snapshot: WireSnapshotView; readonly confirmedAt: Date }
+  | { readonly kind: "noSnapshot" }
+  | { readonly kind: "failure"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unknown" };
 
 interface RunDraft {
   readonly task: string;
@@ -139,6 +165,9 @@ export function RunTaskPage() {
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("idle");
   const [submitResult, setSubmitResult] = useState<WireSubmitResult | null>(null);
   const [submitFailure, setSubmitFailure] = useState<CoreWireEnvelope | null>(null);
+  // The post-submission snapshot read (IMPL-16): reset on every new
+  // submission — a fresh durable job id invalidates any prior read.
+  const [snapshotPreview, setSnapshotPreview] = useState<SnapshotPreviewRead>({ kind: "notLoaded" });
   // The pending submission's identity: the idempotency key and the EXACT
   // wire body it rode. The S4 re-send re-posts this snapshot verbatim —
   // the same key AND the same input, which is what makes the Core's
@@ -154,6 +183,7 @@ export function RunTaskPage() {
   const reviewSeqRef = useRef(0);
   const mountedRef = useRef(true);
   const reviewRegionRef = useRef<HTMLDivElement>(null);
+  const snapshotPreviewSeqRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -233,6 +263,39 @@ export function RunTaskPage() {
   const submitDisabled =
     !reviewable || reviewPhase !== "data" || blockers.length > 0 || submitPhase === "submitting";
 
+  // The post-submission context-snapshot read (IMPL-16; the delivered
+  // exact read — IMPL-9's `jobSnapshot`): an explicit, user-initiated
+  // QUERY, read-sequence-guarded, mutating nothing. A Core NOT_FOUND is
+  // the honest not-yet-compiled state (the Core compiles the exact
+  // snapshot per executed attempt), never an empty structure and never
+  // an error panel. No retry exists anywhere: a lost response stays the
+  // truthful unknown until the user reads again.
+  const readSnapshotPreview = useCallback(() => {
+    if (submitResult === null || snapshotPreview.kind === "loading") return;
+    const seq = ++snapshotPreviewSeqRef.current;
+    setSnapshotPreview({ kind: "loading" });
+    void transport.jobSnapshot(submitResult.job.job_id).then((outcome) => {
+      if (!mountedRef.current || seq !== snapshotPreviewSeqRef.current) return;
+      if (outcome.kind === "data") {
+        setSnapshotPreview({ kind: "data", snapshot: outcome.data.snapshot, confirmedAt: new Date() });
+        setAnnounce(t("run.snapshot.preview.announceData"));
+      } else if (outcome.kind === "rejection") {
+        const notFound = outcome.envelope.code === "NOT_FOUND";
+        setSnapshotPreview(
+          notFound ? { kind: "noSnapshot" } : { kind: "failure", envelope: outcome.envelope },
+        );
+        setAnnounce(
+          notFound
+            ? t("run.snapshot.preview.announceNoSnapshot")
+            : t("run.snapshot.preview.announceFailure"),
+        );
+      } else {
+        setSnapshotPreview({ kind: "unknown" });
+        setAnnounce(t("run.snapshot.preview.announceUnknown"));
+      }
+    });
+  }, [submitResult, snapshotPreview.kind, transport, t]);
+
   const submit = () => {
     if (submitDisabled) return;
     let key: string;
@@ -246,6 +309,7 @@ export function RunTaskPage() {
     setLocalError(null);
     setSubmitResult(null);
     setSubmitFailure(null);
+    setSnapshotPreview({ kind: "notLoaded" });
     setSubmitPhase("submitting");
     setPendingKey(key);
     setPendingBody(body);
@@ -280,6 +344,7 @@ export function RunTaskPage() {
   const resendSameKey = () => {
     if (pendingKey === null || pendingBody === null || submitPhase === "submitting") return;
     setSubmitPhase("submitting");
+    setSnapshotPreview({ kind: "notLoaded" });
     setAnnounce(t("run.announce.submitting"));
     void transport.submit({ ...pendingBody, idempotency_key: pendingKey }).then((outcome) => {
       if (!mountedRef.current) return;
@@ -477,7 +542,12 @@ export function RunTaskPage() {
       </PageSection>
 
       <PageSection>
+        <SnapshotDisclosure />
+      </PageSection>
+
+      <PageSection>
         <h2 className={styles.sectionHeading}>{t("run.submit.heading")}</h2>
+        {reviewPhase === "data" && review !== null ? <PreSendDisclosureLine review={review} /> : null}
         <div className={styles.submitRow}>
           <button type="button" className={styles.primary} onClick={submit} disabled={submitDisabled}>
             {submitPhase === "submitting" ? t("run.submit.submitting") : t("run.submit.action")}
@@ -491,7 +561,10 @@ export function RunTaskPage() {
         {localError !== null ? <p className={styles.help}>{localError}</p> : null}
 
         {submitPhase === "accepted" && submitResult !== null ? (
-          <AcceptedCard result={submitResult} />
+          <>
+            <AcceptedCard result={submitResult} />
+            <SnapshotPreviewRegion read={snapshotPreview} onRead={readSnapshotPreview} />
+          </>
         ) : null}
 
         {submitPhase === "rejected" && submitFailure !== null ? (
@@ -872,6 +945,172 @@ function CapabilityFacts({
           </dd>
         </div>
       </dl>
+    </div>
+  );
+}
+
+/** The pre-send context-snapshot disclosure (IMPL-16; P3.5 §6 rows
+ *  2/3/5/6/7 rendered truthfully for the pre-compile region): every fact
+ *  the delivered Core does NOT supply before compile renders its honest
+ *  Not available / Not reported state — never a fabricated preview, never
+ *  a fake token count, never a missing cost as $0, never an estimate
+ *  displayed as an actual. The exact-only boundary is stated in copy: no
+ *  approximation or pre-compile preview is displayed anywhere on this
+ *  surface (the owner's 2026-11-04 exact-only decision; the
+ *  `approximate` case stays the Core/API owner's recorded item). The one
+ *  pre-send budget fact the Core DOES report (the reserved output bound)
+ *  renders in the review's Estimated budget field above; the data-boundary
+ *  facts render in the review's Policy field — this section never
+ *  duplicates or re-invents them. */
+function SnapshotDisclosure() {
+  const t = useT();
+
+  return (
+    <div>
+      <h2 className={styles.sectionHeading}>{t("run.snapshot.heading")}</h2>
+      <p className={styles.description}>{t("run.snapshot.intro")}</p>
+      <p className={styles.note}>{t("run.snapshot.exactOnlyNote")}</p>
+      <dl className={styles.facts}>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.snapshotCompiledLabel")}</dt>
+          <dd>{t("run.snapshot.snapshotCompiledMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.includedLabel")}</dt>
+          <dd>{t("run.snapshot.includedMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.omittedLabel")}</dt>
+          <dd>{t("run.snapshot.omittedMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.budgetEstimateLabel")}</dt>
+          <dd>{t("run.snapshot.budgetEstimateMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.providerActualLabel")}</dt>
+          <dd>{t("run.snapshot.providerActualMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.costLabel")}</dt>
+          <dd>{t("run.snapshot.costMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.exactnessLabel")}</dt>
+          <dd>{t("run.snapshot.exactnessMissing")}</dd>
+        </div>
+        <div className={styles.factRow}>
+          <dt>{t("run.snapshot.whereExactLabel")}</dt>
+          <dd>{t("run.snapshot.whereExactBody")}</dd>
+        </div>
+      </dl>
+      <p className={styles.note}>{t("run.snapshot.boundaryPointer")}</p>
+    </div>
+  );
+}
+
+/** The compact pre-send disclosure line (IMPL-16; P3.5 §6 row 8 / §3
+ *  row 8): the active provider/model and the relevant egress notice
+ *  render BEFORE send — visible pre-send, keyboard-visible, one compact
+ *  wrapping line that stays compact at narrow widths. Rendered ONLY from
+ *  the Core's confirmed review payload (the egress decision is the Core's
+ *  own gate decision — never a reassuring default); the blocked case
+ *  carries the Core's typed reason. */
+function PreSendDisclosureLine({ review }: { review: WireReviewPayload }) {
+  const t = useT();
+
+  return (
+    <p className={styles.presendLine}>
+      <strong>{t("run.snapshot.presendLabel")}</strong>{" "}
+      <code>{review.provider_model.provider}</code>
+      {review.provider_model.model !== undefined && review.provider_model.model !== "" ? (
+        <>
+          {"/"}
+          <code>{review.provider_model.model}</code>
+        </>
+      ) : null}
+      {" — "}
+      {review.provider_model.wired ? t("run.review.providerWired") : t("run.review.providerUnwired")}
+      {" · "}
+      {t("run.snapshot.presendEgressLabel")}{" "}
+      {review.policy.egress_allowed
+        ? t("run.review.egressAllowed")
+        : t("run.review.egressBlocked")}
+      {!review.policy.egress_allowed &&
+      review.policy.egress_reason !== undefined &&
+      review.policy.egress_reason !== "" ? (
+        <span className={styles.note}>
+          {" "}
+          {t("run.review.egressReason", { reason: review.policy.egress_reason })}
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+/** The post-submission context-snapshot region (IMPL-16): the ONE
+ *  delivered exact snapshot read (IMPL-9's `jobSnapshot`) consumed in the
+ *  Run flow — explicit, user-initiated, read-sequence-guarded (the read
+ *  itself lives in the page's machine). The structured view is the shared
+ *  SnapshotViewPanel (the Job detail's Context Inspector view — ONE
+ *  rendering of the exact snapshot's structure, two containers). A Core
+ *  NOT_FOUND is the honest not-yet-compiled state; no retry exists
+ *  anywhere; the truthful unknown never renders as data. */
+function SnapshotPreviewRegion({
+  read,
+  onRead,
+}: {
+  read: SnapshotPreviewRead;
+  onRead: () => void;
+}) {
+  const t = useT();
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+
+  return (
+    <div className={styles.snapshotPreview}>
+      <h3 className={styles.acceptedTitle}>{t("run.snapshot.preview.heading")}</h3>
+      {read.kind === "notLoaded" ? (
+        <>
+          <p className={styles.note}>{t("run.snapshot.preview.notLoadedIntro")}</p>
+          <button type="button" className={styles.secondary} onClick={onRead}>
+            {t("run.snapshot.preview.load")}
+          </button>
+        </>
+      ) : read.kind === "loading" ? (
+        <p className={styles.note}>{t("run.snapshot.preview.loading")}</p>
+      ) : read.kind === "noSnapshot" ? (
+        <>
+          <p className={styles.note}>{t("run.snapshot.preview.noSnapshot")}</p>
+          <button type="button" className={styles.secondary} onClick={onRead}>
+            {t("run.snapshot.preview.refresh")}
+          </button>
+        </>
+      ) : read.kind === "failure" ? (
+        <>
+          <RecoveryPanel
+            title={t("run.snapshot.preview.failureTitle")}
+            body={t("run.snapshot.preview.failureBody")}
+            referenceId={read.envelope.correlationId}
+            actions={[{ label: t("run.snapshot.preview.refresh"), onAction: onRead }]}
+          />
+          <p className={styles.code}>
+            <span className="visually-hidden">Code: </span>
+            <code>{read.envelope.code}</code>
+          </p>
+        </>
+      ) : read.kind === "unknown" ? (
+        <RecoveryPanel
+          title={t("run.snapshot.preview.unknownTitle")}
+          body={t("run.snapshot.preview.unknownBody")}
+          actions={[{ label: t("run.snapshot.preview.refresh"), onAction: onRead }]}
+        />
+      ) : (
+        <>
+          <SnapshotViewPanel snapshot={read.snapshot} confirmedAt={read.confirmedAt} locale={locale} />
+          <p className={styles.note}>{t("run.snapshot.preview.detailPointer")}</p>
+        </>
+      )}
     </div>
   );
 }
