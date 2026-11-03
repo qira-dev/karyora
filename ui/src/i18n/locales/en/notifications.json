@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "noOsDelivery": "This panel shows in-app state only. Desktop delivery needs its own OS permission and is not requested here.",
+    "preferencesAbsent": "Notification preferences are not available yet: the delivered Core contract has no notification preference store, so there is nothing to change or save here. The list below is the delivered in-app surface; desktop delivery is not part of it.",
+    "blocked": {
+      "noCore": "Notifications are unavailable: no Core transport answered at this app origin, so there is no notification source to read. The Core's local transport is opt-in and disabled by default; this is never shown as an empty list.",
+      "noSession": "Notifications are unavailable: no Core session is established at this app origin, so no authorized notification read can run. Connect from the first-run setup with a one-time bootstrap credential.",
+      "sessionExpired": "Notifications are unavailable: the session this page held is no longer authorized by the Core (it expired, was revoked, or is otherwise invalid). The token has been discarded from this page's memory; reconnect from the first-run setup with a fresh one-time credential.",
+      "connecting": "Checking the Core connection: the notification reads start once a Core session answers an authorized read."
+    },
+    "loading": "Loading notifications…",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "lastConfirmed": "Last confirmed with the Core: {{time}}",
+    "countsLine": "{{total}} unread",
+    "countsUnavailable": "Unread counts unavailable",
+    "announceData": "Notification groups shown on this page: {{count}}",
+    "filterCategory": "Category",
+    "filterReadState": "Read state",
+    "filterAll": "All",
+    "clearFilter": "Clear filter",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more…",
+    "emptyAll": "No notifications",
+    "emptyAllBody": "Nothing has been notified yet. Job results, failures, approval waits, and other Core-recorded transitions appear here when the Core raises them.",
+    "emptyFiltered": "No notifications match the active filter",
+    "emptyFilteredBody": "Notifications exist, but none match the category and read-state filters. Clearing the filters shows the full list.",
+    "failureTitle": "Notifications could not be read",
+    "failureBody": "The Core refused the notification read. The typed code below is the Core's own refusal — nothing was fabricated to fill the list; refreshing is your explicit action.",
+    "unknownTitle": "The notification read's outcome is unknown",
+    "unknownBody": "No confirmed response arrived for the notification read. Nothing is known about the list until a read is confirmed — this is never shown as an empty list. Refresh reads the current state from the Core.",
+    "presentation": {
+      "unread": "Unread",
+      "read": "Read",
+      "stale": "Stale",
+      "permissionRevoked": "Access revoked",
+      "unknown": "Unknown state"
+    },
+    "stateClass": {
+      "result": "Result",
+      "failure": "Failure",
+      "approvalNeeded": "Approval needed",
+      "unknown": "Unknown class"
+    },
+    "category": {
+      "job": "Jobs",
+      "unknown": "Unknown category"
+    },
+    "entry": {
+      "objectJob": "Related job",
+      "objectUnknownType": "Related object",
+      "stateUnavailable": "State: Unavailable",
+      "updatesCount": "{{count}} notifications in this group",
+      "unreadInGroup": "{{count}} unread in this group",
+      "blockNewest": "newest {{time}}",
+      "blockUnread": "{{count}} unread",
+      "noDestination": "This notification's destination route is not part of the delivered surfaces yet, so it cannot be opened from here.",
+      "copyId": "Notification"
+    },
+    "actions": {
+      "markRead": "Mark read",
+      "markUnread": "Mark unread",
+      "clear": "Clear",
+      "pending": "Working…",
+      "scopeNote": "Actions apply to the entry's newest notification: the Core mutates exactly the notification identity named — nothing else.",
+      "refusedTitle": "The Core refused the action",
+      "refusedBody": "The typed code below is the Core's own refusal; nothing was applied unless the Core says otherwise. Trying again is your explicit action.",
+      "tryAgain": "Try again",
+      "unknownTitle": "The action's outcome is unknown",
+      "unknownBody": "The response was lost, so it is never proof the action was recorded or not. The recovery is a query, never a resend: refreshing reads the current state from the Core.",
+      "checkByRefresh": "Refresh to check"
+    },
+    "lawNote": "Marking read or clearing a notification never changes the underlying Job, approval, or any other record — a read approval notification is not an approved approval. Approval happens only through the explicit accept or reject command on the Job detail."
+  }
+}

@@ -47,11 +47,6 @@
       "setupHint": "You can set up a connection from Settings, Connections, or from the first-run setup."
     }
   },
-  "notifications": {
-    "title": "Notifications",
-    "sourceUnavailable": "Notifications are unavailable: the Core event and notification contracts are not wired in this milestone, so there is no notification source to display.",
-    "noOsDelivery": "This panel shows in-app state only. Desktop delivery needs its own OS permission and is not requested here."
-  },
   "session": {
     "label": "Session",
     "popoverTitle": "Session",

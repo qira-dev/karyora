@@ -10,6 +10,7 @@ import firstrun from "./locales/en/firstrun.json";
 import jobs from "./locales/en/jobs.json";
 import run from "./locales/en/run.json";
 import chat from "./locales/en/chat.json";
+import notifications from "./locales/en/notifications.json";
 
 /**
  * Localization (G-10; UI-18 LOCKED set; P1.9 §6.5 / P1.10 A-7 APPROVED
@@ -81,7 +82,7 @@ function deepMerge<T extends Record<string, unknown>>(target: T, ...sources: Rec
 }
 
 function englishResources(): Record<string, unknown> {
-  return deepMerge({}, common, nav, shell, settings, home, firstrun, jobs, run, chat);
+  return deepMerge({}, common, nav, shell, settings, home, firstrun, jobs, run, chat, notifications);
 }
 
 export function createI18n(): I18n {

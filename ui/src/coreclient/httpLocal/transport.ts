@@ -69,6 +69,12 @@ import type {
   WireJobsListParams,
   WireJobsListResult,
   WireJobSnapshotResult,
+  WireNotificationCountsResult,
+  WireNotificationGroupEntry,
+  WireNotificationMutationRequest,
+  WireNotificationMutationResult,
+  WireNotificationsListParams,
+  WireNotificationsListResult,
   WireReplayResult,
   WireReviewRequest,
   WireReviewResult,
@@ -229,6 +235,54 @@ function isWireConversationExchange(value: unknown): value is WireConversationEx
     typeof exchange.state === "string" &&
     typeof exchange.created_at === "string"
   );
+}
+
+/** The coded notification guards (IMPL-14): each response must carry its
+ *  distinguishing coded fields to be presented as data; anything else
+ *  stays unknown — never reinterpreted, never fabricated. */
+function isWireNotificationGroupEntry(value: unknown): value is WireNotificationGroupEntry {
+  if (value === null || typeof value !== "object") return false;
+  const entry = value as Record<string, unknown>;
+  if (
+    typeof entry.notification_id !== "string" ||
+    typeof entry.category !== "string" ||
+    typeof entry.state_class !== "string" ||
+    typeof entry.related_object_type !== "string" ||
+    typeof entry.related_object_id !== "string" ||
+    typeof entry.created_at !== "string" ||
+    typeof entry.unread_count !== "number" ||
+    typeof entry.repeat_count !== "number" ||
+    typeof entry.presentation !== "string" ||
+    !Array.isArray(entry.collapsed)
+  ) {
+    return false;
+  }
+  if (entry.object_state !== undefined && typeof entry.object_state !== "string") return false;
+  return entry.collapsed.every((block) => {
+    if (block === null || typeof block !== "object") return false;
+    const shaped = block as Record<string, unknown>;
+    return (
+      typeof shaped.state_class === "string" &&
+      typeof shaped.count === "number" &&
+      typeof shaped.unread_count === "number" &&
+      typeof shaped.newest_at === "string"
+    );
+  });
+}
+
+function isWireNotificationCounts(value: unknown): value is WireNotificationCountsResult {
+  if (value === null || typeof value !== "object") return false;
+  const counts = value as Record<string, unknown>;
+  if (typeof counts.total !== "number") return false;
+  if (counts.by_category === null || counts.by_category === undefined) return true;
+  if (typeof counts.by_category !== "object") return false;
+  return Object.values(counts.by_category).every((value) => typeof value === "number");
+}
+
+function isWireNotificationMutationResult(value: unknown): value is WireNotificationMutationResult {
+  if (value === null || typeof value !== "object") return false;
+  const result = value as Record<string, unknown>;
+  return typeof result.updated === "number" && typeof result.unchanged === "number";
 }
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
@@ -802,6 +856,100 @@ export function createHttpLocalTransport() {
           const shaped = body as Record<string, unknown>;
           return isWireConversationExchange(shaped.exchange) && isWireConversationMessage(shaped.message);
         },
+      );
+    },
+
+    /**
+     * The notification surface (IMPL-14; the ADOPTED S6 supply,
+     * P-S6-01/02 — the working candidates they are, never finalized).
+     * Exactly the five delivered notification operations, each ONE
+     * `call` — NO retry loop exists anywhere in this section (a lost
+     * response is `unknown`; the recovery is the surface's explicit
+     * query — re-reading the list and counts — never a resend, and NO
+     * auto-retry anywhere, P1.6). The paths are the adapter's own
+     * non-canonical paths. A notification read/dismiss NEVER changes the
+     * underlying Job, Activity, approval, or security record (the
+     * non-mutation law, P-S6-02/P3.8 §9 — the Core pins it structurally;
+     * this client only ever names notification identities). NO
+     * mark-all-read method exists (not in the P-S6-02 named set), and
+     * NO stream, OS-delivery, OS-permission, quiet-hours, or preference
+     * member exists here (P-S6-04/05; decision 6).
+     */
+
+    /** `GET /v1/notifications?category=&read_state=&cursor=` — the
+     * server-side grouped list read (P-S6-01; the card-9 working
+     * candidate). No limit is sent (the Core's per-surface default
+     * applies); the filter values are ONLY the Core's closed-register
+     * members (the surface never invents a value); the opaque cursor
+     * rides back verbatim and a cursorless response IS the final page.
+     * An empty page IS the honest no-notification answer. A pure read. */
+    notificationList(
+      params: WireNotificationsListParams = {},
+    ): Promise<TransportOutcome<WireNotificationsListResult>> {
+      const query = new URLSearchParams();
+      if (params.category !== undefined && params.category !== "") query.set("category", params.category);
+      if (params.read_state !== undefined && params.read_state !== "") query.set("read_state", params.read_state);
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size > 0 ? `?${query.toString()}` : "";
+      return call<WireNotificationsListResult>(`/v1/notifications${suffix}`, get(), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (!Array.isArray(shaped.entries)) return false;
+        return (
+          shaped.entries.every((row) => isWireNotificationGroupEntry(row)) &&
+          (shaped.cursor === undefined || typeof shaped.cursor === "string")
+        );
+      });
+    },
+
+    /** `GET /v1/notifications/counts` — the Core-supplied unread counts
+     * read (P-S6-01: unread counts render only from Core-supplied state
+     * — never locally counted). A pure read. */
+    notificationCounts(): Promise<TransportOutcome<WireNotificationCountsResult>> {
+      return call<WireNotificationCountsResult>("/v1/notifications/counts", get(), isWireNotificationCounts);
+    },
+
+    /** `POST /v1/notifications/read` — the mark-read mutation (P-S6-02):
+     * the body names EXACTLY the notification identities to mutate. The
+     * Core applies the set all-or-nothing and answers the typed outcome;
+     * the outcome is never rendered as the confirmation by itself — the
+     * surface re-reads the authoritative list and counts. A lost
+     * response is `unknown` and is NEVER re-sent on its own. */
+    notificationMarkRead(
+      payload: WireNotificationMutationRequest,
+    ): Promise<TransportOutcome<WireNotificationMutationResult>> {
+      return call<WireNotificationMutationResult>(
+        "/v1/notifications/read",
+        post(JSON.stringify(payload)),
+        isWireNotificationMutationResult,
+      );
+    },
+
+    /** `POST /v1/notifications/unread` — the mark-unread mutation
+     * (P-S6-02): the same discipline as mark-read exactly. */
+    notificationMarkUnread(
+      payload: WireNotificationMutationRequest,
+    ): Promise<TransportOutcome<WireNotificationMutationResult>> {
+      return call<WireNotificationMutationResult>(
+        "/v1/notifications/unread",
+        post(JSON.stringify(payload)),
+        isWireNotificationMutationResult,
+      );
+    },
+
+    /** `POST /v1/notifications/clear` — the clear mutation (P-S6-02; the
+     * soft-hide working candidate: the Core retains the rows and excludes
+     * them from the list and the counts — the non-mutation law bounds
+     * either reading). The body names EXACTLY the notification
+     * identities to clear; a lost response is `unknown` and is NEVER
+     * re-sent on its own. */
+    notificationClear(
+      payload: WireNotificationMutationRequest,
+    ): Promise<TransportOutcome<WireNotificationMutationResult>> {
+      return call<WireNotificationMutationResult>(
+        "/v1/notifications/clear",
+        post(JSON.stringify(payload)),
+        isWireNotificationMutationResult,
       );
     },
 

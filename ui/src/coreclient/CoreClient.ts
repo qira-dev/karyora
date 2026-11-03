@@ -60,8 +60,10 @@ export type CoreOperationKind =
   /** The session/permission state projection (C-11).
    *  Wire name: Open (O-1/O-3). */
   | "session-state"
-  /** The notification records list (C-04). Wire semantics:
-   *  Open (O-2/O-6). */
+  /** The notification records list (C-04; IMPL-14 wires the surface to
+   *  the delivered Core notification machinery over the adapter's own
+   *  non-canonical paths). The CANONICAL wire semantics stay Open
+   *  (O-2/O-6) — the adapter's paths bind nothing. */
   | "notification-list"
   /** Permission-filtered server-side search (C-03; the full palette is
    *  a later package). Wire semantics: Open (O-1/O-2). */

@@ -8,6 +8,7 @@ import { JobsListPage } from "../pages/jobs/JobsListPage";
 import { JobDetailPage } from "../pages/jobs/JobDetailPage";
 import { RunTaskPage } from "../pages/run/RunTaskPage";
 import { ChatPage } from "../pages/chat/ChatPage";
+import { NotificationsPage } from "../pages/notifications/NotificationsPage";
 import { SettingsLayout } from "../pages/settings/SettingsLayout";
 import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
@@ -49,6 +50,14 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
  * own explicit entry at `/jobs/new`), and no Job card renders from any
  * conversation send.
  *
+ * IMPL-14 WIRES the already-frozen `/settings/notifications` route to
+ * the delivered Core notification machinery (the ADOPTED S6 supply,
+ * P-S6-07's own terms): the entry-state page is replaced by the real
+ * notification surface (the same component the topbar
+ * notification-center popover renders). NO new route is added, and the
+ * preference controls are NOT here (no preference store exists in the
+ * delivered Core contract — the page states the absence truthfully).
+ *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
  * by the J-8 dirty-form navigation guard's useBlocker); `AppRoutes`
@@ -77,7 +86,7 @@ export const appRouteElements: ReactElement = (
       />
       <Route
         path="notifications"
-        element={<EntryStatePage titleKey="groups.notifications.title" bodyKeys={[]} />}
+        element={<NotificationsPage />}
       />
       <Route path="shortcuts" element={<ShortcutsPage />} />
       <Route

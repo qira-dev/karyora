@@ -729,3 +729,122 @@ export interface WireConversationExchangeResult {
   readonly exchange: WireConversationExchange;
   readonly message: WireConversationMessage;
 }
+
+// The notification surface (IMPL-14; the ADOPTED S6 supply, P-S6-01…07 —
+// the owner's LIVE S6 approval gate of 2026-11-03, consumed as the
+// working candidates they are, never finalized). Every key is a coded
+// name typed BY HAND against the coded JSON tags of
+// `internal/domain/notification/notification.go` and the coded adapter
+// structs of `internal/httplocal/server.go`
+// (`notificationListResult`/`notificationCountsResult`/
+// `notificationMutationRequest`/`notificationMutationResult`).
+// Boundaries carried exactly:
+// - The `/v1/notifications...` paths are the adapter's OWN non-canonical
+//   paths (the IMPL-4/6/7/8/9/10/11 convention); no published contract
+//   carries them, and no wire name here is canonical anywhere.
+// - The four-way presentation register (unread | read | stale |
+//   permission_revoked) rides the payload as coded; the UI renders it
+//   non-color (icon + text, never color alone).
+// - The mutation set is EXACTLY the delivered three (mark read / mark
+//   unread / clear over explicit `notification_ids`): NO mark-all-read
+//   member exists (not in the P-S6-02 named set), and a mutation is
+//   all-or-nothing on the Core side.
+// - NO stream, OS-delivery, OS-permission, quiet-hours, or preference
+//   member exists anywhere (P-S6-04/05; decision 6 — in-app ON + OS OFF
+//   by default; the UI-34 FINAL freeze stays its own Checkpoint-C act).
+// - NO prompt, file path, token, generated output, or private model data
+//   exists in any shape (the P-S6-06 prohibition list): safe metadata
+//   only.
+// - Unread counts ride Core-supplied state only; the UI never counts
+//   locally.
+
+/** `internal/domain/notification.CollapsedBlock` — the coded JSON tags
+ *  exactly: one collapsed block of repeated identical updates within a
+ *  group (the same related object + category + state-class run collapsed
+ *  to a count with its newest timestamp and its unread count). A
+ *  meaningful state transition is a DIFFERENT block — never hidden by
+ *  the collapse. */
+export interface WireNotificationCollapsedBlock {
+  readonly state_class: string;
+  readonly count: number;
+  readonly unread_count: number;
+  readonly newest_at: string;
+}
+
+/** `internal/domain/notification.GroupEntry` — the coded JSON tags
+ *  exactly: one list entry, one related object's group. The entry keeps
+ *  the newest timestamp (the representative's), the group's unread
+ *  count, the group's total, the collapsed blocks (every meaningful
+ *  transition visible), the current canonical state where the owning
+ *  domain supplies it (`object_state`; empty = the Core supplies none —
+ *  rendered as Unavailable, never invented), and the four-way
+ *  presentation state (`presentation`). `notification_id` is the
+ *  group's representative — the group's newest notification's
+ *  Core-issued identity, and the only member identity the list payload
+ *  exposes. */
+export interface WireNotificationGroupEntry {
+  readonly notification_id: string;
+  readonly category: string;
+  readonly state_class: string;
+  readonly related_object_type: string;
+  readonly related_object_id: string;
+  readonly created_at: string;
+  readonly unread_count: number;
+  readonly repeat_count: number;
+  readonly collapsed: readonly WireNotificationCollapsedBlock[];
+  readonly object_state?: string;
+  readonly presentation: string;
+}
+
+/** `GET /v1/notifications` query parameters. No limit is sent by this
+ *  client (the Core's per-surface default applies — the IMPL-5/11
+ *  pattern); `category` and `read_state` are the "filter" control's
+ *  working-candidate resolution (list-query parameters over the closed
+ *  registers); `cursor` is the opaque continuation cursor. */
+export interface WireNotificationsListParams {
+  readonly category?: string;
+  readonly read_state?: string;
+  readonly cursor?: string;
+}
+
+/** `GET /v1/notifications` success (200): `{entries, cursor?}` — the
+ *  coded `notificationListResult` shape. The order is the Core's own
+ *  (created_at descending, notification_id ascending tiebreak);
+ *  `cursor` is OMITTED on the final page: the cursorless response IS the
+ *  end marker (no has_more/total vocabulary exists). An empty page IS
+ *  the honest no-notification answer — never an error shape that
+ *  invents one. */
+export interface WireNotificationsListResult {
+  readonly entries: readonly WireNotificationGroupEntry[];
+  readonly cursor?: string;
+}
+
+/** `GET /v1/notifications/counts` success (200): `{total, by_category}`
+ *  — the coded `notificationCountsResult` shape, the Core-supplied
+ *  unread counts (cleared rows excluded). Unread counts render only
+ *  from this Core-supplied state — never locally counted. */
+export interface WireNotificationCountsResult {
+  readonly total: number;
+  readonly by_category: Readonly<Record<string, number>>;
+}
+
+/** `POST /v1/notifications/read|unread|clear` request body — the coded
+ *  `notificationMutationRequest` shape: the body names EXACTLY the
+ *  notification identities to mutate. No implicit target, no
+ *  mark-all-read. */
+export interface WireNotificationMutationRequest {
+  readonly notification_ids: readonly string[];
+}
+
+/** `POST /v1/notifications/read|unread|clear` success (200):
+ *  `{updated, unchanged}` — the coded `notificationMutationResult`
+ *  shape: the typed Core outcome (all-or-nothing on the Core side;
+ *  `unchanged` counts rows already in the requested state — the
+ *  convergent no-op, recorded honestly as state-convergence by nature,
+ *  NOT a documented idempotency class). The outcome is never rendered as
+ *  the confirmation by itself: the surface re-reads the authoritative
+ *  list and counts. */
+export interface WireNotificationMutationResult {
+  readonly updated: number;
+  readonly unchanged: number;
+}

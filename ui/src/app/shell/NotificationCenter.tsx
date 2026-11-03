@@ -2,17 +2,29 @@ import { Bell } from "lucide-react";
 
 import { Popover } from "../../components/Popover";
 import { useT } from "../../i18n/useT";
+import { NotificationList } from "../../pages/notifications/NotificationList";
 import styles from "./shellControls.module.css";
 
 /**
- * In-app notification center entry (C-04; Blueprint §23.1–23.4).
+ * In-app notification center entry (C-04; Blueprint §23.1–23.4) — the
+ * WIRED surface (IMPL-14; the ADOPTED S6 supply, P-S6-07's own terms:
+ * the delivered entry's truthful-unavailable state is replaced by the
+ * surface wired to the delivered Core notification machinery, while the
+ * unavailable state REMAINS for the genuine unavailability cases — no
+ * session, transport refused, Core unavailable — each truthful, never a
+ * fake empty list; see NotificationList's state machine).
  *
- * Phase 2 freezes the ENTRY with only Core/OS-supported categories and
- * truthful state. No Core notification source is wired in this milestone,
- * so the panel shows the unavailable state — no fabricated events, no
- * mark-read/clear actions (O-6 retention/mutation semantics Open with
- * Core/API). No OS notification permission is requested here and the
- * panel must not imply desktop delivery (UI-34 stays gated).
+ * The panel consumes exactly the delivered in-app reads and mutations
+ * (the five notification routes, IMPL-13): the grouped list, the
+ * Core-supplied unread counts, and the mark read/unread/clear controls.
+ * No topbar unread badge exists here — the counts render inside the
+ * panel only from the Core counts read (a badge would add an ambient
+ * read whose presentation is a later decision; none is invented).
+ *
+ * FORBIDDEN here (the recorded gates): no OS notification permission is
+ * requested and the panel must not imply desktop delivery (decision 6 —
+ * P-S6-05; the UI-34 FINAL freeze stays its own Checkpoint-C act); no
+ * stream transport (P-S6-04); no mark-all-read; no preference store.
  */
 export function NotificationCenter() {
   const t = useT();
@@ -39,8 +51,7 @@ export function NotificationCenter() {
       {(close) => (
         <div>
           <h2 className={styles.popoverTitle}>{t("notifications.title")}</h2>
-          <p className={styles.popoverBody}>{t("notifications.sourceUnavailable")}</p>
-          <p className={styles.popoverBody}>{t("notifications.noOsDelivery")}</p>
+          <NotificationList variant="popover" onEntryNavigate={close} />
           <button type="button" className={styles.popoverClose} onClick={close}>
             {t("actions.close")}
           </button>

@@ -1,0 +1,284 @@
+/* Notifications surface (IMPL-14). Layout uses CSS logical properties
+   (P2.4 §4.5); the four-way state distinction is icon + text — color is
+   never the only state signal (§8.6/§7.2); the rows reflow to a single
+   column at narrow widths — no two-dimensional scrolling is required by
+   this surface. The popover variant constrains its own width inside the
+   topbar popover; the page variant fills the settings page column. */
+
+.popoverSurface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(30rem, calc(100vw - 2 * var(--space-4)));
+}
+
+.pageSurface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filterLabel {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.filterSelect {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.control:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.confirmed {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.counts {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.category {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.rowTime {
+  margin-inline-start: auto;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.objectRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.fieldLabel {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.objectLink {
+  min-width: 0;
+  color: var(--color-link);
+}
+
+.objectLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.objectId {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.stateUnavailable {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.meta {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.blocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-inline-start: 2px solid var(--color-border);
+  padding-inline-start: var(--space-3);
+}
+
+.block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.blockCount {
+  font-size: var(--text-metadata-size);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.blockUnread {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mutationTarget {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  margin-inline-end: auto;
+}
+
+/* The state chips: icon + text; the tone classes supplement with color
+   only — the text label always carries the state (§7.2). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-badge);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.neutral {
+  color: var(--color-text-secondary);
+}
+
+.info {
+  color: var(--color-info);
+}
+
+.success {
+  color: var(--color-success);
+}
+
+.warning {
+  color: var(--color-warning);
+}
+
+.danger {
+  color: var(--color-danger);
+}
+
+.moreRow {
+  margin: 0;
+}
+
+.empty {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: var(--text-section-title-size);
+  font-weight: 600;
+}
+
+.empty button {
+  align-self: flex-start;
+}
+
+.code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  border-block-start: 1px solid var(--color-border);
+  padding-block-start: var(--space-3);
+}
+
+.footer p {
+  margin: 0;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
