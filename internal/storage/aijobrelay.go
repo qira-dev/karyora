@@ -2,7 +2,9 @@ package storage
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/qira-dev/karyora/internal/aijobrelay"
 	"github.com/qira-dev/karyora/internal/domain/errs"
+	"github.com/qira-dev/karyora/internal/domain/notification"
 	"github.com/qira-dev/karyora/internal/events"
 )
 
@@ -320,6 +323,94 @@ func mustJSON(v any) json.RawMessage {
 	return b
 }
 
+// newNotificationID mints the Core-issued notification identity (the typed
+// prefix plus random hex, the id-grammar class). A mint without a unique id
+// must never be silently reused — entropy failure aborts, exactly like the
+// approval-id mint. The exact published identity scheme stays Open (O-1);
+// the `ntf-` prefix is the working candidate's mint, recorded for the freeze.
+func newNotificationID() string {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic("storage: entropy unavailable: " + err.Error())
+	}
+	return "ntf-" + hex.EncodeToString(b[:])
+}
+
+// notificationForJobEvent maps the coded Job event register's Phase 3
+// producer scope onto notification records (the adopted S6 supply, P-S6-01;
+// the P3.8 §5.1 scope): results (job.succeeded), failures (job.failed,
+// job.timed_out, job.needs_reconciliation — a reconciliation-required Job is
+// a failure-class condition the user must act on; the mapping is the working
+// candidate recorded for the freeze), approvals (job.waiting with reason
+// approval — the ONLY notifying waiting reason; backoff/rate-limit waits are
+// transient operational states, never notifications). Every other register
+// member (claimed/queued/paused/submitted/cancel paths/requeued) produces NO
+// notification — no every-token/heartbeat notification (UI §23.1). The
+// provider-connection/credential-health and Core-connection/health
+// categories carry NO coded producer event in this codebase (verified by
+// search — the connections surface writes no journal event; the health
+// surface reports status reads), so no producer is implemented for them;
+// the Knowledge and Plugin producers stay their later Roadmap packages'.
+func notificationForJobEvent(eventID, eventType, jobID, correlationID, waitingReason string) (notification.Notification, bool) {
+	if eventID == "" || jobID == "" {
+		return notification.Notification{}, false
+	}
+	var class notification.StateClass
+	switch eventType {
+	case "job.succeeded":
+		class = notification.ClassResult
+	case "job.failed", "job.timed_out", "job.needs_reconciliation":
+		class = notification.ClassFailure
+	case "job.waiting":
+		if waitingReason != string(aijobrelay.WaitApproval) {
+			return notification.Notification{}, false
+		}
+		class = notification.ClassApprovalNeeded
+	default:
+		return notification.Notification{}, false
+	}
+	return notification.Notification{
+		NotificationID:    newNotificationID(),
+		Category:          notification.CategoryJob,
+		StateClass:        class,
+		RelatedObjectType: notification.ObjectJob,
+		RelatedObjectID:   jobID,
+		SourceEventID:     eventID,
+		CorrelationID:     correlationID,
+		ReadState:         notification.ReadUnread,
+	}, true
+}
+
+// appendNotificationTx inserts the producer's notification row inside the
+// caller's transaction — the SAME atomic journal/outbox discipline as every
+// other write (C1-08 §4.3 / C2-13 §2): the state change, its event, and its
+// notification commit together or not at all. Dedup is claimed ONLY by the
+// stable Core event identity (P-S6-03): a re-delivered event whose
+// event_id already raised its notification inserts nothing — checked inside
+// the same transaction under the single-writer gate, so a replayed event can
+// never duplicate its notification. The record carries safe metadata only —
+// no prompt, file path, token, generated output, or private model data ever
+// rides it (the P-S6-06 prohibition list).
+func appendNotificationTx(tx *sqlTx, n notification.Notification, createdAt string) error {
+	if n.SourceEventID != "" {
+		var one int
+		err := tx.QueryRow(`SELECT 1 FROM notification_records WHERE source_event_id = ?`, n.SourceEventID).Scan(&one)
+		if err == nil {
+			return nil // dedup by the stable Core event identity — never a duplicate
+		}
+		if err != sql.ErrNoRows {
+			return mapVendorError(err)
+		}
+	}
+	_, err := tx.Exec(`INSERT INTO notification_records
+		(notification_id, category, state_class, related_object_type, related_object_id,
+		 source_event_id, correlation_id, read_state, cleared, created_at, read_at, cleared_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, '', '')`,
+		n.NotificationID, string(n.Category), string(n.StateClass), n.RelatedObjectType, n.RelatedObjectID,
+		n.SourceEventID, n.CorrelationID, string(n.ReadState), createdAt)
+	return mapVendorError(err)
+}
+
 // RenewLease implements aijobrelay.RelayStore: only a live (unexpired)
 // lease with the exact epoch/worker can be renewed back to life (C3-13).
 func (s *Store) RenewLease(ctx context.Context, jobID, attemptID, workerID string, leaseEpoch uint64, ttl time.Duration) error {
@@ -407,8 +498,18 @@ func (s *Store) ReleaseExpiredLeases(ctx context.Context, now time.Time) ([]aijo
 			if unknownCount > 0 {
 				eventType = "job.needs_reconciliation"
 			}
+			leaseExpiredEventID := "evt-" + e.jobID + "-lease-expired-" + fmt.Sprint(e.att.Seq)
+			// The notification producer (the adopted S6 supply): only the
+			// mapped Phase 3 producer events raise a notification — a plain
+			// requeue inserts nothing; a reconciliation-required transition
+			// raises its failure-class record in the SAME transaction.
+			if n, ok := notificationForJobEvent(leaseExpiredEventID, eventType, e.jobID, job.CorrelationID, waitingReason); ok {
+				if err := appendNotificationTx(tx, n, nowStr); err != nil {
+					return err
+				}
+			}
 			return appendEventTx(tx, events.Record{
-				EventID:       "evt-" + e.jobID + "-lease-expired-" + fmt.Sprint(e.att.Seq),
+				EventID:       leaseExpiredEventID,
 				AggregateType: "job",
 				AggregateID:   e.jobID,
 				EventType:     eventType,
@@ -485,8 +586,18 @@ func (s *Store) ObserveSideEffect(ctx context.Context, jobID, intentID string, j
 				aijobrelay.JobNeedsReconciliation, string(aijobrelay.WaitUnknownSideEffect), now, jobID, jobVersion, job.State); err != nil {
 				return mapVendorError(err)
 			}
+			unknownEventID := "evt-" + jobID + "-unknown-" + intentID
+			// The notification producer (the adopted S6 supply): the
+			// reconciliation-required transition raises its failure-class
+			// record in the SAME transaction as the state change and its
+			// event.
+			if n, ok := notificationForJobEvent(unknownEventID, "job.needs_reconciliation", jobID, job.CorrelationID, string(aijobrelay.WaitUnknownSideEffect)); ok {
+				if err := appendNotificationTx(tx, n, now); err != nil {
+					return err
+				}
+			}
 			return appendEventTx(tx, events.Record{
-				EventID:       "evt-" + jobID + "-unknown-" + intentID,
+				EventID:       unknownEventID,
 				AggregateType: "job",
 				AggregateID:   jobID,
 				EventType:     "job.needs_reconciliation",
@@ -569,6 +680,16 @@ func (s *Store) CommitAttempt(ctx context.Context, commit aijobrelay.Commit) err
 				receipt.ReceiptID, receipt.JobID, receipt.AttemptID, receipt.Outcome, receipt.ResultDigest,
 				receipt.JobVersion, receipt.LeaseEpoch, receipt.CreatedAt.Format(time.RFC3339Nano)); err != nil {
 				return mapVendorError(err)
+			}
+		}
+		// The notification producer (the adopted S6 supply, P-S6-01; the
+		// P3.8 §5.1 scope): the mapped Phase 3 producer event raises its
+		// notification record in the SAME transaction as the state change
+		// and its event — the atomic journal/outbox discipline. The
+		// non-notifying register members insert nothing.
+		if n, ok := notificationForJobEvent(event.EventID, event.EventType, commit.JobID, event.CorrelationID, commit.WaitingReason); ok {
+			if err := appendNotificationTx(tx, n, now); err != nil {
+				return err
 			}
 		}
 		return appendEventTx(tx, event)

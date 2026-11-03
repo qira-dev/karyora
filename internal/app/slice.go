@@ -93,6 +93,10 @@ type SliceDeps struct {
 	// S5 mapping, P-S5-01). Optional: nil disables the conversation surface
 	// (typed refusals, fail closed).
 	Conversations ConversationStore
+	// Notifications is the durable notification-record port (the adopted
+	// S6 supply, P-S6-03: the identity store is new Core state). Optional:
+	// nil disables the notification surface (typed refusals, fail closed).
+	Notifications NotificationStore
 	// Secrets is the D-37 SecretWriter face the connection operations use
 	// (the keyring store implements both faces). Nil disables credential
 	// persistence — the connection writes then refuse with the typed

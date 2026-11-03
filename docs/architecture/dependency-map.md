@@ -1,5 +1,29 @@
 # Core Dependency Map (Phase 2, C2-02)
 
+Contract version 1.23 (2026-11-03): the IMPL-13 implementation milestone
+adds the Core-side notification machinery over the adopted S6 supply
+(P-S6-01…07). `internal/domain/notification` is the new pure-domain
+subpackage carrying the notification-record contract (the record shapes,
+the closed category/state-class/read-state/presentation registers, the
+grouped list query and page shapes, the unread-counts and mutation-outcome
+shapes; no internal imports — the domain rule). `internal/app` gains the
+`NotificationStore` port and the notification operations (the grouped
+list read, the unread counts, the mark read/unread/clear mutations — the
+non-mutation law holds structurally: no notification mutation writes any
+underlying Job, approval, audit, or security record) — no new import edge
+(domain was already allowed). `internal/storage` implements the port
+structurally over migration `0010-notification-records`
+(notification_records; schemaVersionMax 9 → 10) and adds the Phase 3
+notification producers inside the existing fenced job-commit transactions
+(the same atomic journal/outbox discipline). `internal/security` adds the
+`notification` resource type to the closed register ADDITIVELY (the
+fail-closed default-deny machinery unchanged). `internal/httplocal`
+exposes the operations on its own non-canonical paths (no OS-delivery,
+OS-permission, quiet-hours, mark-all-read, or stream endpoint exists —
+the UI-34 FINAL freeze stays its own Checkpoint-C act and the stream
+transport stays the UI-26/C-6 gate's). The composition root wires the
+store. No forbidden direction opened; the graph stays acyclic.
+
 Contract version 1.22 (2026-11-03): the IMPL-10 implementation milestone
 adds the conversation surface over the adopted S5 mapping (P-S5-01…05).
 `internal/domain/conversation` is the new pure-domain subpackage carrying

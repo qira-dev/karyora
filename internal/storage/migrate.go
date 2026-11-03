@@ -361,6 +361,35 @@ CREATE INDEX IF NOT EXISTS idx_conv_exchanges_conv
     ON conversation_exchanges (conversation_id, created_at);
 `,
 	},
+	{
+		Version: 10,
+		Name:    "0010-notification-records",
+		SQL: `
+CREATE TABLE IF NOT EXISTS notification_records (
+    notification_id     TEXT PRIMARY KEY,
+    category            TEXT NOT NULL,
+    state_class         TEXT NOT NULL,
+    related_object_type TEXT NOT NULL,
+    related_object_id   TEXT NOT NULL,
+    source_event_id     TEXT NOT NULL DEFAULT '',
+    correlation_id      TEXT NOT NULL DEFAULT '',
+    read_state          TEXT NOT NULL DEFAULT 'unread',
+    cleared             INTEGER NOT NULL DEFAULT 0,
+    created_at          TEXT NOT NULL,
+    read_at             TEXT NOT NULL DEFAULT '',
+    cleared_at          TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_created
+    ON notification_records (created_at, notification_id);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_object
+    ON notification_records (related_object_type, related_object_id, created_at);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_event
+    ON notification_records (source_event_id) WHERE source_event_id != '';
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -368,7 +397,7 @@ CREATE INDEX IF NOT EXISTS idx_conv_exchanges_conv
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 9
+	schemaVersionMax = 10
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

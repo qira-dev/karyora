@@ -83,6 +83,13 @@ const (
 	// its predicates, and every existing row are unchanged; unknown types
 	// deny exactly as before.
 	ResourceConversation = "conversation"
+	// ResourceNotification is the notification-record surface (the adopted
+	// S6 supply, P-S6-01/02: the Core-owned notification state and its
+	// O-6 mutation set). It joins this register ADDITIVELY — the same
+	// deliberate, recorded register-extension class: the fail-closed
+	// default-deny machinery, its predicates, and every existing row are
+	// unchanged; unknown types deny exactly as before.
+	ResourceNotification = "notification"
 )
 
 var localResourceTypes = map[string]bool{
@@ -96,6 +103,7 @@ var localResourceTypes = map[string]bool{
 	ResourceSecret:       true,
 	ResourceJob:          true,
 	ResourceConversation: true,
+	ResourceNotification: true,
 }
 
 func (r Resource) validate() error {

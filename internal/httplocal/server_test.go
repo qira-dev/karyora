@@ -187,6 +187,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		Connections:   st,
 		Secrets:       newWireFakeSecrets(),
 		Conversations: st,
+		Notifications: st,
 	}
 	slice, err := app.NewSlice(deps)
 	if err != nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/qira-dev/karyora/internal/app"
 	"github.com/qira-dev/karyora/internal/domain/conversation"
 	"github.com/qira-dev/karyora/internal/domain/errs"
+	"github.com/qira-dev/karyora/internal/domain/notification"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	"github.com/qira-dev/karyora/internal/events"
 	"github.com/qira-dev/karyora/internal/security"
@@ -190,6 +191,21 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, suffix: "/exchange", handler: (*Server).handleConversationExchange},
 		{method: http.MethodPost, prefix: "/v1/conversations/", hasID: true, suffix: "/send", mutates: true, handler: (*Server).handleConversationSend},
 		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, handler: (*Server).handleConversationGet},
+		// The notification surface (the adopted S6 supply, P-S6-01/02): the
+		// grouped list read, the Core-supplied unread counts, and the O-6
+		// mutation set's typed outcomes (mark read, mark unread, clear —
+		// "filter" is the list read's query parameters). The paths are this
+		// adapter's own (the IMPL-4/6/7/8/9/10 convention). NO OS-delivery,
+		// OS-permission, quiet-hours, or mark-all-read endpoint exists
+		// anywhere (decision 6: in-app ON + OS OFF by default; the UI-34
+		// FINAL freeze stays its own Checkpoint-C act; the P-S6-02 named
+		// set is exactly mark read/unread/filter/clear) — the route
+		// register is pinned so none can silently appear.
+		{method: http.MethodGet, prefix: "/v1/notifications/counts", handler: (*Server).handleNotificationCounts},
+		{method: http.MethodGet, prefix: "/v1/notifications", handler: (*Server).handleNotificationList},
+		{method: http.MethodPost, prefix: "/v1/notifications/read", mutates: true, handler: (*Server).handleNotificationMarkRead},
+		{method: http.MethodPost, prefix: "/v1/notifications/unread", mutates: true, handler: (*Server).handleNotificationMarkUnread},
+		{method: http.MethodPost, prefix: "/v1/notifications/clear", mutates: true, handler: (*Server).handleNotificationClear},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -921,6 +937,108 @@ func (s *Server) handleConversationExchange(w http.ResponseWriter, r *http.Reque
 	s.writeJSON(w, http.StatusOK, conversationExchangeResult{Exchange: exchange, Message: msg})
 }
 
+// maxNotificationFilterLen bounds a notification filter query value (a
+// closed-register value; anything longer cannot be a member — the same
+// transport-safeguard class as maxSearchQueryLen).
+const maxNotificationFilterLen = 64
+
+// handleNotificationList exposes the grouped list read (the adopted S6
+// supply, P-S6-01; the card-9 working candidate): server-side cursor
+// pagination, the Core-defined newest-first order, the grouped collapse
+// (the recorded rule's working-candidate mechanics), the optional
+// category/read_state filter parameters over the closed registers. The
+// limit is optional (the slice's per-surface default applies); the cursor
+// is opaque and its absence on a response marks the final page. An empty
+// page IS the honest no-notification answer — never an error shape that
+// invents one. A read — it mutates nothing.
+func (s *Server) handleNotificationList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	category := q.Get("category")
+	if len(category) > maxNotificationFilterLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "category"}))
+		return
+	}
+	readState := q.Get("read_state")
+	if len(readState) > maxNotificationFilterLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "read_state"}))
+		return
+	}
+	res, err := s.deps.Slice.ListNotifications(s.callCtx(r, token), app.ListNotificationsRequest{
+		Limit:     limit,
+		Category:  category,
+		ReadState: readState,
+		Cursor:    cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, notificationListResult{Entries: res.Entries, Cursor: res.NextCursor})
+}
+
+// handleNotificationCounts exposes the Core-supplied unread counts
+// (P-S6-01: unread counts render only from Core-supplied state — never
+// locally counted by the UI). A pure read.
+func (s *Server) handleNotificationCounts(w http.ResponseWriter, r *http.Request, token, _ string) {
+	counts, err := s.deps.Slice.NotificationUnreadCounts(s.callCtx(r, token))
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, notificationCountsResult{
+		Total:      counts.Total,
+		ByCategory: counts.ByCategory,
+	})
+}
+
+// handleNotificationMutation is the shared O-6 mutation frame (P-S6-02):
+// the body names exactly the notification identities to mutate — no
+// mark-all-read exists (the named set is mark read/unread/filter/clear).
+// The outcome is the typed Core outcome; the refusals ride the D-35
+// envelope. A notification read/dismiss NEVER changes the underlying Job,
+// Activity, approval, or security record (the non-mutation law — the
+// mutations write ONLY notification rows; pinned by test).
+func (s *Server) handleNotificationMutation(w http.ResponseWriter, r *http.Request, token string, apply func(context.Context, app.NotificationMutationRequest) (app.NotificationMutationResult, error)) {
+	var req notificationMutationRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := apply(s.callCtx(r, token), app.NotificationMutationRequest{NotificationIDs: req.NotificationIDs})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, notificationMutationResult{Updated: res.Updated, Unchanged: res.Unchanged})
+}
+
+func (s *Server) handleNotificationMarkRead(w http.ResponseWriter, r *http.Request, token, _ string) {
+	s.handleNotificationMutation(w, r, token, s.deps.Slice.MarkNotificationsRead)
+}
+
+func (s *Server) handleNotificationMarkUnread(w http.ResponseWriter, r *http.Request, token, _ string) {
+	s.handleNotificationMutation(w, r, token, s.deps.Slice.MarkNotificationsUnread)
+}
+
+func (s *Server) handleNotificationClear(w http.ResponseWriter, r *http.Request, token, _ string) {
+	s.handleNotificationMutation(w, r, token, s.deps.Slice.ClearNotifications)
+}
+
 func (s *Server) handleReplay(w http.ResponseWriter, r *http.Request, token, _ string) {
 	q := r.URL.Query()
 	stream := q.Get("stream")
@@ -1286,6 +1404,47 @@ type conversationExchangeResult struct {
 	// the send's persisted user message.
 	Exchange conversation.Exchange `json:"exchange"`
 	Message  conversation.Message  `json:"message"`
+}
+
+// The notification wire shapes (the adopted S6 supply, P-S6-01/02). Every
+// key is a coded name: the group-entry JSON tags are the coded
+// notification.GroupEntry tags (notification_id, category, state_class,
+// related_object_type, related_object_id, created_at, unread_count,
+// repeat_count, collapsed, object_state?, presentation); the wrapper keys
+// are the coded struct names lowercased (the coded-name rule). The
+// four-way presentation state rides the payload non-color; no prompt,
+// file path, token, generated output, or private model data exists in any
+// shape (the P-S6-06 prohibition list).
+
+type notificationMutationRequest struct {
+	// notification_ids names exactly the notifications to mutate — no
+	// implicit target, no mark-all-read (the P-S6-02 named set is mark
+	// read/unread/filter/clear).
+	NotificationIDs []string `json:"notification_ids"`
+}
+
+type notificationListResult struct {
+	// entries is the grouped list (one entry per related-object group);
+	// cursor is the opaque list cursor — omitted on the final page (the
+	// cursorless page IS the end marker; no has_more/total vocabulary).
+	Entries []notification.GroupEntry `json:"entries"`
+	Cursor  string                    `json:"cursor,omitempty"`
+}
+
+type notificationCountsResult struct {
+	// total is the Core-supplied unread total; by_category the per-category
+	// counts (cleared rows excluded). Unread counts render only from
+	// Core-supplied state (P-S6-01) — never locally counted by the UI.
+	Total      int            `json:"total"`
+	ByCategory map[string]int `json:"by_category"`
+}
+
+type notificationMutationResult struct {
+	// updated is the count of rows that changed; unchanged the count of
+	// rows already in the requested state (the convergent no-op — recorded
+	// honestly: state-convergent, not a documented idempotency class).
+	Updated   int `json:"updated"`
+	Unchanged int `json:"unchanged"`
 }
 
 // The connection wire shapes. Every key is a coded name: the record/view

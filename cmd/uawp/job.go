@@ -283,6 +283,7 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		Connections:   store,
 		Secrets:       secrets,
 		Conversations: store,
+		Notifications: store,
 	}
 	slice, _ := app.NewSlice(deps)
 	return slice, deps, nil
