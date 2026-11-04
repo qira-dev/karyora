@@ -94,6 +94,22 @@ import (
 // safe metadata (updated_at, credential_epoch, test_current) — never
 // secret content (P1.6 §5's rule 9). The UI renders the refusal verbatim
 // and performs no overwrite and no merge (the P1.6 §5 interim rule).
+//
+// The per-connection custom-executor construction (IMPL-18): the coded
+// custom connection-protocol adapters (C3-29/C3-30) are parameterized by
+// the connection record's own non-secret posture, so the wired-provider
+// check resolves a custom family through the composition-provided
+// ConnectionExecutorFactory port (the app layer cannot construct
+// executors — the dependency map's own rule). A custom save/test/update
+// rides the CONSTRUCTED executor's posture (its credential class, its
+// base-URL requirement — a custom family has no recorded default); the
+// probe's full gate set applies unchanged, so a custom profile's honest
+// unknown data-handling record blocks its probe typed (egress_policy) —
+// the recorded C3-19 fail-closed posture, never weakened, the
+// classification-policy allowlists staying their recorded owner's. A
+// genuinely-unwired provider (no static executor, no constructible
+// family) keeps the recorded typed refusal ("provider is not wired for
+// this core").
 
 // Port type aliases: the list query/page shapes live in the domain
 // package so the storage adapter and the use-case layer share one shape.
@@ -118,6 +134,31 @@ type ConnectionStore interface {
 	ActiveConnectionID(ctx context.Context) (string, error)
 }
 
+// ConnectionExecutorFactory constructs the per-connection executors of the
+// custom connection-protocol families (C3-29/C3-30): a custom adapter is
+// parameterized by the connection record's own non-secret posture (the
+// explicit base URL, the exact model id), so its executor cannot pre-exist
+// in the wired provider map — it is built per connection, from the record.
+// The app layer cannot construct executors (the dependency map's own rule:
+// internal/app never imports internal/providers), so the composition root
+// implements this port over the providers package and the slice consumes
+// only the port — the construction crosses the layer boundary through the
+// composition-provided factory. Optional: nil keeps the recorded unwired
+// posture for those providers (the typed wired-check refusal stays, fail
+// closed — nothing is invented to bypass it).
+type ConnectionExecutorFactory interface {
+	// IsConnectionProtocol reports whether the provider id names a custom
+	// connection-protocol family the factory constructs per connection
+	// (as opposed to a statically wired executor in SliceDeps.Providers).
+	IsConnectionProtocol(provider string) bool
+	// ConnectionExecutor builds the per-connection executor for one
+	// connection posture (the record's non-secret identity: the provider
+	// id, the base URL, the exact model id). ok=false when the posture
+	// does not yield a constructible executor — the caller then applies
+	// its own wired-provider law (the typed refusal stays).
+	ConnectionExecutor(provider, baseURL, modelID string) (ProviderExecutor, bool)
+}
+
 // Connection bounds (Proposed, pending the recorded owner review — the
 // slice-bounds discipline).
 const (
@@ -140,15 +181,21 @@ func ConnectionHandle(connectionID string) security.Handle {
 	return security.Handle{Scope: "connection:" + connectionID, Name: connectionSecretName}
 }
 
-// saveRequiresSecret reports whether the wired provider's connection
-// posture carries a credential (AuthNone adapters — the fixture — need
-// none) and whether the provider is wired at all.
-func (s *Slice) saveRequiresSecret(provider string) (bool, bool) {
-	executor, wired := s.deps.Providers[provider]
-	if !wired {
-		return false, false
+// connectionExecutorFor resolves the executor a connection posture rides:
+// the statically wired provider map first (the delivered posture — its
+// behavior is unchanged for every statically wired provider), then the
+// composition-provided factory for a custom connection-protocol family
+// (C3-29/C3-30 — the per-connection construction). wired=false when
+// neither source supplies the provider: the caller's typed wired-check
+// refusal stays (the genuinely-unwired case — the recorded pin).
+func (s *Slice) connectionExecutorFor(provider, baseURL, modelID string) (ProviderExecutor, bool) {
+	if executor, wired := s.deps.Providers[provider]; wired {
+		return executor, true
 	}
-	return executor.Connection().AuthKind != dprovider.AuthNone, true
+	if s.deps.ConnectionExecutors == nil {
+		return nil, false
+	}
+	return s.deps.ConnectionExecutors.ConnectionExecutor(provider, baseURL, modelID)
 }
 
 // SaveConnectionRequest is one connection-create command (M-24). Secret is
@@ -207,17 +254,29 @@ func (s *Slice) SaveConnection(ctx context.Context, req SaveConnectionRequest) (
 	if strings.Contains(req.BaseURL, "@") {
 		return SaveConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "base_url"})
 	}
-	requiresSecret, wired := s.saveRequiresSecret(req.Provider)
+	executor, wired := s.connectionExecutorFor(req.Provider, req.BaseURL, req.ModelID)
 	if !wired {
 		return SaveConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{
 			"field": "provider", "reason": "provider is not wired for this core",
 		})
 	}
+	// The executor's own posture decides the credential class and whether
+	// the record must carry the destination: a statically wired adapter
+	// records a default base (the record may omit one), while a custom
+	// connection-protocol family (C3-29/C3-30) has NO recorded default —
+	// its destination IS the record's base URL, so a connection posture
+	// without a default requires the request's base URL (the typed field
+	// law; the Core enforces, the UI validation is feedback — P3.3 §8).
+	posture := executor.Connection()
+	requiresSecret := posture.AuthKind != dprovider.AuthNone
 	if requiresSecret && len(req.Secret) == 0 {
 		return SaveConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "secret"})
 	}
 	if !requiresSecret {
 		req.Secret = nil // an AuthNone adapter never stores a credential
+	}
+	if posture.BaseURL == "" && req.BaseURL == "" {
+		return SaveConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "base_url"})
 	}
 	if err := dprovider.ValidateHeaders(req.CustomHeaders); err != nil {
 		return SaveConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "custom_headers"})
@@ -510,7 +569,7 @@ func (s *Slice) TestConnection(ctx context.Context, req TestConnectionRequest) (
 		// request-scoped store for the single probe and is dropped after.
 		transient = req.Secret
 	}
-	executor, wired := s.deps.Providers[provider]
+	executor, wired := s.connectionExecutorFor(provider, baseURL, modelID)
 	if !wired {
 		return TestConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{
 			"field": "provider", "reason": "provider is not wired for this core",
@@ -532,6 +591,13 @@ func (s *Slice) TestConnection(ctx context.Context, req TestConnectionRequest) (
 	conn := executor.Connection()
 	if baseURL != "" {
 		conn.BaseURL = baseURL
+	}
+	// The same base-URL field law the save carries: a connection posture
+	// without a recorded default (the custom connection-protocol families)
+	// requires the record's or the draft's own base URL — the probe has
+	// nowhere to point otherwise.
+	if conn.BaseURL == "" {
+		return TestConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "base_url"})
 	}
 	if conn.AuthKind != dprovider.AuthNone {
 		if secretRef == "" && len(transient) == 0 {
@@ -844,10 +910,16 @@ func (s *Slice) UpdateConnection(ctx context.Context, req UpdateConnectionReques
 	if strings.Contains(req.BaseURL, "@") {
 		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "base_url"})
 	}
-	if _, wired := s.saveRequiresSecret(req.Provider); !wired {
+	executor, wired := s.connectionExecutorFor(req.Provider, req.BaseURL, req.ModelID)
+	if !wired {
 		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{
 			"field": "provider", "reason": "provider is not wired for this core",
 		})
+	}
+	// The save's own base-URL field law, carried symmetrically: a posture
+	// without a recorded default requires the updated record's base URL.
+	if posture := executor.Connection(); posture.BaseURL == "" && req.BaseURL == "" {
+		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "base_url"})
 	}
 	if err := dprovider.ValidateHeaders(req.CustomHeaders); err != nil {
 		return UpdateConnectionResult{}, envelopeErr(errs.CodeValidationFailed, corr, map[string]any{"field": "custom_headers"})

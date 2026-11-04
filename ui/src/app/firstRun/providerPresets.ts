@@ -39,3 +39,28 @@ export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
 
 /** The Custom API sentinel id (its label is locale copy, not a preset name). */
 export const CUSTOM_API_PRESET_ID = "custom";
+
+/**
+ * The coded custom connection protocols (C3-29/C3-30): the API-format
+ * selector's option ids and the wire provider values a Custom API
+ * connection save/test sends (the Core constructs each custom executor
+ * from the connection record's own posture — IMPL-18's per-connection
+ * construction).
+ *
+ * The ids are the coded adapter register's ids
+ * (internal/domain/provider contract.go) hand-aligned here — the
+ * preset-ids rule applied to the wire value; this is the coded-name
+ * alignment, never claimed as a live Core enumeration (no enumeration
+ * query exists; the Core's typed refusal decides any mismatch). The
+ * labels are user-facing copy (not proper nouns) and resolve through the
+ * locale resources — G-10's typed keys, never a hardcoded string.
+ */
+export interface CustomProtocolFormat {
+  readonly id: string;
+  readonly labelKey: "provider.apiFormatOpenAICompatible" | "provider.apiFormatAnthropicCompatible";
+}
+
+export const CUSTOM_PROTOCOL_FORMATS: readonly CustomProtocolFormat[] = [
+  { id: "custom-openai", labelKey: "provider.apiFormatOpenAICompatible" },
+  { id: "custom-anthropic", labelKey: "provider.apiFormatAnthropicCompatible" },
+];

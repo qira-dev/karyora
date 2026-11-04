@@ -102,7 +102,14 @@ type SliceDeps struct {
 	// persistence — the connection writes then refuse with the typed
 	// SECRET_UNAVAILABLE family (fail closed).
 	Secrets security.SecretWriter
-	Now     func() time.Time
+	// ConnectionExecutors constructs the per-connection executors of the
+	// custom connection-protocol families (C3-29/C3-30) — the composition
+	// root implements the port over the providers package (the app layer
+	// cannot construct executors: the dependency map's own rule). Nil
+	// keeps the recorded unwired posture for those providers (typed
+	// refusals, fail closed).
+	ConnectionExecutors ConnectionExecutorFactory
+	Now                 func() time.Time
 }
 
 // SubmitRequest is the API submission contract (C3-31 acceptance: the same

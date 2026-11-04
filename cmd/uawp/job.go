@@ -251,10 +251,17 @@ func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []stri
 // wireJobSlice composes the slice over the opened store: the recorded
 // fixture adapter PLUS the eight direct integrations (C3-21–C3-28), each as
 // its own executor over ONE shared C3-19 registry and the OS-keyring
-// credential store (D-37 accepted). No credential exists until the user
-// stores one; a provider without a stored credential fails typed at
-// resolution time, and the registry gate decides classification egress
-// (today only Z.AI x non-personal passes — accepted policy, 2026-10-28).
+// credential store (D-37 accepted), PLUS the per-connection custom-executor
+// construction (IMPL-18) — the composition-provided factory that builds
+// the coded C3-29/C3-30 custom connection-protocol executors from each
+// connection record's own non-secret posture over the same policy, store,
+// and registry (the app layer cannot construct executors: the dependency
+// map's own rule). No credential exists until the user stores one; a
+// provider without a stored credential fails typed at resolution time, and
+// the registry gate decides classification egress (today only Z.AI x
+// non-personal passes — accepted policy, 2026-10-28); a custom endpoint's
+// honest unknown record keeps its probe fail-closed exactly like every
+// other profile without a current dated review.
 func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceDeps, error) {
 	store := lz.store
 	reg := dprovider.NewRegistry(nil)
@@ -272,18 +279,19 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		executors[a.ID()] = exec
 	}
 	deps := app.SliceDeps{
-		Relay:         store,
-		Snapshots:     store,
-		Objects:       store,
-		Events:        store,
-		Packs:         store,
-		Guard:         bundle.guard,
-		Providers:     executors,
-		Backoff:       store,
-		Connections:   store,
-		Secrets:       secrets,
-		Conversations: store,
-		Notifications: store,
+		Relay:               store,
+		Snapshots:           store,
+		Objects:             store,
+		Events:              store,
+		Packs:               store,
+		Guard:               bundle.guard,
+		Providers:           executors,
+		Backoff:             store,
+		Connections:         store,
+		Secrets:             secrets,
+		Conversations:       store,
+		Notifications:       store,
+		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
 	}
 	slice, _ := app.NewSlice(deps)
 	return slice, deps, nil

@@ -30,9 +30,13 @@ const STORAGE_KEY = "karyora.ui.firstrun.v1";
 export type FirstRunStatus = "pending" | "skipped";
 export type ConnectionChoice = "local" | "remote";
 
-/** Non-secret provider-step draft (C-07 UI-12 fields minus the secret). */
+/** Non-secret provider-step draft (C-07 UI-12 fields minus the secret).
+ *  `apiFormat` is the Custom API branch's coded connection protocol (the
+ *  API-format selector's value — the wire provider id a Custom API
+ *  connection save sends; empty until the format is chosen). */
 export interface ProviderDraft {
   presetId: string;
+  apiFormat: string;
   baseUrl: string;
   modelId: string;
   headers: string;
@@ -40,6 +44,7 @@ export interface ProviderDraft {
 
 export const EMPTY_PROVIDER_DRAFT: ProviderDraft = {
   presetId: "",
+  apiFormat: "",
   baseUrl: "",
   modelId: "",
   headers: "",

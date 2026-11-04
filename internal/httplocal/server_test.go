@@ -120,6 +120,14 @@ type testEnv struct {
 }
 
 func newTestEnv(t *testing.T) *testEnv {
+	return newTestEnvComposed(t, nil)
+}
+
+// newTestEnvComposed is newTestEnv with an optional deps hook: a surface
+// that needs an extra port wired into the REAL composition (e.g. the
+// per-connection custom-executor factory) configures the deps before the
+// slice and the server are built (the IMPL-13 env-wiring precedent).
+func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 	t.Helper()
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "karyora.db")
@@ -188,6 +196,9 @@ func newTestEnv(t *testing.T) *testEnv {
 		Secrets:       newWireFakeSecrets(),
 		Conversations: st,
 		Notifications: st,
+	}
+	if configure != nil {
+		configure(&deps)
 	}
 	slice, err := app.NewSlice(deps)
 	if err != nil {

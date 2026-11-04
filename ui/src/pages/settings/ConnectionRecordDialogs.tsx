@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog, useDialogLabelId } from "../../components/Dialog";
 import { useT } from "../../i18n/useT";
 import type { WireConnectionHeader, WireConnectionView } from "../../coreclient/httpLocal/wire";
-import { PROVIDER_PRESETS } from "../../app/firstRun/providerPresets";
+import { CUSTOM_PROTOCOL_FORMATS, PROVIDER_PRESETS } from "../../app/firstRun/providerPresets";
 import styles from "./ConnectionsPage.module.css";
 
 /**
@@ -19,11 +19,16 @@ import styles from "./ConnectionsPage.module.css";
  *
  * The edit dialog (the non-secret field update): EXACTLY the coded
  * create shape's non-secret fields (provider, base URL, model ID,
- * custom headers). The secret is NEVER re-displayed and NO secret field
- * exists here (P3.3 §4.2/§4.4) — a credential change rides the Replace
- * key / Re-enter key flows, and the dialog states that. Client-side
- * field checks are FEEDBACK ONLY (P3.3 §8's enforcement rule): the Core's
- * law decides, and its typed refusal renders verbatim.
+ * custom headers). The provider option set carries the locked preset
+ * register (UI-11) AND the Core's coded custom connection protocols
+ * (C3-29/C3-30 — IMPL-18's per-connection construction), so every
+ * provider the Core can construct is selectable (SEL-4 end to end); the
+ * record's own provider is always offered, never silently coerced. The
+ * secret is NEVER re-displayed and NO secret field exists here (P3.3
+ * §4.2/§4.4) — a credential change rides the Replace key / Re-enter key
+ * flows, and the dialog states that. Client-side field checks are
+ * FEEDBACK ONLY (P3.3 §8's enforcement rule): the Core's law decides,
+ * and its typed refusal renders verbatim.
  *
  * Both commands ride the concurrent-edit guard: the caller passes the
  * `updated_at` marker it read the record under; a stale marker is the
@@ -172,12 +177,22 @@ export function ConnectionEditDialog({ open, connection, onConfirm, onClose, ret
     );
   };
 
-  // The locked preset register (UI-11) is the provider option set; the
-  // record's own provider is always offered (never silently coerced to a
-  // preset value) — the Core's wired-provider law decides the truth.
-  const providerOptions = PROVIDER_PRESETS.some((p) => p.id === provider)
-    ? PROVIDER_PRESETS
-    : [{ id: provider, name: provider }, ...PROVIDER_PRESETS];
+  // The provider option set: the locked preset register (UI-11) plus the
+  // Core's coded custom connection protocols (C3-29/C3-30 — the ids are
+  // the coded adapter register's ids, hand-aligned by the preset-ids
+  // rule; their labels are locale copy), and the record's own provider is
+  // always offered (never silently coerced to an option value) — the
+  // Core's wired-provider law decides the truth.
+  const providerOptions = (() => {
+    const options: readonly { readonly id: string; readonly label: string }[] = [
+      ...PROVIDER_PRESETS.map((p) => ({ id: p.id, label: p.name })),
+      ...CUSTOM_PROTOCOL_FORMATS.map((f) => ({ id: f.id, label: t(f.labelKey) })),
+    ];
+    if (!options.some((o) => o.id === provider)) {
+      return [{ id: provider, label: provider }, ...options];
+    }
+    return options;
+  })();
 
   return (
     <Dialog labelId={labelId} title={t("connections.editTitle")} open={open} onClose={onClose} returnFocusRef={returnFocusRef}>
@@ -196,7 +211,7 @@ export function ConnectionEditDialog({ open, connection, onConfirm, onClose, ret
           >
             {providerOptions.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name}
+                {p.label}
               </option>
             ))}
           </select>

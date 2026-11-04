@@ -3,6 +3,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import { validateBaseUrl } from "../../app/firstRun/baseUrl";
 import {
   CUSTOM_API_PRESET_ID,
+  CUSTOM_PROTOCOL_FORMATS,
   PROVIDER_PRESETS,
 } from "../../app/firstRun/providerPresets";
 import type { ProviderDraft } from "../../app/firstRun/firstRunState";
@@ -27,10 +28,13 @@ import styles from "./ProviderSetupForm.module.css";
  * step"). Contract rules carried here:
  *
  * - Presets are the UI-11 LOCKED list; Custom API unlocks the UI-12
- *   field set. The API-format selector's option source is the Core's
- *   implemented-adapter enumeration (SEL-4) — the Core supplies no
- *   enumeration query, so it renders its honest unavailable state and
- *   invents no enum (the recorded gap keeps its owner).
+ *   field set. The API-format selector lists the Core's coded custom
+ *   connection protocols (C3-29/C3-30 — the ids are the coded adapter
+ *   register's ids, hand-aligned here by the preset-ids rule; never
+ *   claimed as a live Core enumeration). Its value is the wire provider
+ *   id the Custom API save/test sends: the Core constructs each custom
+ *   executor from the connection record's own posture (IMPL-18), and its
+ *   typed refusal decides any mismatch (SEL-4's own rule).
  * - Base URL client-side validation per §18.4/MB §12.5 (see baseUrl.ts):
  *   format check only — nothing here implies an endpoint was verified.
  * - The API key lives ONLY in this component's local state while the
@@ -90,13 +94,14 @@ type SaveOutcome =
   | null;
 
 interface FieldErrors {
+  apiFormat: string | null;
   baseUrl: string | null;
   modelId: string | null;
   apiKey: string | null;
   headers: string | null;
 }
 
-const NO_ERRORS: FieldErrors = { baseUrl: null, modelId: null, apiKey: null, headers: null };
+const NO_ERRORS: FieldErrors = { apiFormat: null, baseUrl: null, modelId: null, apiKey: null, headers: null };
 
 /** The idempotency key is minted at save time (the Run-submission
  *  pattern); a save without a unique key must never be sent. */
@@ -114,6 +119,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
     const { transport, phase } = useCoreConnection();
 
     const [presetId, setPresetId] = useState(providerDraft.presetId);
+    const [apiFormat, setApiFormat] = useState(providerDraft.apiFormat);
     const [baseUrl, setBaseUrl] = useState(providerDraft.baseUrl);
     const [modelId, setModelId] = useState(providerDraft.modelId);
     const [headers, setHeaders] = useState(providerDraft.headers);
@@ -134,6 +140,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
     // The clean snapshot this form instance started from (J-8: unchanged
     // data is never re-prompted; discard returns exactly here).
     const cleanSnapshot = useRef<ProviderDraft>({ ...providerDraft });
+    const apiFormatRef = useRef<HTMLSelectElement>(null);
     const baseUrlRef = useRef<HTMLInputElement>(null);
     const modelIdRef = useRef<HTMLInputElement>(null);
     const apiKeyRef = useRef<HTMLInputElement>(null);
@@ -145,8 +152,8 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
     // preserve entries (§8.13; C-06 draft rule). The key is excluded by
     // construction (it is not part of ProviderDraft).
     useEffect(() => {
-      setProviderDraft({ presetId, baseUrl, modelId, headers });
-    }, [presetId, baseUrl, modelId, headers, setProviderDraft]);
+      setProviderDraft({ presetId, apiFormat, baseUrl, modelId, headers });
+    }, [presetId, apiFormat, baseUrl, modelId, headers, setProviderDraft]);
 
     const parsedHeaders = useCallback((): { ok: boolean; headers: { name: string; value: string }[] } => {
       const out: { name: string; value: string }[] = [];
@@ -165,6 +172,9 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
 
     const computeErrors = useCallback((): FieldErrors => {
       const next: FieldErrors = { ...NO_ERRORS };
+      if (isCustom && apiFormat.trim().length === 0) {
+        next.apiFormat = t("provider.apiFormatRequired");
+      }
       if (isCustom) {
         const baseUrlCheck = validateBaseUrl(baseUrl);
         if (!baseUrlCheck.valid) {
@@ -191,7 +201,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
         next.headers = t("provider.headersInvalid");
       }
       return next;
-    }, [isCustom, baseUrl, modelId, apiKey, parsedHeaders, t]);
+    }, [isCustom, apiFormat, baseUrl, modelId, apiKey, parsedHeaders, t]);
 
     const isValidNow = useCallback((): boolean => {
       const e = computeErrors();
@@ -206,7 +216,8 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
     }, [submitAttempted, computeErrors]);
 
     const focusFirstInvalid = useCallback((e: FieldErrors) => {
-      if (e.baseUrl) baseUrlRef.current?.focus();
+      if (e.apiFormat) apiFormatRef.current?.focus();
+      else if (e.baseUrl) baseUrlRef.current?.focus();
       else if (e.modelId) modelIdRef.current?.focus();
       else if (e.apiKey) apiKeyRef.current?.focus();
       else if (e.headers) headersRef.current?.focus();
@@ -225,7 +236,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       const e = computeErrors();
       setErrors(e);
       const invalid =
-        e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
+        e.apiFormat !== null || e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
       if (invalid) {
         focusFirstInvalid(e);
         return;
@@ -240,7 +251,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       setPending("test");
       void transport
         .connectionTest({
-          provider: presetId,
+          provider: isCustom ? apiFormat : presetId,
           ...(isCustom && baseUrl.trim() !== "" ? { base_url: baseUrl.trim() } : {}),
           model_id: modelId.trim(),
           ...(parsed.headers.length > 0 ? { custom_headers: parsed.headers } : {}),
@@ -258,7 +269,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
               kind: "failed",
               report: {
                 ok: false,
-                provider: presetId,
+                provider: isCustom ? apiFormat : presetId,
                 model_id: modelId.trim(),
                 error_kind: outcome.envelope.code,
                 error_detail: undefined,
@@ -275,14 +286,14 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           clearSecret();
         })
         .finally(() => setPending(null));
-    }, [computeErrors, focusFirstInvalid, phase, transport, presetId, isCustom, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
+    }, [computeErrors, focusFirstInvalid, phase, transport, presetId, isCustom, apiFormat, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
 
     const runSave = useCallback((): void => {
       setSubmitAttempted(true);
       const e = computeErrors();
       setErrors(e);
       const invalid =
-        e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
+        e.apiFormat !== null || e.baseUrl !== null || e.modelId !== null || e.apiKey !== null || e.headers !== null;
       if (invalid) {
         focusFirstInvalid(e);
         return;
@@ -310,7 +321,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       const parsed = parsedHeaders();
       const body = {
         idempotency_key: key,
-        provider: presetId,
+        provider: isCustom ? apiFormat : presetId,
         ...(isCustom && baseUrl.trim() !== "" ? { base_url: baseUrl.trim() } : {}),
         model_id: modelId.trim(),
         ...(parsed.headers.length > 0 ? { custom_headers: parsed.headers } : {}),
@@ -343,7 +354,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           }
         })
         .finally(() => setPending(null));
-    }, [computeErrors, focusFirstInvalid, phase, transport, presetId, isCustom, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
+    }, [computeErrors, focusFirstInvalid, phase, transport, presetId, isCustom, apiFormat, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
 
     /** The Supplied-idempotency recovery: an explicit, user-initiated
      *  re-issue of the SAME key and the EXACT same body — the Core's
@@ -357,7 +368,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       void transport
         .connectionSave({
           idempotency_key: key,
-          provider: presetId,
+          provider: isCustom ? apiFormat : presetId,
           ...(isCustom && baseUrl.trim() !== "" ? { base_url: baseUrl.trim() } : {}),
           model_id: modelId.trim(),
           ...(parsed.headers.length > 0 ? { custom_headers: parsed.headers } : {}),
@@ -380,7 +391,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           }
         })
         .finally(() => setPending(null));
-    }, [pending, transport, presetId, isCustom, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
+    }, [pending, transport, presetId, isCustom, apiFormat, baseUrl, modelId, apiKey, parsedHeaders, clearSecret]);
 
     useImperativeHandle(
       ref,
@@ -389,6 +400,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           const snapshot = cleanSnapshot.current;
           const fieldsChanged =
             presetId !== snapshot.presetId ||
+            apiFormat !== snapshot.apiFormat ||
             baseUrl !== snapshot.baseUrl ||
             modelId !== snapshot.modelId ||
             headers !== snapshot.headers;
@@ -397,6 +409,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
         discard: () => {
           const snapshot = cleanSnapshot.current;
           setPresetId(snapshot.presetId);
+          setApiFormat(snapshot.apiFormat);
           setBaseUrl(snapshot.baseUrl);
           setModelId(snapshot.modelId);
           setHeaders(snapshot.headers);
@@ -413,10 +426,11 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
         },
         isValid: isValidNow,
       }),
-      [presetId, baseUrl, modelId, headers, apiKey, runSave, isValidNow, setProviderDraft],
+      [presetId, apiFormat, baseUrl, modelId, headers, apiKey, runSave, isValidNow, setProviderDraft],
     );
 
     const errorCount =
+      (errors.apiFormat ? 1 : 0) +
       (errors.baseUrl ? 1 : 0) + (errors.modelId ? 1 : 0) + (errors.apiKey ? 1 : 0) + (errors.headers ? 1 : 0);
 
     // The capability panel's truth: rendered from the Core's test report
@@ -471,10 +485,30 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
               <label htmlFor="provider-api-format" className={styles.label}>
                 {t("provider.apiFormatLabel")}
               </label>
-              <select id="provider-api-format" className={styles.select} disabled aria-disabled="true">
-                <option>{t("states.unavailable")}</option>
+              <select
+                ref={apiFormatRef}
+                id="provider-api-format"
+                className={styles.select}
+                value={apiFormat}
+                onChange={(event) => setApiFormat(event.target.value)}
+                aria-invalid={errors.apiFormat ? true : undefined}
+                aria-describedby={errors.apiFormat ? "provider-api-format-error" : "provider-api-format-help"}
+              >
+                <option value="">{t("provider.apiFormatPrompt")}</option>
+                {CUSTOM_PROTOCOL_FORMATS.map((format) => (
+                  <option key={format.id} value={format.id}>
+                    {t(format.labelKey)}
+                  </option>
+                ))}
               </select>
-              <p className={styles.help}>{t("provider.apiFormatUnavailable")}</p>
+              {errors.apiFormat ? (
+                <p id="provider-api-format-error" className={styles.error}>
+                  {errors.apiFormat}
+                </p>
+              ) : null}
+              <p id="provider-api-format-help" className={styles.help}>
+                {t("provider.apiFormatHelp")}
+              </p>
             </div>
 
             <div className={styles.field}>
