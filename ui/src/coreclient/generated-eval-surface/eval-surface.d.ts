@@ -302,6 +302,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List grouped notifications (F13; the keyset list semantics).
+         * @description The grouped list read: one entry per related-object group with the collapsed blocks (every meaningful state transition visible), the four-way presentation state, and the owning domain's current canonical state where supplied. Server-side cursor pagination; the cursor's absence marks the final page. Unread counts are never locally computed — the counts read is the totals' authority.
+         */
+        get: operations["listNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the Core-supplied unread counts (F13).
+         * @description The stored Core read state's totals (cleared rows excluded); the UI renders only these counts — never a locally counted number.
+         */
+        get: operations["getNotificationUnreadCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark named notifications read (F13; a typed Core outcome).
+         * @description The explicit identity set applies all-or-nothing in one transaction; the response counts the updated and unchanged rows. Reading a notification never implies approval, acknowledgement, or work completion — only notification rows change.
+         */
+        post: operations["markNotificationsRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark named notifications unread (F13; a typed Core outcome).
+         * @description The same all-or-nothing mutation frame as the read mark, in the opposite direction; the same non-mutation law holds.
+         */
+        post: operations["markNotificationsUnread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear named notifications (F13; the soft-hide working candidate).
+         * @description Cleared rows are retained and excluded from the list and the counts (never resurrected); the non-mutation law holds — no underlying-domain record changes.
+         */
+        post: operations["clearNotifications"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -593,6 +693,64 @@ export interface components {
             affected_models: string[];
             routing_note: string;
             interruption_note: string;
+        };
+        /** @description The closed coded notification-category register — the one value with a coded Phase 3 producer: `job`. A value joins additively when its producer milestone implements it, never before. */
+        NotificationCategory: string;
+        /** @description The closed coded state-class register — result | failure | approval_needed (the meaningful transition class the producer recorded; never prompt/output content). */
+        NotificationStateClass: string;
+        /** @description The closed coded read-state register — unread | read (the Core-supplied stored state; no local read-state authority exists). */
+        NotificationReadState: string;
+        /** @description The closed coded four-way presentation register — unread | read | stale | permission_revoked (rendered non-color). `stale` is computed when the related object no longer resolves; `permission_revoked`'s computation joins additively with a mode that has per-object permissions (Team mode) — the single-user Local slice computes no row to it. */
+        NotificationPresentationState: string;
+        /** @description One collapsed block of repeated identical updates within a group: a (category, state-class) run collapsed to a count with its newest timestamp and its unread count. A meaningful state transition is a different block — never hidden by the collapse. */
+        NotificationCollapsedBlock: {
+            state_class: components["schemas"]["NotificationStateClass"];
+            count: number;
+            unread_count: number;
+            /** Format: date-time */
+            newest_at: string;
+        };
+        /** @description One list entry: one related object's group (F13). The entry keeps the representative (the group's newest notification's identity), the group's unread count, the group's total, the collapsed blocks, the current canonical state where the owning domain supplies it, and the four-way presentation state. */
+        NotificationGroupEntry: {
+            /** @description The group's representative — the newest notification's Core-issued identity. */
+            notification_id: string;
+            category: components["schemas"]["NotificationCategory"];
+            state_class: components["schemas"]["NotificationStateClass"];
+            /** @description The coded related-object type — the one Phase 3 value `job` (the canonical destination `/jobs/{id}`; access is rechecked on open). */
+            related_object_type: string;
+            related_object_id: string;
+            /**
+             * Format: date-time
+             * @description The group's newest timestamp (the representative's).
+             */
+            created_at: string;
+            unread_count: number;
+            repeat_count: number;
+            collapsed: components["schemas"]["NotificationCollapsedBlock"][];
+            /** @description The related object's current canonical state where the owning domain supplies it; empty = the Core supplies none (rendered Unavailable, never invented). */
+            object_state?: string;
+            presentation: components["schemas"]["NotificationPresentationState"];
+        };
+        NotificationList: {
+            entries: components["schemas"]["NotificationGroupEntry"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description The Core-supplied unread counts (F13); cleared rows are excluded. */
+        NotificationCounts: {
+            total: number;
+            by_category: {
+                [key: string]: number;
+            };
+        };
+        /** @description The explicit notification identities to mutate — no implicit target, no mark-all-read (the named mutation set is mark read, mark unread, clear). */
+        NotificationMutationRequest: {
+            notification_ids: string[];
+        };
+        /** @description One mutation's typed outcome: updated counts rows that changed; unchanged counts rows already in the requested state (the convergent no-op — state-convergent by nature, not a documented idempotency class; no auto-retry exists anywhere). */
+        NotificationMutationResult: {
+            updated: number;
+            unchanged: number;
         };
     };
     responses: never;
@@ -1082,6 +1240,123 @@ export interface operations {
                         active_connection_id: string;
                         replayed: boolean;
                     };
+                };
+            };
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: {
+                limit?: number;
+                category?: components["schemas"]["NotificationCategory"];
+                read_state?: components["schemas"]["NotificationReadState"];
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationList"];
+                };
+            };
+        };
+    };
+    getNotificationUnreadCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The unread totals and the per-category counts. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationCounts"];
+                };
+            };
+        };
+    };
+    markNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description The typed outcome (updated + unchanged). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResult"];
+                };
+            };
+        };
+    };
+    markNotificationsUnread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description The typed outcome (updated + unchanged). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResult"];
+                };
+            };
+        };
+    };
+    clearNotifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description The typed outcome (updated + unchanged). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationMutationResult"];
                 };
             };
         };

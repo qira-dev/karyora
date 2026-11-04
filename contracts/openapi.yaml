@@ -21,7 +21,13 @@ info:
       - F7  Job / Attempt / lease / artifact (the Job machine, the artifact
             access rule, the approval `Waiting` reason, the Jobs list semantics)
       - F8  permission/approval (the accept/reject command identity)
+      - F9  cancellation/retry (the cooperative cancel intent model; the
+            retry semantics as supplied; the eligibility read stays ABSENT
+            from this published set — the frozen implementation target)
       - F10 the event record, the cursor scope, the replay outcomes
+      - F13 notification (the grouped list read, the unread counts read,
+            the read/unread/clear mutations; the preferences' DEFAULTS stay
+            OUT of this published set — the Checkpoint-C path)
 
     The operation names are the canonical wire vocabulary (the owner's recorded
     decision). The serving paths of the local loopback transport adapter are
@@ -31,6 +37,32 @@ info:
     Family F2 (the capability descriptor) is NOT frozen: every `capabilities`
     member below is typed as the Core's coded capability set carried as an open
     object until that family's own recorded act.
+
+    F9 (cancellation/retry) frozen content carried: the cooperative cancel
+    intent model as coded — a cancel on a queued Job transitions directly
+    to `cancelled`; on a running/waiting Job it records `cancel_requested`
+    and the terminal `cancelled` arrives through the state machine; the
+    request is never displayed as the confirmation (the authoritative
+    state read confirms — the J-5 rule). The retry law: a retry is a NEW
+    Attempt of the same Job — never a new Job — and an unknown outcome is
+    never blindly retried. The envelope's `data` member carries the
+    reserved `retryClass` key with the coded operation-level retry
+    classification: never | safe-retry | backoff | reconcile.
+
+    Honest absences (recorded, never invented): the F9 retry-eligibility
+    read is NOT implemented — the frozen contract is its implementation
+    target and no operation or schema of it is published here; the F13
+    preferences' DEFAULTS stay OUT of this published set (the Checkpoint-C
+    path — nothing of them enters these contracts); the F13 stream
+    transport and the OS-delivery surface stay their recorded gates' items
+    (the UI-26/C-6 gate and the UI-34 FINAL freeze) and carry no schema
+    content here.
+
+    The local loopback adapter's notification serving paths — GET
+    /v1/notifications, GET /v1/notifications/counts, POST
+    /v1/notifications/read, POST /v1/notifications/unread, POST
+    /v1/notifications/clear — are that adapter's own non-canonical
+    implementation mapping onto the published vocabulary below.
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 paths:
   /jobs:
@@ -394,6 +426,114 @@ paths:
                 properties:
                   active_connection_id: { type: string }
                   replayed: { type: boolean }
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: List grouped notifications (F13; the keyset list semantics).
+      description: >-
+        The grouped list read: one entry per related-object group with the
+        collapsed blocks (every meaningful state transition visible), the
+        four-way presentation state, and the owning domain's current
+        canonical state where supplied. Server-side cursor pagination; the
+        cursor's absence marks the final page. Unread counts are never
+        locally computed — the counts read is the totals' authority.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: category
+          in: query
+          schema: { $ref: '#/components/schemas/NotificationCategory' }
+        - name: read_state
+          in: query
+          schema: { $ref: '#/components/schemas/NotificationReadState' }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationList'
+  /notifications/counts:
+    get:
+      operationId: getNotificationUnreadCounts
+      summary: Read the Core-supplied unread counts (F13).
+      description: >-
+        The stored Core read state's totals (cleared rows excluded); the UI
+        renders only these counts — never a locally counted number.
+      responses:
+        '200':
+          description: The unread totals and the per-category counts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationCounts'
+  /notifications/read:
+    post:
+      operationId: markNotificationsRead
+      summary: Mark named notifications read (F13; a typed Core outcome).
+      description: >-
+        The explicit identity set applies all-or-nothing in one transaction;
+        the response counts the updated and unchanged rows. Reading a
+        notification never implies approval, acknowledgement, or work
+        completion — only notification rows change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMutationRequest'
+      responses:
+        '200':
+          description: The typed outcome (updated + unchanged).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationMutationResult'
+  /notifications/unread:
+    post:
+      operationId: markNotificationsUnread
+      summary: Mark named notifications unread (F13; a typed Core outcome).
+      description: >-
+        The same all-or-nothing mutation frame as the read mark, in the
+        opposite direction; the same non-mutation law holds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMutationRequest'
+      responses:
+        '200':
+          description: The typed outcome (updated + unchanged).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationMutationResult'
+  /notifications/clear:
+    post:
+      operationId: clearNotifications
+      summary: Clear named notifications (F13; the soft-hide working candidate).
+      description: >-
+        Cleared rows are retained and excluded from the list and the counts
+        (never resurrected); the non-mutation law holds — no
+        underlying-domain record changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMutationRequest'
+      responses:
+        '200':
+          description: The typed outcome (updated + unchanged).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationMutationResult'
 components:
   parameters:
     JobId:
@@ -743,3 +883,121 @@ components:
           items: { type: string }
         routing_note: { type: string }
         interruption_note: { type: string }
+    NotificationCategory:
+      type: string
+      description: >-
+        The closed coded notification-category register — the one value with
+        a coded Phase 3 producer: `job`. A value joins additively when its
+        producer milestone implements it, never before.
+    NotificationStateClass:
+      type: string
+      description: >-
+        The closed coded state-class register — result | failure |
+        approval_needed (the meaningful transition class the producer
+        recorded; never prompt/output content).
+    NotificationReadState:
+      type: string
+      description: >-
+        The closed coded read-state register — unread | read (the
+        Core-supplied stored state; no local read-state authority exists).
+    NotificationPresentationState:
+      type: string
+      description: >-
+        The closed coded four-way presentation register — unread | read |
+        stale | permission_revoked (rendered non-color). `stale` is computed
+        when the related object no longer resolves; `permission_revoked`'s
+        computation joins additively with a mode that has per-object
+        permissions (Team mode) — the single-user Local slice computes no
+        row to it.
+    NotificationCollapsedBlock:
+      type: object
+      description: >-
+        One collapsed block of repeated identical updates within a group: a
+        (category, state-class) run collapsed to a count with its newest
+        timestamp and its unread count. A meaningful state transition is a
+        different block — never hidden by the collapse.
+      required: [state_class, count, unread_count, newest_at]
+      properties:
+        state_class: { $ref: '#/components/schemas/NotificationStateClass' }
+        count: { type: integer }
+        unread_count: { type: integer }
+        newest_at: { type: string, format: date-time }
+    NotificationGroupEntry:
+      type: object
+      description: >-
+        One list entry: one related object's group (F13). The entry keeps
+        the representative (the group's newest notification's identity), the
+        group's unread count, the group's total, the collapsed blocks, the
+        current canonical state where the owning domain supplies it, and
+        the four-way presentation state.
+      required: [notification_id, category, state_class, related_object_type, related_object_id, created_at, unread_count, repeat_count, collapsed, presentation]
+      properties:
+        notification_id:
+          type: string
+          description: The group's representative — the newest notification's Core-issued identity.
+        category: { $ref: '#/components/schemas/NotificationCategory' }
+        state_class: { $ref: '#/components/schemas/NotificationStateClass' }
+        related_object_type:
+          type: string
+          description: >-
+            The coded related-object type — the one Phase 3 value `job` (the
+            canonical destination `/jobs/{id}`; access is rechecked on open).
+        related_object_id: { type: string }
+        created_at:
+          type: string
+          format: date-time
+          description: The group's newest timestamp (the representative's).
+        unread_count: { type: integer }
+        repeat_count: { type: integer }
+        collapsed:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationCollapsedBlock' }
+        object_state:
+          type: string
+          description: >-
+            The related object's current canonical state where the owning
+            domain supplies it; empty = the Core supplies none (rendered
+            Unavailable, never invented).
+        presentation: { $ref: '#/components/schemas/NotificationPresentationState' }
+    NotificationList:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationGroupEntry' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    NotificationCounts:
+      type: object
+      description: >-
+        The Core-supplied unread counts (F13); cleared rows are excluded.
+      required: [total, by_category]
+      properties:
+        total: { type: integer }
+        by_category:
+          type: object
+          additionalProperties: { type: integer }
+    NotificationMutationRequest:
+      type: object
+      description: >-
+        The explicit notification identities to mutate — no implicit target,
+        no mark-all-read (the named mutation set is mark read, mark unread,
+        clear).
+      required: [notification_ids]
+      properties:
+        notification_ids:
+          type: array
+          items: { type: string }
+    NotificationMutationResult:
+      type: object
+      description: >-
+        One mutation's typed outcome: updated counts rows that changed;
+        unchanged counts rows already in the requested state (the
+        convergent no-op — state-convergent by nature, not a documented
+        idempotency class; no auto-retry exists anywhere).
+      required: [updated, unchanged]
+      properties:
+        updated: { type: integer }
+        unchanged: { type: integer }
