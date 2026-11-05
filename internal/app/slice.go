@@ -109,7 +109,14 @@ type SliceDeps struct {
 	// keeps the recorded unwired posture for those providers (typed
 	// refusals, fail closed).
 	ConnectionExecutors ConnectionExecutorFactory
-	Now                 func() time.Time
+	// Sessions is the local session service (C2-14 §3) the C-4 logout and
+	// credential-change revocation commands serve (IMPL-23: the adopted
+	// P-S3-03 session/credential half; the coded Revoke/RevokeAll classes
+	// served verbatim, never re-implemented). Optional: nil disables the
+	// session-command surface (typed refusals, fail closed) — every other
+	// surface is unchanged.
+	Sessions *security.SessionService
+	Now      func() time.Time
 }
 
 // SubmitRequest is the API submission contract (C3-31 acceptance: the same

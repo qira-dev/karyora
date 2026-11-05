@@ -160,6 +160,19 @@ type route struct {
 func routes() []route {
 	return []route{
 		{method: http.MethodPost, prefix: "/v1/session/exchange", mutates: true, noSession: true, handler: (*Server).handleExchange},
+		// The C-4 logout/revocation wire commands (IMPL-23, the S9-adopted
+		// P-S9-02 class as implemented; the S4 §19 F11 freeze act's frozen
+		// content): the per-token logout (the coded Revoke class) and the
+		// credential-change revocation (the coded RevokeAll class), each a
+		// WRITE through the one decision port inside the slice. The paths
+		// are this adapter's own — non-canonical (the IMPL-4/6/7/8
+		// convention); the canonical names join the published vocabulary at
+		// the publication act per card 1's additive discipline — NO
+		// contracts/ edit. Both carry the mutating-route CSRF/Origin
+		// posture and require the presented session (the boundary's
+		// mutates gate applies, per the adopted class).
+		{method: http.MethodPost, prefix: "/v1/session/logout", mutates: true, handler: (*Server).handleSessionLogout},
+		{method: http.MethodPost, prefix: "/v1/session/revoke-all", mutates: true, handler: (*Server).handleSessionRevokeAll},
 		{method: http.MethodPost, prefix: "/v1/jobs/review", mutates: true, handler: (*Server).handleReview},
 		{method: http.MethodPost, prefix: "/v1/jobs", mutates: true, handler: (*Server).handleSubmit},
 		{method: http.MethodGet, prefix: "/v1/jobs", handler: (*Server).handleList},
@@ -387,6 +400,46 @@ func (s *Server) handleExchange(w http.ResponseWriter, r *http.Request, _ string
 		Scopes:  scopeStrings(tok.Scopes),
 		Expires: tok.Expires,
 	})
+}
+
+// The C-4 logout/revocation wire commands (IMPL-23, the S9-adopted
+// P-S9-02 class as implemented): the per-token logout (the coded Revoke
+// class) and the credential-change revocation (the coded RevokeAll
+// class), each served through the slice — the one decision port + the
+// fail-closed audit record run INSIDE the command, exactly like every
+// command this adapter exposes. The request carries NO body: the
+// presented session credential (already validated by the boundary's
+// mutates gate) identifies the acted-on session half. The failure law
+// binds the surfaces: a typed refusal is rendered verbatim on the D-35
+// envelope and the client never assumes the session died because the
+// command failed (P1.8 §6.2) — only a confirmed 200 carries the
+// revocation truth. The paths are this adapter's own — non-canonical
+// (the IMPL-4/6/7/8 convention); no published contract carries them.
+
+// handleSessionLogout exposes the per-token logout command (the adopted
+// P-S3-03 candidate point 1; R-13's dedicated flow's Core command — the
+// UI surface is Settings → Security, never an ordinary preference
+// control).
+func (s *Server) handleSessionLogout(w http.ResponseWriter, r *http.Request, token, _ string) {
+	res, err := s.deps.Slice.SessionLogout(s.callCtx(r, token))
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
+
+// handleSessionRevokeAll exposes the credential-change revocation
+// command (the adopted P-S3-03 candidate point 2; the coded C2-08
+// lock-takeover + credential-change class): every live session of this
+// instance is invalidated, including the presented one.
+func (s *Server) handleSessionRevokeAll(w http.ResponseWriter, r *http.Request, token, _ string) {
+	res, err := s.deps.Slice.SessionRevokeAll(s.callCtx(r, token))
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
 }
 
 // resolveIssued resolves a presented bootstrap-credential secret to the

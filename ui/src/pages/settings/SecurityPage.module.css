@@ -1,0 +1,103 @@
+.sectionTitle {
+  margin: 0 0 var(--space-1, 4px);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.help {
+  margin: 0 0 var(--space-3, 12px);
+  color: var(--color-text-muted, #565656);
+  max-width: 72ch;
+}
+
+.stateBlock {
+  margin: 0 0 var(--space-3, 12px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  border: 1px solid var(--color-border, #d4d4d4);
+  border-radius: var(--radius-card, 8px);
+}
+
+.stateBlock p {
+  margin: 0 0 var(--space-1, 4px);
+}
+
+.stateBlock p:last-child {
+  margin-bottom: 0;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  flex-wrap: wrap;
+}
+
+.logoutButton {
+  min-height: var(--size-button-secondary, 36px);
+  padding: 0 var(--space-4, 16px);
+  border: 1px solid var(--color-border, #d4d4d4);
+  border-radius: var(--radius-button, 6px);
+  background: var(--color-surface, #fff);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.logoutButton:hover:not(:disabled) {
+  border-color: var(--color-text-muted, #565656);
+}
+
+.logoutButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.actionReason {
+  margin: 0;
+  color: var(--color-text-muted, #565656);
+}
+
+.dialogBody p {
+  margin: 0 0 var(--space-2, 8px);
+}
+
+.dialogBody p:last-child {
+  margin-bottom: 0;
+}
+
+.dialogActions {
+  display: flex;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-4, 16px);
+}
+
+.dangerButton {
+  min-height: var(--size-button-secondary, 36px);
+  padding: 0 var(--space-4, 16px);
+  border: 1px solid var(--color-danger-border, #b3261e);
+  border-radius: var(--radius-button, 6px);
+  background: var(--color-danger-surface, #b3261e);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dangerButton:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.dangerButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ghostButton {
+  min-height: var(--size-button-secondary, 36px);
+  padding: 0 var(--space-4, 16px);
+  border: 1px solid var(--color-border, #d4d4d4);
+  border-radius: var(--radius-button, 6px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}

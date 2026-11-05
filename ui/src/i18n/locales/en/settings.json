@@ -68,6 +68,29 @@
     "applied": "Changes apply immediately. Reset restores the documented defaults: Light theme, motion following the system, and English.",
     "resetConfirm": "Reset appearance to defaults"
   },
+  "security": {
+    "logoutSectionTitle": "Sign out of this session",
+    "logoutSectionBody": "Signing out ends this session on the Core immediately. The held token is discarded from this browser's memory, every scoped view re-queries from the Core on its next use, and nothing stays available until a session is re-established.",
+    "logoutAction": "Sign out",
+    "postureNoSession": "No session is held right now, so there is nothing to sign out.",
+    "postureNoSessionReason": "Re-establish a session through the connection bootstrap first; this control acts on a held session only.",
+    "postureRechecking": "The connection state is being re-checked against a real Core answer.",
+    "postureUnknown": "No Core transport answered this origin, so the connection state is honestly unavailable.",
+    "dialogTitle": "Sign out of this session?",
+    "dialogScope": "This ends the current session on the Core immediately. This browser's held token is discarded and every scoped view stays unavailable until a session is re-established.",
+    "dialogKeep": "Local preferences and unsaved, non-sensitive drafts on this device stay.",
+    "dialogConfirm": "Sign out",
+    "confirmedTitle": "You are signed out",
+    "confirmedBody": "The Core confirmed the revocation and the token was discarded from this browser's memory.",
+    "confirmedReestablish": "Re-establish a session through the connection bootstrap when you return.",
+    "refusedTitle": "The Core refused the sign-out",
+    "refusedBody": "The sign-out was refused by the Core (typed refusal {code}). The session was NOT ended and the held token stays in this browser's memory.",
+    "refusedNote": "Nothing was signed out. The typed code above is stable and language-neutral; resolve the stated cause and retry explicitly.",
+    "unknownTitle": "The response was lost",
+    "unknownBody": "The Core never confirmed the sign-out, so the session is NOT assumed ended and the held token stays in memory.",
+    "unknownNote": "No automatic retry runs. Check the session state and sign out again explicitly if it is still active.",
+    "revokeAllAbsent": "Revoking every session of this instance (a credential change) is a Core-side action class; no control for it exists here."
+  },
   "shortcuts": {
     "body": "The shortcuts below are implemented in the current shell. The full shortcut registry and the remap and disable controls ship in a later package.",
     "localNote": "Shortcut preferences are a local per-device preference."

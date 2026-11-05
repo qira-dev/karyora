@@ -536,6 +536,25 @@ export interface WireSessionResult {
   readonly expires: string;
 }
 
+/** `POST /v1/session/logout` success (200): the C-4 per-token logout
+ *  command's confirmation (the adopted P-S3-03 candidate point 1; the
+ *  S9-adopted P-S9-02 class as implemented — the coded per-token `Revoke`
+ *  served through the one decision port). The canonical wire name joins
+ *  the published vocabulary at the publication act (O-1 stays Open; no
+ *  contracts/ edit). */
+export interface WireSessionLogoutResult {
+  readonly revoked: boolean;
+}
+
+/** `POST /v1/session/revoke-all` success (200): the C-4 credential-change
+ *  revocation's outcome — every live session of the instance invalidated
+ *  (the coded `RevokeAll` class), with the post-effect live-session count
+ *  as the honest safe-metadata evidence (counts only, never token
+ *  material). */
+export interface WireSessionRevokeAllResult {
+  readonly live_sessions: number;
+}
+
 /** The provider-connection record (the card-10 working candidate's coded
  *  object — the JSON tags of `dprovider.ConnectionRecord` in
  *  `internal/domain/provider/connections.go`): the Core-issued id, the

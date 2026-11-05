@@ -86,6 +86,8 @@ import type {
   WireReplayResult,
   WireReviewRequest,
   WireReviewResult,
+  WireSessionLogoutResult,
+  WireSessionRevokeAllResult,
   WireSessionResult,
   WireStatusResult,
   WireSubmitRequest,
@@ -397,6 +399,44 @@ export function createHttpLocalTransport() {
         return { kind: "data", data: metadata };
       }
       return result;
+    },
+
+    // The C-4 logout/revocation commands (IMPL-23; the S9-adopted P-S9-02
+    // class as implemented). The truthfulness rules above apply unchanged:
+    // a lost response is `unknown` — NEVER proof that the session ended
+    // (the P1.8 §6.2 failure law: the client never assumes the session
+    // died because the command failed), never a re-issue, never an
+    // auto-retry (the Open-idempotency law). A typed refusal is surfaced
+    // verbatim and the held token stays held. Only the surface that owns
+    // the dedicated logout flow (R-13: Settings → Security) discards the
+    // token, and only on a confirmed data outcome. The paths are the
+    // adapter's own — non-canonical (wire.ts's honest boundary).
+
+    /** `POST /v1/session/logout` — the per-token logout command (the
+     *  dedicated flow's Core command; R-13). The presented session
+     *  credential is the token revoked; the typed refusal carries the
+     *  coded session reason. No body. */
+    sessionLogout(): Promise<TransportOutcome<WireSessionLogoutResult>> {
+      return call<WireSessionLogoutResult>("/v1/session/logout", post(""), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        return (body as Record<string, unknown>).revoked === true;
+      });
+    },
+
+    /** `POST /v1/session/revoke-all` — the credential-change revocation
+     *  command (the coded C2-08 lock-takeover + credential-change class):
+     *  every live session of the instance invalidated, including the
+     *  presented one; the response carries the post-effect live count
+     *  (safe metadata, never token material). No UI control consumes this
+     *  yet — its recorded trigger classes are Core-side (credential
+     *  change, lock takeover) and no such surface exists; the command is
+     *  delivered for the frozen contract, never wired to an invented
+     *  control. No body. */
+    sessionRevokeAll(): Promise<TransportOutcome<WireSessionRevokeAllResult>> {
+      return call<WireSessionRevokeAllResult>("/v1/session/revoke-all", post(""), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        return typeof (body as Record<string, unknown>).live_sessions === "number";
+      });
     },
 
     /** The liveness/session probe: one real replay read (`stream=job`,

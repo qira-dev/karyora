@@ -86,6 +86,8 @@ export type {
   WireRetryCommandResult,
   WireRetryEligibility,
   WireRetryEligibilityReadResult,
+  WireSessionLogoutResult,
+  WireSessionRevokeAllResult,
   WireSessionResult,
   WireSnapshotBudget,
   WireSnapshotBudgetRequested,

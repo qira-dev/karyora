@@ -196,6 +196,9 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		Secrets:       newWireFakeSecrets(),
 		Conversations: st,
 		Notifications: st,
+		// The C-4 session-command surface (IMPL-23): the real composition
+		// wires the same session service the Guard and this transport hold.
+		Sessions: sessions,
 	}
 	if configure != nil {
 		configure(&deps)

@@ -292,6 +292,10 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		Conversations:       store,
 		Notifications:       store,
 		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
+		// The C-4 session-command surface (IMPL-23): the SAME session
+		// service the Guard's policy and the local transport already hold
+		// — the coded Revoke/RevokeAll classes served through the slice.
+		Sessions: bundle.sessions,
 	}
 	slice, _ := app.NewSlice(deps)
 	return slice, deps, nil

@@ -9,6 +9,7 @@ import { JobDetailPage } from "../pages/jobs/JobDetailPage";
 import { RunTaskPage } from "../pages/run/RunTaskPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotificationsPage } from "../pages/notifications/NotificationsPage";
+import { SecurityPage } from "../pages/settings/SecurityPage";
 import { SettingsLayout } from "../pages/settings/SettingsLayout";
 import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
@@ -82,7 +83,16 @@ export const appRouteElements: ReactElement = (
       />
       <Route
         path="security"
-        element={<EntryStatePage titleKey="groups.security.title" bodyKeys={[]} />}
+        element={
+          /* IMPL-23 WIRES the already-frozen `/settings/security` route to
+           * the delivered C-4 logout/revocation commands (the S9-adopted
+           * P-S9-02 class's UI half per R-13): the entry-state page is
+           * replaced by the dedicated logout flow's surface. NO new route
+           * is added, and no control is invented for the credential-change
+           * revocation (its recorded trigger classes are Core-side — the
+           * honest absence is stated on the page). */
+          <SecurityPage />
+        }
       />
       <Route
         path="notifications"

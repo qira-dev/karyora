@@ -55,6 +55,14 @@ interface CoreConnectionContextValue {
   refresh: () => void;
   /** The C-1 exchange with the pasted one-time credential. */
   exchange: (credential: string) => Promise<ExchangeOutcome>;
+  /** The deliberate logout's confirmed transition (IMPL-23): the
+   *  dedicated logout flow calls this ONLY on the Core's confirmed 200 —
+   *  the real outcome the transition derives from (never optimism: the
+   *  response proves the session is dead, and a probe re-check reports
+   *  the same disconnected posture for a held-nothing client). The token
+   *  is discarded from memory and the phase renders the honest
+   *  no-session state. */
+  signedOut: () => void;
   /** The ONE transport instance for the app. The Jobs surfaces (IMPL-5)
    *  consume it for their reads and the cancellation command; every
    *  outcome they render comes from this instance's real transport
@@ -121,6 +129,19 @@ export function CoreConnectionProvider({ children }: { children: ReactNode }) {
     runProbe(prior === null || prior === "connecting" ? "connecting" : "reconnecting");
   }, [runProbe]);
 
+  const signedOut = useCallback(() => {
+    // The deliberate logout's confirmed transition: the calling surface
+    // ran the C-4 logout command and received the Core's confirmed 200 —
+    // the real outcome this derives from. The token is discarded (the
+    // holder's law) and the honest no-session posture renders; a probe
+    // re-check reports the same disconnected state for a held-nothing
+    // client, so nothing here is assumed.
+    const metadata = transport.discardSession();
+    setSession(metadata);
+    settledRef.current = "disconnected";
+    setPhase("disconnected");
+  }, [transport]);
+
   const exchange = useCallback(
     async (credential: string): Promise<ExchangeOutcome> => {
       const outcome = await transport.exchange(credential);
@@ -144,8 +165,8 @@ export function CoreConnectionProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<CoreConnectionContextValue>(
-    () => ({ phase, session, refresh, exchange, transport }),
-    [phase, session, refresh, exchange, transport],
+    () => ({ phase, session, refresh, exchange, signedOut, transport }),
+    [phase, session, refresh, exchange, signedOut, transport],
   );
 
   return <CoreConnectionContext.Provider value={value}>{children}</CoreConnectionContext.Provider>;
