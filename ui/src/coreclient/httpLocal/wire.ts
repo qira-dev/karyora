@@ -555,6 +555,61 @@ export interface WireSessionRevokeAllResult {
   readonly live_sessions: number;
 }
 
+/** `internal/security.AuditRecord` — the coded JSON tags exactly (the
+ *  adopted [S] audit-record schema, carried exactly: digests and CAS
+ *  references only — never prompt or document content, never secret
+ *  values, never session tokens). */
+export interface WireAuditRecord {
+  readonly audit_id: string;
+  readonly schema_version: number;
+  readonly time: string;
+  readonly actor: string;
+  readonly action: string;
+  readonly scope: string;
+  readonly policy_decision: string;
+  readonly policy_reference: string;
+  readonly job_id?: string;
+  readonly attempt_id?: string;
+  readonly provider_id?: string;
+  readonly plugin_id?: string;
+  readonly outcome: string;
+  readonly content_digests?: readonly string[];
+  readonly content_refs?: readonly string[];
+  readonly correlation_id: string;
+}
+
+/** One audit list/export entry (IMPL-24): the record's chain position
+ *  and the record itself — the coded schema carried exactly, never
+ *  extended. */
+export interface WireAuditEntry {
+  readonly sequence: number;
+  readonly record: WireAuditRecord;
+}
+
+/** `GET /v1/audit` success (200) — the F12 permission-filtered audit
+ *  list (the card-9 working candidate's class): the bounded page + the
+ *  opaque continuation cursor, omitted on the final page (the coded end
+ *  marker — no has_more/total is invented). The filter values ride the
+ *  Core's own coded allow/deny register only. */
+export interface WireAuditListResult {
+  readonly entries: readonly WireAuditEntry[];
+  readonly cursor?: string;
+}
+
+/** `GET /v1/audit/export` success (200) — the M-32-class read-with-export
+ *  (the adopted P-S11-03 class as implemented): the chronological export
+ *  document, the honest count, the echoed confirmed range, the generation
+ *  instant, and the honest truncation flag. The export reads records,
+ *  mutates nothing, and adds no tamper-resistance. */
+export interface WireAuditExportResult {
+  readonly records: readonly WireAuditEntry[];
+  readonly count: number;
+  readonly from?: string;
+  readonly to?: string;
+  readonly generated_at: string;
+  readonly truncated: boolean;
+}
+
 /** The provider-connection record (the card-10 working candidate's coded
  *  object — the JSON tags of `dprovider.ConnectionRecord` in
  *  `internal/domain/provider/connections.go`): the Core-issued id, the

@@ -110,6 +110,31 @@ func (s *slowExecutor) DataHandling(profile dprovider.ProfileID, feature dprovid
 	return s.inner.DataHandling(profile, feature)
 }
 
+// auditTestReader adapts the test store's audit row query to the app
+// slice's AuditReader port (IMPL-24): the test-side twin of the
+// composition root's auditRowReader — the payload decode happens in the
+// app layer, the adapter copies the raw chain frames.
+type auditTestReader struct{ st *storage.Store }
+
+func (a auditTestReader) ListAuditRows(ctx context.Context, q app.AuditRowsQuery) (app.AuditRowsPage, error) {
+	page, err := a.st.AuditListRows(ctx, storage.AuditListQuery{
+		Limit:          q.Limit,
+		AfterSequence:  q.AfterSequence,
+		PolicyDecision: q.PolicyDecision,
+		FromTime:       q.FromTime,
+		ToTime:         q.ToTime,
+		OrderDesc:      q.OrderDesc,
+	})
+	if err != nil {
+		return app.AuditRowsPage{}, err
+	}
+	out := app.AuditRowsPage{More: page.More, Rows: make([]app.AuditRow, 0, len(page.Rows))}
+	for _, r := range page.Rows {
+		out.Rows = append(out.Rows, app.AuditRow{Sequence: r.Sequence, Payload: r.Payload})
+	}
+	return out, nil
+}
+
 type testEnv struct {
 	slice    *app.Slice
 	deps     app.SliceDeps
@@ -199,6 +224,9 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		// The C-4 session-command surface (IMPL-23): the real composition
 		// wires the same session service the Guard and this transport hold.
 		Sessions: sessions,
+		// The F12 audit read surface (IMPL-24): the test-side twin of the
+		// composition root's auditRowReader adapter over the same store.
+		AuditReader: auditTestReader{st: st},
 	}
 	if configure != nil {
 		configure(&deps)

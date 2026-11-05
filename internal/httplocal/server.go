@@ -173,6 +173,20 @@ func routes() []route {
 		// mutates gate applies, per the adopted class).
 		{method: http.MethodPost, prefix: "/v1/session/logout", mutates: true, handler: (*Server).handleSessionLogout},
 		{method: http.MethodPost, prefix: "/v1/session/revoke-all", mutates: true, handler: (*Server).handleSessionRevokeAll},
+		// The F12 audit/activity read surface (IMPL-24, the adopted S11
+		// classes as implemented; the S4 §20 freeze act's frozen content):
+		// the permission-filtered, server-side, paginated audit list (the
+		// card-9 working candidate's class) and the M-32-class
+		// read-with-export operation. Both are READS — non-mutating GETs
+		// (the state-changing-GET prohibition holds: neither mutates
+		// anything); the read-only law binds — no dismiss/delete/correction
+		// of source records exists anywhere on the surface, and the export
+		// adds no tamper-resistance. The paths are this adapter's own —
+		// non-canonical (the IMPL-4/6/7/8 convention); the canonical names
+		// join the published vocabulary at the publication act per card 1's
+		// additive discipline — NO contracts/ edit.
+		{method: http.MethodGet, prefix: "/v1/audit/export", handler: (*Server).handleAuditExport},
+		{method: http.MethodGet, prefix: "/v1/audit", handler: (*Server).handleAuditList},
 		{method: http.MethodPost, prefix: "/v1/jobs/review", mutates: true, handler: (*Server).handleReview},
 		{method: http.MethodPost, prefix: "/v1/jobs", mutates: true, handler: (*Server).handleSubmit},
 		{method: http.MethodGet, prefix: "/v1/jobs", handler: (*Server).handleList},
@@ -1149,6 +1163,87 @@ func (s *Server) handleConversationExchange(w http.ResponseWriter, r *http.Reque
 // closed-register value; anything longer cannot be a member — the same
 // transport-safeguard class as maxSearchQueryLen).
 const maxNotificationFilterLen = 64
+
+// The F12 audit/activity read-surface handlers (IMPL-24, the adopted S11
+// classes as implemented). Both ride the existing boundary middleware
+// (the Host allowlist, the credential-surface rule, the loopback-only
+// bind); the slice's decision port is the authoritative check inside —
+// the coded audit.read action over the coded audit resource. Both are
+// pure reads over the append-only chain: the handlers decode no payload
+// and mutate nothing; the read-only law binds.
+
+// handleAuditList exposes the permission-filtered, server-side, paginated
+// audit list (the card-9 working candidate's class): the optional limit
+// (the slice's per-surface default applies), the opaque continuation
+// cursor (its absence on a response marks the final page), and the
+// optional closed-register policy_decision filter (the decision port's
+// own allow/deny vocabulary — filter options come from the Core only;
+// anything else is the slice's typed validation).
+func (s *Server) handleAuditList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	policyDecision := q.Get("policy_decision")
+	if len(policyDecision) > maxNotificationFilterLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "policy_decision"}))
+		return
+	}
+	res, err := s.deps.Slice.ListAudit(s.callCtx(r, token), app.AuditListRequest{
+		Limit:          limit,
+		PolicyDecision: policyDecision,
+		Cursor:         cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
+
+// handleAuditExport exposes the M-32-class read-with-export operation
+// (the adopted P-S11-03 class as implemented): the optional RFC3339
+// date-range bounds and the finite record cap ride the query; the
+// scope/count/date-range confirmation is the calling surface's duty
+// BEFORE the request (P1.6's precondition). The response carries the
+// records, the honest count, the echoed range, the generation instant,
+// and the honest truncation flag — the export reads records, mutates
+// nothing, and adds no tamper-resistance.
+func (s *Server) handleAuditExport(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	from, to := q.Get("from"), q.Get("to")
+	if len(from) > maxListCursorLen || len(to) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "from"}))
+		return
+	}
+	res, err := s.deps.Slice.ExportAudit(s.callCtx(r, token), app.AuditExportRequest{
+		FromTime: from,
+		ToTime:   to,
+		Limit:    limit,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
 
 // handleNotificationList exposes the grouped list read (the adopted S6
 // supply, P-S6-01; the card-9 working candidate): server-side cursor

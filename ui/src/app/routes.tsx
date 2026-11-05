@@ -10,6 +10,7 @@ import { RunTaskPage } from "../pages/run/RunTaskPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotificationsPage } from "../pages/notifications/NotificationsPage";
 import { SecurityPage } from "../pages/settings/SecurityPage";
+import { ActivityPage } from "../pages/activity/ActivityPage";
 import { SettingsLayout } from "../pages/settings/SettingsLayout";
 import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
@@ -59,6 +60,13 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
  * preference controls are NOT here (no preference store exists in the
  * delivered Core contract — the page states the absence truthfully).
  *
+ * IMPL-24 WIRES the recorded `/activity` feature route (P1.1 §2.7.1's
+ * route row; the P2.1 §2.0 feature-route NAME) to the delivered F12
+ * audit/activity read surface — the disabled OPERATE-group nav item the
+ * S11 §3.5 extraction recorded is resolved by the surface's own
+ * delivery. The surface is READ-ONLY: no dismiss, no delete, and no
+ * correction control exists anywhere on it.
+ *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
  * by the J-8 dirty-form navigation guard's useBlocker); `AppRoutes`
@@ -70,6 +78,7 @@ export const appRouteElements: ReactElement = (
     <Route index element={<HomePage />} />
     <Route path="chat" element={<ChatPage />} />
     <Route path="chat/:conversationId" element={<ChatPage />} />
+    <Route path="activity" element={<ActivityPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />

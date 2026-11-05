@@ -116,7 +116,13 @@ type SliceDeps struct {
 	// session-command surface (typed refusals, fail closed) — every other
 	// surface is unchanged.
 	Sessions *security.SessionService
-	Now      func() time.Time
+	// AuditReader is the audit read port the F12 audit list and export
+	// reads serve (IMPL-24: the adopted S11 classes as implemented — a
+	// pure read face over the audit chain frames; no write, no delete,
+	// and no correction path exists on the port). Optional: nil disables
+	// the audit read surface (typed refusals, fail closed).
+	AuditReader AuditReader
+	Now         func() time.Time
 }
 
 // SubmitRequest is the API submission contract (C3-31 acceptance: the same

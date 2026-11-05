@@ -296,6 +296,10 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		// service the Guard's policy and the local transport already hold
 		// — the coded Revoke/RevokeAll classes served through the slice.
 		Sessions: bundle.sessions,
+		// The F12 audit read surface (IMPL-24): the lazily opened store's
+		// audit row query behind the app slice's read port (the
+		// lazyAuditStore adaptation precedent).
+		AuditReader: auditRowReader{l: lz},
 	}
 	slice, _ := app.NewSlice(deps)
 	return slice, deps, nil

@@ -1,0 +1,247 @@
+/* Activity & Audit page (IMPL-24). Layout uses CSS logical properties;
+   color is never the only state signal (the decision text carries the
+   value); the rows reflow to a single column at narrow widths. */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.filterLabel {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.filterSelect {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background-color: var(--color-surface-2);
+}
+
+.control:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.confirmed {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-muted);
+  margin-block-end: var(--space-3);
+}
+
+.note {
+  color: var(--color-text-muted);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.rowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  min-inline-size: 0;
+}
+
+.rowTime {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-muted);
+}
+
+.rowAction {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rowScope {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.decision {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-button);
+  border: 1px solid var(--color-border);
+}
+
+.decision[data-decision="deny"] {
+  border-color: var(--color-danger-border, #b3261e);
+  color: var(--color-danger-border, #b3261e);
+}
+
+.rowIds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+.idCode {
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.copyId {
+  min-height: var(--size-control-secondary, 28px);
+  padding: 0 var(--space-2);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+}
+
+.moreRow {
+  margin-block-start: var(--space-3);
+  text-align: center;
+}
+
+.empty,
+.stateBlock {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.empty p,
+.stateBlock p {
+  margin: 0 0 var(--space-2);
+}
+
+.empty p:last-child,
+.stateBlock p:last-child {
+  margin-block-end: 0;
+}
+
+.emptyTitle,
+.stateTitle {
+  font-weight: 600;
+}
+
+.code {
+  margin-block-start: var(--space-2);
+}
+
+.readOnlyNote {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-muted);
+  margin-block-start: var(--space-4);
+}
+
+/* The export confirmation dialog's body. */
+.dialogBody p {
+  margin: 0 0 var(--space-2);
+}
+
+.dialogBody p:last-child {
+  margin-block-end: 0;
+}
+
+.rangeGrid {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-3);
+}
+
+.rangeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rangeLabel {
+  min-inline-size: 4ch;
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.rangeInput {
+  flex: 1;
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.dialogActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+.primaryButton {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background-color: var(--color-surface-2);
+}
+
+.primaryButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ghostButton {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}

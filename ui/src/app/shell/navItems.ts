@@ -97,10 +97,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     labelKey: "groups.operate",
     items: [
       {
+        // IMPL-24 wires the recorded item to its delivered surface: the
+        // F12 audit/activity read surface ships at its recorded
+        // `/activity` route (the P2.1 §2.0 feature-route name; the
+        // disabled-item state the S11 §3.5 extraction recorded is
+        // resolved by the surface's own delivery).
         id: "activity-and-audit",
         labelKey: "items.activityAndAudit",
         icon: History,
-        disabled: true,
+        route: "/activity",
       },
     ],
   },

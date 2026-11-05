@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/qira-dev/karyora/internal/app"
 	"github.com/qira-dev/karyora/internal/config"
 	"github.com/qira-dev/karyora/internal/domain/errs"
 	"github.com/qira-dev/karyora/internal/runtime"
@@ -29,6 +30,38 @@ import (
 type lazyAuditStore struct{ l *lazyStore }
 
 func (lz lazyAuditStore) store() (*storage.Store, error) { return lz.l.get() }
+
+// auditRowReader adapts the lazily opened store's audit row query to the
+// app slice's AuditReader port (IMPL-24, the F12 audit list/export read
+// surface) — the lazyAuditStore precedent: while the store is closed
+// every access fails (the typed refusal path). A pure read face: the
+// adapter maps the app query onto the storage query and copies the raw
+// chain frames; the payload decode happens in the app layer (the
+// dependency map keeps storage free of security types).
+type auditRowReader struct{ l *lazyStore }
+
+func (a auditRowReader) ListAuditRows(ctx context.Context, q app.AuditRowsQuery) (app.AuditRowsPage, error) {
+	s, err := a.l.get()
+	if err != nil {
+		return app.AuditRowsPage{}, err
+	}
+	page, err := s.AuditListRows(ctx, storage.AuditListQuery{
+		Limit:          q.Limit,
+		AfterSequence:  q.AfterSequence,
+		PolicyDecision: q.PolicyDecision,
+		FromTime:       q.FromTime,
+		ToTime:         q.ToTime,
+		OrderDesc:      q.OrderDesc,
+	})
+	if err != nil {
+		return app.AuditRowsPage{}, err
+	}
+	out := app.AuditRowsPage{More: page.More, Rows: make([]app.AuditRow, 0, len(page.Rows))}
+	for _, r := range page.Rows {
+		out.Rows = append(out.Rows, app.AuditRow{Sequence: r.Sequence, Payload: r.Payload})
+	}
+	return out, nil
+}
 
 func (lz lazyAuditStore) Tail() (security.TailState, error) {
 	s, err := lz.store()

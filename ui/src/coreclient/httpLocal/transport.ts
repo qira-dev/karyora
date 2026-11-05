@@ -82,6 +82,10 @@ import type {
   WireNotificationMutationRequest,
   WireNotificationMutationResult,
   WireNotificationsListParams,
+  WireAuditEntry,
+  WireAuditExportResult,
+  WireAuditListResult,
+  WireAuditRecord,
   WireNotificationsListResult,
   WireReplayResult,
   WireReviewRequest,
@@ -170,6 +174,47 @@ function isWireSessionResult(value: unknown): value is WireSessionResult {
     typeof session.id === "string" &&
     Array.isArray(session.scopes) &&
     typeof session.expires === "string"
+  );
+}
+
+function isWireAuditRecord(value: unknown): value is WireAuditRecord {
+  if (value === null || typeof value !== "object") return false;
+  const r = value as Record<string, unknown>;
+  return (
+    typeof r.audit_id === "string" &&
+    typeof r.schema_version === "number" &&
+    typeof r.time === "string" &&
+    typeof r.actor === "string" &&
+    typeof r.action === "string" &&
+    typeof r.scope === "string" &&
+    typeof r.policy_decision === "string" &&
+    typeof r.policy_reference === "string" &&
+    typeof r.outcome === "string" &&
+    typeof r.correlation_id === "string"
+  );
+}
+
+function isWireAuditEntry(value: unknown): value is WireAuditEntry {
+  if (value === null || typeof value !== "object") return false;
+  const e = value as Record<string, unknown>;
+  return typeof e.sequence === "number" && isWireAuditRecord(e.record);
+}
+
+function isWireAuditListResult(value: unknown): value is WireAuditListResult {
+  if (value === null || typeof value !== "object") return false;
+  const r = value as Record<string, unknown>;
+  return Array.isArray(r.entries) && r.entries.every((row) => isWireAuditEntry(row));
+}
+
+function isWireAuditExportResult(value: unknown): value is WireAuditExportResult {
+  if (value === null || typeof value !== "object") return false;
+  const r = value as Record<string, unknown>;
+  return (
+    Array.isArray(r.records) &&
+    r.records.every((row) => isWireAuditEntry(row)) &&
+    typeof r.count === "number" &&
+    typeof r.generated_at === "string" &&
+    typeof r.truncated === "boolean"
   );
 }
 
@@ -1055,6 +1100,48 @@ export function createHttpLocalTransport() {
      * NO stream, OS-delivery, OS-permission, quiet-hours, or preference
      * member exists here (P-S6-04/05; decision 6).
      */
+
+    // The F12 audit/activity read surface (IMPL-24; the adopted S11
+    // classes as implemented). Both are READS over the append-only audit
+    // chain — the truthfulness rules above apply unchanged: a lost
+    // response is `unknown`, never an empty list, never a document; no
+    // method retries on its own. No dismiss/delete/correction operation
+    // exists anywhere on this surface (the read-only law).
+
+    /** `GET /v1/audit?limit=&cursor=&policy_decision=` — the
+     *  permission-filtered audit list (the card-9 working candidate's
+     *  class). The filter values are ONLY the Core's coded allow/deny
+     *  register (filter options come from the Core, never invented
+     *  client-side); the cursor rides back verbatim and a cursorless
+     *  response IS the final page. */
+    auditList(
+      params: { limit?: number; cursor?: string; policyDecision?: string } = {},
+    ): Promise<TransportOutcome<WireAuditListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      if (params.policyDecision !== undefined && params.policyDecision !== "")
+        query.set("policy_decision", params.policyDecision);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireAuditListResult>(`/v1/audit${suffix}`, get(), isWireAuditListResult);
+    },
+
+    /** `GET /v1/audit/export?from=&to=&limit=` — the M-32-class
+     *  read-with-export (the adopted P-S11-03 class as implemented): a
+     *  point-in-time read that mutates nothing and adds no
+     *  tamper-resistance. The confirmed scope/range/bound ride the query
+     *  — the calling surface confirms BEFORE the request (P1.6's
+     *  precondition). */
+    auditExport(
+      params: { from?: string; to?: string; limit?: number } = {},
+    ): Promise<TransportOutcome<WireAuditExportResult>> {
+      const query = new URLSearchParams();
+      if (params.from !== undefined && params.from !== "") query.set("from", params.from);
+      if (params.to !== undefined && params.to !== "") query.set("to", params.to);
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireAuditExportResult>(`/v1/audit/export${suffix}`, get(), isWireAuditExportResult);
+    },
 
     /** `GET /v1/notifications?category=&read_state=&cursor=` — the
      * server-side grouped list read (P-S6-01; the card-9 working

@@ -8,6 +8,7 @@ import type jobs from "./locales/en/jobs.json";
 import type run from "./locales/en/run.json";
 import type chat from "./locales/en/chat.json";
 import type notifications from "./locales/en/notifications.json";
+import type activity from "./locales/en/activity.json";
 
 /**
  * The typed translation-key union (G-10's second, type-level parity
@@ -49,7 +50,7 @@ export type SourceTree = Merge<
     >,
     typeof firstrun
   >,
-  Merge<Merge<Merge<typeof jobs, typeof run>, typeof chat>, typeof notifications>
+  Merge<Merge<Merge<Merge<typeof jobs, typeof run>, typeof chat>, typeof notifications>, typeof activity>
 >;
 
 /** Dot-joined LEAF key paths of a nested resource object (the keys `t()`

@@ -100,6 +100,96 @@ type AuditRecordRow struct {
 	Payload  []byte
 }
 
+// AuditListQuery is the audit list/export query shape (IMPL-24, the
+// card-9 working candidate's class: a page bound, a keyset position, a
+// Core-defined order). The policy-decision filter and the time bounds
+// evaluate the payload's canonical JSON fields (json_extract/julianday —
+// the bundled SQLite build's core JSON and date functions; no extracted
+// column and no schema change exist: queries only, the chain frames are
+// read-only).
+type AuditListQuery struct {
+	// Limit is the page bound (validated by the caller's own typed
+	// bound; the query requires a positive limit).
+	Limit int
+	// AfterSequence is the DESC-order keyset position (rows with
+	// sequence < AfterSequence); zero selects the newest page. The ASC
+	// (chronological export) order ignores it.
+	AfterSequence uint64
+	// PolicyDecision is the optional exact filter on the record's
+	// coded policy_decision value (the decision port's closed
+	// allow/deny register; empty = all).
+	PolicyDecision string
+	// FromTime/ToTime are the optional RFC3339 bounds on the record's
+	// time (julianday comparison — a real temporal comparison, never a
+	// string-order assumption).
+	FromTime string
+	ToTime   string
+	// OrderDesc selects the list's newest-first order; the export's
+	// chronological ASC order is the export's own.
+	OrderDesc bool
+}
+
+// AuditListPage is one bounded query page. More reports that rows exist
+// beyond the bound (the caller derives its continuation from the rows it
+// received — the keyset position is the page's last sequence).
+type AuditListPage struct {
+	Rows []AuditRecordRow
+	More bool
+}
+
+// AuditListRows reads one bounded page of audit rows under the query —
+// a pure read over the chain frames: it mutates nothing, appends
+// nothing, and never touches the integrity state (the append-only store
+// is untouched by this surface).
+func (s *Store) AuditListRows(ctx context.Context, q AuditListQuery) (AuditListPage, error) {
+	if q.Limit < 1 {
+		return AuditListPage{}, errStoragef(errs.CodeValidationFailed, "audit list limit must be positive")
+	}
+	order := "ASC"
+	if q.OrderDesc {
+		order = "DESC"
+	}
+	// The LIMIT carries the +1 sentinel: one row more than the bound
+	// answers More without a second query.
+	cctx, cancel := s.readerCtx(ctx)
+	defer cancel()
+	rows, err := s.readers.QueryContext(cctx,
+		`SELECT sequence, prev_hash, record_hash, payload FROM audit_records
+		 WHERE (? = '' OR json_extract(payload, '$.policy_decision') = ?)
+		   AND (? = '' OR julianday(json_extract(payload, '$.time')) >= julianday(?))
+		   AND (? = '' OR julianday(json_extract(payload, '$.time')) <= julianday(?))
+		   AND (? = 0 OR sequence < ?)
+		 ORDER BY sequence `+order+`
+		 LIMIT ?`,
+		q.PolicyDecision, q.PolicyDecision,
+		q.FromTime, q.FromTime,
+		q.ToTime, q.ToTime,
+		q.AfterSequence, q.AfterSequence,
+		q.Limit+1)
+	if err != nil {
+		return AuditListPage{}, mapVendorError(err)
+	}
+	defer rows.Close()
+	page := AuditListPage{Rows: []AuditRecordRow{}}
+	for rows.Next() {
+		var r AuditRecordRow
+		var seq int64
+		if err := rows.Scan(&seq, &r.PrevHash, &r.RecHash, &r.Payload); err != nil {
+			return AuditListPage{}, mapVendorError(err)
+		}
+		r.Sequence = uint64(seq)
+		page.Rows = append(page.Rows, r)
+	}
+	if err := rows.Err(); err != nil {
+		return AuditListPage{}, mapVendorError(err)
+	}
+	if len(page.Rows) > q.Limit {
+		page.More = true
+		page.Rows = page.Rows[:q.Limit]
+	}
+	return page, nil
+}
+
 // AuditRecords returns every stored record in sequence order.
 func (s *Store) AuditRecords() ([]AuditRecordRow, error) {
 	cctx, cancel := s.readerCtx(context.Background())
