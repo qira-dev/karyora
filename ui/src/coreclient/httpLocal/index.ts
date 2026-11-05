@@ -28,6 +28,8 @@ export type {
   WireApprovalDecisionResult,
   WireApprovalReadResult,
   WireAttempt,
+  WireCapabilityDescriptor,
+  WireCapabilityDescriptorResult,
   WireCapabilitySet,
   WireConnectionGetResult,
   WireConnectionHeader,

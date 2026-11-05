@@ -67,6 +67,7 @@ import type {
   WireConversationsListParams,
   WireConversationSendRequest,
   WireEventRecord,
+  WireCapabilityDescriptorResult,
   WireRetryCommandRequest,
   WireRetryCommandResult,
   WireRetryEligibilityReadResult,
@@ -673,6 +674,41 @@ export function createHttpLocalTransport() {
           if (result === null || typeof result !== "object") return false;
           const shaped = result as Record<string, unknown>;
           return typeof shaped.replayed === "boolean" && isWireJob(shaped.job);
+        },
+      );
+    },
+
+    /** `GET /v1/providers/{id}/capabilities` — the F2 capability
+     *  discovery/status read (IMPL-22, the adopted S10 supply's
+     *  P-S10-02 class as implemented): the standing per-provider
+     *  capability descriptor — the Core's OWN coded capability state,
+     *  without running any network probe. ADDITIVE to the M-25 test
+     *  (the probe-bearing discovery surface stays exactly as coded,
+     *  never replaced). The optional model value resolves the effective
+     *  profile (the Core's coded ProfileFor resolution). A provider
+     *  outside the wired set is the typed NOT_FOUND — never an invented
+     *  descriptor, never a name-inferred capability (UI-13). A lost
+     *  response is `unknown` — the descriptor is re-read explicitly,
+     *  never assumed; this method never retries on its own. */
+    providerCapabilities(providerID: string, model?: string): Promise<TransportOutcome<WireCapabilityDescriptorResult>> {
+      const query = new URLSearchParams();
+      if (model !== undefined && model !== "") query.set("model", model);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireCapabilityDescriptorResult>(
+        `/v1/providers/${encodeURIComponent(providerID)}/capabilities${suffix}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          if (shaped.capability_descriptor === null || typeof shaped.capability_descriptor !== "object") return false;
+          const descriptor = shaped.capability_descriptor as Record<string, unknown>;
+          return (
+            typeof descriptor.provider === "string" &&
+            descriptor.profile !== null &&
+            typeof descriptor.profile === "object" &&
+            descriptor.capabilities !== null &&
+            typeof descriptor.capabilities === "object"
+          );
         },
       );
     },

@@ -185,6 +185,15 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/connections", mutates: true, handler: (*Server).handleConnectionSave},
 		{method: http.MethodGet, prefix: "/v1/connections", handler: (*Server).handleConnectionList},
 		{method: http.MethodGet, prefix: "/v1/connections/", hasID: true, handler: (*Server).handleConnectionGet},
+		// The F2 capability discovery/status read (IMPL-22, the adopted
+		// S10 supply's P-S10-02 class as implemented): the standing
+		// per-provider capability descriptor — a non-mutating GET that
+		// runs no network probe, ADDITIVE to the implemented M-25 test
+		// (the probe-bearing discovery surface stays exactly as coded).
+		// The path is this adapter's own (the canonical name joins the
+		// published vocabulary at the publication act per card 1's
+		// additive discipline — NO contracts/ edit).
+		{method: http.MethodGet, prefix: "/v1/providers/", hasID: true, suffix: "/capabilities", handler: (*Server).handleProviderCapabilities},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/rotate", mutates: true, handler: (*Server).handleConnectionRotate},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/reauthenticate", mutates: true, handler: (*Server).handleConnectionReauthenticate},
 		{method: http.MethodPost, prefix: "/v1/connections/", hasID: true, suffix: "/delete", mutates: true, handler: (*Server).handleConnectionDelete},
@@ -769,6 +778,29 @@ func (s *Server) handleConnectionGet(w http.ResponseWriter, r *http.Request, tok
 		return
 	}
 	s.writeJSON(w, http.StatusOK, connectionGetResult{Connection: view})
+}
+
+// handleProviderCapabilities exposes the F2 capability discovery/status
+// read (IMPL-22, the adopted S10 supply's P-S10-02 class as implemented):
+// the standing per-provider capability descriptor — the Core's OWN coded
+// capability state, permission-filtered through the same decision port
+// every read decides through, WITHOUT running any network probe. The read
+// is ADDITIVE to the implemented M-25 test (the probe-bearing discovery
+// surface stays exactly as coded, never replaced); the descriptor carries
+// FACTS, never promises (C3-29's frozen boundary), and nothing beyond
+// what the Core's coded Capabilities() supplies (each matrix field's
+// presence stays Unverified — the P3.2 §5.1 verdict). The optional model
+// query value resolves the effective profile (the coded ProfileFor
+// resolution — the review field 3's own pattern; none → the registered
+// default profile). The path is this adapter's own; the canonical name
+// joins the published vocabulary at the publication act per card 1.
+func (s *Server) handleProviderCapabilities(w http.ResponseWriter, r *http.Request, token, providerID string) {
+	res, err := s.deps.Slice.ProviderCapabilities(s.callCtx(r, token), providerID, r.URL.Query().Get("model"))
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, capabilityDescriptorResult{Descriptor: res})
 }
 
 // handleConnectionTest exposes the read-only test command (M-25): either a
@@ -1418,6 +1450,20 @@ type statusResult struct {
 // its recorded owner's).
 type retryEligibilityResult struct {
 	RetryEligibility aijobrelay.RetryEligibility `json:"retry_eligibility"`
+}
+
+// The F2 capability descriptor's wire shape (IMPL-22): the app-layer
+// CapabilityDescriptor's coded JSON tags inside the capability_descriptor
+// wrapper (the coded-name rule: the coded Go name lowercased). The
+// capabilities member is the coded CapabilitySet verbatim — the eleven
+// axes as the three-state facts, the limits members (0 = unknown), the
+// estimator ref, and the notes law. No source/verification-state/
+// freshness member exists in the shape (the coded vocabulary does not
+// carry them — the S10 §5 gap 3 stays its recorded owner's; each matrix
+// field's presence stays Unverified), and no capability promise exists
+// anywhere in it (C3-29's frozen boundary).
+type capabilityDescriptorResult struct {
+	Descriptor app.CapabilityDescriptor `json:"capability_descriptor"`
 }
 
 // The M-7 retry command's wire shapes (IMPL-21): idempotency_reference is

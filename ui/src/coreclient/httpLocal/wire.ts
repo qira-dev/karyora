@@ -201,6 +201,37 @@ export interface WireCapabilitySet {
   readonly notes?: string;
 }
 
+/** `app.CapabilityDescriptor` — the F2 family's capability descriptor
+ *  (IMPL-22, the adopted S10 supply's P-S10-01 class as implemented): the
+ *  Core's OWN coded capability state for one wired provider identity —
+ *  the coded CapabilitySet verbatim plus the identity members the read
+ *  keys on. The descriptor carries FACTS, never promises (C3-29): every
+ *  unoverridden axis stays unknown; nothing beyond what the Core's coded
+ *  Capabilities() supplies rides it (each matrix field's presence stays
+ *  Unverified — the P3.2 §5.1 verdict). */
+export interface WireCapabilityDescriptor {
+  readonly provider: string;
+  readonly profile: {
+    readonly provider: string;
+    readonly endpoint: string;
+    readonly model: string;
+    readonly region?: string;
+    readonly api_version?: string;
+  };
+  readonly capabilities: WireCapabilitySet;
+}
+
+/** `GET /v1/providers/{id}/capabilities` success (200): the descriptor
+ *  inside the `capability_descriptor` wrapper. The standing discovery/
+ *  status read (P-S10-02 as implemented): it runs NO network probe and is
+ *  ADDITIVE to the M-25 test (the probe-bearing discovery surface stays
+ *  exactly as coded). A provider outside the wired set is the typed
+ *  NOT_FOUND — never an invented descriptor, never a name-inferred
+ *  capability. */
+export interface WireCapabilityDescriptorResult {
+  readonly capability_descriptor: WireCapabilityDescriptor;
+}
+
 /** Field 3 — the provider/model: the wired truth, the effective profile,
  *  and the coded capability facts (absent when the provider is unwired —
  *  never invented). */

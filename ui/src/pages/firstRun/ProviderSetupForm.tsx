@@ -11,6 +11,7 @@ import { useFirstRun } from "../../app/firstRun/firstRunState";
 import { useCoreConnection } from "../../app/coreConnectionState";
 import type { CoreWireEnvelope } from "../../coreclient/httpLocal/wire";
 import type {
+  WireCapabilityDescriptor,
   WireCapabilitySet,
   WireConnectionTestReport,
   WireConnectionView,
@@ -57,8 +58,16 @@ import styles from "./ProviderSetupForm.module.css";
  *   because it is never stored).
  * - Capability renders from what the Core actually reports (UI-13):
  *   supported/unsupported/unknown stay DISTINCT — unknown is `Not
- *   verified`; nothing is inferred from provider or model names. Before
- *   any test the panel renders its honest `Not verified`.
+ *   verified`; nothing is inferred from provider or model names. Two
+ *   Core sources, one truth, explicit provenance: the per-connection
+ *   test report (M-25 — the probe-bearing discovery surface) and, before
+ *   any test, the F2 standing capability descriptor (IMPL-22 — the
+ *   Core's OWN coded, permission-filtered discovery/status read; no
+ *   probe; ADDITIVE to the test, never a replacement). The standing
+ *   read's facts ride the SAME distinct-state mapping; the note names
+ *   the source so no standing fact masquerades as a tested one. Where
+ *   the Core supplies neither (unavailable, unwired), the panel renders
+ *   its honest `Not verified` — never an invented capability.
  * - The billing label carries the UI-22 LOCKED rule: provider-billed
  *   BYOK, separate from any product maintenance plan. The data-handling
  *   notice renders ONLY as the Core supplies it (the notice below states
@@ -85,6 +94,15 @@ type TestOutcome =
   | { readonly kind: "unavailable" }
   | { readonly kind: "unknown" }
   | null;
+
+/** The F2 standing capability descriptor read (IMPL-22): idle/loading /
+ *  the Core's descriptor / the truthful unavailable (the panel falls back
+ *  to its honest Not-verified state — never an invented capability). */
+type DescriptorRead =
+  | { readonly kind: "idle" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "data"; readonly descriptor: WireCapabilityDescriptor }
+  | { readonly kind: "unavailable" };
 
 type SaveOutcome =
   | { readonly kind: "confirmed"; readonly connection: WireConnectionView }
@@ -148,12 +166,47 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
 
     const isCustom = presetId === CUSTOM_API_PRESET_ID;
 
+    // The F2 standing capability descriptor read (IMPL-22, the adopted
+    // S10 supply's P-S10-02 class): issued when the effective provider id
+    // changes (the same id vocabulary the save/test commands send — the
+    // coded adapter register's ids); read-sequence-guarded; runs NO
+    // probe and mutates nothing. A refusal (an unwired id is the Core's
+    // typed NOT_FOUND) or an unavailable Core leaves the panel on its
+    // honest Not-verified state — never an invented capability, never a
+    // name-inferred one (UI-13). The per-connection test (M-25) remains
+    // the probe-bearing verification and takes precedence in the panel.
+    const descriptorSeqRef = useRef(0);
+    const [descriptorRead, setDescriptorRead] = useState<DescriptorRead>({ kind: "idle" });
+    const readDescriptor = useCallback(
+      (providerId: string) => {
+        if (providerId === "") {
+          setDescriptorRead({ kind: "idle" });
+          return;
+        }
+        const seq = ++descriptorSeqRef.current;
+        setDescriptorRead({ kind: "loading" });
+        void transport.providerCapabilities(providerId).then((outcome) => {
+          if (seq !== descriptorSeqRef.current) return;
+          if (outcome.kind === "data") {
+            setDescriptorRead({ kind: "data", descriptor: outcome.data.capability_descriptor });
+          } else {
+            setDescriptorRead({ kind: "unavailable" });
+          }
+        });
+      },
+      [transport],
+    );
+
     // Persist the NON-SECRET draft so wizard back-navigation and re-entry
     // preserve entries (§8.13; C-06 draft rule). The key is excluded by
     // construction (it is not part of ProviderDraft).
     useEffect(() => {
       setProviderDraft({ presetId, apiFormat, baseUrl, modelId, headers });
     }, [presetId, apiFormat, baseUrl, modelId, headers, setProviderDraft]);
+
+    useEffect(() => {
+      readDescriptor(isCustom ? apiFormat : presetId);
+    }, [readDescriptor, isCustom, apiFormat, presetId]);
 
     const parsedHeaders = useCallback((): { ok: boolean; headers: { name: string; value: string }[] } => {
       const out: { name: string; value: string }[] = [];
@@ -434,15 +487,24 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
       (errors.baseUrl ? 1 : 0) + (errors.modelId ? 1 : 0) + (errors.apiKey ? 1 : 0) + (errors.headers ? 1 : 0);
 
     // The capability panel's truth: rendered from the Core's test report
-    // only. The coded Feature axes render DISTINCTLY — verified (the
-    // Core reports supported), unsupported, and Not verified (unknown).
-    // The capability panel's truth: rendered from the Core's test report
-    // only. The coded Feature axes render DISTINCTLY — verified (the
-    // Core reports supported), unsupported (its own distinct state), and
-    // Not verified (unknown) — never a green collapse of distinct states
-    // (P3.3 §7; UI-13).
-    const capability: WireCapabilitySet | undefined =
+    // The capability panel's truth: rendered from what the Core actually
+    // reports (UI-13) — two Core sources, one truth, explicit provenance.
+    // The per-connection test report (M-25) takes precedence (the
+    // probe-bearing verification); before any test, the F2 standing
+    // capability descriptor (IMPL-22 — the Core's OWN coded discovery/
+    // status read, no probe) supplies the same coded axes through the
+    // SAME distinct-state mapping. The coded Feature axes render
+    // DISTINCTLY — verified (the Core reports supported), unsupported
+    // (its own distinct state), and Not verified (unknown) — never a
+    // green collapse of distinct states (P3.3 §7; UI-13). Where the Core
+    // supplies neither, the panel renders its honest Not verified.
+    const testedCapability: WireCapabilitySet | undefined =
       testOutcome?.kind === "ok" ? (testOutcome.report.capabilities as WireCapabilitySet | undefined) : undefined;
+    const descriptorCapability: WireCapabilitySet | undefined =
+      descriptorRead.kind === "data" ? descriptorRead.descriptor.capabilities : undefined;
+    const capabilitySource: "tested" | "descriptor" =
+      testedCapability !== undefined ? "tested" : "descriptor";
+    const capability: WireCapabilitySet | undefined = testedCapability ?? descriptorCapability;
     const capabilityRows: readonly { readonly label: string; readonly stateKey: "provider.capabilityVerified" | "provider.capabilityUnsupported" | "provider.capabilityNotVerified" }[] = capability
       ? [
           { label: t("provider.capabilityChat"), stateKey: capabilityStateKey(capability.chat) },
@@ -686,7 +748,11 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
                   <span className={styles.capabilityValue}>{t(row.stateKey)}</span>
                 </p>
               ))}
-              <p className={styles.help}>{t("provider.capabilityTestedNote")}</p>
+              <p className={styles.help}>
+                {capabilitySource === "tested"
+                  ? t("provider.capabilityTestedNote")
+                  : t("provider.capabilityDescriptorNote")}
+              </p>
             </div>
           )}
         </div>

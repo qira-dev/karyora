@@ -142,6 +142,7 @@
     "capabilityVerified": "Verified",
     "capabilityUnsupported": "Unsupported",
     "capabilityTestedNote": "Rendered from the Core's latest successful test report. Unsupported and Not verified are distinct states and never collapse.",
+    "capabilityDescriptorNote": "Rendered from the Core's standing capability descriptor for this provider — the Core's own reported facts, before any connection test. Unsupported and Not verified are distinct states and never collapse; run the connection test for the per-connection verification.",
     "testUnknownTitle": "Test outcome unknown",
     "testUnknownBody": "The test's response was lost before it could be read. A lost test response proves nothing — the connection was not marked tested by it.",
     "testUnknownNote": "The test is read-only and safe to re-issue: run it again when ready.",
