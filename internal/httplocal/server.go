@@ -166,6 +166,7 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/events", handler: (*Server).handleEvents},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/result", handler: (*Server).handleResult},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/snapshot", handler: (*Server).handleJobSnapshot},
+		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/retry-eligibility", handler: (*Server).handleRetryEligibility},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/approval", handler: (*Server).handleJobApproval},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, handler: (*Server).handleStatus},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/cancel", mutates: true, handler: (*Server).handleCancel},
@@ -604,6 +605,26 @@ func (s *Server) handleJobApproval(w http.ResponseWriter, r *http.Request, token
 		return
 	}
 	s.writeJSON(w, http.StatusOK, approvalResult{Approval: approval})
+}
+
+// handleRetryEligibility exposes the F9-frozen retry-eligibility read
+// (the P3.2 §3.9 [P] typed-member set as frozen at the S4 §15 act — the
+// adopted P-S7-01…06 supply): the Core's own per-Job verdict plus the
+// three recorded typed members, authorized through the same decision
+// port every read decides through. The read mutates nothing and is NOT
+// the retry command — the M-7 command's identity stays its recorded Open
+// item (the S7 §5 gap 2; O-1), so no eligibility response authorizes any
+// execution. The path is this adapter's own (the canonical-transport
+// question stays its recorded open item); the canonical name joins the
+// published vocabulary at the publication act per card 1's additive
+// discipline.
+func (s *Server) handleRetryEligibility(w http.ResponseWriter, r *http.Request, token, jobID string) {
+	res, err := s.deps.Slice.RetryEligibility(s.callCtx(r, token), jobID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, retryEligibilityResult{RetryEligibility: res})
 }
 
 // handleApprovalDecision exposes one approval decision command (the card-14
@@ -1346,6 +1367,21 @@ type submitResult struct {
 type statusResult struct {
 	Job     aijobrelay.Job     `json:"job"`
 	Attempt aijobrelay.Attempt `json:"attempt"`
+}
+
+// The retry-eligibility read shape (the F9 family's frozen contract, the
+// P3.2 §3.9 [P] set as frozen at the S4 §15 act): the aijobrelay
+// .RetryEligibility coded JSON tags inside the retry_eligibility wrapper
+// (the coded-name rule: the coded Go name lowercased). Exactly the four
+// recorded typed members ride the shape — the eligibility verdict, the
+// side-effect risk statement in the recorded exact terms, the
+// idempotency guarantee class (the closed three-value register; `open`
+// until the Core/API owner's own recorded act defines the retry
+// command's keying), and the reconciliation requirement — and nothing
+// beyond them; no ineligible-reason field exists (the S7 §5 gap 5 stays
+// its recorded owner's).
+type retryEligibilityResult struct {
+	RetryEligibility aijobrelay.RetryEligibility `json:"retry_eligibility"`
 }
 
 // The context-snapshot read shape (the card-11 working candidate): the

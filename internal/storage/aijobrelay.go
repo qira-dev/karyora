@@ -808,6 +808,22 @@ func (s *Store) LoadIntent(ctx context.Context, intentID string) (aijobrelay.Sid
 	return in, nil
 }
 
+// HasUnknownSideEffectIntent implements aijobrelay.RelayStore: the
+// read-only query behind the F9-frozen retry-eligibility read's
+// reconciliation member — whether any of the Job's side-effect intents
+// carries the Unknown state (C3-14's first-class lost-response state).
+// The query observes the recorded intents; it resolves nothing.
+func (s *Store) HasUnknownSideEffectIntent(ctx context.Context, jobID string) (bool, error) {
+	var n int
+	err := s.readers.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM side_effect_intents WHERE job_id = ? AND state = ?`,
+		jobID, aijobrelay.SideEffectUnknown).Scan(&n)
+	if err != nil {
+		return false, mapVendorError(err)
+	}
+	return n > 0, nil
+}
+
 // ListJobs implements aijobrelay.RelayStore (the card-9 working candidate):
 // one bounded page in the Core-defined order — created_at descending, the
 // job_id ascending tiebreak — with an optional registered-state filter.

@@ -61,6 +61,12 @@ type RelayStore interface {
 	ResumeJob(ctx context.Context, jobID string) error
 	// LoadIntent loads one side-effect intent by id.
 	LoadIntent(ctx context.Context, intentID string) (SideEffectIntent, error)
+	// HasUnknownSideEffectIntent reports whether the Job carries any
+	// side-effect intent whose outcome is Unknown (C3-14): the read-only
+	// fact the F9-frozen retry-eligibility read consumes for its
+	// reconciliation member (a retry never stands where an Unknown side
+	// effect is unresolved: needs reconciliation first).
+	HasUnknownSideEffectIntent(ctx context.Context, jobID string) (bool, error)
 	// ListJobs returns one bounded page of Jobs in the Core-defined order
 	// (created_at descending, job_id ascending tiebreak) with an optional
 	// registered-state filter — the card-9 working candidate's server-side
