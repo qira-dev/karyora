@@ -66,6 +66,13 @@ import type {
   WireConversationResult,
   WireConversationsListParams,
   WireConversationSendRequest,
+  WireAttachmentRegistryResult,
+  WireConversationAttachment,
+  WireConversationAttachmentDeleteRequest,
+  WireConversationAttachmentDeleteResult,
+  WireConversationAttachmentListResult,
+  WireConversationAttachmentResult,
+  WireConversationAttachmentUploadRequest,
   WireEventRecord,
   WireCapabilityDescriptorResult,
   WireRetryCommandRequest,
@@ -299,6 +306,33 @@ function isWireConversationExchange(value: unknown): value is WireConversationEx
     typeof exchange.state === "string" &&
     typeof exchange.created_at === "string"
   );
+}
+
+/** The coded attachment guard (IMPL-25): the response must carry the
+ *  distinguishing coded fields of `conversation.Attachment` to be
+ *  presented as data; anything else stays unknown — never reinterpreted,
+ *  never fabricated. */
+function isWireConversationAttachment(value: unknown): value is WireConversationAttachment {
+  if (value === null || typeof value !== "object") return false;
+  const attachment = value as Record<string, unknown>;
+  return (
+    typeof attachment.attachment_id === "string" &&
+    typeof attachment.conversation_id === "string" &&
+    typeof attachment.upload_id === "string" &&
+    typeof attachment.file_name === "string" &&
+    typeof attachment.content_type === "string" &&
+    typeof attachment.size_bytes === "number" &&
+    typeof attachment.digest === "string" &&
+    typeof attachment.untrusted_label === "string" &&
+    typeof attachment.input_revision === "string" &&
+    typeof attachment.state === "string" &&
+    typeof attachment.created_at === "string"
+  );
+}
+
+/** The registry-member guard (IMPL-25): one coded type/bound pair. */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 /** The coded notification guards (IMPL-14): each response must carry its
@@ -1081,6 +1115,127 @@ export function createHttpLocalTransport() {
           const shaped = body as Record<string, unknown>;
           return isWireConversationExchange(shaped.exchange) && isWireConversationMessage(shaped.message);
         },
+      );
+    },
+
+    /**
+     * The conversation attachment surface (IMPL-25; the ADOPTED S12
+     * supply, P-S12-01…06, as implemented — the working candidates they
+     * are, never finalized). Exactly the five delivered attachment
+     * operations, each ONE `call` — NO retry loop exists anywhere in this
+     * section: a lost upload response is `unknown` and the resolution is
+     * the owning surface's explicit S4-for-uploads status query (NEVER a
+     * blind re-upload — the Core's replay ruling makes the
+     * identity-bearing re-issue duplicate-free, but the re-issue itself
+     * is always an explicit user act). The paths are the adapter's own
+     * non-canonical paths (wire.ts's honest boundary). The truthfulness
+     * rules above apply unchanged.
+     */
+
+    /** `GET /v1/conversations/attachments/registry` — the attachment
+     *  registry read (P-S12-01): the Core's own supported types/sizes as
+     *  queryable contract data. The UI renders ONLY this data; a refusal
+     *  or an unavailable Core leaves the attach affordance absent or
+     *  disabled-with-reason (no dead controls, no client-side list). */
+    conversationAttachmentRegistry(): Promise<TransportOutcome<WireAttachmentRegistryResult>> {
+      return call<WireAttachmentRegistryResult>("/v1/conversations/attachments/registry", get(), (body) => {
+        if (body === null || typeof body !== "object") return false;
+        const shaped = body as Record<string, unknown>;
+        if (!Array.isArray(shaped.types)) return false;
+        return shaped.types.every(
+          (row) =>
+            isPlainObject(row) &&
+            typeof row.content_type === "string" &&
+            typeof row.max_bytes === "number" &&
+            Number.isFinite(row.max_bytes),
+        );
+      });
+    },
+
+    /** `POST /v1/conversations/{id}/attachments` — the identity-bearing
+     *  upload (P-S12-02): the caller-supplied upload identity rides the
+     *  body (this method never mints a second identity and never
+     *  re-issues on its own); the input revision is echoed back on the
+     *  record (P-S12-03). The typed rejections (type membership, then the
+     *  per-type size bound — P-S12-04) surface as the envelope
+     *  verbatim. */
+    conversationAttachmentUpload(
+      conversationID: string,
+      payload: WireConversationAttachmentUploadRequest,
+    ): Promise<TransportOutcome<WireConversationAttachmentResult>> {
+      return call<WireConversationAttachmentResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/attachments`,
+        post(JSON.stringify(payload)),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return isWireConversationAttachment(shaped.attachment);
+        },
+      );
+    },
+
+    /** `GET /v1/conversations/{id}/attachments/status?upload_id=` — the
+     *  S4-for-uploads read (P-S12-02): the authoritative attachment state
+     *  for one upload identity. A pure query — it never re-uploads, never
+     *  mutates. A Core NOT_FOUND (including the no-leak foreign-binding
+     *  case) is the typed refusal surfaced verbatim — never
+     *  reinterpreted. */
+    conversationAttachmentStatus(
+      conversationID: string,
+      uploadID: string,
+    ): Promise<TransportOutcome<WireConversationAttachmentResult>> {
+      const query = new URLSearchParams({ upload_id: uploadID });
+      return call<WireConversationAttachmentResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/attachments/status?${query.toString()}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return isWireConversationAttachment(shaped.attachment);
+        },
+      );
+    },
+
+    /** `GET /v1/conversations/{id}/attachments?limit=&cursor=` — the
+     *  conversation's attachments read (the card-9 list discipline): the
+     *  Core's stored records in chronological order, one bounded page at
+     *  a time; the cursorless page IS the final page. */
+    conversationAttachmentList(
+      conversationID: string,
+      params: { limit?: number; cursor?: string } = {},
+    ): Promise<TransportOutcome<WireConversationAttachmentListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireConversationAttachmentListResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/attachments${suffix}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          if (!Array.isArray(shaped.attachments)) return false;
+          return (
+            shaped.attachments.every((row) => isWireConversationAttachment(row)) &&
+            (shaped.cursor === undefined || typeof shaped.cursor === "string")
+          );
+        },
+      );
+    },
+
+    /** `POST /v1/conversations/{id}/attachments/delete` — the
+     *  draft-stage delete: the body names exactly the attachment to
+     *  delete (no implicit target). The confirmed 200 is the outcome; a
+     *  lost response is `unknown` and the owning surface re-reads the
+     *  list to learn the truth — never an assumed success. */
+    conversationAttachmentDelete(
+      conversationID: string,
+      payload: WireConversationAttachmentDeleteRequest,
+    ): Promise<TransportOutcome<WireConversationAttachmentDeleteResult>> {
+      return call<WireConversationAttachmentDeleteResult>(
+        `/v1/conversations/${encodeURIComponent(conversationID)}/attachments/delete`,
+        post(JSON.stringify(payload)),
+        (body) => body !== null && typeof body === "object",
       );
     },
 

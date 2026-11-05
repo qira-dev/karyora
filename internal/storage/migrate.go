@@ -397,6 +397,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_source_event
 ALTER TABLE provider_connections ADD COLUMN display_name TEXT NOT NULL DEFAULT '';
 `,
 	},
+	{
+		Version: 12,
+		Name:    "0012-conversation-attachments",
+		SQL: `
+CREATE TABLE IF NOT EXISTS conversation_attachments (
+    attachment_id   TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL REFERENCES conversations(conversation_id),
+    upload_id       TEXT NOT NULL,
+    file_name       TEXT NOT NULL,
+    content_type    TEXT NOT NULL,
+    size_bytes      INTEGER NOT NULL,
+    digest          TEXT NOT NULL,
+    untrusted_label TEXT NOT NULL,
+    input_revision  TEXT NOT NULL DEFAULT '',
+    state           TEXT NOT NULL,
+    created_at      TEXT NOT NULL,
+    UNIQUE (conversation_id, upload_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_conv_attachments_conv
+    ON conversation_attachments (conversation_id, created_at, attachment_id);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -404,7 +427,7 @@ ALTER TABLE provider_connections ADD COLUMN display_name TEXT NOT NULL DEFAULT '
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 11
+	schemaVersionMax = 12
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

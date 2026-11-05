@@ -249,6 +249,29 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, suffix: "/exchange", handler: (*Server).handleConversationExchange},
 		{method: http.MethodPost, prefix: "/v1/conversations/", hasID: true, suffix: "/send", mutates: true, handler: (*Server).handleConversationSend},
 		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, handler: (*Server).handleConversationGet},
+		// The conversation attachment surface (IMPL-25; the ADOPTED S12
+		// supply, P-S12-01…06, as implemented): the registry read (the
+		// Core's own supported types/sizes as queryable contract data —
+		// P-S12-01), the identity-bearing upload (P-S12-02's duplicate-free
+		// replay ruling inside the store; P-S12-04's typed rejections), the
+		// S4-for-uploads status query (P-S12-02's query-before-retry law),
+		// the conversation-scoped list, and the draft-stage delete. The
+		// upload carries base64 content over the JSON envelope transport
+		// (the implementation's typing — no multipart parser exists here
+		// and none is introduced). NO message-binding, NO snapshot
+		// participation, and NO stream/stop/steering endpoint exists
+		// anywhere (P-S12-06's policy is not exercised; the answering path
+		// is the named owner gap). Every operation rides the one decision
+		// port (ResourceConversation + the data actions) and NEVER creates
+		// a Job (X-1). The paths are this adapter's own (the IMPL-4..11
+		// convention); the canonical names join the published vocabulary
+		// at the publication act per card 1's additive discipline — NO
+		// contracts/ edit.
+		{method: http.MethodGet, prefix: "/v1/conversations/attachments/registry", handler: (*Server).handleConversationAttachmentRegistry},
+		{method: http.MethodPost, prefix: "/v1/conversations/", hasID: true, suffix: "/attachments", mutates: true, handler: (*Server).handleConversationAttachmentUpload},
+		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, suffix: "/attachments/status", handler: (*Server).handleConversationAttachmentStatus},
+		{method: http.MethodGet, prefix: "/v1/conversations/", hasID: true, suffix: "/attachments", handler: (*Server).handleConversationAttachmentList},
+		{method: http.MethodPost, prefix: "/v1/conversations/", hasID: true, suffix: "/attachments/delete", mutates: true, handler: (*Server).handleConversationAttachmentDelete},
 		// The notification surface (the adopted S6 supply, P-S6-01/02): the
 		// grouped list read, the Core-supplied unread counts, and the O-6
 		// mutation set's typed outcomes (mark read, mark unread, clear —
@@ -1159,6 +1182,127 @@ func (s *Server) handleConversationExchange(w http.ResponseWriter, r *http.Reque
 	s.writeJSON(w, http.StatusOK, conversationExchangeResult{Exchange: exchange, Message: msg})
 }
 
+// The conversation attachment surface handlers (IMPL-25; the ADOPTED S12
+// supply, P-S12-01…06, as implemented). Every handler rides the existing
+// boundary middleware (the Host allowlist, the credential-surface rule,
+// CSRF for mutations, the loopback-only bind); the slice's decision port
+// is the authoritative check inside. The paths are this adapter's own —
+// no published contract carries them.
+
+// handleConversationAttachmentRegistry exposes the attachment registry
+// read (P-S12-01): the Core's own supported attachment types and size
+// limits as queryable contract data — the read creates nothing and probes
+// nothing.
+func (s *Server) handleConversationAttachmentRegistry(w http.ResponseWriter, r *http.Request, token, _ string) {
+	res, err := s.deps.Slice.ConversationAttachmentRegistry(s.callCtx(r, token))
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationAttachmentRegistryResult{Types: res.Types})
+}
+
+// handleConversationAttachmentUpload exposes the identity-bearing upload
+// (P-S12-02): the body carries the upload identity, the display file
+// name, the registry content type, the opaque input revision, and the
+// base64 content. The typed rejections (P-S12-04: type membership, then
+// the per-type size bound) ride the envelope BEFORE any byte is stored;
+// the store's replay ruling returns the existing upload's state on
+// (same identity, same digest) and refuses a different digest. A lost
+// response resolves ONLY by the status query — never a blind re-upload.
+func (s *Server) handleConversationAttachmentUpload(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	var req conversationAttachmentUploadRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.UploadConversationAttachment(s.callCtx(r, token), app.ConversationAttachmentUploadRequest{
+		ConversationID: conversationID,
+		UploadID:       req.UploadID,
+		FileName:       req.FileName,
+		ContentType:    req.ContentType,
+		InputRevision:  req.InputRevision,
+		ContentB64:     req.ContentB64,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationAttachmentResult{Attachment: res.Attachment})
+}
+
+// handleConversationAttachmentStatus exposes the S4-for-uploads read
+// (P-S12-02): the authoritative attachment state for one upload identity,
+// resolved by (conversation identity, upload identity). A pure query — it
+// never re-uploads, never mutates. An upload identity bound to a
+// different conversation is the SAME typed NOT_FOUND as an unknown id
+// (the no-leak rule).
+func (s *Server) handleConversationAttachmentStatus(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	upload := r.URL.Query().Get("upload_id")
+	if upload == "" || len(upload) > maxPathID {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "upload_id"}))
+		return
+	}
+	att, err := s.deps.Slice.ConversationAttachmentStatus(s.callCtx(r, token), conversationID, upload)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationAttachmentResult{Attachment: att})
+}
+
+// handleConversationAttachmentList exposes the conversation's attachments
+// read (the card-9 list discipline): server-side, bounded, keyset
+// pagination, chronological; the cursorless page IS the final page.
+func (s *Server) handleConversationAttachmentList(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.ConversationAttachments(s.callCtx(r, token), conversationID, app.ConversationAttachmentListRequest{
+		Limit:  limit,
+		Cursor: cursor,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationAttachmentListResult{Attachments: res.Attachments, Cursor: res.NextCursor})
+}
+
+// handleConversationAttachmentDelete exposes the draft-stage delete: the
+// body names exactly the attachment to delete — no implicit target. The
+// record row and its cas_references row are removed inside the store; the
+// CAS object becomes GC-collectible through the store's normal barrier
+// discipline. NEVER touches the Job machinery (X-1).
+func (s *Server) handleConversationAttachmentDelete(w http.ResponseWriter, r *http.Request, token, conversationID string) {
+	var req conversationAttachmentDeleteRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	if err := s.deps.Slice.DeleteConversationAttachment(s.callCtx(r, token), app.ConversationAttachmentDeleteRequest{
+		ConversationID: conversationID,
+		AttachmentID:   req.AttachmentID,
+	}); err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, conversationAttachmentDeleteResult{})
+}
+
 // maxNotificationFilterLen bounds a notification filter query value (a
 // closed-register value; anything longer cannot be a member — the same
 // transport-safeguard class as maxSearchQueryLen).
@@ -1753,6 +1897,66 @@ type conversationExchangeResult struct {
 	Exchange conversation.Exchange `json:"exchange"`
 	Message  conversation.Message  `json:"message"`
 }
+
+// The conversation attachment wire shapes (IMPL-25; the ADOPTED S12
+// supply, P-S12-01…06, as implemented). The JSON tags are the coded tags
+// of the domain attachment contract
+// (internal/domain/conversation/attachment.go) and the app registry
+// shapes (internal/app/conversation_attachment.go); the wrapper keys are
+// the coded struct names lowercased (the coded-name rule). Honest
+// boundary: the paths are this adapter's own (non-canonical); NO
+// message-binding member, NO snapshot-reference member, and NO
+// stream/stop/steering member exists anywhere in these shapes — the
+// participation policy is not exercised (P-S12-06) and the answering
+// production path is the named owner gap.
+
+// conversationAttachmentUploadRequest is the identity-bearing upload body
+// (P-S12-02 as implemented): upload_id is the caller-supplied operation
+// identity the S4-for-uploads query resolves through (NOT a canonical
+// idempotency key — the identity class stays its owner's decision);
+// content_b64 is the base64 (standard, padded) attachment bytes; the
+// typed rejections (type membership, then the per-type size bound) ride
+// the envelope before any byte is stored.
+type conversationAttachmentUploadRequest struct {
+	UploadID      string `json:"upload_id"`
+	FileName      string `json:"file_name"`
+	ContentType   string `json:"content_type"`
+	InputRevision string `json:"input_revision"`
+	ContentB64    string `json:"content_b64"`
+}
+
+// conversationAttachmentDeleteRequest names exactly the attachment to
+// delete — no implicit target.
+type conversationAttachmentDeleteRequest struct {
+	AttachmentID string `json:"attachment_id"`
+}
+
+// conversationAttachmentRegistryResult carries the registry read
+// (P-S12-01): the Core's own supported types and per-type size limits.
+type conversationAttachmentRegistryResult struct {
+	Types []app.AttachmentTypeSpec `json:"types"`
+}
+
+// conversationAttachmentResult carries one attachment record
+// (conversation.Attachment coded tags: attachment_id, conversation_id,
+// upload_id, file_name, content_type, size_bytes, digest,
+// untrusted_label, input_revision, state, created_at) — the upload
+// result and the S4-for-uploads status query's shape.
+type conversationAttachmentResult struct {
+	Attachment conversation.Attachment `json:"attachment"`
+}
+
+// conversationAttachmentListResult carries one bounded attachments page
+// (chronological); cursor is OMITTED on the final page — the cursorless
+// page IS the end marker.
+type conversationAttachmentListResult struct {
+	Attachments []conversation.Attachment `json:"attachments"`
+	Cursor      string                    `json:"cursor,omitempty"`
+}
+
+// conversationAttachmentDeleteResult is the confirmed delete's empty
+// success shape (the confirmed-200 IS the outcome; no tombstone exists).
+type conversationAttachmentDeleteResult struct{}
 
 // The notification wire shapes (the adopted S6 supply, P-S6-01/02). Every
 // key is a coded name: the group-entry JSON tags are the coded

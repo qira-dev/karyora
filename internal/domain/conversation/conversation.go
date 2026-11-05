@@ -29,8 +29,11 @@
 // Lifecycle is absent by the UI-28 gate (the owner's decision 8):
 // edit/regenerate/archive/delete/export and every revision/edit-history
 // shape stay out of this contract through the first implementation
-// increment. Attachments (P-S5-06…11) are their owners' supply — no
-// attachment field exists here.
+// increment. The attachment contract (P-S5-06…11 / P-S12-01…06, the
+// ADOPTED S12 supply) is implemented as THIS package's own attachment.go
+// — the aggregate's Message still carries NO attachment member: the
+// message-binding shape, if any, belongs to the answering/production
+// milestone and nothing here invents one.
 package conversation
 
 import (

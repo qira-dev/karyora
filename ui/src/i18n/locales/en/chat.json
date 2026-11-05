@@ -90,6 +90,45 @@
       "newRequest": "Send as a new request",
       "correlationLabel": "Request identity (correlation ID)"
     },
+    "attach": {
+      "button": "Attach file",
+      "bytes": "{{count}} bytes",
+      "untrustedLabel": "Untrusted content — data, never instruction",
+      "remove": "Remove",
+      "registryLoading": "Loading the attachment types the Core supports…",
+      "registryUnavailable": "The attachment registry could not be confirmed — the Core's supported types are unknown, so attaching is unavailable.",
+      "registryRetry": "Retry",
+      "registryNote": "The Core supports: {{types}}",
+      "registryEmpty": "The Core supports no attachment types — attaching is unavailable.",
+      "listFailure": "The attachment list could not be loaded (Core code: {{code}}).",
+      "listUnknown": "The attachment list could not be confirmed — nothing is known about the attachments until a read is confirmed.",
+      "listRetry": "Retry",
+      "state": {
+        "uploading": "Uploading…",
+        "unknown": "Checking upload status…",
+        "checkStatus": "Check upload status",
+        "notUploaded": "Nothing was recorded for this upload — the file was not attached. Attach it again to retry as a new upload.",
+        "dismiss": "Dismiss",
+        "staleHint": "This upload belongs to an earlier input; its result will not attach to the current one."
+      },
+      "rejection": {
+        "type": "This file type is not supported by the Core. Choose a supported type.",
+        "size": "This file is larger than the Core's limit for this type ({{limit}} bytes). Choose a smaller file.",
+        "policy": "The Core refused this attachment under its attachment policy. Nothing was attached.",
+        "generic": "The Core refused this attachment. Nothing was attached. Choose a supported file and try again."
+      },
+      "announce": {
+        "uploading": "Uploading the attachment.",
+        "attached": "The attachment was stored.",
+        "rejected": "The attachment was refused.",
+        "rejectedType": "The file type {{type}} is not supported by the Core.",
+        "rejectedSize": "The file is larger than the Core's limit for its type.",
+        "unknown": "The upload's outcome is unknown. Checking upload status.",
+        "removed": "The attachment was removed.",
+        "removeRejected": "The removal was refused (Core code: {{code}}).",
+        "removeUnknown": "The removal's outcome is unknown — the list re-read learns the truth."
+      }
+    },
     "announce": {
       "conversationCreated": "Conversation created.",
       "messagesLoaded": "Timeline loaded.",

@@ -279,19 +279,23 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		executors[a.ID()] = exec
 	}
 	deps := app.SliceDeps{
-		Relay:               store,
-		Snapshots:           store,
-		Objects:             store,
-		Events:              store,
-		Packs:               store,
-		Guard:               bundle.guard,
-		Providers:           executors,
-		Backoff:             store,
-		Connections:         store,
-		Secrets:             secrets,
-		Conversations:       store,
-		Notifications:       store,
-		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
+		Relay:         store,
+		Snapshots:     store,
+		Objects:       store,
+		Events:        store,
+		Packs:         store,
+		Guard:         bundle.guard,
+		Providers:     executors,
+		Backoff:       store,
+		Connections:   store,
+		Secrets:       secrets,
+		Conversations: store,
+		// The F4 attachment surface (IMPL-25): the SAME store implements
+		// the attachment port (the CAS-backed durable attachment records
+		// over migration 0012).
+		ConversationAttachments: store,
+		Notifications:           store,
+		ConnectionExecutors:     newCustomExecutorFactory(secrets, reg),
 		// The C-4 session-command surface (IMPL-23): the SAME session
 		// service the Guard's policy and the local transport already hold
 		// — the coded Revoke/RevokeAll classes served through the slice.

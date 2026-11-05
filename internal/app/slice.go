@@ -93,6 +93,12 @@ type SliceDeps struct {
 	// S5 mapping, P-S5-01). Optional: nil disables the conversation surface
 	// (typed refusals, fail closed).
 	Conversations ConversationStore
+	// ConversationAttachments is the durable conversation-attachment port
+	// (the adopted S12 supply, P-S12-01…06 — the F4 attachment-contract
+	// working candidates; IMPL-25). Optional: nil disables the attachment
+	// surface (typed refusals, fail closed) — every other surface is
+	// unchanged.
+	ConversationAttachments ConversationAttachmentStore
 	// Notifications is the durable notification-record port (the adopted
 	// S6 supply, P-S6-03: the identity store is new Core state). Optional:
 	// nil disables the notification surface (typed refusals, fail closed).

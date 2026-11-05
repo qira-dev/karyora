@@ -812,9 +812,13 @@ export interface WireConnectionUpdateResult {
 //   shapes: the answering/stream production path is the named owner gap
 //   (S5 §4 P-S5-03 gap (a)) — a send RECORDS the exchange and returns no
 //   answer; the timeline honestly ends at the recorded message.
-// - NO attachment field exists (P-S5-06…11 are their owners' supply) and
-//   NO lifecycle member exists (UI-28 gated, the owner's decision 8) —
-//   no rename, archive, delete, export, edit, or regenerate shape.
+// - The attachment contract (P-S5-06…11 / P-S12-01…06, the ADOPTED S12
+//   supply) is implemented as its own section below — the conversation
+//   and message shapes here still carry NO attachment member: the
+//   message-binding shape, if any, belongs to the answering/production
+//   milestone and nothing here invents one. NO lifecycle member exists
+//   (UI-28 gated, the owner's decision 8) — no rename, archive, delete,
+//   export, edit, or regenerate shape on messages or conversations.
 // - NO idempotency key exists on the send (the send-idempotency class
 //   stays Open — no C1-07 row): the send carries the caller-presented
 //   correlation ID (the P1.6 §3.9 M-1 request identity), which is NOT an
@@ -930,6 +934,131 @@ export interface WireConversationExchangeResult {
   readonly exchange: WireConversationExchange;
   readonly message: WireConversationMessage;
 }
+
+// The conversation attachment surface (IMPL-25; the ADOPTED S12 supply,
+// P-S12-01…06 — the owner's LIVE S12 approval of 2026-11-05 — as
+// implemented: the working candidates they are, never finalized). Every
+// key is a coded name typed BY HAND against the coded JSON tags of
+// `internal/domain/conversation/attachment.go`, the app registry shapes
+// (`internal/app/conversation_attachment.go`), and the coded adapter
+// structs of `internal/httplocal/server.go`
+// (`conversationAttachmentUploadRequest`/`conversationAttachmentDeleteRequest`/
+// `conversationAttachmentRegistryResult`/`conversationAttachmentResult`/
+// `conversationAttachmentListResult`/`conversationAttachmentDeleteResult`).
+// Boundaries carried exactly (the honest typings the implementation
+// records, never claimed canonical):
+// - The paths are the adapter's OWN non-canonical paths; the canonical
+//   names join the published vocabulary at the publication act.
+// - P-S12-01: the registry below is the CORE's own served contract data —
+//   the UI renders ONLY it, invents no list, no guess, no default
+//   allowance; its contents (the types, the sizes, the absence of any
+//   per-scope difference) are the implementation's typing.
+// - P-S12-02: the upload is identity-bearing (`upload_id` — the
+//   caller-supplied operation identity scoped to its conversation; the
+//   identity's class stays its owner's decision). A lost upload response
+//   resolves ONLY by the status query — NEVER a blind re-upload; the
+//   Core's replay ruling returns the existing upload's state on (same
+//   identity, same digest) and refuses a different digest
+//   (CONFLICT_STATE).
+// - P-S12-03: every upload carries and echoes the opaque input revision
+//   it belongs to; the stale-revision discard is the UI's race guard.
+// - P-S12-04: rejection is the typed envelope (VALIDATION_FAILED with
+//   data.cause ∈ {type, size, policy}) — never a silent client-side
+//   truncation, never a raw upstream error.
+// - P-S12-05: `untrusted_label` rides the record AS DATA (`untrusted` is
+//   the only coded value — every imported attachment is untrusted);
+//   attachment content is data, never instruction.
+// - P-S12-06: NO snapshot-participation member, NO message-binding
+//   member, and NO stream/stop/steering member exists anywhere in these
+//   shapes — the participation policy is not exercised and the answering
+//   production path is the named owner gap; the UI never assumes
+//   inclusion or exclusion and never invents a reference.
+
+/** The attachment registry member (P-S12-01 as implemented): one
+ *  supported content type with its per-type size bound in bytes — the
+ *  Core's own values, the implementation's typing (the owners' supply act
+ *  canonicalizes them). */
+export interface WireAttachmentTypeSpec {
+  readonly content_type: string;
+  readonly max_bytes: number;
+}
+
+/** `GET /v1/conversations/attachments/registry` success (200):
+ *  `{types}` — the Core's own supported attachment types and size limits
+ *  as queryable contract data. No per-scope difference exists in this
+ *  implementation — the absence is carried honestly rather than dressed
+ *  as a member. */
+export interface WireAttachmentRegistryResult {
+  readonly types: readonly WireAttachmentTypeSpec[];
+}
+
+/** `internal/domain/conversation.Attachment` — the coded JSON tags
+ *  exactly: the Core-issued stable attachment identity, the conversation
+ *  scope, the caller-supplied upload identity (the S4-for-uploads query
+ *  key), the display file name (a label, never a path), the registry
+ *  content type, the CAS-verified byte count, the CAS content digest
+ *  (`sha256:<hex>` — the exact canonical reference form this
+ *  implementation carries), the untrusted-content label AS DATA (the
+ *  closed register's `untrusted`), the echoed opaque input revision, the
+ *  closed state register's `stored`, and the created instant. Safe
+ *  metadata only (X-6); the bytes NEVER ride this shape — they live in
+ *  the CAS behind the digest. */
+export interface WireConversationAttachment {
+  readonly attachment_id: string;
+  readonly conversation_id: string;
+  readonly upload_id: string;
+  readonly file_name: string;
+  readonly content_type: string;
+  readonly size_bytes: number;
+  readonly digest: string;
+  readonly untrusted_label: string;
+  readonly input_revision: string;
+  readonly state: string;
+  readonly created_at: string;
+}
+
+/** `POST /v1/conversations/{id}/attachments` request body
+ *  (`conversationAttachmentUploadRequest`): the caller-supplied upload
+ *  identity, the display file name, the registry content type, the opaque
+ *  input revision, and the base64 (standard, padded) content — the
+ *  envelope-only JSON transport's typing (no multipart parser exists on
+ *  this surface and none is introduced). */
+export interface WireConversationAttachmentUploadRequest {
+  readonly upload_id: string;
+  readonly file_name: string;
+  readonly content_type: string;
+  readonly input_revision: string;
+  readonly content_b64: string;
+}
+
+/** `POST /v1/conversations/{id}/attachments` and
+ *  `GET /v1/conversations/{id}/attachments/status?upload_id=` success
+ *  (200): `{attachment}` — the upload result and the S4-for-uploads
+ *  status query's shape. A typed rejection (the per-type bound, the type
+ *  membership, the shape law) is the D-35 envelope surfaced verbatim. */
+export interface WireConversationAttachmentResult {
+  readonly attachment: WireConversationAttachment;
+}
+
+/** `GET /v1/conversations/{id}/attachments?limit=&cursor=` success
+ *  (200): `{attachments, cursor?}` — the coded
+ *  `conversationAttachmentListResult` shape: one bounded chronological
+ *  page; the cursorless page IS the final page. */
+export interface WireConversationAttachmentListResult {
+  readonly attachments: readonly WireConversationAttachment[];
+  readonly cursor?: string;
+}
+
+/** `POST /v1/conversations/{id}/attachments/delete` request body
+ *  (`conversationAttachmentDeleteRequest`): the body names exactly the
+ *  attachment to delete — no implicit target. */
+export interface WireConversationAttachmentDeleteRequest {
+  readonly attachment_id: string;
+}
+
+/** `POST /v1/conversations/{id}/attachments/delete` success (200):
+ *  `{}` — the confirmed 200 IS the outcome; no tombstone exists. */
+export type WireConversationAttachmentDeleteResult = Record<string, never>;
 
 // The notification surface (IMPL-14; the ADOPTED S6 supply, P-S6-01…07 —
 // the owner's LIVE S6 approval gate of 2026-11-03, consumed as the

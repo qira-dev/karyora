@@ -5,8 +5,13 @@ import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
 import { useCoreConnection } from "../../app/coreConnectionState";
 import { RecoveryPanel } from "../../components/RecoveryPanel";
 import type { CoreWireEnvelope } from "../../coreclient/httpLocal";
-import type { WireConversation, WireConversationMessage } from "../../coreclient/httpLocal";
-import { useT, useTranslation } from "../../i18n/useT";
+import type {
+  WireAttachmentTypeSpec,
+  WireConversation,
+  WireConversationAttachment,
+  WireConversationMessage,
+} from "../../coreclient/httpLocal";
+import { useT, useTranslation, type TranslateFn } from "../../i18n/useT";
 import { PageHeading, PageLayout } from "../PageLayout";
 import styles from "./ChatPage.module.css";
 
@@ -29,15 +34,25 @@ import styles from "./ChatPage.module.css";
  * - The laws this surface implements, exactly as the records bind them:
  *   X-1 (Ask never creates a durable Job, never opens the Run path; the
  *   [No durable Job created] marker rides every send-recorded message;
- *   the Run path is reached only by its own explicit entry); the
+ *   the Run path is reached only by its own explicit entry; the
+ *   attachment operations below never create a Job either); the
  *   no-auto-retry law (a lost send response holds the truthful S4 state
  *   and resolves ONLY by the delivered query-by-correlation-ID read —
- *   no retry loop exists anywhere in this file); UI-28's gate (decision
- *   8: edit/regenerate/archive/delete/export/rename have ZERO
- *   affordances and zero code paths here — for messages and
- *   conversations alike); the attachment gate (P-S5-06…11 unsupplied —
- *   zero attachment affordance); no streaming/stop/steering UI (none
- *   exists in the Core — P-S5-03's transport gap stands).
+ *   no retry loop exists anywhere in this file; the same law governs the
+ *   upload: a lost upload response holds the truthful S4 state and
+ *   resolves ONLY by the S4-for-uploads status query, NEVER a blind
+ *   re-upload); UI-28's gate (decision 8: edit/regenerate/archive/
+ *   delete/export/rename have ZERO affordances and zero code paths here
+ *   — for messages and conversations alike); the attachment surface
+ *   (IMPL-25; the ADOPTED S12 supply, P-S12-01…06, as implemented): the
+ *   attach control renders ONLY the Core's registry data, the upload is
+ *   identity-bearing, every upload result carries and is accepted only
+ *   for the input revision it belongs to (a stale revision's result is
+ *   discarded), rejections render from the Core's typed codes, every
+ *   attachment renders its untrusted label AS DATA (content is data,
+ *   never instruction), and NO message-binding, snapshot-participation,
+ *   or streaming/stop/steering UI exists (the participation policy is
+ *   not exercised; P-S5-03's transport gap stands).
  * - The honest no-answer truth: no answering/production path exists in
  *   the Core (IMPL-10 §7). The timeline ends at the recorded exchange.
  *   There is NO fake streaming, NO typing/answer indicator, NO spinner
@@ -62,6 +77,55 @@ import styles from "./ChatPage.module.css";
 type ListPhase = "loading" | "data" | "failure" | "unknown";
 type TimelinePhase = "idle" | "loading" | "data" | "failure" | "unknown";
 type SendPhase = "idle" | "sending" | "unknown" | "resolved-recorded" | "not-recorded" | "rejected";
+type AttachmentRegistryPhase = "loading" | "data" | "failure" | "unknown";
+
+/** One upload's client-side machine (P-S12-02's S0–S4 applied to
+ *  uploads): `uploading` (pending), `attached` (the Core's record),
+ *  `rejected` (the typed envelope outcome), `unknown` (a lost response —
+ *  the truthful S4 state held until the explicit status query resolves
+ *  it), `not-uploaded` (the status query resolved NOT_FOUND: nothing was
+ *  recorded for this identity). NO auto-retry exists anywhere. */
+type UploadPhase = "uploading" | "attached" | "rejected" | "unknown" | "not-uploaded";
+
+/** One in-flight or resolved upload the composer holds (a local
+ *  lifetime-3 state, never persisted, never carrying a secret — the
+ *  draft's own law; the FILE BYTES live only inside the in-flight
+ *  request, never in this state). */
+interface UploadState {
+  readonly uploadId: string;
+  readonly fileName: string;
+  readonly contentType: string;
+  readonly sizeBytes: number;
+  /** The input revision the upload was requested for (P-S12-03): the
+   * result is accepted only for the revision that requested it. */
+  readonly inputRevision: number;
+  phase: UploadPhase;
+  /** The Core's record once attached (the digest, the id — never the
+   * bytes). */
+  record: WireConversationAttachment | null;
+  /** The typed rejection envelope once rejected (P-S12-04). */
+  rejection: CoreWireEnvelope | null;
+}
+
+/** The file-to-base64 read (the envelope-only JSON transport's typing):
+ *  the bytes ride one in-flight request and are never stored in any
+ *  state. */
+function readContentB64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("file read failed"));
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      const comma = result.indexOf(",");
+      if (!result.startsWith("data:") || comma < 0) {
+        reject(new Error("file read failed"));
+        return;
+      }
+      resolve(result.slice(comma + 1));
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function formatTimestamp(value: Date, locale: string | undefined): string {
   return new Intl.DateTimeFormat(locale, {
@@ -78,6 +142,13 @@ function newCorrelationId(): string {
     throw new Error("correlation id source unavailable");
   }
   return crypto.randomUUID();
+}
+
+/** The upload's operation identity (P-S12-02 as implemented: the
+ * caller-supplied identity scoped to its conversation — the S4-for-uploads
+ * query resolves through it). Minted at submit time, never earlier. */
+function newUploadId(): string {
+  return newCorrelationId();
 }
 
 export function ChatPage() {
@@ -546,6 +617,35 @@ function ConversationView({
   const [resolvedExchange, setResolvedExchange] = useState<{ correlationId: string; state: string } | null>(null);
   const [announce, setAnnounce] = useState("");
 
+  // The attachment surface (IMPL-25; the ADOPTED S12 supply, P-S12-01…06,
+  // as implemented). The registry is the CORE's own served contract data
+  // (P-S12-01): the attach control renders ONLY it — a refused or lost
+  // registry read leaves the control disabled with the reason (no dead
+  // controls, no client-side list, no client-side guess). The
+  // conversation's attachments are the Core's records (the list read) —
+  // the chips render exactly those, each with its untrusted label AS DATA
+  // (P-S12-05). The uploads are the client-side machine above: each
+  // carries the input revision it was requested for (P-S12-03 as
+  // implemented — a local counter advanced when the composer's input
+  // generation changes: a recorded send clears the composer and starts a
+  // new generation; the view is keyed per conversation, so a switch
+  // remounts at revision 1); an upload result is accepted ONLY for the
+  // revision that requested it — a stale revision's result is discarded
+  // from display (the Core-side record persists and the list read remains
+  // authoritative). NO auto-retry exists anywhere: a lost upload response
+  // holds the truthful S4 state and resolves ONLY by the explicit
+  // S4-for-uploads status query — NEVER a blind re-upload.
+  const [registryPhase, setRegistryPhase] = useState<AttachmentRegistryPhase>("loading");
+  const [registryTypes, setRegistryTypes] = useState<readonly WireAttachmentTypeSpec[]>([]);
+  const [attachmentsPhase, setAttachmentsPhase] = useState<ListPhase>("loading");
+  const [attachments, setAttachments] = useState<readonly WireConversationAttachment[]>([]);
+  const [attachmentsFailure, setAttachmentsFailure] = useState<CoreWireEnvelope | null>(null);
+  const [uploads, setUploads] = useState<readonly UploadState[]>([]);
+  const [inputRevision, setInputRevision] = useState(1);
+  const [attachUnavailable, setAttachUnavailable] = useState(false);
+  const attachInputRef = useRef<HTMLInputElement>(null);
+  const attachmentsSeqRef = useRef(0);
+
   const readSeqRef = useRef(0);
   const aggregateSeqRef = useRef(0);
   const mountedRef = useRef(true);
@@ -613,6 +713,47 @@ function ConversationView({
     });
   }, [conversationId, transport]);
 
+  // The attachment reads on mount (per conversation — the view is
+  // keyed): the Core's registry (P-S12-01) and the conversation's
+  // attachment records (the card-9 list discipline).
+  const runAttachmentRegistryRead = useCallback(() => {
+    setRegistryPhase("loading");
+    void transport.conversationAttachmentRegistry().then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        setRegistryTypes(outcome.data.types);
+        setRegistryPhase("data");
+        setAttachUnavailable(false);
+      } else if (outcome.kind === "rejection") {
+        setRegistryPhase("failure");
+        setAttachUnavailable(true);
+      } else {
+        setRegistryPhase("unknown");
+        setAttachUnavailable(true);
+      }
+    });
+  }, [transport]);
+
+  const runAttachmentsRead = useCallback(
+    (options: { readonly markRefreshing: boolean } = { markRefreshing: false }) => {
+      const seq = ++attachmentsSeqRef.current;
+      if (options.markRefreshing) setAttachmentsPhase((phase) => (phase === "data" ? "data" : phase));
+      void transport.conversationAttachmentList(conversationId).then((outcome) => {
+        if (!mountedRef.current || seq !== attachmentsSeqRef.current) return; // superseded
+        if (outcome.kind === "data") {
+          setAttachments(outcome.data.attachments);
+          setAttachmentsPhase("data");
+        } else if (outcome.kind === "rejection") {
+          setAttachmentsFailure(outcome.envelope);
+          setAttachmentsPhase("failure");
+        } else {
+          setAttachmentsPhase("unknown");
+        }
+      });
+    },
+    [conversationId, transport],
+  );
+
   // The first reads on mount (per conversation — the view is keyed).
   useEffect(() => {
     setMessages([]);
@@ -623,9 +764,15 @@ function ConversationView({
     setPendingCorrelationId(null);
     setSendFailure(null);
     setResolvedExchange(null);
+    setUploads([]);
+    setInputRevision(1);
+    setAttachments([]);
+    setAttachmentsFailure(null);
     runTimelineRead({ append: false, markRefreshing: false });
     readAggregate();
-  }, [runTimelineRead, readAggregate]);
+    runAttachmentRegistryRead();
+    runAttachmentsRead();
+  }, [runTimelineRead, readAggregate, runAttachmentRegistryRead, runAttachmentsRead]);
 
   const loadMore = () => {
     if (nextCursor === null || loadingMore || refreshing) return;
@@ -648,10 +795,15 @@ function ConversationView({
    *  query) refreshes BOTH authoritative reads: the timeline (the new
    *  message's durable home, markRefreshing — prior rows stay visible)
    *  and the history list through the parent's refresh signal (the
-   *  conversation's updated_at is the list's Core-defined sort key). */
+   *  conversation's updated_at is the list's Core-defined sort key). The
+   *  composer clearing starts a NEW input generation: the input revision
+   *  advances (P-S12-03 as implemented), so an in-flight upload's result
+   *  resolving after this point is a stale revision's result — discarded
+   *  from display, never rendered as current. */
   const refreshAfterRecorded = useCallback(() => {
     refreshTimeline();
     onRecorded();
+    setInputRevision((revision) => revision + 1);
   }, [refreshTimeline, onRecorded]);
 
   const send = () => {
@@ -761,6 +913,173 @@ function ConversationView({
     setStatusCheckFailure(null);
     setStatusCheckLost(false);
     composerRef.current?.focus();
+  };
+
+  // ---- The attachment machines (IMPL-25; P-S12-01…06 as implemented) ----
+
+  const updateUpload = (uploadId: string, patch: Partial<UploadState>) => {
+    setUploads((prev) => prev.map((up) => (up.uploadId === uploadId ? { ...up, ...patch } : up)));
+  };
+
+  const dismissUpload = (uploadId: string) => {
+    setUploads((prev) => prev.filter((up) => up.uploadId !== uploadId));
+  };
+
+  /** The attach act: each selected file becomes ONE identity-bearing
+   *  upload (P-S12-02). The registry-derived guard runs ONLY where the
+   *  client KNOWS from the Core's served data (a resolvable type that is
+   *  not a registry member → the typed type rendering; a size beyond the
+   *  member's per-type bound → the typed size rendering with the Core's
+   *  limit) — the Core's own typed rejection (P-S12-04) remains
+   *  authoritative for anything that reaches it (an unresolvable type
+   *  goes to the Core; no client-invented list, no client-side
+   *  truncation). A rejected file stores NOTHING Core-side and renders
+   *  the rejection with the safe next action. */
+  const attachFiles = (files: FileList | null) => {
+    if (files === null || files.length === 0) return;
+    if (attachInputRef.current !== null) attachInputRef.current.value = "";
+    if (registryPhase !== "data" || registryTypes.length === 0) {
+      setAttachUnavailable(true);
+      return;
+    }
+    for (const file of Array.from(files)) {
+      const resolvableType = file.type !== "";
+      const spec = resolvableType ? registryTypes.find((member) => member.content_type === file.type) : undefined;
+      const uploadId = newUploadId();
+      const revisionAtRequest = inputRevision;
+      if (resolvableType && spec === undefined) {
+        // The Core's registry says this type is unsupported — rendered
+        // from the Core's own served data (never a client-invented list).
+        setUploads((prev) => [
+          ...prev,
+          {
+            uploadId,
+            fileName: file.name,
+            contentType: file.type,
+            sizeBytes: file.size,
+            inputRevision: revisionAtRequest,
+            phase: "rejected",
+            record: null,
+            rejection: null,
+          },
+        ]);
+        setAnnounce(t("chat.attach.announce.rejectedType", { type: file.type }));
+        continue;
+      }
+      if (spec !== undefined && file.size > spec.max_bytes) {
+        setUploads((prev) => [
+          ...prev,
+          {
+            uploadId,
+            fileName: file.name,
+            contentType: spec.content_type,
+            sizeBytes: file.size,
+            inputRevision: revisionAtRequest,
+            phase: "rejected",
+            record: null,
+            rejection: null,
+          },
+        ]);
+        setAnnounce(t("chat.attach.announce.rejectedSize"));
+        continue;
+      }
+      setUploads((prev) => [
+        ...prev,
+        {
+          uploadId,
+          fileName: file.name,
+          contentType: resolvableType ? file.type : "",
+          sizeBytes: file.size,
+          inputRevision: revisionAtRequest,
+          phase: "uploading",
+          record: null,
+          rejection: null,
+        },
+      ]);
+      setAnnounce(t("chat.attach.announce.uploading"));
+      void readContentB64(file)
+        .then((contentB64) =>
+          transport.conversationAttachmentUpload(conversationId, {
+            upload_id: uploadId,
+            file_name: file.name,
+            content_type: resolvableType ? file.type : "",
+            input_revision: `rev-${revisionAtRequest}`,
+            content_b64: contentB64,
+          }),
+        )
+        .then((outcome) => {
+          if (!mountedRef.current) return;
+          if (outcome.kind === "data") {
+            // P-S12-03's race guard: the result is accepted ONLY for the
+            // revision that requested it — a stale revision's result is
+            // discarded from display (the Core-side record persists; the
+            // list read remains authoritative).
+            if (outcome.data.attachment.input_revision !== `rev-${revisionAtRequest}`) {
+              return;
+            }
+            updateUpload(uploadId, { phase: "attached", record: outcome.data.attachment });
+            runAttachmentsRead({ markRefreshing: true });
+            setAnnounce(t("chat.attach.announce.attached"));
+          } else if (outcome.kind === "rejection") {
+            updateUpload(uploadId, { phase: "rejected", rejection: outcome.envelope });
+            setAnnounce(t("chat.attach.announce.rejected"));
+          } else {
+            // S4: the response was lost or uninterpretable. The upload
+            // identity is held; resolution is ONLY the status query —
+            // never a blind re-upload (the duplicate-free guarantee is
+            // the Core's replay ruling; the re-issue itself is always an
+            // explicit user act after a NOT_FOUND resolution).
+            updateUpload(uploadId, { phase: "unknown" });
+            setAnnounce(t("chat.attach.announce.unknown"));
+          }
+        });
+    }
+  };
+
+  /** The S4-for-uploads resolution (P-S12-02's query-before-retry law):
+   *  the authoritative state for the held upload identity. A pure query
+   *  — it never re-uploads. */
+  const checkUploadStatus = (uploadId: string, revisionAtRequest: number) => {
+    void transport.conversationAttachmentStatus(conversationId, uploadId).then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        if (outcome.data.attachment.input_revision !== `rev-${revisionAtRequest}`) {
+          return; // a stale revision's result: discarded from display
+        }
+        updateUpload(uploadId, { phase: "attached", record: outcome.data.attachment });
+        runAttachmentsRead({ markRefreshing: true });
+      } else if (outcome.kind === "rejection" && outcome.envelope.code === "NOT_FOUND") {
+        // The truthful resolution: nothing was recorded for this upload
+        // identity (the no-leak rule makes unknown and foreign
+        // indistinguishable — for a freshly minted identity this is the
+        // not-uploaded truth). Re-attaching is an explicit user act with
+        // a NEW identity.
+        updateUpload(uploadId, { phase: "not-uploaded" });
+      } else if (outcome.kind === "rejection") {
+        updateUpload(uploadId, { phase: "unknown", rejection: outcome.envelope });
+      } else {
+        updateUpload(uploadId, { phase: "unknown" });
+      }
+    });
+  };
+
+  /** The draft-stage delete: the body names exactly the attachment. A
+   *  lost response is NEVER an assumed success — the list re-read learns
+   *  the truth. */
+  const removeAttachment = (record: WireConversationAttachment) => {
+    void transport.conversationAttachmentDelete(conversationId, { attachment_id: record.attachment_id }).then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        runAttachmentsRead({ markRefreshing: true });
+        setAnnounce(t("chat.attach.announce.removed"));
+      } else if (outcome.kind === "rejection") {
+        setAttachmentsFailure(outcome.envelope);
+        setAnnounce(t("chat.attach.announce.removeRejected", { code: outcome.envelope.code }));
+      } else {
+        runAttachmentsRead({ markRefreshing: true });
+        setAnnounce(t("chat.attach.announce.removeUnknown"));
+      }
+    });
   };
 
   const composerDisabled = sendPhase === "sending" || sendPhase === "unknown";
@@ -908,6 +1227,23 @@ function ConversationView({
           </button>
           <span className={styles.enterHint}>{t("chat.composer.enterHint")}</span>
         </div>
+        <AttachmentTray
+          registryPhase={registryPhase}
+          registryTypes={registryTypes}
+          attachmentsPhase={attachmentsPhase}
+          attachments={attachments}
+          attachmentsFailure={attachmentsFailure}
+          uploads={uploads}
+          attachUnavailable={attachUnavailable}
+          inputRevision={inputRevision}
+          onRetryRegistry={runAttachmentRegistryRead}
+          onRetryList={() => runAttachmentsRead({ markRefreshing: true })}
+          onAttach={attachFiles}
+          onCheckUpload={checkUploadStatus}
+          onDismissUpload={dismissUpload}
+          onRemoveAttachment={removeAttachment}
+          attachInputRef={attachInputRef}
+        />
         {sendPhase === "sending" || sendPhase === "unknown" ? (
           <p className={styles.pending} role="status">
             {sendPhase === "sending" ? t("chat.composer.pendingNote") : t("chat.composer.pendingUnknownNote")}
@@ -982,6 +1318,275 @@ function ConversationView({
       </p>
     </section>
   );
+}
+
+/** The attachment tray (IMPL-25; the ADOPTED S12 supply, P-S12-01…06, as
+ *  implemented): the attach control rendering ONLY the Core's registry
+ *  data (P-S12-01 — a refused or lost registry read leaves the control
+ *  disabled with the reason; an empty registry leaves it absent — the
+ *  Core supports nothing, and no dead control is invented), the
+ *  conversation's attachment chips (the Core's records, each with its
+ *  untrusted label AS DATA — P-S12-05), the in-flight upload states
+ *  (P-S12-02's S0–S4: a lost response holds the truthful S4 state and
+ *  resolves ONLY by the explicit status query), and the typed rejection
+ *  rendering (P-S12-04 — the cause named, the safe next action shown, no
+ *  raw internals). The stale-revision discard (P-S12-03) rides the upload
+ *  machine above; the tray renders what the machines hold. NO
+ *  message-binding, snapshot-participation, or streaming UI exists
+ *  anywhere in this section. */
+function AttachmentTray({
+  registryPhase,
+  registryTypes,
+  attachmentsPhase,
+  attachments,
+  attachmentsFailure,
+  uploads,
+  attachUnavailable,
+  inputRevision,
+  onRetryRegistry,
+  onRetryList,
+  onAttach,
+  onCheckUpload,
+  onDismissUpload,
+  onRemoveAttachment,
+  attachInputRef,
+}: {
+  registryPhase: AttachmentRegistryPhase;
+  registryTypes: readonly WireAttachmentTypeSpec[];
+  attachmentsPhase: ListPhase;
+  attachments: readonly WireConversationAttachment[];
+  attachmentsFailure: CoreWireEnvelope | null;
+  uploads: readonly UploadState[];
+  attachUnavailable: boolean;
+  inputRevision: number;
+  onRetryRegistry: () => void;
+  onRetryList: () => void;
+  onAttach: (files: FileList | null) => void;
+  onCheckUpload: (uploadId: string, revisionAtRequest: number) => void;
+  onDismissUpload: (uploadId: string) => void;
+  onRemoveAttachment: (record: WireConversationAttachment) => void;
+  attachInputRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  const t = useT();
+  const { i18n } = useTranslation();
+  const locale = i18n.resolvedLanguage ?? i18n.language;
+
+  const registryReady = registryPhase === "data" && registryTypes.length > 0;
+  const registryEmpty = registryPhase === "data" && registryTypes.length === 0;
+  const accept = registryReady ? registryTypes.map((member) => member.content_type).join(",") : undefined;
+  // A chip renders once per Core record; an upload whose record the list
+  // already carries does not render twice.
+  const uploadChips = uploads.filter(
+    (up) => up.phase !== "attached" || up.record === null || !attachments.some((a) => a.attachment_id === up.record?.attachment_id),
+  );
+
+  return (
+    <div className={styles.attachSection}>
+      <input
+        ref={attachInputRef}
+        type="file"
+        className={styles.attachInput}
+        accept={accept}
+        multiple
+        aria-hidden={attachInputRef.current === null}
+        tabIndex={-1}
+        onChange={(event) => onAttach(event.target.files)}
+      />
+      <div className={styles.attachControls}>
+        {registryEmpty ? null : (
+          <button
+            type="button"
+            className={styles.attachButton}
+            onClick={() => attachInputRef.current?.click()}
+            disabled={!registryReady}
+          >
+            {t("chat.attach.button")}
+          </button>
+        )}
+        {registryPhase === "loading" ? <span className={styles.attachNote}>{t("chat.attach.registryLoading")}</span> : null}
+        {registryPhase === "failure" || registryPhase === "unknown" || attachUnavailable ? (
+          <>
+            <span className={styles.attachNote}>{t("chat.attach.registryUnavailable")}</span>
+            <button type="button" className={styles.attachRetry} onClick={onRetryRegistry}>
+              {t("chat.attach.registryRetry")}
+            </button>
+          </>
+        ) : null}
+        {registryReady ? (
+          <span className={styles.attachNote}>
+            {t("chat.attach.registryNote", { types: registryTypes.map((member) => member.content_type).join(", ") })}
+          </span>
+        ) : null}
+        {registryEmpty ? <span className={styles.attachNote}>{t("chat.attach.registryEmpty")}</span> : null}
+      </div>
+
+      {attachmentsPhase === "failure" && attachmentsFailure !== null ? (
+        <p className={styles.attachFailure}>
+          {t("chat.attach.listFailure", { code: attachmentsFailure.code })}{" "}
+          <button type="button" className={styles.attachRetry} onClick={onRetryList}>
+            {t("chat.attach.listRetry")}
+          </button>
+        </p>
+      ) : null}
+      {attachmentsPhase === "unknown" ? (
+        <p className={styles.attachFailure}>
+          {t("chat.attach.listUnknown")}{" "}
+          <button type="button" className={styles.attachRetry} onClick={onRetryList}>
+            {t("chat.attach.listRetry")}
+          </button>
+        </p>
+      ) : null}
+
+      {uploadChips.length === 0 && attachments.length === 0 && attachmentsPhase === "data" ? null : (
+        <ul className={styles.attachChips}>
+          {attachments.map((record) => (
+            <AttachmentChip key={record.attachment_id} record={record} locale={locale} onRemove={onRemoveAttachment} />
+          ))}
+          {uploadChips.map((up) => (
+            <UploadChip
+              key={up.uploadId}
+              upload={up}
+              currentRevision={inputRevision}
+              registryTypes={registryTypes}
+              locale={locale}
+              onCheck={() => onCheckUpload(up.uploadId, up.inputRevision)}
+              onDismiss={() => onDismissUpload(up.uploadId)}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function formatBytes(value: number, locale: string | undefined): string {
+  return new Intl.NumberFormat(locale).format(value);
+}
+
+/** One Core attachment record chip: the display name, the registry type,
+ *  the CAS-verified size, and the untrusted label AS DATA (P-S12-05 —
+ *  visually and semantically distinct, rendered as text, never
+ *  color-alone). The remove control is the draft-stage delete affordance
+ *  (the Core operation removes the record; a lost response is NEVER an
+ *  assumed success). The chip invents no reference, no participation
+ *  state, and no preview: content is data, never instruction. */
+function AttachmentChip({
+  record,
+  locale,
+  onRemove,
+}: {
+  record: WireConversationAttachment;
+  locale: string | undefined;
+  onRemove: (record: WireConversationAttachment) => void;
+}) {
+  const t = useT();
+  return (
+    <li className={styles.attachChip}>
+      <span className={styles.attachChipName}>{record.file_name}</span>
+      <span className={styles.attachChipMeta}>
+        {record.content_type} · {t("chat.attach.bytes", { count: formatBytes(record.size_bytes, locale) })}
+      </span>
+      <span className={styles.attachChipUntrusted}>{t("chat.attach.untrustedLabel")}</span>
+      <button type="button" className={styles.attachChipRemove} onClick={() => onRemove(record)}>
+        {t("chat.attach.remove")}
+      </button>
+    </li>
+  );
+}
+
+/** One client-side upload chip (the S0–S4 of the upload machine): the
+ *  truthful state per phase — uploading (pending), unknown (the S4 state
+ *  with the explicit Check status affordance — NEVER a blind re-upload),
+ *  not-uploaded (the status query resolved NOT_FOUND: nothing was
+ *  recorded; re-attaching is a new explicit act), rejected (the typed
+ *  outcome — the Core's envelope cause when one exists, the Core
+ *  registry's own served truth for the local guard — the safe next
+ *  action shown, the code verbatim when present, no raw internals). */
+function UploadChip({
+  upload,
+  currentRevision,
+  registryTypes,
+  locale,
+  onCheck,
+  onDismiss,
+}: {
+  upload: UploadState;
+  currentRevision: number;
+  registryTypes: readonly WireAttachmentTypeSpec[];
+  locale: string | undefined;
+  onCheck: () => void;
+  onDismiss: () => void;
+}) {
+  const t = useT();
+  const stale = upload.inputRevision !== currentRevision;
+  const spec = registryTypes.find((member) => member.content_type === upload.contentType);
+  return (
+    <li className={`${styles.attachChip} ${styles.attachChipUpload}`}>
+      <span className={styles.attachChipName}>{upload.fileName}</span>
+      <span className={styles.attachChipMeta}>
+        {upload.contentType !== "" ? `${upload.contentType} · ` : ""}
+        {t("chat.attach.bytes", { count: formatBytes(upload.sizeBytes, locale) })}
+      </span>
+      {upload.phase === "uploading" ? (
+        <span className={styles.attachChipState} role="status">
+          {t("chat.attach.state.uploading")}
+        </span>
+      ) : null}
+      {upload.phase === "unknown" ? (
+        <>
+          <span className={styles.attachChipState} role="status">
+            {t("chat.attach.state.unknown")}
+          </span>
+          <button type="button" className={styles.attachRetry} onClick={onCheck}>
+            {t("chat.attach.state.checkStatus")}
+          </button>
+        </>
+      ) : null}
+      {upload.phase === "not-uploaded" ? (
+        <>
+          <span className={styles.attachChipState}>{t("chat.attach.state.notUploaded")}</span>
+          <button type="button" className={styles.attachRetry} onClick={onDismiss}>
+            {t("chat.attach.state.dismiss")}
+          </button>
+        </>
+      ) : null}
+      {upload.phase === "rejected" ? (
+        <>
+          <span className={styles.attachChipRejected}>
+            {upload.rejection !== null
+              ? rejectionCopy(upload.rejection, t)
+              : spec !== undefined
+                ? t("chat.attach.rejection.size", { limit: formatBytes(spec.max_bytes, locale) })
+                : t("chat.attach.rejection.type", { type: upload.contentType })}
+          </span>
+          {upload.rejection !== null ? (
+            <span className={styles.attachChipCode}>
+              <span className="visually-hidden">Code: </span>
+              <code>{upload.rejection.code}</code>
+            </span>
+          ) : null}
+          <button type="button" className={styles.attachRetry} onClick={onDismiss}>
+            {t("chat.attach.state.dismiss")}
+          </button>
+        </>
+      ) : null}
+      {stale && upload.phase === "uploading" ? (
+        <span className={styles.attachChipMeta}>{t("chat.attach.state.staleHint")}</span>
+      ) : null}
+    </li>
+  );
+}
+
+/** The typed rejection copy (P-S12-04): the cause named from the
+ *  envelope's bounded data, the safe next action, no raw internals — the
+ *  stable code itself renders beside the copy (the machine identifier is
+ *  language-neutral). */
+function rejectionCopy(envelope: CoreWireEnvelope, t: TranslateFn): string {
+  const cause = typeof envelope.data?.cause === "string" ? envelope.data.cause : "";
+  if (cause === "type") return t("chat.attach.rejection.type", { type: "" });
+  if (cause === "size") return t("chat.attach.rejection.size", { limit: "" });
+  if (cause === "policy") return t("chat.attach.rejection.policy");
+  return t("chat.attach.rejection.generic", { code: envelope.code });
 }
 
 /** One authoritative message row: the Core's stored state, rendered

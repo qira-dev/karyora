@@ -12,10 +12,11 @@ import (
 // stop, or steering endpoint exists (the stream-transport mechanism is the
 // named owner gap, P-S5-03).
 
-// TestConversationRouteRegister pins the exact conversation route set: six
-// endpoints, no streaming endpoint, no stop route, no steering route —
-// nothing of the stream plane was invented (the route table is the pin's
-// authority).
+// TestConversationRouteRegister pins the exact conversation route set:
+// the six conversation endpoints (IMPL-10) plus the five attachment
+// endpoints (IMPL-25; the ADOPTED S12 supply as implemented), and NO
+// streaming endpoint, no stop route, no steering route — nothing of the
+// stream plane was invented (the route table is the pin's authority).
 func TestConversationRouteRegister(t *testing.T) {
 	var got []string
 	for _, rt := range routes() {
@@ -30,6 +31,11 @@ func TestConversationRouteRegister(t *testing.T) {
 		"GET /v1/conversations//exchange",
 		"POST /v1/conversations//send",
 		"GET /v1/conversations/",
+		"GET /v1/conversations/attachments/registry",
+		"POST /v1/conversations//attachments",
+		"GET /v1/conversations//attachments/status",
+		"GET /v1/conversations//attachments",
+		"POST /v1/conversations//attachments/delete",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("the conversation route register carries %d routes, want %d: %v", len(got), len(want), got)
