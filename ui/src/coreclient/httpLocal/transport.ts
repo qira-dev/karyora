@@ -67,6 +67,9 @@ import type {
   WireConversationsListParams,
   WireConversationSendRequest,
   WireEventRecord,
+  WireRetryCommandRequest,
+  WireRetryCommandResult,
+  WireRetryEligibilityReadResult,
   WireEventsResult,
   WireExchangeRequest,
   WireJob,
@@ -614,6 +617,62 @@ export function createHttpLocalTransport() {
             typeof approval.job_id === "string" &&
             typeof approval.state === "string"
           );
+        },
+      );
+    },
+
+    /** `GET /v1/jobs/{id}/retry-eligibility` — the F9 family's frozen
+     *  retry-eligibility read (IMPL-20): exactly the four typed members
+     *  inside the retry_eligibility wrapper. The verdict is the Core's
+     *  own report — the M-7 control renders from THIS read or not at
+     *  all, never from a client-side guess (P-S7-02). The read mutates
+     *  nothing and executes nothing: an allow verdict authorizes no
+     *  execution. A lost response is `unknown` — the control stays
+     *  ABSENT while the read is unavailable (the truthful state, the
+     *  M-5 pattern); this method never retries on its own. */
+    jobRetryEligibility(jobID: string): Promise<TransportOutcome<WireRetryEligibilityReadResult>> {
+      return call<WireRetryEligibilityReadResult>(
+        `/v1/jobs/${encodeURIComponent(jobID)}/retry-eligibility`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          if (shaped.retry_eligibility === null || typeof shaped.retry_eligibility !== "object") {
+            return false;
+          }
+          const read = shaped.retry_eligibility as Record<string, unknown>;
+          return (
+            typeof read.eligible === "boolean" &&
+            typeof read.risk_statement === "string" &&
+            typeof read.idempotency_class === "string" &&
+            typeof read.reconciliation_required === "boolean"
+          );
+        },
+      );
+    },
+
+    /** `POST /v1/jobs/{id}/retry` — the M-7 retry command (IMPL-21, the
+     *  F9 family's frozen semantics): a NEW Attempt of the SAME Job —
+     *  never a new Job — carrying its Supplied-keyed idempotency
+     *  reference. The 200 response is the Core-confirmed post-command
+     *  state plus the honest `replayed` flag (the same reference
+     *  re-presented returns the recorded outcome without re-applying —
+     *  never regenerated; a contradicting re-issue is the typed
+     *  CONFLICT_STATE). A lost response is `unknown` — S4:
+     *  query-before-retry, NEVER an automatic re-issue (the same
+     *  reference may be re-presented explicitly after the authoritative
+     *  status query, which is the recorded replay path, not a blind
+     *  retry). Retry ≠ reversal: the response never implies the prior
+     *  Attempt's effects were undone. */
+    retryJob(jobID: string, idempotencyReference: string): Promise<TransportOutcome<WireRetryCommandResult>> {
+      const body: WireRetryCommandRequest = { idempotency_reference: idempotencyReference };
+      return call<WireRetryCommandResult>(
+        `/v1/jobs/${encodeURIComponent(jobID)}/retry`,
+        post(JSON.stringify(body)),
+        (result) => {
+          if (result === null || typeof result !== "object") return false;
+          const shaped = result as Record<string, unknown>;
+          return typeof shaped.replayed === "boolean" && isWireJob(shaped.job);
         },
       );
     },

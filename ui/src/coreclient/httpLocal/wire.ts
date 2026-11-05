@@ -404,6 +404,48 @@ export interface WireApprovalDecisionResult {
   readonly replayed: boolean;
 }
 
+/** `internal/aijobrelay.RetryEligibility` — the F9 family's frozen
+ *  typed-member set exactly (IMPL-20; the coded JSON tags): the Core's
+ *  own eligibility verdict, the side-effect risk statement in the
+ *  recorded exact terms, the idempotency guarantee class (the closed
+ *  three-value register `supplied_keyed`/`open`/`none` — the Core
+ *  reports `supplied_keyed` since the M-7 command's keying act), and the
+ *  reconciliation requirement. The verdict is the Core's report, never a
+ *  client-side inference (P-S7-02): the M-7 control renders from THIS
+ *  read or not at all. */
+export interface WireRetryEligibility {
+  readonly eligible: boolean;
+  readonly risk_statement: string;
+  readonly idempotency_class: string;
+  readonly reconciliation_required: boolean;
+}
+
+/** `GET /v1/jobs/{id}/retry-eligibility` success (200): the four typed
+ *  members inside the `retry_eligibility` wrapper. The read mutates
+ *  nothing and executes nothing — an allow verdict authorizes no
+ *  execution; only the retry command applies one. */
+export interface WireRetryEligibilityReadResult {
+  readonly retry_eligibility: WireRetryEligibility;
+}
+
+/** The M-7 retry command body (`retryCommandRequest` in
+ *  `internal/httplocal/server.go`): the Supplied-keyed idempotency
+ *  reference the retried operation carries — the same reference returns
+ *  the original result, replayed, never regenerated; a contradicting
+ *  re-issue is the typed CONFLICT_STATE. */
+export interface WireRetryCommandRequest {
+  readonly idempotency_reference: string;
+}
+
+/** `POST /v1/jobs/{id}/retry` success (200): the Core-confirmed
+ *  post-command Job and the honest `replayed` flag. A retry is a NEW
+ *  Attempt of the SAME Job — never a new Job — and does not undo the
+ *  prior Attempt's effects (retry ≠ reversal). */
+export interface WireRetryCommandResult {
+  readonly job: WireJob;
+  readonly replayed: boolean;
+}
+
 /** The `GET /v1/jobs` query parameters (the card-9 working candidate's
  *  list semantics, as delivered in IMPL-4). Every field is optional: an
  *  omitted `limit` selects the Core's per-surface default (50 — the

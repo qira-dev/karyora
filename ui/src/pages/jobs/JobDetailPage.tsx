@@ -10,6 +10,7 @@ import type {
   WireAttempt,
   WireEventRecord,
   WireJob,
+  WireRetryEligibility,
   WireSnapshotItem,
   WireSnapshotOmission,
   WireSnapshotView,
@@ -84,6 +85,31 @@ import {
  * The result read (`GET /v1/jobs/{id}/result`) is fetched ONLY on
  * explicit request — large outputs are never fetched unbounded
  * (P3.7 §4.1).
+ *
+ * The M-7 Retry control (IMPL-21; the frozen P-S7-02 display contract):
+ * the control renders ONLY on the Job detail route (no list-row control)
+ * and ONLY on an allow verdict of the Core's retry-eligibility read —
+ * eligibility is the Core's report, never a client-side guess (the M-5
+ * gate's contrast: no state-derived retry set exists here, and none is
+ * invented). On an allow verdict the control renders WITH the
+ * Core-supplied risk statement and the exact-terms idempotency guarantee
+ * class visible ON the control's own surface (never a footnote — "retry
+ * does not imply safety"), with the reconciliation requirement shown
+ * with the control where the Core reports one (retry ≠ reversal), and
+ * with an explicit confirmation (the §8.12 class: dialog, scope stated,
+ * the exact terms in view). On a deny verdict, a stale read, or an
+ * unavailable read the control is ABSENT (no dead controls; the truthful
+ * state stands — the M-5 pattern); a deny verdict renders the honest
+ * not-offered note, and nothing is invented beyond what the Core returns
+ * (no ineligible-reason field exists — the S7 §5 gap 5). The command
+ * carries its Supplied-keyed idempotency reference (minted per explicit
+ * user retry): the same reference returns the original result, replayed,
+ * never regenerated; a contradicting re-issue is the typed CONFLICT_STATE
+ * surfaced verbatim. A lost response is `unknown` (S4):
+ * query-before-retry — the page offers the explicit status re-check and
+ * NEVER re-issues on its own; a denial is the typed S3 envelope rendered
+ * truthfully. No exactly-once wording appears anywhere (the exact-terms
+ * law).
  */
 
 type StatusRead =
@@ -120,6 +146,25 @@ type ApprovalDecisionState =
   | { readonly kind: "unknown" };
 
 type ApprovalDialog = "accept" | "reject" | null;
+
+/** The retry-eligibility read (the frozen P-S7-02 display contract's
+ *  source): loading / the four typed members / the typed refusal / the
+ *  truthful unknown. The control renders from the data branch ONLY. */
+type RetryEligibilityRead =
+  | { readonly kind: "loading" }
+  | { readonly kind: "data"; readonly read: WireRetryEligibility; readonly confirmedAt: Date }
+  | { readonly kind: "failure"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unknown" };
+
+/** The retry command's four-outcome discipline (the cancel/approval
+ *  pattern): idle / pending / the Core-confirmed record (with the honest
+ *  replayed flag) / the typed refusal / the S4 unknown. */
+type RetryState =
+  | { readonly kind: "idle" }
+  | { readonly kind: "pending" }
+  | { readonly kind: "recorded"; readonly replayed: boolean }
+  | { readonly kind: "refused"; readonly envelope: CoreWireEnvelope }
+  | { readonly kind: "unknown" };
 
 type ResultState =
   | { readonly kind: "notLoaded" }
@@ -160,6 +205,17 @@ function renderJsonValue(value: unknown): string {
   }
 }
 
+/** The retry's Supplied-keyed idempotency reference (the frozen law: the
+ *  retried operation carries its idempotency reference). Minted per
+ *  explicit user retry, never earlier; a mint without an identity source
+ *  never silently reuses a prior reference. */
+function newRetryReference(): string {
+  if (typeof crypto === "undefined" || typeof crypto.randomUUID !== "function") {
+    throw new Error("retry reference source unavailable");
+  }
+  return crypto.randomUUID();
+}
+
 /** Consumers dedupe by event_id (C1-08; P1.7): first occurrence wins,
  * order preserved as the Core returned it. */
 function dedupeByEventId(events: readonly WireEventRecord[]): readonly WireEventRecord[] {
@@ -182,6 +238,7 @@ export function JobDetailPage() {
   const dialogLabelId = `jobs-cancel-label-${useId()}`;
   const approvalAcceptLabelId = `jobs-approval-accept-label-${useId()}`;
   const approvalRejectLabelId = `jobs-approval-reject-label-${useId()}`;
+  const retryLabelId = `jobs-retry-label-${useId()}`;
 
   const [statusRead, setStatusRead] = useState<StatusRead>({ kind: "loading" });
   const [eventsRead, setEventsRead] = useState<EventsRead>({ kind: "loading" });
@@ -192,9 +249,13 @@ export function JobDetailPage() {
   const [approvalRead, setApprovalRead] = useState<ApprovalRead>({ kind: "idle" });
   const [decisionState, setDecisionState] = useState<ApprovalDecisionState>({ kind: "idle" });
   const [approvalDialog, setApprovalDialog] = useState<ApprovalDialog>(null);
+  const [retryRead, setRetryRead] = useState<RetryEligibilityRead>({ kind: "loading" });
+  const [retryState, setRetryState] = useState<RetryState>({ kind: "idle" });
+  const [retryDialogOpen, setRetryDialogOpen] = useState(false);
   const [stateAnnouncement, setStateAnnouncement] = useState("");
   const cancelTriggerRef = useRef<HTMLButtonElement>(null);
   const approvalTriggerRef = useRef<HTMLButtonElement>(null);
+  const retryTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Read sequencing: only the latest issued read of each kind applies,
   // so a refresh supersedes an in-flight read and nothing applies twice.
@@ -202,6 +263,7 @@ export function JobDetailPage() {
   const eventsSeqRef = useRef(0);
   const approvalSeqRef = useRef(0);
   const snapshotSeqRef = useRef(0);
+  const retrySeqRef = useRef(0);
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
@@ -254,10 +316,36 @@ export function JobDetailPage() {
     });
   }, [jobId, transport]);
 
+  // The retry-eligibility read (the frozen P-S7-02 display contract's
+  // source): issued alongside the authoritative status read; read-
+  // sequence-guarded, mutating nothing, executing nothing. While the
+  // read loads, is stale, or is unavailable the Retry control is ABSENT
+  // (the truthful state — never a dead control).
+  const readRetryEligibility = useCallback(() => {
+    if (jobId === "") return;
+    const seq = ++retrySeqRef.current;
+    setRetryRead({ kind: "loading" });
+    void transport.jobRetryEligibility(jobId).then((outcome) => {
+      if (!mountedRef.current || seq !== retrySeqRef.current) return;
+      if (outcome.kind === "data") {
+        setRetryRead({
+          kind: "data",
+          read: outcome.data.retry_eligibility,
+          confirmedAt: new Date(),
+        });
+      } else if (outcome.kind === "rejection") {
+        setRetryRead({ kind: "failure", envelope: outcome.envelope });
+      } else {
+        setRetryRead({ kind: "unknown" });
+      }
+    });
+  }, [jobId, transport]);
+
   useEffect(() => {
     readStatus();
     readEvents();
-  }, [readStatus, readEvents]);
+    readRetryEligibility();
+  }, [readStatus, readEvents, readRetryEligibility]);
 
   const job = statusRead.kind === "data" ? statusRead.job : null;
   const isApprovalWaiting =
@@ -285,6 +373,35 @@ export function JobDetailPage() {
       }
     });
   }, [cancelState.kind, jobId, readStatus, transport]);
+
+  // The retry command (the frozen P-S7-02 display contract's command
+  // side): one explicit request at a time; the reference is minted per
+  // explicit user retry (the Supplied-keyed class — the operation carries
+  // its reference; the same reference re-presented would return the
+  // recorded outcome, replayed, never regenerated). The Core-confirmed
+  // result is never rendered from the response alone — the page
+  // immediately re-reads the authoritative status and the eligibility
+  // read (a successful retry re-queues the Job; the verdict follows the
+  // Core's report). A lost response is `unknown` (S4): query-before-
+  // retry — the recovery is the explicit status re-check, and this
+  // surface NEVER re-issues on its own.
+  const requestRetry = useCallback(() => {
+    if (jobId === "" || retryState.kind === "pending") return;
+    setRetryState({ kind: "pending" });
+    setRetryDialogOpen(false);
+    void transport.retryJob(jobId, newRetryReference()).then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        setRetryState({ kind: "recorded", replayed: outcome.data.replayed });
+        readStatus({ markRefreshing: true });
+        readRetryEligibility();
+      } else if (outcome.kind === "rejection") {
+        setRetryState({ kind: "refused", envelope: outcome.envelope });
+      } else {
+        setRetryState({ kind: "unknown" });
+      }
+    });
+  }, [jobId, readRetryEligibility, readStatus, retryState.kind, transport]);
 
   // The approval-request inspection (the queryable Core-issued identity):
   // issued ONLY while the authoritative status read reports the approval
@@ -465,6 +582,7 @@ export function JobDetailPage() {
                 setCancelState({ kind: "idle" });
                 setDecisionState({ kind: "idle" });
                 readStatus({ markRefreshing: true });
+                readRetryEligibility();
               }}
               disabled={cancelPending}
             >
@@ -493,6 +611,17 @@ export function JobDetailPage() {
           {cancelPending ? (
             <p className={styles.outcomeNote} role="status">
               {t("jobs.detail.cancel.pending")}
+            </p>
+          ) : null}
+          {retryState.kind === "recorded" ? (
+            <p className={styles.outcomeNote} role="status">
+              {t("jobs.detail.retry.recorded")}
+              {retryState.replayed ? ` ${t("jobs.detail.retry.replayed")}` : ""}
+            </p>
+          ) : null}
+          {retryState.kind === "pending" ? (
+            <p className={styles.outcomeNote} role="status">
+              {t("jobs.detail.retry.pending")}
             </p>
           ) : null}
           {isApprovalWaiting ? (
@@ -596,6 +725,42 @@ export function JobDetailPage() {
           ) : (
             <p className={styles.note}>{t("jobs.detail.cancel.notOffered")}</p>
           )}
+          {retryRead.kind === "data" && retryRead.read.eligible ? (
+            <div className={styles.approvalPanel}>
+              <h2 className={styles.approvalHeading}>{t("jobs.detail.retry.heading")}</h2>
+              <p>
+                <span className={styles.fieldLabel}>{t("jobs.detail.retry.riskLabel")}: </span>
+                {retryRead.read.risk_statement}
+              </p>
+              <p className={styles.approvalMeta}>
+                <span className={styles.fieldLabel}>{t("jobs.detail.retry.idempotencyLabel")}: </span>
+                <code>{retryRead.read.idempotency_class}</code>
+              </p>
+              {retryRead.read.reconciliation_required ? (
+                <p className={styles.approvalMeta}>{t("jobs.detail.retry.reconciliationNote")}</p>
+              ) : null}
+              <p className={styles.confirmed}>
+                {t("jobs.detail.lastConfirmed", { time: formatTimestamp(retryRead.confirmedAt, locale) })}
+              </p>
+              <div className={styles.actionsRow}>
+                <button
+                  type="button"
+                  ref={retryTriggerRef}
+                  className={styles.primaryControl}
+                  onClick={() => {
+                    setRetryState({ kind: "idle" });
+                    setRetryDialogOpen(true);
+                  }}
+                  disabled={retryState.kind === "pending"}
+                >
+                  {t("jobs.detail.retry.button")}
+                </button>
+              </div>
+            </div>
+          ) : null}
+          {retryRead.kind === "data" && !retryRead.read.eligible ? (
+            <p className={styles.note}>{t("jobs.detail.retry.notOffered")}</p>
+          ) : null}
         </>
       ) : null}
 
@@ -850,6 +1015,36 @@ export function JobDetailPage() {
         />
       ) : null}
 
+      {retryState.kind === "refused" ? (
+        <>
+          <RecoveryPanel
+            title={t("jobs.detail.retry.refusedTitle")}
+            body={t("jobs.detail.retry.refusedBody")}
+            referenceId={retryState.envelope.correlationId}
+          />
+          <p className={styles.code}>
+            <span className="visually-hidden">Code: </span>
+            <code>{retryState.envelope.code}</code>
+          </p>
+        </>
+      ) : null}
+      {retryState.kind === "unknown" ? (
+        <RecoveryPanel
+          title={t("jobs.detail.retry.unknownTitle")}
+          body={t("jobs.detail.retry.unknownBody")}
+          actions={[
+            {
+              label: t("jobs.detail.retry.checkStatus"),
+              onAction: () => {
+                setRetryState({ kind: "idle" });
+                readStatus({ markRefreshing: true });
+                readRetryEligibility();
+              },
+            },
+          ]}
+        />
+      ) : null}
+
       {decisionState.kind === "refused" ? (
         <>
           <RecoveryPanel
@@ -897,6 +1092,44 @@ export function JobDetailPage() {
             {t("jobs.detail.cancel.confirm")}
           </button>
           <button type="button" className={styles.control} onClick={() => setCancelDialogOpen(false)}>
+            {t("actions.close")}
+          </button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        labelId={retryLabelId}
+        title={t("jobs.detail.retry.dialogTitle")}
+        open={retryDialogOpen}
+        onClose={() => setRetryDialogOpen(false)}
+        returnFocusRef={retryTriggerRef}
+      >
+        <p>{t("jobs.detail.retry.dialogBody", { jobId })}</p>
+        {retryRead.kind === "data" ? (
+          <>
+            <p className={styles.approvalMeta}>
+              <span className={styles.fieldLabel}>{t("jobs.detail.retry.riskLabel")}: </span>
+              {retryRead.read.risk_statement}
+            </p>
+            <p className={styles.approvalMeta}>
+              <span className={styles.fieldLabel}>{t("jobs.detail.retry.idempotencyLabel")}: </span>
+              <code>{retryRead.read.idempotency_class}</code>
+            </p>
+            {retryRead.read.reconciliation_required ? (
+              <p className={styles.approvalMeta}>{t("jobs.detail.retry.reconciliationNote")}</p>
+            ) : null}
+          </>
+        ) : null}
+        <div className={styles.dialogActions}>
+          <button
+            type="button"
+            className={styles.primaryControl}
+            onClick={requestRetry}
+            disabled={retryState.kind === "pending"}
+          >
+            {t("jobs.detail.retry.confirm")}
+          </button>
+          <button type="button" className={styles.control} onClick={() => setRetryDialogOpen(false)}>
             {t("actions.close")}
           </button>
         </div>

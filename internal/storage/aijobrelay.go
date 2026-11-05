@@ -787,6 +787,205 @@ func (s *Store) ResumeJob(ctx context.Context, jobID string) error {
 	})
 }
 
+// retryEventPayload is the M-7 retry re-queue event's recorded payload
+// shape (the durable idempotency record): the retry reason, the
+// operation's Supplied-keyed idempotency reference, and the terminal
+// state the retry re-queued from.
+type retryEventPayload struct {
+	Reason         string `json:"reason"`
+	RetryReference string `json:"retry_reference"`
+	PriorState     string `json:"prior_state"`
+}
+
+// loadRetryFacts reads the Job's latest standing retry reference from its
+// own journal events (the re-queue events the retry command wrote — the
+// journal IS the durable record; no schema change, no second store).
+// Only retry events carry the retry_reference payload key, so the LIKE
+// predicate narrows to exactly them; the newest sequence is the standing
+// retry. An empty result means no retry stands for the Job.
+func (s *Store) loadRetryFacts(ctx context.Context, jobID string) (string, error) {
+	cctx, cancel := s.readerCtx(ctx)
+	defer cancel()
+	rows, err := s.readers.QueryContext(cctx, `SELECT payload FROM events_journal
+		WHERE aggregate_type = 'job' AND aggregate_id = ? AND event_type = 'job.queued'
+		AND payload LIKE '%retry_reference%' ORDER BY sequence DESC`, jobID)
+	if err != nil {
+		return "", mapVendorError(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var raw sql.NullString
+		if err := rows.Scan(&raw); err != nil {
+			return "", mapVendorError(err)
+		}
+		if !raw.Valid {
+			continue
+		}
+		var p retryEventPayload
+		if err := json.Unmarshal([]byte(raw.String), &p); err != nil {
+			return "", errStoragef(errs.CodeStateCorrupt, "retry event payload does not parse: %v", err)
+		}
+		if p.RetryReference != "" {
+			return p.RetryReference, nil
+		}
+	}
+	return "", rows.Err()
+}
+
+// retryReferenceConsumed reports whether the exact presented reference was
+// already recorded on any retry re-queue event of the Job (a consumed
+// reference is never regenerated).
+func (s *Store) retryReferenceConsumed(ctx context.Context, jobID, reference string) (bool, error) {
+	cctx, cancel := s.readerCtx(ctx)
+	defer cancel()
+	var n int
+	err := s.readers.QueryRowContext(cctx, `SELECT COUNT(*) FROM events_journal
+		WHERE aggregate_type = 'job' AND aggregate_id = ? AND event_type = 'job.queued'
+		AND payload LIKE '%retry_reference%'`, jobID).Scan(&n)
+	if err != nil {
+		return false, mapVendorError(err)
+	}
+	if n == 0 {
+		return false, nil
+	}
+	rows, err := s.readers.QueryContext(cctx, `SELECT payload FROM events_journal
+		WHERE aggregate_type = 'job' AND aggregate_id = ? AND event_type = 'job.queued'
+		AND payload LIKE '%retry_reference%' ORDER BY sequence DESC`, jobID)
+	if err != nil {
+		return false, mapVendorError(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var raw sql.NullString
+		if err := rows.Scan(&raw); err != nil {
+			return false, mapVendorError(err)
+		}
+		if !raw.Valid {
+			continue
+		}
+		var p retryEventPayload
+		if err := json.Unmarshal([]byte(raw.String), &p); err != nil {
+			return false, errStoragef(errs.CodeStateCorrupt, "retry event payload does not parse: %v", err)
+		}
+		if p.RetryReference == reference {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
+}
+
+// RetryJob implements aijobrelay.RelayStore (the M-7 retry command, the F9
+// family's frozen semantics): a NEW Attempt of the SAME Job — never a new
+// Job — by re-queueing the terminal Failed/TimedOut Job exactly as the
+// reconciliation exit re-queues; the scheduler's next claim creates the
+// new Attempt (never a rewrite). The Supplied-keyed ruling (the coded
+// approval-decision precedent's class): the same reference re-presented
+// while its recorded outcome still stands returns that outcome WITHOUT
+// re-applying (Replayed=true — no second re-queue, no second event; never
+// regenerated); a contradicting re-issue (a different reference against a
+// standing retry, or a re-presented consumed reference) is the typed
+// CONFLICT_STATE. Retry ≠ reversal: no intent, no receipt, and no prior
+// Attempt record is rewritten — the re-queue touches only the state, the
+// version fence, and the waiting reason.
+func (s *Store) RetryJob(ctx context.Context, req aijobrelay.RetryRequest) (aijobrelay.RetryOutcome, error) {
+	if req.JobID == "" || req.IdempotencyReference == "" {
+		return aijobrelay.RetryOutcome{}, errStoragef(errs.CodeValidationFailed,
+			"a retry requires its job scope and its idempotency reference")
+	}
+	if !aijobrelay.ValidRetryReference(req.IdempotencyReference) {
+		return aijobrelay.RetryOutcome{}, errStoragef(errs.CodeValidationFailed,
+			"the retry idempotency reference is out of the coded bounds")
+	}
+	job, err := s.LoadJob(ctx, req.JobID)
+	if err != nil {
+		return aijobrelay.RetryOutcome{}, err
+	}
+	// The replay ruling first: a NON-terminal Job is mid-cycle — the
+	// standing retry (the latest recorded retry reference) decides whether
+	// this is the same operation re-presented (replay) or a contradicting
+	// re-issue (refusal).
+	if !aijobrelay.TerminalJob(job.State) {
+		latest, err := s.loadRetryFacts(ctx, req.JobID)
+		if err != nil {
+			return aijobrelay.RetryOutcome{}, err
+		}
+		if latest == req.IdempotencyReference {
+			return aijobrelay.RetryOutcome{Job: job, Replayed: true}, nil
+		}
+		return aijobrelay.RetryOutcome{}, errStoragef(errs.CodeConflictState,
+			"job %q is not retry-eligible in state %s; a contradicting re-issue is refused", job.JobID, job.State)
+	}
+	// A terminal Job: only the Failed/TimedOut dispositions accept the
+	// re-queue (the transition table — the same allow-set the eligibility
+	// read reports; Succeeded/Cancelled stay exitless).
+	if !aijobrelay.CanTransition(job.State, aijobrelay.JobQueued) {
+		return aijobrelay.RetryOutcome{}, errStoragef(errs.CodeConflictState,
+			"cannot retry a job in state %s", job.State)
+	}
+	// A consumed reference is never regenerated: once a retry's recorded
+	// outcome no longer stands (the Job re-terminated since), the same
+	// reference re-presented cannot start a new cycle — a new retry is a
+	// new reference.
+	consumed, err := s.retryReferenceConsumed(ctx, req.JobID, req.IdempotencyReference)
+	if err != nil {
+		return aijobrelay.RetryOutcome{}, err
+	}
+	if consumed {
+		return aijobrelay.RetryOutcome{}, errStoragef(errs.CodeConflictState,
+			"the retry reference has already been consumed for job %q; a retry is never regenerated", job.JobID)
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	corr := req.CorrelationID
+	if corr == "" {
+		corr = job.CorrelationID
+	}
+	err = s.withWriter(ctx, func(tx *sqlTx) error {
+		// The Job transition, version-fenced (the coded fencing; a stale
+		// writer — including a concurrent same-reference retry racing the
+		// apply — can never double-apply: one fence winner, the loser
+		// refuses).
+		res, err := tx.Exec(`UPDATE jobs SET state = ?, version = version + 1, waiting_reason = '', updated_at = ?
+			WHERE job_id = ? AND version = ? AND state = ?`,
+			aijobrelay.JobQueued, now, job.JobID, job.Version, job.State)
+		if err != nil {
+			return mapVendorError(err)
+		}
+		if n, rerr := res.RowsAffected(); rerr == nil && n == 0 {
+			return errStoragef(errs.CodeConflictState,
+				"job %q changed state during the retry; the retry is refused", job.JobID)
+		}
+		return appendEventTx(tx, events.Record{
+			EventID:       "evt-" + job.JobID + "-retry-" + fmt.Sprint(job.Version),
+			AggregateType: "job",
+			AggregateID:   job.JobID,
+			EventType:     "job.queued",
+			CorrelationID: corr,
+			Producer:      s.instanceUUID,
+			InlinePayload: mustJSON(map[string]any{
+				"reason":          "retry",
+				"retry_reference": req.IdempotencyReference,
+				"prior_state":     job.State,
+			}),
+		})
+	})
+	if err != nil {
+		return aijobrelay.RetryOutcome{}, err
+	}
+	updated, err := s.LoadJob(ctx, job.JobID)
+	if err != nil {
+		return aijobrelay.RetryOutcome{}, err
+	}
+	return aijobrelay.RetryOutcome{Job: updated, Replayed: false}, nil
+}
+
+// StandingRetryReference implements aijobrelay.RelayStore: the Job's most
+// recent recorded retry reference (” when none) — read-only, from the
+// journal's own retry events (no schema change). Whether that recorded
+// outcome still stands is the RetryJob ruling's, not this read's.
+func (s *Store) StandingRetryReference(ctx context.Context, jobID string) (string, error) {
+	return s.loadRetryFacts(ctx, jobID)
+}
+
 // LoadIntent implements aijobrelay.RelayStore.
 func (s *Store) LoadIntent(ctx context.Context, intentID string) (aijobrelay.SideEffectIntent, error) {
 	row := s.readers.QueryRowContext(ctx, `SELECT intent_id, job_id, attempt_id, operation, idempotency_key,

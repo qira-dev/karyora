@@ -97,6 +97,33 @@ type RelayStore interface {
 	// approval bound to another Job is the same typed NOT_FOUND shape as an
 	// unknown identity (the no-existence-leak rule).
 	DecideApproval(ctx context.Context, dec ApprovalDecision) (ApprovalDecisionResult, error)
+	// RetryJob applies one M-7 retry command under the fenced single-writer
+	// path (IMPL-21, the F9 family's frozen semantics): a NEW Attempt of
+	// the SAME Job — never a new Job — by re-queueing the terminal
+	// Failed/TimedOut Job exactly as the reconciliation exit re-queues; the
+	// scheduler's next claim creates the new Attempt (never a rewrite). The
+	// command is Supplied-keyed: the request carries the operation's
+	// idempotency reference, the applied retry records it durably on its
+	// re-queue event, and the same reference re-presented returns the
+	// recorded outcome WITHOUT re-applying (Replayed=true — no second
+	// re-queue, no second event; never regenerated); a contradicting
+	// re-issue (a different reference against a standing retry, or a
+	// re-presented consumed reference) is the typed CONFLICT_STATE — the
+	// coded approval-decision precedent's class. A retried Attempt does not
+	// undo the prior Attempt's effects (retry ≠ reversal): no intent, no
+	// receipt, no prior record is rewritten. The command's eligibility gate
+	// is the SAME truth the eligibility read reports (RetryEligibilityFor —
+	// allow only terminal Failed/TimedOut); the storage layer's own
+	// transition-table fence is the same allow-set expressed as the table.
+	RetryJob(ctx context.Context, req RetryRequest) (RetryOutcome, error)
+	// StandingRetryReference reports the Job's most recent recorded retry
+	// reference ('' when the Job carries no recorded retry) — the read the
+	// command path uses to exempt the Supplied-keyed replay from the
+	// fresh-retry eligibility gate (the same operation re-presented is not
+	// a fresh retry; whether the recorded outcome still stands is the
+	// RetryJob ruling's, which stays authoritative). Read-only; the
+	// reference rides the journal's retry events — no schema change.
+	StandingRetryReference(ctx context.Context, jobID string) (string, error)
 }
 
 // ListJobsQuery is one server-side list query (the card-9 working

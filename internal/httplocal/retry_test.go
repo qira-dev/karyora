@@ -13,11 +13,12 @@ import (
 	"github.com/qira-dev/karyora/internal/security"
 )
 
-// The retry-eligibility endpoint tests (the F9 family's frozen contract
-// over the wire): the four typed members inside the retry_eligibility
-// wrapper, the typed refusals, and the read/command boundary pin — the
-// read is NOT the retry command; no retry command route exists at this
-// HEAD (the M-7 command's identity stays its recorded Open item).
+// The F9 family's wire tests: the retry-eligibility read's four typed
+// members inside the retry_eligibility wrapper (IMPL-20) and the M-7
+// retry command's surface, typed refusals, and Supplied-keyed replay
+// (IMPL-21). The boundary between them stands: the eligibility read is a
+// GET that executes nothing — execution exists only on the command's own
+// POST path, behind its own ActionDataWrite decision.
 
 // submitForRetryRead submits the fixture task through the slice for the
 // retry-eligibility endpoint tests.
@@ -60,8 +61,8 @@ func TestJobRetryEligibilityEndpoint(t *testing.T) {
 	if res.RetryEligibility.ReconciliationRequired {
 		t.Fatalf("a fresh queued job reports no reconciliation requirement: %+v", res.RetryEligibility)
 	}
-	if res.RetryEligibility.IdempotencyClass != aijobrelay.RetryIdempotencyOpen {
-		t.Fatalf("the class must be the coded `open`: %+v", res.RetryEligibility)
+	if res.RetryEligibility.IdempotencyClass != aijobrelay.RetryIdempotencySuppliedKeyed {
+		t.Fatalf("the class must report the implemented Supplied-keyed keying: %+v", res.RetryEligibility)
 	}
 	for _, term := range []string{"new attempt of the same job", "at-least-once attempts", "needs reconciliation"} {
 		if !strings.Contains(res.RetryEligibility.RiskStatement, term) {
@@ -139,18 +140,101 @@ func TestJobRetryEligibilityEndpointRefusals(t *testing.T) {
 	}
 }
 
-// TestJobRetryEligibilityNoCommandSurface pins the read/command boundary
-// over the wire: the eligibility read is NOT the retry command — no
-// retry command route exists at this HEAD, and the read's allow verdict
-// authorizes nothing (the M-7 command's identity stays its recorded Open
-// item; the S7 §5 gap 2).
-func TestJobRetryEligibilityNoCommandSurface(t *testing.T) {
+// TestJobRetryCommandEndpoint drives the M-7 retry command over the wire
+// (IMPL-21, the F9 family's frozen semantics): the ineligible refusal is
+// the typed CONFLICT_STATE; the terminal Failed Job applies through the
+// command (a NEW Attempt of the SAME Job — never a new Job); the same
+// Supplied-keyed reference re-presented replays (never regenerated); the
+// command's surface is POST-only.
+func TestJobRetryCommandEndpoint(t *testing.T) {
 	env := newTestEnv(t)
-	jobID := submitForRetryRead(t, env, "idem-wire-retry-nocommand", nil)
-	for _, shape := range []string{"/retry", "/retry/attempt"} {
-		status, body := env.do(t, http.MethodPost, "/v1/jobs/"+jobID+shape, "{}", env.token, nil)
-		if status != http.StatusNotFound || !strings.Contains(string(body), "NOT_FOUND") {
-			t.Fatalf("no retry command route may exist (POST %s): got %d %s", shape, status, body)
+	// A queued Job refuses through the same eligibility truth; the typed
+	// envelope carries the CONFLICT_STATE.
+	queuedID := submitForRetryRead(t, env, "idem-wire-retry-cmd-queued", nil)
+	status, body := env.do(t, http.MethodPost, "/v1/jobs/"+queuedID+"/retry", `{"idempotency_reference":"ref-queued"}`, env.token, nil)
+	if status != http.StatusConflict || !strings.Contains(string(body), "CONFLICT_STATE") {
+		t.Fatalf("an ineligible retry must be the typed 409 CONFLICT_STATE, got %d %s", status, body)
+	}
+
+	// The canonical case over the wire: the terminal Failed Job applies.
+	env2 := newTestEnvComposed(t, func(deps *app.SliceDeps) {
+		invalid := providers.NewMockAdapter(providers.MockBehavior{InvalidStructuredJSON: true})
+		reg := dprovider.NewRegistry(nil)
+		reg.Upsert(invalid.SeedDataHandling(invalid.DefaultProfile("m")))
+		exec, err := providers.NewExecutor(invalid, providers.DefaultEgressPolicy(providers.CoreLocal), security.UnavailableStore{}, reg)
+		if err != nil {
+			t.Fatalf("provider executor: %v", err)
 		}
+		deps.Providers[dprovider.ProviderMock] = exec
+	})
+	failedID := submitForRetryRead(t, env2, "idem-wire-retry-cmd-failed", json.RawMessage(`{"type":"object","properties":{"ok":{"type":"string"}},"required":["ok"]}`))
+	if _, err := app.RunToSettlement(snapCallerCtx(env2), env2.deps, "worker-wire-retry-cmd", 1, failedID, 16); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	status, body = env2.do(t, http.MethodPost, "/v1/jobs/"+failedID+"/retry", `{"idempotency_reference":"ref-1"}`, env2.token, nil)
+	if status != http.StatusOK {
+		t.Fatalf("the allow case must answer 200, got %d: %s", status, body)
+	}
+	var res struct {
+		Job      aijobrelay.Job `json:"job"`
+		Replayed bool           `json:"replayed"`
+	}
+	if err := json.Unmarshal(body, &res); err != nil {
+		t.Fatalf("decode: %v (%s)", err, body)
+	}
+	if res.Replayed || res.Job.JobID != failedID || res.Job.State != aijobrelay.JobQueued {
+		t.Fatalf("the retry must re-queue the SAME Job fresh: %+v (%s)", res, body)
+	}
+	// The replay over the wire: the same reference returns the recorded
+	// outcome without re-applying.
+	status, body = env2.do(t, http.MethodPost, "/v1/jobs/"+failedID+"/retry", `{"idempotency_reference":"ref-1"}`, env2.token, nil)
+	if status != http.StatusOK {
+		t.Fatalf("the replay must answer 200, got %d: %s", status, body)
+	}
+	var replayed struct {
+		Job      aijobrelay.Job `json:"job"`
+		Replayed bool           `json:"replayed"`
+	}
+	if err := json.Unmarshal(body, &replayed); err != nil {
+		t.Fatalf("decode: %v (%s)", err, body)
+	}
+	if !replayed.Replayed {
+		t.Fatalf("the same reference must replay: %+v (%s)", replayed, body)
+	}
+}
+
+// TestJobRetryCommandRefusals pins the command's typed refusals over the
+// wire: the reference is required (VALIDATION_FAILED); an unknown identity
+// is the typed NOT_FOUND (the no-leak rule); the unauthenticated command is
+// the 403 AUTHZ_DENIED; the command surface is POST-only (a GET on the
+// command path is NOT_FOUND — the state-changing-GET prohibition's
+// registration-time discipline).
+func TestJobRetryCommandRefusals(t *testing.T) {
+	env := newTestEnv(t)
+	jobID := submitForRetryRead(t, env, "idem-wire-retry-cmd-refusals", nil)
+	cases := []struct {
+		name       string
+		method     string
+		path       string
+		body       string
+		token      string
+		wantStatus int
+		wantCode   string
+	}{
+		{name: "missing_reference", method: http.MethodPost, path: "/v1/jobs/" + jobID + "/retry", body: `{}`, token: env.token, wantStatus: http.StatusBadRequest, wantCode: "VALIDATION_FAILED"},
+		{name: "unauthenticated", method: http.MethodPost, path: "/v1/jobs/" + jobID + "/retry", body: `{"idempotency_reference":"ref-1"}`, token: "", wantStatus: http.StatusForbidden, wantCode: "AUTHZ_DENIED"},
+		{name: "unknown_job", method: http.MethodPost, path: "/v1/jobs/job-does-not-exist/retry", body: `{"idempotency_reference":"ref-1"}`, token: env.token, wantStatus: http.StatusNotFound, wantCode: "NOT_FOUND"},
+		{name: "method_mismatch", method: http.MethodGet, path: "/v1/jobs/" + jobID + "/retry", body: "", token: env.token, wantStatus: http.StatusNotFound, wantCode: "NOT_FOUND"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			status, body := env.do(t, tc.method, tc.path, tc.body, tc.token, nil)
+			if status != tc.wantStatus {
+				t.Fatalf("%s: expected %d, got %d: %s", tc.name, tc.wantStatus, status, body)
+			}
+			if !strings.Contains(string(body), tc.wantCode) {
+				t.Fatalf("%s: the refusal must carry the typed %s code: %s", tc.name, tc.wantCode, body)
+			}
+		})
 	}
 }

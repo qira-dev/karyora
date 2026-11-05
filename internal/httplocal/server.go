@@ -170,6 +170,15 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, suffix: "/approval", handler: (*Server).handleJobApproval},
 		{method: http.MethodGet, prefix: "/v1/jobs/", hasID: true, handler: (*Server).handleStatus},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/cancel", mutates: true, handler: (*Server).handleCancel},
+		// The M-7 retry command (IMPL-21, the F9 family's frozen semantics):
+		// a NEW Attempt of the SAME Job — never a new Job — applied only
+		// where the Core reports eligibility, carrying its Supplied-keyed
+		// idempotency reference. A WRITE through the one decision port; the
+		// mutating route carries the same CSRF/Origin posture every
+		// mutating route carries. The path is this adapter's own (the
+		// canonical name joins the published vocabulary at the publication
+		// act per card 1's additive discipline — NO contracts/ edit).
+		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/retry", mutates: true, handler: (*Server).handleRetryCommand},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/approvals/accept", mutates: true, handler: (*Server).handleApprovalAccept},
 		{method: http.MethodPost, prefix: "/v1/jobs/", hasID: true, suffix: "/approvals/reject", mutates: true, handler: (*Server).handleApprovalReject},
 		{method: http.MethodPost, prefix: "/v1/connections/test", mutates: true, handler: (*Server).handleConnectionTest},
@@ -625,6 +634,33 @@ func (s *Server) handleRetryEligibility(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	s.writeJSON(w, http.StatusOK, retryEligibilityResult{RetryEligibility: res})
+}
+
+// handleRetryCommand exposes the M-7 retry command (IMPL-21, the F9
+// family's frozen semantics): a NEW Attempt of the SAME Job — never a new
+// Job — applied only where the Core reports eligibility (the same verdict
+// the eligibility read reports — one eligibility truth, never a fork), and
+// carrying its Supplied-keyed idempotency reference: the same reference
+// re-presented returns the original result (replayed, never regenerated);
+// a contradicting re-issue is the typed CONFLICT_STATE. The response is
+// the Core-confirmed post-command Job plus the honest replayed flag; the
+// UI still renders only from the authoritative re-read (the 202-class
+// law's consumption side). The eligibility read's GET surface executes
+// nothing — execution exists only here, behind the command's own
+// ActionDataWrite decision.
+func (s *Server) handleRetryCommand(w http.ResponseWriter, r *http.Request, token, jobID string) {
+	var req retryCommandRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.RetryJob(s.callCtx(r, token), jobID, req.IdempotencyReference)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, retryCommandResult{Job: res.Job, Replayed: res.Replayed})
 }
 
 // handleApprovalDecision exposes one approval decision command (the card-14
@@ -1382,6 +1418,22 @@ type statusResult struct {
 // its recorded owner's).
 type retryEligibilityResult struct {
 	RetryEligibility aijobrelay.RetryEligibility `json:"retry_eligibility"`
+}
+
+// The M-7 retry command's wire shapes (IMPL-21): idempotency_reference is
+// the Supplied-keyed idempotency reference the retried operation carries
+// (the frozen law — the same reference returns the original result,
+// replayed, never regenerated); job carries the coded Job struct tags and
+// replayed is the coded RetryOutcome field lowercased (the coded-name
+// rule). No exactly-once vocabulary exists anywhere in these shapes (the
+// exact-terms law).
+type retryCommandRequest struct {
+	IdempotencyReference string `json:"idempotency_reference"`
+}
+
+type retryCommandResult struct {
+	Job      aijobrelay.Job `json:"job"`
+	Replayed bool           `json:"replayed"`
 }
 
 // The context-snapshot read shape (the card-11 working candidate): the

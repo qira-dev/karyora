@@ -30,6 +30,12 @@ func TestJobTransitions(t *testing.T) {
 		{JobRunning, JobCancelRequested}, {JobCancelRequested, JobCancelled},
 		{JobQueued, JobCancelled}, {JobRunning, JobSucceeded}, {JobRunning, JobFailed},
 		{JobRunning, JobTimedOut}, {JobQueued, JobPaused}, {JobPaused, JobQueued},
+		// The M-7 retry command's register-consistent extension (IMPL-21):
+		// a retried Job is a NEW Attempt of the SAME Job — the terminal
+		// Failed/TimedOut dispositions re-enter the queue exactly as the
+		// reconciliation exit does. The register's own test rule updated and
+		// pinned here (the card-14 Waiting→Failed extension precedent).
+		{JobFailed, JobQueued}, {JobTimedOut, JobQueued},
 	}
 	for _, tr := range legal {
 		if !CanTransition(tr[0], tr[1]) {
@@ -37,8 +43,10 @@ func TestJobTransitions(t *testing.T) {
 		}
 	}
 	illegal := [][2]string{
+		// Succeeded and Cancelled stay exitless: a re-run of a Succeeded Job
+		// is not a retry; a recorded cancellation intent is authoritative.
 		{JobSucceeded, JobQueued}, {JobFailed, JobRunning}, {JobCancelled, JobQueued},
-		{JobCreated, JobSucceeded}, {JobQueued, JobSucceeded}, {JobTimedOut, JobQueued},
+		{JobCreated, JobSucceeded}, {JobQueued, JobSucceeded}, {JobFailed, JobTimedOut},
 	}
 	for _, tr := range illegal {
 		if CanTransition(tr[0], tr[1]) {

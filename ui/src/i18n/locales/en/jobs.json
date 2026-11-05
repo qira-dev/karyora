@@ -134,6 +134,25 @@
         "checkStatus": "Check status",
         "notOffered": "Cancellation is offered only while the Core's authoritative state accepts it (queued, running, or waiting)."
       },
+      "retry": {
+        "heading": "Retry",
+        "button": "Retry",
+        "riskLabel": "Side-effect risk (the Core's own statement)",
+        "idempotencyLabel": "Idempotency guarantee",
+        "reconciliationNote": "The Core reports a reconciliation requirement for this job — needs reconciliation. A retry is not reversal: it does not undo the prior attempt's effects.",
+        "dialogTitle": "Start a new attempt",
+        "dialogBody": "Job {{jobId}} will start a new attempt of the same job — never a new job. Declared side effects may run again: at-least-once attempts. The prior attempt's effects are not undone (retry is not reversal). The retry request carries its idempotency reference: the same reference returns the recorded outcome, never a regenerated execution.",
+        "confirm": "Start new attempt",
+        "pending": "Requesting the retry…",
+        "recorded": "The Core confirmed the retry: the job re-queues for a new attempt of the same job. The authoritative state is re-checked below.",
+        "replayed": "The Core reports this retry reference was already applied (replayed — no new execution was created).",
+        "refusedTitle": "The Core refused the retry",
+        "refusedBody": "The code below is the Core's stable machine identifier; the reference is the safe correlation ID for diagnostics. The retry was not applied.",
+        "unknownTitle": "The retry outcome is not known",
+        "unknownBody": "No confirmed response arrived for the retry request. A lost response is never proof that the retry applied or that it did not. Check the authoritative state before re-issuing anything — this surface never retries on its own.",
+        "checkStatus": "Check status",
+        "notOffered": "Retry is offered only when the Core's eligibility read reports it for this job; the control is absent while the read denies, is stale, or is unavailable."
+      },
       "approval": {
         "heading": "Approval required",
         "body": "This job is waiting for an approval decision. A decision is recorded only through the explicit accept or reject command below — viewing this job, its events, or its notifications never records a decision.",

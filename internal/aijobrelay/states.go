@@ -89,8 +89,16 @@ func RegisteredJobState(s string) bool {
 // register-consistent extension (IMPL-7, 2026-11-02): a rejected approval
 // is a known policy refusal, so the Job's terminal disposition is the
 // Core-reported terminal Failed — the durable approval record and the
-// decision event carry the typed reason. Nothing else changed; every
-// previously recorded exit stays open.
+// decision event carry the typed reason. The Failed → Queued and
+// TimedOut → Queued exits are the M-7 retry command's register-consistent
+// extension (IMPL-21, 2026-11-06): a retried Job is a NEW Attempt of the
+// SAME Job — never a new Job — so the terminal Failed/TimedOut
+// dispositions re-enter the queue exactly as NeedsReconciliation's
+// reconciliation exit already does (the same re-queue shape, the same
+// single fence). Nothing else changed; every previously recorded exit
+// stays open, and Succeeded/Cancelled stay exitless (a re-run of a
+// Succeeded Job is not a retry; a recorded cancellation intent is
+// authoritative).
 var jobTransitions = map[string][]string{
 	JobCreated:             {JobQueued, JobCancelled},
 	JobQueued:              {JobRunning, JobCancelled, JobPaused},
@@ -101,9 +109,9 @@ var jobTransitions = map[string][]string{
 	JobCancellationPending: {JobCancelled, JobFailed},
 	JobNeedsReconciliation: {JobQueued, JobFailed, JobCancelled},
 	JobSucceeded:           {},
-	JobFailed:              {},
+	JobFailed:              {JobQueued},
 	JobCancelled:           {},
-	JobTimedOut:            {},
+	JobTimedOut:            {JobQueued},
 }
 
 var terminalSet = map[string]bool{

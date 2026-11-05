@@ -43,8 +43,13 @@ func TestRetryIdempotencyRegister(t *testing.T) {
 // exit is the coded Resume, never a retry), for Cancelled (the recorded
 // cancellation intent is authoritative) and for Succeeded (a re-run is
 // not a retry). The reconciliation member rides the state and the
-// Unknown-side-effect fact exactly (the C3-14 fact); the class stays
-// `open` until the keying act.
+// Unknown-side-effect fact exactly (the C3-14 fact). The class reports
+// `supplied_keyed` since the keying act: the M-7 command is implemented
+// Supplied-keyed (the caller's reference carried on the command; the same
+// reference re-presented returns the original result, replayed, never
+// regenerated; a contradicting re-issue is the typed CONFLICT_STATE) —
+// the register itself is unchanged (the three recorded classes; the gap-8
+// boundary).
 func TestRetryEligibilityVerdictTable(t *testing.T) {
 	for _, tt := range []struct {
 		state        string
@@ -63,8 +68,8 @@ func TestRetryEligibilityVerdictTable(t *testing.T) {
 			if res.ReconciliationRequired != unknown {
 				t.Fatalf("%s/unknown=%v: reconciliation_required=%v, want %v", tt.state, unknown, res.ReconciliationRequired, unknown)
 			}
-			if res.IdempotencyClass != RetryIdempotencyOpen {
-				t.Fatalf("%s: the class must be `open` until the keying act, got %q", tt.state, res.IdempotencyClass)
+			if res.IdempotencyClass != RetryIdempotencySuppliedKeyed {
+				t.Fatalf("%s: the class must report the implemented Supplied-keyed keying, got %q", tt.state, res.IdempotencyClass)
 			}
 			if !ValidRetryIdempotencyClass(res.IdempotencyClass) {
 				t.Fatalf("%s: the class must be a register member", tt.state)
@@ -106,5 +111,27 @@ func TestRetryRiskStatementExactTerms(t *testing.T) {
 	}
 	if strings.Contains(strings.ToLower(res.RiskStatement), "exactly-once") {
 		t.Fatalf("no exactly-once wording anywhere: %q", res.RiskStatement)
+	}
+}
+
+// TestValidRetryReference pins the Supplied-keyed reference's shape rule:
+// the operation carries its reference (non-empty) within the coded bound;
+// the bound's canonical value resolves at the publication act (the
+// implementation's own shape, recorded).
+func TestValidRetryReference(t *testing.T) {
+	if !ValidRetryReference("retry-ref-1") {
+		t.Fatal("a non-empty bounded reference must validate")
+	}
+	for _, absent := range []string{"", "   "} {
+		if ValidRetryReference(absent) {
+			t.Fatalf("the empty-shaped reference %q must not validate", absent)
+		}
+	}
+	long := strings.Repeat("r", MaxRetryReferenceRunes+1)
+	if ValidRetryReference(long) {
+		t.Fatal("a reference beyond the coded bound must not validate")
+	}
+	if !ValidRetryReference(strings.Repeat("r", MaxRetryReferenceRunes)) {
+		t.Fatal("a reference exactly at the coded bound must validate")
 	}
 }

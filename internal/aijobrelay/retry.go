@@ -1,17 +1,22 @@
 package aijobrelay
 
-// The retry-eligibility read's domain facts (the F9 family): the P3.2
-// §3.9 [P] typed-member set as frozen at the S4 §15 freeze act (the
-// adopted P-S7-01…06 supply) — a Core, permission-filtered, per-Job read
-// returning exactly four typed members: the eligibility verdict, the
-// side-effect risk statement, the idempotency guarantee class, and the
-// reconciliation requirement. The verdict is the Core's own allow/deny
-// for a retry of THIS Job — never a client-side inference from the
-// lifecycle state (the M-5 gate's lesson carried: for M-7 no accepting
-// state set exists in any payload, which is why this read exists). The
-// read is NOT the retry command — the M-7 command's identity stays its
-// recorded Open item (the S7 §5 gap 2; O-1), so no eligibility response
-// is an authorization to execute anything.
+import "strings"
+
+// The F9 family's retry domain facts: the P3.2 §3.9 [P] typed-member set
+// as frozen at the S4 §15 freeze act (the adopted P-S7-01…06 supply) — a
+// Core, permission-filtered, per-Job read returning exactly four typed
+// members: the eligibility verdict, the side-effect risk statement, the
+// idempotency guarantee class, and the reconciliation requirement. The
+// verdict is the Core's own allow/deny for a retry of THIS Job — never a
+// client-side inference from the lifecycle state (the M-5 gate's lesson
+// carried: for M-7 no accepting state set exists in any payload, which is
+// why this read exists). The same frozen family's M-7 command rides this
+// file too (IMPL-21): the eligibility-gated retry command — a NEW Attempt
+// of the same Job, never a new Job — whose Supplied-keyed idempotency
+// reference, replay ruling, and typed refusals are typed beside the read
+// they gate through. The eligibility read itself still executes nothing:
+// a read's allow verdict authorizes nothing; only the command (its own
+// write path, its own authorization) applies a retry.
 
 // RetryIdempotencyClass is the idempotency-guarantee class's closed
 // three-value register (the recorded vocabulary carried exactly, the
@@ -21,12 +26,19 @@ package aijobrelay
 // re-send except the explicit user act), `none` (at-most-once: the
 // operation is not idempotent and must not be repeated). The register's
 // own test rule governs any change (pinned by
-// TestRetryIdempotencyRegister). The retry path reports `open` until the
-// Core/API owner's own recorded act defines the retry command's keying
-// (the S7 §5 gap 7) — no class is invented here and no mapping to the
-// envelope's RetryClass register or the submit key's replay window is
-// implied (the P-S7-03 boundary: the coded registers are precedents,
-// never pre-decided mappings).
+// TestRetryIdempotencyRegister). The register is UNCHANGED by the retry
+// command's keying act (the S7 §5 gap 8 boundary); what changed is the
+// class the retry path REPORTS: with the M-7 command implemented
+// Supplied-keyed (the caller's idempotency reference carried on the
+// command; the same reference re-presented returns the original result,
+// replayed, never regenerated; a contradicting re-issue is the typed
+// CONFLICT_STATE — the coded approval-decision precedent's class), the
+// honest report is `supplied_keyed`, not `open` (the keying act the
+// `open` report awaited is this implementation's typing; the canonical
+// schema resolves at the publication act per the O-1 precedent). No
+// mapping to the envelope's RetryClass register or the submit key's
+// replay window is implied (the P-S7-03 boundary: the coded registers
+// are precedents, never pre-decided mappings).
 type RetryIdempotencyClass string
 
 const (
@@ -93,13 +105,58 @@ type RetryEligibility struct {
 // own recorded facts: the Job's authoritative state and whether any
 // side-effect intent of the Job carries an Unknown outcome. No member is
 // derived by any client; the read's caller (the app layer) authorizes
-// through the one decision port before this computation runs.
+// through the one decision port before this computation runs. The SAME
+// function is the retry command's eligibility gate (IMPL-21): the command
+// acts only where this verdict allows — one eligibility truth, never a
+// second one forked for the command path.
 func RetryEligibilityFor(state string, unknownSideEffects bool) RetryEligibility {
 	eligible := state == JobFailed || state == JobTimedOut
 	return RetryEligibility{
 		Eligible:               eligible,
 		RiskStatement:          retryRiskStatement,
-		IdempotencyClass:       RetryIdempotencyOpen,
+		IdempotencyClass:       RetryIdempotencySuppliedKeyed,
 		ReconciliationRequired: state == JobNeedsReconciliation || unknownSideEffects,
 	}
+}
+
+// RetryRequest is the M-7 retry command's typed request: the Job's
+// identity and the operation's idempotency reference. A retry is a NEW
+// Attempt of the same Job — never a new Job — so the command names the
+// SAME Job and carries the Supplied-keyed idempotency reference (the
+// frozen law: the retried operation carries its idempotency reference;
+// the same reference returns the original result, replayed, never
+// regenerated; a contradicting re-issue is the typed CONFLICT_STATE).
+type RetryRequest struct {
+	JobID                string
+	IdempotencyReference string
+	// CorrelationID is the command's own request identity (the coded
+	// command convention; it rides the retry event's correlation when
+	// presented, else the Job's own).
+	CorrelationID string
+}
+
+// RetryOutcome is the command's typed result: the post-command Job and
+// the honest replay flag. Replayed=true reports the Supplied-keyed replay
+// — the same reference re-presented returned the recorded outcome without
+// re-applying (no second re-queue, no second event); it never reports a
+// regenerated execution.
+type RetryOutcome struct {
+	Job      Job
+	Replayed bool
+}
+
+// MaxRetryReferenceRunes bounds the caller-supplied idempotency
+// reference (the implementation's own shape for the journal-recorded
+// reference; the canonical bound resolves at the publication act).
+const MaxRetryReferenceRunes = 256
+
+// ValidRetryReference reports whether the caller-supplied idempotency
+// reference is well-formed: non-empty (the Supplied-keyed class — the
+// operation carries its reference; whitespace-only is empty-shaped, the
+// submit key's TrimSpace discipline) and within the coded bound.
+func ValidRetryReference(ref string) bool {
+	if strings.TrimSpace(ref) == "" {
+		return false
+	}
+	return len([]rune(ref)) <= MaxRetryReferenceRunes
 }
