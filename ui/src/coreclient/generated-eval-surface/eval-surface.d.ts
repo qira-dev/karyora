@@ -402,6 +402,239 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/jobs/{id}/retry-eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one job's retry eligibility (F9; the Core's own verdict — a read that mutates nothing).
+         * @description The read returns exactly the four recorded typed members: the eligibility verdict (allow only for the terminal Failed/TimedOut dispositions), the side-effect risk statement in the recorded exact terms, the idempotency guarantee class (the closed register), and the reconciliation requirement. No ineligible-reason field exists.
+         */
+        get: operations["getJobRetryEligibility"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry one job (F9; a NEW Attempt of the same Job — never a new Job).
+         * @description The Supplied-keyed command: the same idempotency reference returns the recorded outcome with replayed=true, never regenerated; a contradicting re-issue or a consumed reference is 409 CONFLICT_STATE. The eligibility gate is the eligibility read's own verdict object — one eligibility truth. Retry is not reversal: no prior record is rewritten.
+         */
+        post: operations["retryJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/providers/{id}/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ProviderId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one wired provider's capability descriptor (F2; a standing read that probes nothing).
+         * @description The coded CapabilitySet verbatim — the eleven Feature axes as three-state facts (unknown means unsupported, fail closed), the limits members (0 = unknown), the estimator ref, and the notes law. The read runs no network probe and creates nothing; an identity outside the wired set is 404 (the no-leak rule).
+         */
+        get: operations["getProviderCapabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/session/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke the presented session (F11; the per-token logout).
+         * @description The fail-closed audited command: the operation-specific audit record is written BEFORE the effect. The effect is idempotent at the Core, but the wire refusal class for a dead credential stays the typed AUTHZ_DENIED envelope — a second logout refuses rather than reporting a fresh success; only a confirmed 200 carries the revocation truth.
+         */
+        post: operations["sessionLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/session/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke every live session of this instance (F11; the credential-change revocation).
+         * @description The same fail-closed audited posture as the per-token logout. The response reports the post-effect live-session count — counts only, never token material.
+         */
+        post: operations["sessionRevokeAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List audit records (F12; the permission-filtered, server-side, paginated read).
+         * @description Chain sequence descending (newest first — the append-only chain's sequence IS the time order), through the coded audit.read read class. The optional policy_decision filter is the closed coded register; the opaque keyset cursor is a position, not a page number; the cursor's absence marks the final page. Read-only — no source record is ever dismissed, deleted, or edited.
+         */
+        get: operations["listAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export audit records in a range (F12; the read-with-export — mutates nothing).
+         * @description Chronological order (sequence ascending) — the export document's natural reading order. A range exceeding the finite bound truncates honestly (truncated=true) — never silently. A point-in-time read: no tamper-resistance is added and no integrity receipt is claimed. Idempotency class "None required — safe re-issue": the identical re-request returns the identical record set.
+         */
+        get: operations["exportAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/attachments/registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the served attachment registry (F4; the Core's own contract data).
+         * @description The Core's supported attachment types and per-type size limits as queryable data — the read creates nothing and probes nothing. No per-scope difference exists in the implementation; the values are typed honestly and their canonical resolution stays the recorded owners'.
+         */
+        get: operations["getAttachmentRegistry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        /** List one conversation's attachments (F4; the keyset list semantics). */
+        get: operations["listConversationAttachments"];
+        put?: never;
+        /**
+         * Upload one identity-bearing attachment (F4; the typed rejections run before any byte is stored).
+         * @description The body carries the caller-supplied upload identity, the display file name (a label, never a path), a registry content type, the opaque input revision, and the base64 (standard, padded) content. The typed rejections (type membership, then the per-type size bound) ride the envelope before any byte is stored. The replay ruling: the same (conversation, upload identity) with the same digest returns the recorded attachment unchanged; a different digest is 409 CONFLICT_STATE. A lost response resolves ONLY by the status query — never a blind re-upload.
+         */
+        post: operations["uploadConversationAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}/attachments/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one upload identity's authoritative attachment state (F4; a pure query — never a re-upload).
+         * @description Resolved by (conversation identity, upload identity). An upload identity bound to a different conversation is the SAME typed 404 as an unknown identity (the no-leak rule).
+         */
+        get: operations["getAttachmentStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}/attachments/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete one attachment (F4; the draft-stage delete — no implicit target).
+         * @description The body names exactly the attachment. The record and its content reference are removed in one transaction; the content-addressed object becomes collectible through the store's normal barrier — never a direct deletion. Unknown or foreign-bound: the same typed 404.
+         */
+        post: operations["deleteConversationAttachment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -752,11 +985,169 @@ export interface components {
             updated: number;
             unchanged: number;
         };
+        /** @description The F9 read's four recorded typed members and nothing beyond them (no ineligible-reason field exists). */
+        RetryEligibility: {
+            /** @description Allow only for the terminal Failed/TimedOut dispositions; deny every non-terminal state, NeedsReconciliation, Cancelled, and Succeeded. */
+            eligible: boolean;
+            /** @description The Core-supplied statement rendered WITH the control, in the recorded exact terms — never a footnote. */
+            risk_statement: string;
+            idempotency_class: components["schemas"]["RetryIdempotencyClass"];
+            /** @description True when the state is NeedsReconciliation or any side-effect intent carries an Unknown outcome; rendered `needs reconciliation` — retry is not reversal. */
+            reconciliation_required: boolean;
+        };
+        /** @description The closed coded guarantee-class register — supplied_keyed | open | none. */
+        RetryIdempotencyClass: string;
+        /** @description The Supplied-keyed retry command's body; the reference the retried operation carries. */
+        RetryCommandRequest: {
+            idempotency_reference: string;
+        };
+        /** @description The retried Job; replayed=true on the same-reference replay (never regenerated). */
+        RetryCommandResult: {
+            job: components["schemas"]["Job"];
+            replayed: boolean;
+        };
+        /** @description The F2 descriptor — the identity members and the coded CapabilitySet verbatim (no source/verification-state/freshness member exists in the coded vocabulary; each matrix field's presence stays Unverified; no capability promise exists — C3-29's frozen boundary). */
+        CapabilityDescriptor: {
+            provider: string;
+            profile: components["schemas"]["ProfileID"];
+            capabilities: components["schemas"]["CapabilitySet"];
+        };
+        /** @description The effective profile the facts resolve through (the registered default profile when the caller supplies no model). */
+        ProfileID: {
+            provider: string;
+            endpoint: string;
+            model: string;
+            region?: string;
+            /** @description Refreshable metadata. */
+            api_version?: string;
+        };
+        /** @description The closed three-state register — supported | unsupported | unknown (unknown is never allowed; fail closed). */
+        CapabilityState: string;
+        /** @description The coded CapabilitySet (F2, the frozen [S] vocabulary) — the eleven axes as three-state facts; limits of 0 mean unknown (omitted when zero); model names, prices, and API versions are refreshable profile metadata, never code constants of behavior. */
+        CapabilitySet: {
+            chat: components["schemas"]["CapabilityState"];
+            streaming: components["schemas"]["CapabilityState"];
+            tools: components["schemas"]["CapabilityState"];
+            parallel_tool_calls: components["schemas"]["CapabilityState"];
+            structured_output: components["schemas"]["CapabilityState"];
+            vision: components["schemas"]["CapabilityState"];
+            audio: components["schemas"]["CapabilityState"];
+            embeddings: components["schemas"]["CapabilityState"];
+            batch: components["schemas"]["CapabilityState"];
+            context_caching: components["schemas"]["CapabilityState"];
+            conversation_continuation: components["schemas"]["CapabilityState"];
+            /** @description 0 = unknown (omitted when zero). */
+            max_context_tokens?: number;
+            /** @description 0 = unknown (omitted when zero). */
+            max_output_tokens?: number;
+            token_estimator_ref?: string;
+            notes?: string;
+        };
+        /** @description The per-token logout's confirmed outcome. */
+        SessionLogoutResult: {
+            revoked: boolean;
+        };
+        /** @description The credential-change revocation's post-effect state — counts only, never token material. */
+        SessionRevokeAllResult: {
+            live_sessions: number;
+        };
+        /** @description One audit list/export entry — the record's chain position and the record itself. */
+        AuditEntry: {
+            sequence: number;
+            record: components["schemas"]["AuditRecord"];
+        };
+        /** @description The coded [S] audit-record schema carried exactly (digests and CAS references only — never content, never secret values). */
+        AuditRecord: {
+            audit_id: string;
+            schema_version: number;
+            /** @description RFC3339Nano UTC. */
+            time: string;
+            actor: string;
+            action: string;
+            scope: string;
+            policy_decision: string;
+            policy_reference: string;
+            job_id?: string;
+            attempt_id?: string;
+            provider_id?: string;
+            plugin_id?: string;
+            outcome: string;
+            content_digests?: string[];
+            content_refs?: string[];
+            correlation_id: string;
+        };
+        /** @description One bounded audit page — chain sequence descending (newest first). */
+        AuditList: {
+            entries: components["schemas"]["AuditEntry"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description The export document — chronological order, the honest count, the echoed range, the generation instant, and the honest truncation flag (a point-in-time read; no receipt claimed). */
+        AuditExport: {
+            records: components["schemas"]["AuditEntry"][];
+            count: number;
+            from?: string;
+            to?: string;
+            generated_at: string;
+            truncated: boolean;
+        };
+        /** @description One served registry member (P-S12-01) — the implementation's typed values; the canonical registry contents stay the recorded owners'. */
+        AttachmentTypeSpec: {
+            content_type: string;
+            /** Format: int64 */
+            max_bytes: number;
+        };
+        /** @description The closed coded attachment-state register — `stored` (the only coded value; a rejected upload creates no record and a deleted record is removed, never tombstoned). */
+        AttachmentState: string;
+        /** @description The closed coded untrusted-content label register — `untrusted` (the only coded value; P-S12-05 — every imported attachment is untrusted). */
+        UntrustedLabel: string;
+        /** @description One stored attachment (F4) — a conversation-scoped durable object; the digest is the CAS content address (`sha256:<hex>`). */
+        AttachmentRecord: {
+            attachment_id: string;
+            conversation_id: string;
+            /** @description The caller-supplied operation identity */
+            upload_id: string;
+            /** @description The display label the upload presented — never a path. */
+            file_name: string;
+            content_type: string;
+            /**
+             * Format: int64
+             * @description The CAS-verified byte count.
+             */
+            size_bytes: number;
+            digest: string;
+            untrusted_label: components["schemas"]["UntrustedLabel"];
+            /** @description The opaque caller token — stored verbatim */
+            input_revision: string;
+            state: components["schemas"]["AttachmentState"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description The upload body — the identity, the display name, a registry type, the opaque revision, and the base64 (standard, padded) content. */
+        AttachmentUploadRequest: {
+            upload_id: string;
+            file_name: string;
+            content_type: string;
+            input_revision: string;
+            content_b64: string;
+        };
+        /** @description One bounded attachments page — chronological. */
+        AttachmentList: {
+            attachments: components["schemas"]["AttachmentRecord"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description The delete body — exactly the attachment, no implicit target. */
+        AttachmentDeleteRequest: {
+            attachment_id: string;
+        };
     };
     responses: never;
     parameters: {
         JobId: string;
         ConnectionId: string;
+        ProviderId: string;
+        ConversationId: string;
     };
     requestBodies: never;
     headers: never;
@@ -1357,6 +1748,297 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationMutationResult"];
+                };
+            };
+        };
+    };
+    getJobRetryEligibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Core's verdict; the retry command acts only where it allows. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        retry_eligibility: components["schemas"]["RetryEligibility"];
+                    };
+                };
+            };
+        };
+    };
+    retryJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryCommandRequest"];
+            };
+        };
+        responses: {
+            /** @description The retried Job (replayed=true on the same-reference replay). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetryCommandResult"];
+                };
+            };
+        };
+    };
+    getProviderCapabilities: {
+        parameters: {
+            query?: {
+                model?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ProviderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The descriptor resolved through the effective profile (the registered default when no model is supplied). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        capability_descriptor: components["schemas"]["CapabilityDescriptor"];
+                    };
+                };
+            };
+        };
+    };
+    sessionLogout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The presented session revoked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionLogoutResult"];
+                };
+            };
+        };
+    };
+    sessionRevokeAll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every live session of the instance invalidated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionRevokeAllResult"];
+                };
+            };
+        };
+    };
+    listAudit: {
+        parameters: {
+            query?: {
+                limit?: number;
+                policy_decision?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditList"];
+                };
+            };
+        };
+    };
+    exportAudit: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The export document with the honest count, echoed range, and truncation flag. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditExport"];
+                };
+            };
+        };
+    };
+    getAttachmentRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The served registry members. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        types: components["schemas"]["AttachmentTypeSpec"][];
+                    };
+                };
+            };
+        };
+    };
+    listConversationAttachments: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The chronological page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentList"];
+                };
+            };
+        };
+    };
+    uploadConversationAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description The stored (or replayed) attachment record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        attachment: components["schemas"]["AttachmentRecord"];
+                    };
+                };
+            };
+        };
+    };
+    getAttachmentStatus: {
+        parameters: {
+            query: {
+                upload_id: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The record for the upload identity. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        attachment: components["schemas"]["AttachmentRecord"];
+                    };
+                };
+            };
+        };
+    };
+    deleteConversationAttachment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachmentDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description The confirmed delete (the confirmed 200 IS the outcome; no tombstone exists). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
         };

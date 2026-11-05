@@ -14,7 +14,13 @@ info:
     Frozen families carried by this document (each frozen by its own recorded
     owner LIVE act; the version values recorded at the acts):
       - F1  error envelope (the D-35 four-field envelope; the coded error register)
+      - F2  provider/model capability (the coded CapabilitySet vocabulary; the
+            descriptor read; the [P] twelve-field matrix stays AS PROPOSED —
+            each field's presence Unverified)
       - F3  provider credential/connection records and operations
+      - F4  the attachment surface (the conversation/Ask laws' family — the
+            attachment operations; the conversation-authority mapping [B]
+            stays its recorded owner's item)
       - F5  the context-snapshot read
       - F6  the run submission path (the pre-submit review, the Supplied submit
             idempotency, the 72 h post-terminal replay window)
@@ -22,9 +28,13 @@ info:
             access rule, the approval `Waiting` reason, the Jobs list semantics)
       - F8  permission/approval (the accept/reject command identity)
       - F9  cancellation/retry (the cooperative cancel intent model; the
-            retry semantics as supplied; the eligibility read stays ABSENT
-            from this published set — the frozen implementation target)
+            retry semantics as supplied; the eligibility read and the retry
+            command carried as implemented)
       - F10 the event record, the cursor scope, the replay outcomes
+      - F11 the Local/Remote scope (the C-4 logout/revocation commands; the
+            select-wire idempotency class stays its recorded owner's item)
+      - F12 activity/audit (the permission-filtered list and the export;
+            the correction stays absent — the recorded verified absence)
       - F13 notification (the grouped list read, the unread counts read,
             the read/unread/clear mutations; the preferences' DEFAULTS stay
             OUT of this published set — the Checkpoint-C path)
@@ -34,9 +44,12 @@ info:
     that adapter's own implementation and map onto this published contract;
     this document is the canonical vocabulary, not any one adapter's route table.
 
-    Family F2 (the capability descriptor) is NOT frozen: every `capabilities`
-    member below is typed as the Core's coded capability set carried as an open
-    object until that family's own recorded act.
+    Family F2 (the capability descriptor) was frozen by its own recorded act
+    (2026-11-05) and its descriptor read is carried below with the coded
+    CapabilitySet vocabulary. The two `capabilities` members inside the F6
+    review payload and the F3 test report keep their open-object carried
+    form byte-identical; resolving them onto the canonical CapabilitySet
+    schema stays a later recorded act's item.
 
     F9 (cancellation/retry) frozen content carried: the cooperative cancel
     intent model as coded — a cancel on a queued Job transitions directly
@@ -49,20 +62,29 @@ info:
     reserved `retryClass` key with the coded operation-level retry
     classification: never | safe-retry | backoff | reconcile.
 
-    Honest absences (recorded, never invented): the F9 retry-eligibility
-    read is NOT implemented — the frozen contract is its implementation
-    target and no operation or schema of it is published here; the F13
+    Honest absences (recorded, never invented): the F4 conversation
+    surface's own operations (the aggregate, list/search, and read paths of
+    the implemented conversation mapping) are not carried in this set —
+    their publication stays its own recorded item; the F4 attachment gaps'
+    canonical values (the registry contents, the upload identity's class,
+    the revision token's form, the rejection codes, the label classes, the
+    participation policy, the access rule) stay their recorded owners' —
+    the attachment schemas below carry the implementation's typed forms
+    verbatim; the F12 correction operation stays absent (the recorded
+    verified absence — prior records are never mutated); the F13
     preferences' DEFAULTS stay OUT of this published set (the Checkpoint-C
     path — nothing of them enters these contracts); the F13 stream
     transport and the OS-delivery surface stay their recorded gates' items
     (the UI-26/C-6 gate and the UI-34 FINAL freeze) and carry no schema
     content here.
 
-    The local loopback adapter's notification serving paths — GET
-    /v1/notifications, GET /v1/notifications/counts, POST
-    /v1/notifications/read, POST /v1/notifications/unread, POST
-    /v1/notifications/clear — are that adapter's own non-canonical
-    implementation mapping onto the published vocabulary below.
+    The local loopback adapter's serving paths for the families carried
+    here (the notification paths — GET /v1/notifications, GET
+    /v1/notifications/counts, POST /v1/notifications/read, POST
+    /v1/notifications/unread, POST /v1/notifications/clear — and the
+    retry, capability, session, audit, and attachment paths) are that
+    adapter's own non-canonical implementation mapping onto the published
+    vocabulary below.
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 paths:
   /jobs:
@@ -534,6 +556,299 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotificationMutationResult'
+  /jobs/{id}/retry-eligibility:
+    get:
+      operationId: getJobRetryEligibility
+      summary: Read one job's retry eligibility (F9; the Core's own verdict — a read that mutates nothing).
+      description: >-
+        The read returns exactly the four recorded typed members: the
+        eligibility verdict (allow only for the terminal Failed/TimedOut
+        dispositions), the side-effect risk statement in the recorded exact
+        terms, the idempotency guarantee class (the closed register), and
+        the reconciliation requirement. No ineligible-reason field exists.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The Core's verdict; the retry command acts only where it allows.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [retry_eligibility]
+                properties:
+                  retry_eligibility: { $ref: '#/components/schemas/RetryEligibility' }
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+  /jobs/{id}/retry:
+    post:
+      operationId: retryJob
+      summary: Retry one job (F9; a NEW Attempt of the same Job — never a new Job).
+      description: >-
+        The Supplied-keyed command: the same idempotency reference returns
+        the recorded outcome with replayed=true, never regenerated; a
+        contradicting re-issue or a consumed reference is 409 CONFLICT_STATE.
+        The eligibility gate is the eligibility read's own verdict object —
+        one eligibility truth. Retry is not reversal: no prior record is
+        rewritten.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetryCommandRequest'
+      responses:
+        '200':
+          description: The retried Job (replayed=true on the same-reference replay).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetryCommandResult'
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+  /providers/{id}/capabilities:
+    get:
+      operationId: getProviderCapabilities
+      summary: Read one wired provider's capability descriptor (F2; a standing read that probes nothing).
+      description: >-
+        The coded CapabilitySet verbatim — the eleven Feature axes as
+        three-state facts (unknown means unsupported, fail closed), the
+        limits members (0 = unknown), the estimator ref, and the notes law.
+        The read runs no network probe and creates nothing; an identity
+        outside the wired set is 404 (the no-leak rule).
+      parameters:
+        - $ref: '#/components/parameters/ProviderId'
+        - name: model
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The descriptor resolved through the effective profile (the registered default when no model is supplied).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [capability_descriptor]
+                properties:
+                  capability_descriptor: { $ref: '#/components/schemas/CapabilityDescriptor' }
+    parameters:
+      - $ref: '#/components/parameters/ProviderId'
+  /session/logout:
+    post:
+      operationId: sessionLogout
+      summary: Revoke the presented session (F11; the per-token logout).
+      description: >-
+        The fail-closed audited command: the operation-specific audit record
+        is written BEFORE the effect. The effect is idempotent at the Core,
+        but the wire refusal class for a dead credential stays the typed
+        AUTHZ_DENIED envelope — a second logout refuses rather than
+        reporting a fresh success; only a confirmed 200 carries the
+        revocation truth.
+      responses:
+        '200':
+          description: The presented session revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionLogoutResult'
+  /session/revoke-all:
+    post:
+      operationId: sessionRevokeAll
+      summary: Revoke every live session of this instance (F11; the credential-change revocation).
+      description: >-
+        The same fail-closed audited posture as the per-token logout. The
+        response reports the post-effect live-session count — counts only,
+        never token material.
+      responses:
+        '200':
+          description: Every live session of the instance invalidated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionRevokeAllResult'
+  /audit:
+    get:
+      operationId: listAudit
+      summary: List audit records (F12; the permission-filtered, server-side, paginated read).
+      description: >-
+        Chain sequence descending (newest first — the append-only chain's
+        sequence IS the time order), through the coded audit.read read
+        class. The optional policy_decision filter is the closed coded
+        register; the opaque keyset cursor is a position, not a page
+        number; the cursor's absence marks the final page. Read-only — no
+        source record is ever dismissed, deleted, or edited.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: policy_decision
+          in: query
+          schema: { type: string }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditList'
+  /audit/export:
+    get:
+      operationId: exportAudit
+      summary: Export audit records in a range (F12; the read-with-export — mutates nothing).
+      description: >-
+        Chronological order (sequence ascending) — the export document's
+        natural reading order. A range exceeding the finite bound truncates
+        honestly (truncated=true) — never silently. A point-in-time read:
+        no tamper-resistance is added and no integrity receipt is claimed.
+        Idempotency class "None required — safe re-issue": the identical
+        re-request returns the identical record set.
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string }
+        - name: to
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+      responses:
+        '200':
+          description: The export document with the honest count, echoed range, and truncation flag.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditExport'
+  /conversations/attachments/registry:
+    get:
+      operationId: getAttachmentRegistry
+      summary: Read the served attachment registry (F4; the Core's own contract data).
+      description: >-
+        The Core's supported attachment types and per-type size limits as
+        queryable data — the read creates nothing and probes nothing. No
+        per-scope difference exists in the implementation; the values are
+        typed honestly and their canonical resolution stays the recorded
+        owners'.
+      responses:
+        '200':
+          description: The served registry members.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [types]
+                properties:
+                  types:
+                    type: array
+                    items: { $ref: '#/components/schemas/AttachmentTypeSpec' }
+  /conversations/{id}/attachments:
+    post:
+      operationId: uploadConversationAttachment
+      summary: Upload one identity-bearing attachment (F4; the typed rejections run before any byte is stored).
+      description: >-
+        The body carries the caller-supplied upload identity, the display
+        file name (a label, never a path), a registry content type, the
+        opaque input revision, and the base64 (standard, padded) content.
+        The typed rejections (type membership, then the per-type size
+        bound) ride the envelope before any byte is stored. The replay
+        ruling: the same (conversation, upload identity) with the same
+        digest returns the recorded attachment unchanged; a different
+        digest is 409 CONFLICT_STATE. A lost response resolves ONLY by the
+        status query — never a blind re-upload.
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachmentUploadRequest'
+      responses:
+        '200':
+          description: The stored (or replayed) attachment record.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [attachment]
+                properties:
+                  attachment: { $ref: '#/components/schemas/AttachmentRecord' }
+    get:
+      operationId: listConversationAttachments
+      summary: List one conversation's attachments (F4; the keyset list semantics).
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The chronological page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentList'
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+  /conversations/{id}/attachments/status:
+    get:
+      operationId: getAttachmentStatus
+      summary: Read one upload identity's authoritative attachment state (F4; a pure query — never a re-upload).
+      description: >-
+        Resolved by (conversation identity, upload identity). An upload
+        identity bound to a different conversation is the SAME typed 404 as
+        an unknown identity (the no-leak rule).
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: upload_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The record for the upload identity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [attachment]
+                properties:
+                  attachment: { $ref: '#/components/schemas/AttachmentRecord' }
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+  /conversations/{id}/attachments/delete:
+    post:
+      operationId: deleteConversationAttachment
+      summary: Delete one attachment (F4; the draft-stage delete — no implicit target).
+      description: >-
+        The body names exactly the attachment. The record and its content
+        reference are removed in one transaction; the content-addressed
+        object becomes collectible through the store's normal barrier —
+        never a direct deletion. Unknown or foreign-bound: the same typed 404.
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachmentDeleteRequest'
+      responses:
+        '200':
+          description: The confirmed delete (the confirmed 200 IS the outcome; no tombstone exists).
+          content:
+            application/json:
+              schema: { type: object }
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
 components:
   parameters:
     JobId:
@@ -542,6 +857,16 @@ components:
       required: true
       schema: { type: string }
     ConnectionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    ProviderId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    ConversationId:
       name: id
       in: path
       required: true
@@ -1001,3 +1326,204 @@ components:
       properties:
         updated: { type: integer }
         unchanged: { type: integer }
+    RetryEligibility:
+      type: object
+      description: >-
+        The F9 read's four recorded typed members and nothing beyond them
+        (no ineligible-reason field exists).
+      required: [eligible, risk_statement, idempotency_class, reconciliation_required]
+      properties:
+        eligible: { type: boolean, description: 'Allow only for the terminal Failed/TimedOut dispositions; deny every non-terminal state, NeedsReconciliation, Cancelled, and Succeeded.' }
+        risk_statement: { type: string, description: 'The Core-supplied statement rendered WITH the control, in the recorded exact terms — never a footnote.' }
+        idempotency_class: { $ref: '#/components/schemas/RetryIdempotencyClass' }
+        reconciliation_required: { type: boolean, description: 'True when the state is NeedsReconciliation or any side-effect intent carries an Unknown outcome; rendered `needs reconciliation` — retry is not reversal.' }
+    RetryIdempotencyClass:
+      type: string
+      description: The closed coded guarantee-class register — supplied_keyed | open | none.
+    RetryCommandRequest:
+      type: object
+      description: The Supplied-keyed retry command's body; the reference the retried operation carries.
+      required: [idempotency_reference]
+      properties:
+        idempotency_reference: { type: string }
+    RetryCommandResult:
+      type: object
+      description: The retried Job; replayed=true on the same-reference replay (never regenerated).
+      required: [job, replayed]
+      properties:
+        job: { $ref: '#/components/schemas/Job' }
+        replayed: { type: boolean }
+    CapabilityDescriptor:
+      type: object
+      description: >-
+        The F2 descriptor — the identity members and the coded
+        CapabilitySet verbatim (no source/verification-state/freshness
+        member exists in the coded vocabulary; each matrix field's presence
+        stays Unverified; no capability promise exists — C3-29's frozen
+        boundary).
+      required: [provider, profile, capabilities]
+      properties:
+        provider: { type: string }
+        profile: { $ref: '#/components/schemas/ProfileID' }
+        capabilities: { $ref: '#/components/schemas/CapabilitySet' }
+    ProfileID:
+      type: object
+      description: The effective profile the facts resolve through (the registered default profile when the caller supplies no model).
+      required: [provider, endpoint, model]
+      properties:
+        provider: { type: string }
+        endpoint: { type: string }
+        model: { type: string }
+        region: { type: string }
+        api_version: { type: string, description: Refreshable metadata. }
+    CapabilityState:
+      type: string
+      description: The closed three-state register — supported | unsupported | unknown (unknown is never allowed; fail closed).
+    CapabilitySet:
+      type: object
+      description: >-
+        The coded CapabilitySet (F2, the frozen [S] vocabulary) — the
+        eleven axes as three-state facts; limits of 0 mean unknown (omitted
+        when zero); model names, prices, and API versions are refreshable
+        profile metadata, never code constants of behavior.
+      required: [chat, streaming, tools, parallel_tool_calls, structured_output, vision, audio, embeddings, batch, context_caching, conversation_continuation]
+      properties:
+        chat: { $ref: '#/components/schemas/CapabilityState' }
+        streaming: { $ref: '#/components/schemas/CapabilityState' }
+        tools: { $ref: '#/components/schemas/CapabilityState' }
+        parallel_tool_calls: { $ref: '#/components/schemas/CapabilityState' }
+        structured_output: { $ref: '#/components/schemas/CapabilityState' }
+        vision: { $ref: '#/components/schemas/CapabilityState' }
+        audio: { $ref: '#/components/schemas/CapabilityState' }
+        embeddings: { $ref: '#/components/schemas/CapabilityState' }
+        batch: { $ref: '#/components/schemas/CapabilityState' }
+        context_caching: { $ref: '#/components/schemas/CapabilityState' }
+        conversation_continuation: { $ref: '#/components/schemas/CapabilityState' }
+        max_context_tokens: { type: integer, description: 0 = unknown (omitted when zero). }
+        max_output_tokens: { type: integer, description: 0 = unknown (omitted when zero). }
+        token_estimator_ref: { type: string }
+        notes: { type: string }
+    SessionLogoutResult:
+      type: object
+      description: The per-token logout's confirmed outcome.
+      required: [revoked]
+      properties:
+        revoked: { type: boolean }
+    SessionRevokeAllResult:
+      type: object
+      description: The credential-change revocation's post-effect state — counts only, never token material.
+      required: [live_sessions]
+      properties:
+        live_sessions: { type: integer }
+    AuditEntry:
+      type: object
+      description: One audit list/export entry — the record's chain position and the record itself.
+      required: [sequence, record]
+      properties:
+        sequence: { type: integer }
+        record: { $ref: '#/components/schemas/AuditRecord' }
+    AuditRecord:
+      type: object
+      description: The coded [S] audit-record schema carried exactly (digests and CAS references only — never content, never secret values).
+      required: [audit_id, schema_version, time, actor, action, scope, policy_decision, policy_reference, outcome, correlation_id]
+      properties:
+        audit_id: { type: string }
+        schema_version: { type: integer }
+        time: { type: string, description: RFC3339Nano UTC. }
+        actor: { type: string }
+        action: { type: string }
+        scope: { type: string }
+        policy_decision: { type: string }
+        policy_reference: { type: string }
+        job_id: { type: string }
+        attempt_id: { type: string }
+        provider_id: { type: string }
+        plugin_id: { type: string }
+        outcome: { type: string }
+        content_digests:
+          type: array
+          items: { type: string }
+        content_refs:
+          type: array
+          items: { type: string }
+        correlation_id: { type: string }
+    AuditList:
+      type: object
+      description: One bounded audit page — chain sequence descending (newest first).
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEntry' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    AuditExport:
+      type: object
+      description: The export document — chronological order, the honest count, the echoed range, the generation instant, and the honest truncation flag (a point-in-time read; no receipt claimed).
+      required: [records, count, generated_at, truncated]
+      properties:
+        records:
+          type: array
+          items: { $ref: '#/components/schemas/AuditEntry' }
+        count: { type: integer }
+        from: { type: string }
+        to: { type: string }
+        generated_at: { type: string }
+        truncated: { type: boolean }
+    AttachmentTypeSpec:
+      type: object
+      description: One served registry member (P-S12-01) — the implementation's typed values; the canonical registry contents stay the recorded owners'.
+      required: [content_type, max_bytes]
+      properties:
+        content_type: { type: string }
+        max_bytes: { type: integer, format: int64 }
+    AttachmentState:
+      type: string
+      description: The closed coded attachment-state register — `stored` (the only coded value; a rejected upload creates no record and a deleted record is removed, never tombstoned).
+    UntrustedLabel:
+      type: string
+      description: The closed coded untrusted-content label register — `untrusted` (the only coded value; P-S12-05 — every imported attachment is untrusted).
+    AttachmentRecord:
+      type: object
+      description: One stored attachment (F4) — a conversation-scoped durable object; the digest is the CAS content address (`sha256:<hex>`).
+      required: [attachment_id, conversation_id, upload_id, file_name, content_type, size_bytes, digest, untrusted_label, input_revision, state, created_at]
+      properties:
+        attachment_id: { type: string }
+        conversation_id: { type: string }
+        upload_id: { type: string, description: The caller-supplied operation identity, unique per conversation (the implementation's Supplied-keyed typing). }
+        file_name: { type: string, description: The display label the upload presented — never a path. }
+        content_type: { type: string }
+        size_bytes: { type: integer, format: int64, description: The CAS-verified byte count. }
+        digest: { type: string }
+        untrusted_label: { $ref: '#/components/schemas/UntrustedLabel' }
+        input_revision: { type: string, description: The opaque caller token — stored verbatim, echoed verbatim, never interpreted. }
+        state: { $ref: '#/components/schemas/AttachmentState' }
+        created_at: { type: string, format: date-time }
+    AttachmentUploadRequest:
+      type: object
+      description: The upload body — the identity, the display name, a registry type, the opaque revision, and the base64 (standard, padded) content.
+      required: [upload_id, file_name, content_type, input_revision, content_b64]
+      properties:
+        upload_id: { type: string }
+        file_name: { type: string }
+        content_type: { type: string }
+        input_revision: { type: string }
+        content_b64: { type: string }
+    AttachmentList:
+      type: object
+      description: One bounded attachments page — chronological.
+      required: [attachments]
+      properties:
+        attachments:
+          type: array
+          items: { $ref: '#/components/schemas/AttachmentRecord' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    AttachmentDeleteRequest:
+      type: object
+      description: The delete body — exactly the attachment, no implicit target.
+      required: [attachment_id]
+      properties:
+        attachment_id: { type: string }
