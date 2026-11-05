@@ -18,9 +18,11 @@ info:
             descriptor read; the [P] twelve-field matrix stays AS PROPOSED —
             each field's presence Unverified)
       - F3  provider credential/connection records and operations
-      - F4  the attachment surface (the conversation/Ask laws' family — the
-            attachment operations; the conversation-authority mapping [B]
-            stays its recorded owner's item)
+      - F4  the conversation and attachment surface (the conversation/Ask
+            laws' family — the implemented conversation mapping (the
+            aggregate create, list/search, read, and exchange surfaces)
+            plus the attachment operations; the conversation-authority
+            mapping [B] stays its recorded owner's item)
       - F5  the context-snapshot read
       - F6  the run submission path (the pre-submit review, the Supplied submit
             idempotency, the 72 h post-terminal replay window)
@@ -62,27 +64,31 @@ info:
     reserved `retryClass` key with the coded operation-level retry
     classification: never | safe-retry | backoff | reconcile.
 
-    Honest absences (recorded, never invented): the F4 conversation
-    surface's own operations (the aggregate, list/search, and read paths of
-    the implemented conversation mapping) are not carried in this set —
-    their publication stays its own recorded item; the F4 attachment gaps'
-    canonical values (the registry contents, the upload identity's class,
-    the revision token's form, the rejection codes, the label classes, the
-    participation policy, the access rule) stay their recorded owners' —
-    the attachment schemas below carry the implementation's typed forms
-    verbatim; the F12 correction operation stays absent (the recorded
-    verified absence — prior records are never mutated); the F13
-    preferences' DEFAULTS stay OUT of this published set (the Checkpoint-C
-    path — nothing of them enters these contracts); the F13 stream
-    transport and the OS-delivery surface stay their recorded gates' items
-    (the UI-26/C-6 gate and the UI-34 FINAL freeze) and carry no schema
-    content here.
+    Honest absences (recorded, never invented): the conversation shapes
+    carry no answering, assistant-role, stream, stop, or steering member
+    and no message-binding member — the answering/stream production path
+    is the named owner gap (P-S5-03) and the message-actions set stays
+    Open (M-4/M-6 absent); the send's correlation_id is the S4 request
+    identity, never an idempotency key (the class stays Open — a
+    duplicate identity on the same conversation refuses, never a replay
+    claim); the F4 attachment gaps' canonical values (the registry
+    contents, the upload identity's class, the revision token's form, the
+    rejection codes, the label classes, the participation policy, the
+    access rule) stay their recorded owners' — the attachment schemas
+    below carry the implementation's typed forms verbatim; the F12
+    correction operation stays absent (the recorded verified absence —
+    prior records are never mutated); the F13 preferences' DEFAULTS stay
+    OUT of this published set (the Checkpoint-C path — nothing of them
+    enters these contracts); the F13 stream transport and the OS-delivery
+    surface stay their recorded gates' items (the UI-26/C-6 gate and the
+    UI-34 FINAL freeze) and carry no schema content here.
 
     The local loopback adapter's serving paths for the families carried
     here (the notification paths — GET /v1/notifications, GET
     /v1/notifications/counts, POST /v1/notifications/read, POST
     /v1/notifications/unread, POST /v1/notifications/clear — and the
-    retry, capability, session, audit, and attachment paths) are that
+    conversation, retry, capability, session, audit, and attachment
+    paths) are that
     adapter's own non-canonical implementation mapping onto the published
     vocabulary below.
 jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
@@ -849,6 +855,152 @@ paths:
               schema: { type: object }
     parameters:
       - $ref: '#/components/parameters/ConversationId'
+  /conversations:
+    post:
+      operationId: createConversation
+      summary: Create one conversation (F4; the aggregate create — the Core mints the identity).
+      description: >-
+        The optional bounded display title is the only body member; the
+        Core mints the stable identity — the body never carries one. No
+        rename operation exists (creation-time titles only — the
+        Core-support-conditional discipline).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationCreateRequest'
+      responses:
+        '200':
+          description: The created conversation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversation]
+                properties:
+                  conversation: { $ref: '#/components/schemas/Conversation' }
+    get:
+      operationId: listConversations
+      summary: List conversations (F4; the keyset list semantics with the optional search).
+      description: >-
+        An empty page IS the honest no-match answer; the cursor's absence
+        marks the final page.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: q
+          in: query
+          schema: { type: string }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationList'
+  /conversations/{id}:
+    get:
+      operationId: getConversation
+      summary: Read one conversation (F4; the aggregate's own identity members).
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: The conversation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversation]
+                properties:
+                  conversation: { $ref: '#/components/schemas/Conversation' }
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+  /conversations/{id}/messages:
+    get:
+      operationId: listConversationMessages
+      summary: Read one conversation's authoritative messages (F4; timeline order, the aggregate's own state).
+      description: >-
+        The messages in timeline order (the 1-based per-conversation Seq
+        ascending) — the authoritative Core state inside the aggregate,
+        never a client-side projection. The cursor's absence marks the
+        final page.
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The messages page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationMessages'
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+  /conversations/{id}/send:
+    post:
+      operationId: sendConversationMessage
+      summary: Send one user message into a conversation (F4; the durable exchange linkage — an Ask is NEVER a durable Job).
+      description: >-
+        The body carries the message content and the send's correlation_id
+        — the S4 request identity a lost response resolves through
+        (query-before-retry). It is NOT an idempotency key (the class
+        stays Open): a duplicate identity on the same conversation
+        refuses — never a duplicate exchange, never a replay claim. The
+        persisted exchange's state register carries `recorded` only — no
+        answering/stream state exists (the named owner gap); no
+        exactly-once vocabulary exists anywhere.
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConversationSendRequest'
+      responses:
+        '200':
+          description: The durable exchange linkage and the persisted user message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationExchangeResult'
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+  /conversations/{id}/exchange:
+    get:
+      operationId: getConversationExchange
+      summary: Read one exchange's authoritative state (F4; the S4 query-before-retry read — a pure query).
+      description: >-
+        Resolved by (conversation identity, correlation identity) — the
+        correlation ID is PRIMARY and its uniqueness is what makes the
+        query authoritative. The authoritative exchange state for a lost
+        send response.
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+        - name: correlation_id
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: The exchange state and its persisted user message.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationExchangeResult'
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
 components:
   parameters:
     JobId:
@@ -1527,3 +1679,81 @@ components:
       required: [attachment_id]
       properties:
         attachment_id: { type: string }
+    Conversation:
+      type: object
+      description: The durable conversation aggregate's identity members (F4; P-S5-01) — the Core-issued stable identity; the title is display-only; updated_at advances when the aggregate's messages advance (the list's Core-defined sort key).
+      required: [conversation_id, title, created_at, updated_at]
+      properties:
+        conversation_id: { type: string }
+        title: { type: string, description: The optional bounded display title — an untitled conversation renders its own identity; no rename operation exists. }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    MessageRole:
+      type: string
+      description: The closed coded per-message role register — `user` (the only coded value; the answering/assistant role joins additively when its producer milestone implements it, never before — the named owner gap).
+    Message:
+      type: object
+      description: One authoritative conversation message (F4; P-S5-02) — a stable per-message identity, the intra-conversation ordering key, and the correlation-ID linkage to the send that produced it; safe metadata only.
+      required: [message_id, conversation_id, seq, role, content, created_at]
+      properties:
+        message_id: { type: string }
+        conversation_id: { type: string }
+        seq: { type: integer, description: The 1-based intra-conversation ordering key — monotonic within one conversation, the timeline's authoritative order. }
+        role: { $ref: '#/components/schemas/MessageRole' }
+        content: { type: string }
+        correlation_id: { type: string }
+        created_at: { type: string, format: date-time }
+    ExchangeState:
+      type: string
+      description: The closed coded exchange-state register — `recorded` (the only coded value; the answering/stream states join additively with their producer — no value is invented for a producer that does not exist).
+    Exchange:
+      type: object
+      description: The send's durable linkage row (F4; P-S5-05) — the correlation ID is PRIMARY (the identity the S4 query-before-retry read resolves through); it is NOT an idempotency key (the class stays Open).
+      required: [correlation_id, conversation_id, user_message_id, state, created_at]
+      properties:
+        correlation_id: { type: string }
+        conversation_id: { type: string }
+        user_message_id: { type: string }
+        state: { $ref: '#/components/schemas/ExchangeState' }
+        created_at: { type: string, format: date-time }
+    ConversationCreateRequest:
+      type: object
+      description: The create body — the optional bounded display title is the only member; the Core mints the identity.
+      properties:
+        title: { type: string }
+    ConversationSendRequest:
+      type: object
+      description: The send body — the message content and the correlation_id request identity (S4; never an idempotency key).
+      required: [content, correlation_id]
+      properties:
+        content: { type: string }
+        correlation_id: { type: string }
+    ConversationExchangeResult:
+      type: object
+      description: The send's (and the S4 read's) outcome — the durable exchange linkage and the persisted user message.
+      required: [exchange, message]
+      properties:
+        exchange: { $ref: '#/components/schemas/Exchange' }
+        message: { $ref: '#/components/schemas/Message' }
+    ConversationList:
+      type: object
+      description: One bounded conversations page (the keyset list semantics; an empty page IS the honest no-match answer).
+      required: [conversations]
+      properties:
+        conversations:
+          type: array
+          items: { $ref: '#/components/schemas/Conversation' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    ConversationMessages:
+      type: object
+      description: One bounded messages page (timeline order — the 1-based per-conversation Seq ascending).
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items: { $ref: '#/components/schemas/Message' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.

@@ -635,6 +635,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List conversations (F4; the keyset list semantics with the optional search).
+         * @description An empty page IS the honest no-match answer; the cursor's absence marks the final page.
+         */
+        get: operations["listConversations"];
+        put?: never;
+        /**
+         * Create one conversation (F4; the aggregate create — the Core mints the identity).
+         * @description The optional bounded display title is the only body member; the Core mints the stable identity — the body never carries one. No rename operation exists (creation-time titles only — the Core-support-conditional discipline).
+         */
+        post: operations["createConversation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        /** Read one conversation (F4; the aggregate's own identity members). */
+        get: operations["getConversation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one conversation's authoritative messages (F4; timeline order, the aggregate's own state).
+         * @description The messages in timeline order (the 1-based per-conversation Seq ascending) — the authoritative Core state inside the aggregate, never a client-side projection. The cursor's absence marks the final page.
+         */
+        get: operations["listConversationMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send one user message into a conversation (F4; the durable exchange linkage — an Ask is NEVER a durable Job).
+         * @description The body carries the message content and the send's correlation_id — the S4 request identity a lost response resolves through (query-before-retry). It is NOT an idempotency key (the class stays Open): a duplicate identity on the same conversation refuses — never a duplicate exchange, never a replay claim. The persisted exchange's state register carries `recorded` only — no answering/stream state exists (the named owner gap); no exactly-once vocabulary exists anywhere.
+         */
+        post: operations["sendConversationMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conversations/{id}/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one exchange's authoritative state (F4; the S4 query-before-retry read — a pure query).
+         * @description Resolved by (conversation identity, correlation identity) — the correlation ID is PRIMARY and its uniqueness is what makes the query authoritative. The authoritative exchange state for a lost send response.
+         */
+        get: operations["getConversationExchange"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1140,6 +1249,67 @@ export interface components {
         /** @description The delete body — exactly the attachment, no implicit target. */
         AttachmentDeleteRequest: {
             attachment_id: string;
+        };
+        /** @description The durable conversation aggregate's identity members (F4; P-S5-01) — the Core-issued stable identity; the title is display-only; updated_at advances when the aggregate's messages advance (the list's Core-defined sort key). */
+        Conversation: {
+            conversation_id: string;
+            /** @description The optional bounded display title — an untitled conversation renders its own identity; no rename operation exists. */
+            title: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description The closed coded per-message role register — `user` (the only coded value; the answering/assistant role joins additively when its producer milestone implements it, never before — the named owner gap). */
+        MessageRole: string;
+        /** @description One authoritative conversation message (F4; P-S5-02) — a stable per-message identity, the intra-conversation ordering key, and the correlation-ID linkage to the send that produced it; safe metadata only. */
+        Message: {
+            message_id: string;
+            conversation_id: string;
+            /** @description The 1-based intra-conversation ordering key — monotonic within one conversation */
+            seq: number;
+            role: components["schemas"]["MessageRole"];
+            content: string;
+            correlation_id?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description The closed coded exchange-state register — `recorded` (the only coded value; the answering/stream states join additively with their producer — no value is invented for a producer that does not exist). */
+        ExchangeState: string;
+        /** @description The send's durable linkage row (F4; P-S5-05) — the correlation ID is PRIMARY (the identity the S4 query-before-retry read resolves through); it is NOT an idempotency key (the class stays Open). */
+        Exchange: {
+            correlation_id: string;
+            conversation_id: string;
+            user_message_id: string;
+            state: components["schemas"]["ExchangeState"];
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description The create body — the optional bounded display title is the only member; the Core mints the identity. */
+        ConversationCreateRequest: {
+            title?: string;
+        };
+        /** @description The send body — the message content and the correlation_id request identity (S4; never an idempotency key). */
+        ConversationSendRequest: {
+            content: string;
+            correlation_id: string;
+        };
+        /** @description The send's (and the S4 read's) outcome — the durable exchange linkage and the persisted user message. */
+        ConversationExchangeResult: {
+            exchange: components["schemas"]["Exchange"];
+            message: components["schemas"]["Message"];
+        };
+        /** @description One bounded conversations page (the keyset list semantics; an empty page IS the honest no-match answer). */
+        ConversationList: {
+            conversations: components["schemas"]["Conversation"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description One bounded messages page (timeline order — the 1-based per-conversation Seq ascending). */
+        ConversationMessages: {
+            messages: components["schemas"]["Message"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
         };
     };
     responses: never;
@@ -2039,6 +2209,155 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    listConversations: {
+        parameters: {
+            query?: {
+                limit?: number;
+                q?: string;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationList"];
+                };
+            };
+        };
+    };
+    createConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The created conversation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        conversation: components["schemas"]["Conversation"];
+                    };
+                };
+            };
+        };
+    };
+    getConversation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The conversation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        conversation: components["schemas"]["Conversation"];
+                    };
+                };
+            };
+        };
+    };
+    listConversationMessages: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The messages page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationMessages"];
+                };
+            };
+        };
+    };
+    sendConversationMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationSendRequest"];
+            };
+        };
+        responses: {
+            /** @description The durable exchange linkage and the persisted user message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationExchangeResult"];
+                };
+            };
+        };
+    };
+    getConversationExchange: {
+        parameters: {
+            query: {
+                correlation_id: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["ConversationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The exchange state and its persisted user message. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationExchangeResult"];
                 };
             };
         };
