@@ -702,15 +702,16 @@ export interface WireConnectionTestRequest {
 }
 
 /** The sanitized M-25 report (the coded `ConnectionTestReport` tags): the
- *  verified endpoint/model + capability statuses on success; the typed
- *  error class + the bounded redacted detail on failure. The correlation
- *  id is the only request detail a surface needs. */
+ *  verified endpoint/model + the coded capability statuses (the
+ *  `CapabilitySet` shape, typed as `WireCapabilitySet`) on success; the
+ *  typed error class + the bounded redacted detail on failure. The
+ *  correlation id is the only request detail a surface needs. */
 export interface WireConnectionTestReport {
   readonly ok: boolean;
   readonly provider: string;
   readonly model_id: string;
   readonly base_url?: string;
-  readonly capabilities?: unknown;
+  readonly capabilities?: WireCapabilitySet;
   readonly error_kind?: string;
   readonly error_detail?: string;
   readonly correlation_id: string;
