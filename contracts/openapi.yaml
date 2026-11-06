@@ -49,9 +49,10 @@ info:
     Family F2 (the capability descriptor) was frozen by its own recorded act
     (2026-11-05) and its descriptor read is carried below with the coded
     CapabilitySet vocabulary. The two `capabilities` members inside the F6
-    review payload and the F3 test report keep their open-object carried
-    form byte-identical; resolving them onto the canonical CapabilitySet
-    schema stays a later recorded act's item.
+    review payload and the F3 test report are resolved onto that same
+    canonical CapabilitySet schema (the recorded 2026-11-06 reconciliation
+    act) — every member that serves the coded capability facts carries the
+    one canonical schema.
 
     F9 (cancellation/retry) frozen content carried: the cooperative cancel
     intent model as coded — a cancel on a queued Job transitions directly
@@ -1155,10 +1156,7 @@ components:
         wired: { type: boolean }
         model: { type: string }
         profile: { type: object, additionalProperties: true }
-        capabilities:
-          type: object
-          additionalProperties: true
-          description: The coded capability set (F2 unfrozen — the open object form).
+        capabilities: { $ref: '#/components/schemas/CapabilitySet' }
     ReviewEffect:
       type: object
       required: [effect, class, retry, unknown_outcome]
@@ -1343,10 +1341,7 @@ components:
         provider: { type: string }
         model_id: { type: string }
         base_url: { type: string }
-        capabilities:
-          type: object
-          additionalProperties: true
-          description: The coded capability set (F2 unfrozen — the open object form).
+        capabilities: { $ref: '#/components/schemas/CapabilitySet' }
         error_kind: { type: string, description: The sanitized failure kind; no upstream body. }
         error_detail: { type: string }
         correlation_id: { type: string }

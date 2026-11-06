@@ -863,10 +863,7 @@ export interface components {
             profile?: {
                 [key: string]: unknown;
             };
-            /** @description The coded capability set (F2 unfrozen — the open object form). */
-            capabilities?: {
-                [key: string]: unknown;
-            };
+            capabilities?: components["schemas"]["CapabilitySet"];
         };
         ReviewEffect: {
             effect: string;
@@ -1021,10 +1018,7 @@ export interface components {
             provider: string;
             model_id: string;
             base_url?: string;
-            /** @description The coded capability set (F2 unfrozen — the open object form). */
-            capabilities?: {
-                [key: string]: unknown;
-            };
+            capabilities?: components["schemas"]["CapabilitySet"];
             /** @description The sanitized failure kind; no upstream body. */
             error_kind?: string;
             error_detail?: string;
