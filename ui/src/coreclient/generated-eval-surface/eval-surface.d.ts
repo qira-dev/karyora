@@ -537,7 +537,7 @@ export interface paths {
         };
         /**
          * Export audit records in a range (F12; the read-with-export — mutates nothing).
-         * @description Chronological order (sequence ascending) — the export document's natural reading order. A range exceeding the finite bound truncates honestly (truncated=true) — never silently. A point-in-time read: no tamper-resistance is added and no integrity receipt is claimed. Idempotency class "None required — safe re-issue": the identical re-request returns the identical record set.
+         * @description Chronological order (sequence ascending) — the export document's natural reading order. A range exceeding the finite bound truncates honestly (truncated=true) — never silently. A point-in-time read: no tamper-resistance is added and no integrity receipt is claimed. Idempotency class "None required — safe re-issue": the identical re-request returns the identical record set. This implemented read-with-export operation IS the canonical export identity (the Q1 resolution of 2026-11-07 — the JSON document artifact; the correlation ID the request identity), and its authorization class IS the coded audit.read action class (the R1 resolution — no dedicated export member exists or is invented).
          */
         get: operations["exportAudit"];
         put?: never;
@@ -557,7 +557,7 @@ export interface paths {
         };
         /**
          * Read the served attachment registry (F4; the Core's own contract data).
-         * @description The Core's supported attachment types and per-type size limits as queryable data — the read creates nothing and probes nothing. No per-scope difference exists in the implementation; the values are typed honestly and their canonical resolution stays the recorded owners'.
+         * @description The Core's supported attachment types and per-type size limits as queryable data — the read creates nothing and probes nothing. No per-scope difference exists in the implementation; the served registry contents ARE the canonical values (the seven-gap set of 2026-11-07 — the implemented forms resolved canonical).
          */
         get: operations["getAttachmentRegistry"];
         put?: never;
@@ -602,7 +602,7 @@ export interface paths {
         };
         /**
          * Read one upload identity's authoritative attachment state (F4; a pure query — never a re-upload).
-         * @description Resolved by (conversation identity, upload identity). An upload identity bound to a different conversation is the SAME typed 404 as an unknown identity (the no-leak rule).
+         * @description Resolved by (conversation identity, upload identity). An upload identity bound to a different conversation is the SAME typed 404 as an unknown identity (the no-leak rule). This poll/read IS the canonical v1 upload-progress channel (the P1 resolution of 2026-11-07 — the S4-echo query; no stream-plane progress exists in v1; a stream-plane class rides only per a future stream-transport supply).
          */
         get: operations["getAttachmentStatus"];
         put?: never;
@@ -713,7 +713,7 @@ export interface paths {
         put?: never;
         /**
          * Send one user message into a conversation (F4; the durable exchange linkage — an Ask is NEVER a durable Job).
-         * @description The body carries the message content and the send's correlation_id — the S4 request identity a lost response resolves through (query-before-retry). It is NOT an idempotency key (the class stays Open): a duplicate identity on the same conversation refuses — never a duplicate exchange, never a replay claim. The persisted exchange's state register carries `recorded` only — no answering/stream state exists (the named owner gap); no exactly-once vocabulary exists anywhere.
+         * @description The body carries the message content and the send's correlation_id — the S4 request identity a lost response resolves through (query-before-retry). It is NOT an idempotency key — the coded Open class resolved canonical (the C1 resolution of 2026-11-07): a duplicate identity on the same conversation refuses — never a duplicate exchange, never a replay claim. The persisted exchange's state register carries `recorded` only — the v1 Ask surface IS record-only (the O-a resolution of 2026-11-07); no exactly-once vocabulary exists anywhere.
          */
         post: operations["sendConversationMessage"];
         delete?: never;
@@ -1109,7 +1109,7 @@ export interface components {
             job: components["schemas"]["Job"];
             replayed: boolean;
         };
-        /** @description The F2 descriptor — the identity members and the coded CapabilitySet verbatim (no source/verification-state/freshness member exists in the coded vocabulary; each matrix field's presence stays Unverified; no capability promise exists — C3-29's frozen boundary). */
+        /** @description The F2 descriptor — the identity members and the coded CapabilitySet verbatim (no source/verification-state/freshness member exists in the coded vocabulary — the ride's absence IS the v1 disposition, the R-A resolution of 2026-11-07; each matrix field's presence stays Unverified; the matrix's three absent fields carry no carrier in v1 — the 10-A/11-A/12-A resolutions of 2026-11-07: the error-path retry_after_ms/RATE_LIMITED carrier serves the retry law, never a capability claim; the region/residency carriers stay adjacent, never merged; cost stays zero-coded; no capability promise exists — C3-29's frozen boundary). */
         CapabilityDescriptor: {
             provider: string;
             profile: components["schemas"]["ProfileID"];
@@ -1194,7 +1194,7 @@ export interface components {
             generated_at: string;
             truncated: boolean;
         };
-        /** @description One served registry member (P-S12-01) — the implementation's typed values; the canonical registry contents stay the recorded owners'. */
+        /** @description One served registry member (P-S12-01) — the implementation's typed values; they ARE the canonical registry contents (the seven-gap set of 2026-11-07). */
         AttachmentTypeSpec: {
             content_type: string;
             /** Format: int64 */
@@ -1254,7 +1254,7 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
-        /** @description The closed coded per-message role register — `user` (the only coded value; the answering/assistant role joins additively when its producer milestone implements it, never before — the named owner gap). */
+        /** @description The closed coded per-message role register — `user` (the only coded value; the answering/assistant role joins additively at its producer milestone, never before — the v1 Ask surface IS record-only per the O-a resolution of 2026-11-07, and a future answer binds as a `Message` row of this register per the B1 class-level resolution). */
         MessageRole: string;
         /** @description One authoritative conversation message (F4; P-S5-02) — a stable per-message identity, the intra-conversation ordering key, and the correlation-ID linkage to the send that produced it; safe metadata only. */
         Message: {
@@ -1270,7 +1270,7 @@ export interface components {
         };
         /** @description The closed coded exchange-state register — `recorded` (the only coded value; the answering/stream states join additively with their producer — no value is invented for a producer that does not exist). */
         ExchangeState: string;
-        /** @description The send's durable linkage row (F4; P-S5-05) — the correlation ID is PRIMARY (the identity the S4 query-before-retry read resolves through); it is NOT an idempotency key (the class stays Open). */
+        /** @description The send's durable linkage row (F4; P-S5-05) — the correlation ID is PRIMARY (the identity the S4 query-before-retry read resolves through); it is NOT an idempotency key — the coded Open class resolved canonical (the C1 resolution of 2026-11-07). */
         Exchange: {
             correlation_id: string;
             conversation_id: string;
