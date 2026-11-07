@@ -932,6 +932,218 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/memories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List memory items (the B2 family; the keyset list semantics).
+         * @description The scope- and review-filtered memory list read — the Memory operation group's list/query member, added at the 2026-11-08 publication act (the recorded operation-group-addition ask, P1.5 R4, materializes AS this group's addition per the owner's LIVE card of 2026-11-07). The keyset list semantics; the cursor's absence marks the final page. Every protected effect rides the Core's single decision port — UI visibility is never enforcement — and the scope filter is part of the read authorization: scope never silently broadens, cross-user/workspace visibility is forbidden by default (MB §7.5), and a scope value renders only as the Core reports it (an unknown reported scope is never mapped to a known one). Team role names remain NAMES only (D-36 open) — no Team-facing authorization behavior is defined here. Correlation-ID class only (the recorded M-1 read class; safe to re-issue; no idempotency row).
+         */
+        get: operations["listMemoryItems"];
+        put?: never;
+        /**
+         * Add one memory item (the B2 family; the M-17 creation class).
+         * @description The Memory operation group's add member. The Core mints the memory_item_id — the body never carries one (the Core-mints law). The M-17 creation class: the same idempotency key (scoped user + scope, + session where session-scoped) with the same request identity (the correlation ID — the fingerprint) replays the recorded item while the operation is live or within the selected replay window — 72 h after the operation's terminal transition (the F6-precedent window, selected at this act per the CF-2 draft's offered candidate); the same key with a different body is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. Whether a user-entered add lands `active` or passes `pending_review` is the Core's policy decision under the unless-an-accepted-policy-explicitly-permits-another-route clause (MB §7.5) — recorded OPEN; the response's lifecycle_state carries the Core-confirmed truth, never an assumption. Origin labeling is honest: the Core validates the origin claim — a client add is `user-entered` (or `imported` where the Core's own import path sets it), never mislabeled, and `model-extracted` origin can only be set by the Core's own extraction path. THE SECRETS LAW (BINDING): passwords, API keys, private keys, payment credentials, and other secrets are NEVER stored in Memory — secret-manager/key-store references only (MB §7.5; MB §12.2 law 3); a write attempting secret storage is refused (MEMORY_SECRETS_REJECTED). A lost response resolves ONLY by the authoritative reconcile reads — the operation-status read by the operation ID, or the item's inspect read by the item identity — never a blind re-add (the S0–S4 reconcile-by-item/operation-ID law). The retry class is reconcile.
+         */
+        post: operations["addMemoryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one memory item's authoritative state (the B2 family; the inspect member — a pure query, never a mutation).
+         * @description The Memory operation group's inspect member: the item-detail read and the item-state half of the family's unknown-outcome lookup — resolved by (scope, item identity), returning the item's authoritative lifecycle state. A pure query — never a re-add, re-edit, or retry. The unknown item and the out-of-scope item are the SAME typed 404 (the no-leak rule — the UI never infers existence from a scope mismatch). Every protected effect rides the Core's single decision port — UI visibility is never enforcement. A lost mutation response reconciles through this read by the item identity, or through the operation-status read by the operation ID, BEFORE any retry (the S0–S4 reconcile-by-item/operation-ID law); an unresolvable outcome surfaces outcome_unknown — never a timeout-inferred state. Events are never the source of truth; this read is.
+         */
+        get: operations["getMemoryItem"];
+        put?: never;
+        /**
+         * Correct one memory item (the B2 family; the M-16 revision class — provenance-preserving).
+         * @description The Memory operation group's edit/correct member: the Core-defined revision/update event, provenance-preserving — the origin label is preserved, the originating references are never silently rewritten, and the edit alone NEVER constitutes review approval (UI §15.5); AI-extracted content never becomes user-confirmed without the explicit approve action (UI §15.4/§15.5). Eligibility is Core-defined: users inspect and correct ELIGIBLE items — editing a non-eligible item is MEMORY_NOT_EDITABLE (the UI never decides eligibility). The M-16 state-checked class: the idempotency key (scoped user + item identity + scope) with the same correlation ID and the same item state reference replays the recorded outcome within the selected short window — 1 h post-terminal (selected at this act per the CF-2 draft's short-window proposal); the same key against a different item state is 409 CONFLICT_STATE; a concurrent-edit conflict is 409 MEMORY_CONFLICT (reconcile by re-reading the item's authoritative state — never overwrite). A lost response resolves ONLY by the authoritative reconcile reads (the S0–S4 law). The retry class is reconcile.
+         */
+        post: operations["editMemoryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delete one memory item (the B2 family; the M-16 destructive class).
+         * @description The Memory operation group's delete member — the M-16 destructive class, Core-confirmed only: only a confirmed 200 carries the deletion truth (the F11 law). Before the action the known destructive scope is stated (the active store, derived references, sync state, and backup retention as policy defines) and no immediate-total-erasure is promised — the retention caveat rides the Core-confirmed outcome, never the client's promise (UI §15.4; the M-16 retention-caveat rule). Memory deletion NEVER auto-deletes KnowledgePack claims (MB §7.5 — the promotion law's boundary; the promotion operation itself is the recorded sibling gap, P4.2 §5 — NOT part of this family). THE FORGET/DELETE OPEN DISCIPLINE: whether forget and delete name distinct Core semantics is Core-defined and OPEN (carried per the CF-2 draft §3(d); UI §15.4 holds either way) — the member names are published per the approved operation-group ask and no published text here asserts that two distinct operations exist; the Core's actual semantics decide. The idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays the recorded outcome within the selected window — 1 h post-terminal (selected at this act per the CF-2 draft's per-operation law, the same M-16 short window). A lost destructive response is NEVER assumed to have destroyed (the S0–S4 law) — reconcile by the operation ID or the item's authoritative state read BEFORE any retry. The retry class is reconcile.
+         */
+        post: operations["deleteMemoryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}/forget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request one memory item's forget (the B2 family; the OPEN-distinctness member).
+         * @description The Memory operation group's forget member, published per the approved operation-group ask with its distinctness carried OPEN: whether forget and delete name distinct Core semantics is Core-defined and OPEN (the CF-2 draft §3(d); UI §15.4 holds either way) — no published text here asserts that two distinct operations exist; the Core's actual semantics decide, and no label promises more than the semantics deliver. The M-16 destructive discipline governs regardless: the known destructive scope stated before the action (the active store, derived references, sync state, and backup retention as policy defines), no immediate-total-erasure promise, only a confirmed 200 carries the outcome truth, and a lost response is never assumed to have forgotten — reconcile by the operation ID or the item's authoritative state read BEFORE any retry (the S0–S4 law). The idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays within the selected window — 1 h post-terminal (selected at this act per the CF-2 draft's per-operation law). The retry class is reconcile.
+         */
+        post: operations["forgetMemoryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve one memory item's review (the B2 family; the explicit user review action).
+         * @description The Memory operation group's approve member — the explicit user action that Core-confirms the review transition (AI-extracted content NEVER becomes user-confirmed without it; UI §15.4/§15.5). The request is never displayed as the confirmation (the J-5 rule); the response's Core-confirmed item state is the truth. Approving an item not in the required review state is 409 MEMORY_REVIEW_STATE_CONFLICT. The M-16 state-checked class: the idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays the recorded outcome within the selected short window — 1 h post-terminal (selected at this act per the CF-2 draft's short-window proposal). A lost response resolves ONLY by the authoritative reconcile reads (the S0–S4 law). The retry class is reconcile.
+         */
+        post: operations["approveMemoryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject one memory item's review (the B2 family; the explicit user review action).
+         * @description The Memory operation group's reject member — the explicit user action that Core-confirms the review transition; the rejected item's disposition follows the Core's semantics — never a silent client-side deletion. The request is never displayed as the confirmation (the J-5 rule); the response's Core-confirmed item state is the truth. Rejecting an item not in the required review state is 409 MEMORY_REVIEW_STATE_CONFLICT. The M-16 state-checked class: the idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays the recorded outcome within the selected short window — 1 h post-terminal (selected at this act per the CF-2 draft's short-window proposal). A lost response resolves ONLY by the authoritative reconcile reads (the S0–S4 law). The retry class is reconcile.
+         */
+        post: operations["rejectMemoryItem"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set one memory item's pin state (the B2 family; the pin/unpin member).
+         * @description The Memory operation group's pin/unpin member: pinned=true pins, pinned=false unpins — one member operation covering both directions. The pin state's register position (a flag vs a lifecycle state) is Core-defined (the recorded gap; P4.5 G-6) — the Core-confirmed pin state rides the response's item, never a client assumption. An unknown outcome resolves by querying the item's authoritative state by the item identity, or the operation-status read by the operation ID, before a repeat (the S0–S4 law). The M-16 state-checked class: the idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays within the selected short window — 1 h post-terminal (selected at this act per the CF-2 draft's short-window proposal). The retry class is reconcile.
+         */
+        post: operations["setMemoryItemPin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/{memory_item_id}/inclusion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set one memory item's per-request inclusion (the B2 family; the M-18 request-scoped decision).
+         * @description The Memory operation group's per-request-inclusion member — the M-18 class: a per-request decision, NOT an item-state change, with no global effect. The decision applies ONLY to the stated request/scope carried by request_ref — it never widens the item's scope, never changes another scope, and the toggle exists ONLY where the context policy supports it (else the member is absent, never a placeholder; UI §15.2/§15.5). The idempotency fingerprint is the request's correlation ID + the included item IDs; the key scope is the stated request/scope ONLY; the retention is request-lifetime at most (selected at this act per the CF-2 draft's proposal). A lost response resolves by the operation-status read before a repeat (the S0–S4 law). The retry class is safe-retry within the request's lifetime.
+         */
+        post: operations["setMemoryItemInclusion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export memory items (the B2 family; the read-with-export — mutates nothing).
+         * @description The Memory operation group's export member — the recorded M-32 read-with-output class (the exportAudit precedent): mutates nothing, no item-state change, safe to re-issue; the idempotency class is none required, NO replay window (selected at this act per the CF-2 draft's proposal). The exact export scope is shown before generation, never assumed. SECRETS ARE EXCLUDED BY DEFAULT — a prohibition, not a preference: no secret value ever enters an export artifact (the binding secrets law extends to exports, logs, URLs, and error messages). A range exceeding the finite bound truncates honestly (truncated=true) — never silently. An uncertain export reconciles by its export operation ID before another copy (the S0–S4 law). The retry class is safe-retry.
+         */
+        post: operations["exportMemoryItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/memories/operations/{operation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: components["parameters"]["MemoryOperationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one memory operation's authoritative state (the B2 family's authoritative state endpoint; a pure query — never a retry).
+         * @description The family's operation-status state endpoint — the operation-ID half of the unknown-outcome lookup. Resolved by the operation identity; returns the authoritative register state of a Memory operation. A timeout or lost response is NEVER proof of success, cancellation, or safe retry (the S0–S4 model) — reconcile by the operation ID through this pure query, or by the item identity through the item's inspect read, BEFORE any retry (the reconcile-by-item/operation-ID law). An unresolvable outcome surfaces outcome_unknown with the operation reference — never a timeout-inferred state. The unknown operation and the out-of-scope operation are the SAME typed 404 (the no-leak rule). Events are never the source of truth; this endpoint is.
+         */
+        get: operations["getMemoryOperationStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1697,6 +1909,176 @@ export interface components {
         KnowledgeEventAggregateType: string;
         /** @description The KnowledgePack family's F10 event_type vocabulary — pack.created | pack_version.created | pack_version.superseded | import.submitted | import.stage_entered | import.completed | import.rejected | import.cancelled | export.submitted | export.completed | export.failed. `import.stage_entered` carries the `Uploading → Extracting → Validating → Indexing` vocabulary from actual Core stages only. Events ride the frozen F10 EventRecord field set; events are never the source of truth — the authoritative state endpoint is. */
         KnowledgeEventType: string;
+        /** @description The closed memory-scope register — user | workspace | session | policy-defined (the approved basis's four-value list, carried canonical at the 2026-11-08 publication act). A `Work` scope joins only after D-12 approval — DEFERRED per P1.2; no Work value exists in this register. Scope never silently broadens: the scope is stated at creation and carried on every read; a scope value renders only as the Core reports it — the UI never invents a scope name and never maps an unknown reported scope to a known one. Session-scoped items never silently persist beyond the Core's session semantics. */
+        MemoryScope: string;
+        /** @description The closed memory-origin register — user-entered | approved-decision | imported | model-extracted (the approved basis's four-value list). An item's origin is labeled honestly as the Core reports it, never relabeled silently; a user-created item is user-entered, never mislabeled; model-extracted origin can only be set by the Core's own extraction path — no client body ever claims it. Imported-origin items are untrusted data and cannot grant permissions (they ride the published UntrustedLabel register). */
+        MemoryOrigin: string;
+        /** @description The closed memory lifecycle-state register — captured | extracted | pending_review | approved | rejected | active | updated | expired | forgotten | deleted | outcome_unknown — the publication act's register for MB §7.5's pipeline (the Core/API owner owns the real registry). Every transition is Core-confirmed; the UI never advances a state optimistically and never derives a state from a timeout. Trust state is DISTINCT from pending-review: pending review is a lifecycle filter/state, NEVER a trust claim. `expired` is the retention/TTL outcome — expiry is DISTINCT from forgotten and deleted and never UI-computed. THE FORGET/DELETE OPEN DISCIPLINE: the forgotten and deleted entries are carried per the approved register draft — whether forget and delete name distinct Core semantics is Core-defined and OPEN (the CF-2 draft §3(d); UI §15.4 holds either way); no published text here asserts that two distinct operations exist. `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN surface: a timeout or lost response is never proof of success, cancellation, or safe retry — reconcile by the item/operation ID through the authoritative reads. */
+        MemoryItemLifecycleState: string;
+        /** @description One durable memory item (the B2 family; the item-identity members per MB §7.5's field list, carried canonical at the 2026-11-08 publication act). THE SECRETS LAW (BINDING): passwords, API keys, private keys, payment credentials, and other secrets are NEVER stored in Memory — secret-manager/key-store references only (MB §7.5; MB §12.2 law 3); no member of this schema carries a secret value and a reference renders as a reference. THE PROMOTION BOUNDARY: Memory stays separate from canonical KnowledgePack truth (UI §15.1; MB §7.5); promotion from Memory to KnowledgePack is a SEPARATE explicit reviewed operation, provenance-preserving, with a reversible link, and Memory deletion never auto-deletes KnowledgePack claims — the promotion operation is the recorded sibling gap (P4.2 §5; the CF-2 draft §3(j)) and is NOT part of this family: no promotion member exists here and none is invented. Memory content is sensitive personal/conversational data — never leaked into URLs, logs, or error messages; the UI never computes or infers a timestamp, a retention class, or a conflict warning: each renders only as the Core reports it (missing → Unavailable, never invented). */
+        MemoryItem: {
+            /** @description The Core-owned stable identity; the UI never mints */
+            memory_item_id: string;
+            scope: components["schemas"]["MemoryScope"];
+            origin: components["schemas"]["MemoryOrigin"];
+            lifecycle_state: components["schemas"]["MemoryItemLifecycleState"];
+            content: string;
+            /** @description The creation method where the Core carries it (model + version where relevant); absent = the Core supplies none — rendered Unavailable */
+            creation_method?: string;
+            /** @description The Core-reported confidence/status where the Core carries it; absent = Unavailable */
+            confidence?: string;
+            /** @description The originating references — the source event shown, never rewritten; provenance is never silently rewritten by an edit (UI §15.5). */
+            originating_refs?: string[];
+            /** @description The Core's retention/TTL class reference; expiry is DISTINCT from forgotten and deleted and never UI-computed. */
+            retention_ttl_ref?: string;
+            /** @description The correction/conflict path's Core-returned conflict/freshness warning — rendered only as returned */
+            conflict_note?: string;
+            untrusted_label?: components["schemas"]["UntrustedLabel"];
+            /** Format: date-time */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description The Core-reported last-used timestamp where the Core carries one.
+             */
+            last_used_at?: string;
+            /**
+             * Format: date-time
+             * @description The Core-reported last-confirmed timestamp where the Core carries one.
+             */
+            last_confirmed_at?: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description One bounded memory-items page (the keyset list semantics). */
+        MemoryItemList: {
+            items: components["schemas"]["MemoryItem"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description The add body — the M-17 creation identity, the stated scope, the honest origin, and the content; the Core mints the memory_item_id and the body never carries one. THE SECRETS LAW (BINDING): a body attempting secret storage is refused (MEMORY_SECRETS_REJECTED) — secrets are never stored in Memory; secret-manager/key-store references only. */
+        MemoryAddRequest: {
+            /** @description The M-17 idempotency key — scoped user + scope (+ session where session-scoped) Core-side; its fingerprint is the request identity. */
+            idempotency_key: string;
+            /** @description The request identity — the fingerprint the selected replay window keys on (72 h post-terminal; the F6-precedent window */
+            correlation_id: string;
+            scope: components["schemas"]["MemoryScope"];
+            origin: components["schemas"]["MemoryOrigin"];
+            content: string;
+            /** @description The caller-supplied originating references where the add carries them. */
+            originating_refs?: string[];
+        };
+        /** @description The edit/correct body — the corrected content prepared against the item's current state reference (the M-16 fingerprint's state half). Provenance-preserving: the edit never rewrites the origin label or the originating references, and the edit alone never constitutes review approval. */
+        MemoryEditRequest: {
+            /** @description The M-16 idempotency key — scoped user + item identity + scope Core-side. */
+            idempotency_key: string;
+            /** @description The operation's correlation ID — the fingerprint's first half. */
+            correlation_id: string;
+            /** @description The item's current state reference the edit was prepared against — the fingerprint's second half; a mismatch is 409 MEMORY_CONFLICT (reconcile by re-reading the item's authoritative state */
+            item_state_ref: string;
+            /** @description The corrected content. */
+            content: string;
+        };
+        /** @description The review-action body (the approve and reject members) — the explicit user action's identity; the item identity rides the path. */
+        MemoryReviewRequest: {
+            /** @description The M-16 idempotency key — scoped user + item identity + scope Core-side. */
+            idempotency_key: string;
+            /** @description The operation's correlation ID — the fingerprint's first half (the second half is the item's current state reference */
+            correlation_id: string;
+        };
+        /** @description The pin/unpin member's body — one member operation covering both directions. */
+        MemoryPinRequest: {
+            /** @description The M-16 idempotency key — scoped user + item identity + scope Core-side. */
+            idempotency_key: string;
+            /** @description The operation's correlation ID. */
+            correlation_id: string;
+            /** @description true pins; false unpins. */
+            pinned: boolean;
+        };
+        /** @description The per-request-inclusion member's body — the M-18 request-scoped decision. It applies ONLY to the stated request/scope and never changes the item's lifecycle state or any other scope. */
+        MemoryInclusionRequest: {
+            /** @description The request's correlation ID — the fingerprint's first half. */
+            correlation_id: string;
+            /** @description The stated request/scope reference — the ONLY scope this decision applies to (the key scope is the stated request/scope ONLY; retention request-lifetime at most). */
+            request_ref: string;
+            /** @description Whether the item is included for the stated request. */
+            included: boolean;
+        };
+        /** @description The per-request-inclusion member's Core-confirmed outcome — a decision record, not an item-state change. */
+        MemoryInclusionResult: {
+            memory_item_id: string;
+            request_ref: string;
+            included: boolean;
+            /** @description The operation reference a lost response reconciles through (the S0–S4 law). */
+            operation_id: string;
+        };
+        /** @description The export member's body — the exact export scope, shown before generation, never assumed. SECRETS ARE EXCLUDED BY DEFAULT (a prohibition, not a preference): no secret value ever enters an export artifact. */
+        MemoryExportRequest: {
+            /** @description The export's request identity — the identity an uncertain export reconciles through before another copy (the S0–S4 law). */
+            correlation_id: string;
+            scope: components["schemas"]["MemoryScope"];
+            /** @description The explicit item subset where the export names one; absent = the scope's items the Core serves. */
+            item_ids?: string[];
+            /** @description The destination descriptor where the export carries one — displayed before generation */
+            destination?: string;
+        };
+        /** @description The export document — a read-with-output (no item-state change); the honest count, the generation instant, and the honest truncation flag. */
+        MemoryExportResult: {
+            /** @description The export operation's identity — an uncertain export reconciles through it before another copy (the S0–S4 law). */
+            export_operation_id: string;
+            count: number;
+            /** Format: date-time */
+            generated_at: string;
+            /** @description A range exceeding the finite bound truncates honestly — never silently. */
+            truncated: boolean;
+            items: components["schemas"]["MemoryItem"][];
+        };
+        /** @description One state-confirmed Memory mutation's outcome (the add, edit, approve, reject, pin/unpin, and forget members) — the Core-confirmed post-state item and the operation reference. Only a confirmed 200 carries the outcome truth (the F11 law); the request is never displayed as the confirmation (the J-5 rule). The operation_id is the reconciliation identity for a lost response (the S0–S4 law): reconcile through the operation-status read or the item's inspect read BEFORE any retry — never a blind re-issue. */
+        MemoryMutationResult: {
+            memory_item: components["schemas"]["MemoryItem"];
+            /** @description The Core-minted operation reference — the reconcile-by-operation-ID identity. */
+            operation_id: string;
+        };
+        /** @description The delete member's Core-confirmed outcome — the deletion truth and the retention caveat the Core confirms, never a total-erasure promise: the retained scope (derived references, sync state, backup retention as policy defines) is the Core-confirmed statement's. Memory deletion never auto-deletes KnowledgePack claims (MB §7.5). */
+        MemoryDeleteResult: {
+            memory_item_id: string;
+            outcome_state: components["schemas"]["MemoryItemLifecycleState"];
+            /** @description The Core-confirmed retention caveat where the Core carries one — empty = none reported. */
+            retention_note?: string;
+            /** @description The Core-minted operation reference — the reconcile-by-operation-ID identity (a lost destructive response is never assumed to have destroyed). */
+            operation_id: string;
+        };
+        /** @description The closed memory-operation kind register — add | edit | approve | reject | pin | unpin | forget | delete | export | inclusion (the operation rows the operation-status endpoint resolves; the list/query and inspect reads are correlation-class reads with no operation row). */
+        MemoryOperationKind: string;
+        /** @description The closed memory-operation state register — recorded | outcome_unknown. `recorded` carries the Core-confirmed outcome in the record's result members; `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN surface — a timeout or lost response is never proof of success, cancellation, or safe retry; reconcile by the operation ID through the operation-status read (or by the item identity through the inspect read) BEFORE any retry. A failure is a recorded, confirmed outcome — its coded failure rides failure_code/failure_reason. */
+        MemoryOperationState: string;
+        /** @description One memory operation's authoritative record — the operation-status endpoint's payload (the S0–S4 unknown-outcome lookup's operation-ID half). */
+        MemoryOperation: {
+            /** @description The Core-minted operation reference. */
+            operation_id: string;
+            kind: components["schemas"]["MemoryOperationKind"];
+            state: components["schemas"]["MemoryOperationState"];
+            /** @description The operation's correlation ID. */
+            correlation_id?: string;
+            /** @description The item the operation acted on */
+            memory_item_id?: string;
+            outcome_state?: components["schemas"]["MemoryItemLifecycleState"];
+            /** @description The export artifact's reference where the kind is export. */
+            export_ref?: string;
+            /** @description The coded failure (the family's register codes) where the confirmed outcome is a failure; empty otherwise. */
+            failure_code?: string;
+            /** @description The Core-supplied explicit reason — the honest statement */
+            failure_reason?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description The Memory family's domain codes added to the coded error register (F1) additively at the 2026-11-08 publication act — each riding the published ErrorEnvelope with its retryable value and the coded retryClass. MEMORY_SCOPE_VIOLATION (never — a read/write crossing the forbidden cross-scope default; MB §7.5), MEMORY_SECRETS_REJECTED (never — a write attempting secret storage; the BINDING secrets law, MB §12.2 law 3), MEMORY_ITEM_NOT_FOUND (never — the unknown or out-of-scope item, the SAME typed 404 — the no-leak rule), MEMORY_REVIEW_STATE_CONFLICT (never — approve/reject against an item not in the required review state), MEMORY_CONFLICT (reconcile — the correction/conflict path's concurrent-edit outcome; reconcile by re-reading the item's authoritative state, never overwrite), MEMORY_NOT_EDITABLE (never — the eligibility law's refusal; the Core owns eligibility). The idempotency/state conflicts ride the PUBLISHED codes exactly — CONFLICT_IDEMPOTENCY_KEY (same key + different body) and CONFLICT_STATE (replay past the window). */
+        MemoryErrorCode: string;
+        /** @description The Memory family's F10 aggregate types — memoryItem | memoryReviewOperation. */
+        MemoryEventAggregateType: string;
+        /** @description The Memory family's F10 event_type vocabulary — memory_candidate.extracted | memory_item.added | memory_review.approved | memory_review.rejected | memory_item.updated | memory_item.pinned | memory_item.unpinned | memory_item.expired | memory_item.forgotten | memory_item.deleted. `memory_item.forgotten` is recorded conditional on the OPEN forget/delete distinctness — whether a forgotten event exists as distinct from deleted is the Core's semantics (carried OPEN; no published text asserts two distinct operations exist). `memory_candidate.extracted` is the sensitivity check's routing event (auto-save low-risk vs approval-required). Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); events are never the source of truth — the authoritative state reads are. */
+        MemoryEventType: string;
     };
     responses: never;
     parameters: {
@@ -1707,6 +2089,8 @@ export interface components {
         KnowledgePackId: string;
         KnowledgePackVersionId: string;
         KnowledgeOperationId: string;
+        MemoryItemId: string;
+        MemoryOperationId: string;
     };
     requestBodies: never;
     headers: never;
@@ -2961,6 +3345,301 @@ export interface operations {
                 content: {
                     "application/json": {
                         operation: components["schemas"]["KnowledgeOperation"];
+                    };
+                };
+            };
+        };
+    };
+    listMemoryItems: {
+        parameters: {
+            query?: {
+                limit?: number;
+                scope?: components["schemas"]["MemoryScope"];
+                state?: components["schemas"]["MemoryItemLifecycleState"];
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryItemList"];
+                };
+            };
+        };
+    };
+    addMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryAddRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed recorded item and the operation reference. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMutationResult"];
+                };
+            };
+        };
+    };
+    getMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        memory_item: components["schemas"]["MemoryItem"];
+                    };
+                };
+            };
+        };
+    };
+    editMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryEditRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed updated item and the operation reference. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMutationResult"];
+                };
+            };
+        };
+    };
+    deleteMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Core-confirmed deletion outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryDeleteResult"];
+                };
+            };
+        };
+    };
+    forgetMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Core-confirmed forget outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMutationResult"];
+                };
+            };
+        };
+    };
+    approveMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed review outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMutationResult"];
+                };
+            };
+        };
+    };
+    rejectMemoryItem: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed review outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMutationResult"];
+                };
+            };
+        };
+    };
+    setMemoryItemPin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryPinRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed pin state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryMutationResult"];
+                };
+            };
+        };
+    };
+    setMemoryItemInclusion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_item_id: components["parameters"]["MemoryItemId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryInclusionRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed per-request inclusion decision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryInclusionResult"];
+                };
+            };
+        };
+    };
+    exportMemoryItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemoryExportRequest"];
+            };
+        };
+        responses: {
+            /** @description The export document with the honest count and truncation flag. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryExportResult"];
+                };
+            };
+        };
+    };
+    getMemoryOperationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: components["parameters"]["MemoryOperationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The operation's authoritative record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        operation: components["schemas"]["MemoryOperation"];
                     };
                 };
             };
