@@ -744,6 +744,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/knowledgepacks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List knowledge packs (the B1 family; the keyset list semantics).
+         * @description The workspace-scoped pack list (the C1-05 group 5 class). The cursor's absence marks the final page.
+         */
+        get: operations["listKnowledgePacks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgePackId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one knowledge pack's authoritative state (the B1 family).
+         * @description The pack's identity members and its current-version reference. Workspace-scoped (the C1-05 group 5 class); every protected effect rides the Core's single decision port — UI visibility is never enforcement. A digest/signature mismatch on any read or verify is reject or quarantine — never a silent substitution (MB §18).
+         */
+        get: operations["getKnowledgePack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgePackId"];
+            };
+            cookie?: never;
+        };
+        /** List one knowledge pack's versions (the B1 family; the keyset list semantics). */
+        get: operations["listKnowledgePackVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/{id}/versions/{version_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgePackId"];
+                version_id: components["parameters"]["KnowledgePackVersionId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one immutable pack version (the B1 family; the version's structural view).
+         * @description Prior versions are immutable — Core-enforced: a source-snapshot change creates a new version or an explicit supersession, never edits old evidence. The read returns the version's structural members; the pack-root digest carries the algorithm-qualified form note (the D-41 gate rides the description).
+         */
+        get: operations["getKnowledgePackVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/import/registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the served supported-source registry (the B1 family; the Core's own contract data).
+         * @description The Core's definitive supported-source list — the file types, size limits, URL policy, and implemented connectors the active Core supports — as queryable data; the read creates nothing and probes nothing. The Core-authoritative law: the served registry contents ARE the canonical values; if the Core cannot return a definitive list, no speculative format or connector is displayed anywhere (UI §14.6). The list's CONTENTS are Core-owned. URL handling obeys the SSRF/DNS-rebinding/redirect policy with redirect limits and response size/time bounds (MB §12.2 law 8; §12.5's class).
+         */
+        get: operations["getKnowledgeImportRegistry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit one KnowledgePack import (the B1 family; the M-9 digest-keyed idempotency class).
+         * @description 202 Accepted means accepted for processing, never completion — the authoritative operation-state read confirms every outcome. The recorded M-9 idempotency class exactly: the same idempotency key with the same SOURCE DIGEST of the submitted bytes replays the existing pack-version reference while the operation is live or within the selected replay window — 72 h after the operation's terminal transition (the F6-precedent window, selected at the 2026-11-07 publication act); the same key with different bytes is 409 CONFLICT_IDEMPOTENCY_KEY (fingerprintMatch:false); a replay past the window is 409 CONFLICT_STATE. The pack create (destination pack absent) and the version create (destination pack present) are distinct identity operations (MB §6.2); their duplicate-create replay rides the selected short window — 1 h after terminal (selected at the same act). A lost response resolves ONLY by the authoritative operation-state read — never a blind re-submit (the S0–S4 reconcile-by-operation-ID law). The submitted bytes are UNTRUSTED: Core-side validation is authoritative for file type, size, schema, archive paths, signatures, permissions, network destinations, and resource policy (path traversal, symlink, decompression bombs, malformed, oversized, recursive-dependency defense) — client checks are early feedback only. The retry class is reconcile (the digest-keyed replay makes a same-bytes retry safe and a different-bytes retry a 409).
+         */
+        post: operations["submitKnowledgeImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit one KnowledgePack export generation (the B1 family; the read-with-output class).
+         * @description 202 Accepted means accepted for processing, never completion — the authoritative operation-state read confirms every outcome. The read-with-output class (the recorded M-32 class; the exportAudit precedent): safe to re-issue, no durable effect to duplicate — the idempotency class is none required, NO replay window (selected at the 2026-11-07 publication act). The exact object/category scope and the destination are shown before generation. SECRETS ARE EXCLUDED BY DEFAULT — a prohibition, not a preference (UI §24.2): no secret value ever enters an export artifact. Integrity is stated only where digest/signature verification was actually performed — never claimed. An uncertain export reconciles by its operation ID before another copy (the S0–S4 law). The retry class is safe-retry.
+         */
+        post: operations["submitKnowledgeExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/operations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgeOperationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one knowledge operation's authoritative state (the B1 family's authoritative state endpoint; a pure query — never a retry).
+         * @description Resolved by the operation identity; returns the authoritative register state of the import/export state machines. This read IS the family's unknown-outcome lookup: a timeout or lost response is NEVER proof of success, cancellation, or safe retry (the S0–S4 model) — reconcile by the operation ID through this pure query BEFORE any retry. An unresolvable outcome surfaces outcome_unknown with the operation reference — never a timeout-inferred state. Events are never the source of truth; this endpoint is.
+         */
+        get: operations["getKnowledgeOperationStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/knowledgepacks/operations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgeOperationId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request one knowledge operation's cancellation (the B1 family; Core-confirmed only — 202 = accepted for processing).
+         * @description Post-submit cancellation exists ONLY as this Core-confirmed operation with its own state — a distinct operation from the pre-submit queue removal, which is a local act with NO Core meaning. The request is never displayed as the confirmation (the J-5 rule): the authoritative operation-state read confirms the terminal cancelled state. The cancellation's replay window is the cancelled operation's OWN window (selected at the 2026-11-07 publication act). Post-boundary operations may be non-cancellable — the Core-confirmed state decides, never the client.
+         */
+        post: operations["cancelKnowledgeOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1305,6 +1493,210 @@ export interface components {
             /** @description Omitted on the final page; the absence is the end marker. */
             cursor?: string;
         };
+        /** @description One durable knowledge pack (the B1 family; the CF-1 publication act of 2026-11-07). The pack's identity members and its current-version reference; the `.kpack` unit's manifest / claims / evidence / sources / relations / summaries / policies / signatures / indexes structure owns the content — indexes are rebuildable, never canonical. */
+        KnowledgePack: {
+            /** @description The Core-owned stable pack identifier; the consumer-side reference form packID or packID@version resolves against it. */
+            pack_id: string;
+            /** @description The pack schema's own version field, carried alongside the pack identity. */
+            schema_version: number;
+            /** @description The display title — a label, never a path. */
+            title: string;
+            description?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** @description The pack's current version's identity; empty = no version stored yet. */
+            current_version_id: string;
+        };
+        /** @description One bounded knowledge-pack page (the keyset list semantics). */
+        KnowledgePackList: {
+            packs: components["schemas"]["KnowledgePack"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description One immutable pack version (the B1 family): the Core-owned identity, the immutable content root, and the explicit supersession references. Prior versions are immutable — a source-snapshot change creates a new version or an explicit supersession, never edits old evidence; immutability is Core-enforced. */
+        KnowledgePackVersion: {
+            pack_id: string;
+            /** @description The Core-owned immutable content root's identity. */
+            version_id: string;
+            schema_version: number;
+            /** @description The version's pack-root digest over the normalized, deterministically ordered entry paths, media types and blob digests. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 portable digest profile stays behind its owner technical/security gate; this contract does not approve SHA-256 or any algorithm as the permanent digest profile. A digest establishes content identity relative to compared bytes only — never publisher authorization, authenticity, license compliance, factual truth, or freedom from prompt injection. */
+            pack_root_digest: string;
+            entry_count?: number;
+            claim_count?: number;
+            evidence_count?: number;
+            /** @description The explicit supersession references this version declares. */
+            supersedes?: string[];
+            /** @description The version that explicitly supersedes this one; empty = none. */
+            superseded_by?: string;
+            /** @description The license metadata — SPDX identifier/expression where applicable. */
+            license?: string;
+            /** @description known | unknown (the Core-assessed status; unknown renders honestly, never as a license claim). */
+            license_status?: string;
+            /** @description The version's claims where the Core serves them (the structural read's optional members). */
+            claims?: components["schemas"]["KnowledgeClaim"][];
+            /** @description The version's evidence where the Core serves them. */
+            evidence?: components["schemas"]["KnowledgeEvidence"][];
+        };
+        /** @description One bounded pack-version page (the keyset list semantics). */
+        KnowledgePackVersionList: {
+            versions: components["schemas"]["KnowledgePackVersion"][];
+            /** @description Omitted on the final page; the absence is the end marker. */
+            cursor?: string;
+        };
+        /** @description The closed claim-status register — candidate | active | contested | superseded | revoked | archived (the approved basis's six-value list). Conflicting claims are never hidden — shown via the explicit relations. */
+        KnowledgeClaimStatus: string;
+        /** @description One knowledge claim (MB §6.3's model carried). */
+        KnowledgeClaim: {
+            claim_id: string;
+            subject: string;
+            predicate: string;
+            object: string;
+            scope: string;
+            status: components["schemas"]["KnowledgeClaimStatus"];
+            /**
+             * Format: date-time
+             * @description The claim's valid time.
+             */
+            valid_from?: string;
+            /** Format: date-time */
+            valid_until?: string;
+            /**
+             * Format: date-time
+             * @description The observed time.
+             */
+            observed_at?: string;
+            source_refs?: string[];
+            evidence_refs?: string[];
+            derived_from?: string[];
+            supersedes?: string[];
+            /** @description The explicit conflict relations — conflicts are surfaced, never suppressed (the MB §6.3 explicit-failure law). */
+            conflicts_with?: string[];
+            language?: string;
+            /** @description The validation metadata where the Core carries it. */
+            validation_note?: string;
+        };
+        /** @description The closed evidence verification-state register — unsigned | verified | revoked | quarantined (the Core's implemented trust-state register carried canonical at this act). A verified state is content-identity evidence only — never publisher authorization, authenticity, license compliance, factual truth, or freedom from prompt injection; a signature is not safety or authenticity. */
+        KnowledgeEvidenceVerificationState: string;
+        /** @description One evidence record (MB §6.3's model carried). */
+        KnowledgeEvidence: {
+            evidence_id: string;
+            source_id: string;
+            /** @description The source locator — a reference, never a rendered path. */
+            locator: string;
+            /** @description The excerpt/content digest. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 portable digest profile stays behind its owner technical/security gate; this contract does not approve SHA-256 or any algorithm as the permanent digest profile. */
+            digest?: string;
+            /** @description The optional source-snapshot reference. */
+            source_snapshot_ref?: string;
+            /** Format: date-time */
+            captured_at: string;
+            verification_state: components["schemas"]["KnowledgeEvidenceVerificationState"];
+        };
+        /** @description One source identity (the locator, the capture metadata, and the license/freshness members). */
+        KnowledgePackSource: {
+            source_id: string;
+            /** @description The Core-supported source kind — the import registry read is the definitive list; never a client-invented value. */
+            kind: string;
+            locator: string;
+            /** Format: date-time */
+            captured_at: string;
+            /**
+             * Format: date-time
+             * @description The observed time where the Core carries one.
+             */
+            observed_at?: string;
+            /** @description SPDX identifier/expression where applicable. */
+            license?: string;
+            /** @description known | unknown. */
+            license_status?: string;
+            /** @description The freshness policy reference. */
+            freshness_policy_ref?: string;
+        };
+        /** @description One served supported-source registry member — the Core's own supported kinds and per-kind size bounds as queryable contract data. */
+        KnowledgeImportSourceSpec: {
+            source_kind: string;
+            /** Format: int64 */
+            max_bytes: number;
+            /** @description The URL policy statement where the kind fetches URLs (SSRF/DNS-rebinding/redirect policy; redirect limits; response size/time bounds). */
+            url_policy?: string;
+            notes?: string;
+        };
+        /** @description The import submit body — the identity key, the display source name, a registry source kind, the base64 (standard, padded) content, and the destination/duplicate intents. The content rides the JSON envelope transport (the F4 attachment class's transport typing). */
+        KnowledgeImportRequest: {
+            /** @description The M-9 idempotency key — the key whose duplicate behavior is digest-keyed. */
+            idempotency_key: string;
+            /** @description The display source name — a label, never a path. */
+            source_name: string;
+            /** @description One registry source kind — the registry read's values; never a client-invented kind. */
+            source_kind: string;
+            /** @description The base64 (standard, padded) submitted bytes. */
+            content_b64: string;
+            /** @description Present = the version-create identity operation on the named pack; absent = the pack-create identity operation (distinct identity operations — MB §6.2). The identity-create idempotency fingerprint is the request identity + the target pack/version identity; its replay window is the selected short window — 1 h post-terminal (selected at the 2026-11-07 publication act): within it a re-issued same-intent create returns the existing pack/version reference; past it a repeated create intent is the caller's explicit new operation. */
+            destination_pack_id?: string;
+            duplicate_mode?: components["schemas"]["KnowledgeImportDuplicateMode"];
+            /** @description The explicit pre-submit confirmation for the external-transfer boundary (a provider/remote-Core crossing; UI §24.4) — present only where the destination crosses it. A Remote Core cannot interpret the user's local localhost path/endpoint as its own local resource. */
+            external_transfer_confirmed?: boolean;
+        };
+        /** @description The Core-exposed digest-match choices — logical_reference | deduplication | distinct_reference. Displayed and accepted ONLY where the Core defines the corresponding operation; the original pack/version stays visible until the new operation confirms. */
+        KnowledgeImportDuplicateMode: string;
+        /** @description The export request body — the exact scope and the destination shown before generation. */
+        KnowledgeExportRequest: {
+            /** @description The request identity (the read-with-output class's correlation; safe re-issue). */
+            correlation_id: string;
+            pack_id: string;
+            /** @description The exact version to export; absent = the pack's current version. */
+            version_id?: string;
+            /** @description The destination descriptor — displayed before generation, never assumed. */
+            destination: string;
+            /** @description The explicit pre-submit confirmation for the external-transfer boundary (UI §24.4). */
+            external_transfer_confirmed?: boolean;
+        };
+        /** @description The closed knowledge-operation kind register — import | export. */
+        KnowledgeOperationKind: string;
+        /** @description The closed knowledge-operation state register — submitted | uploading | extracting | validating | indexing | generating | completed | rejected | failed | cancelled | outcome_unknown. The import stage vocabulary `Uploading → Extracting → Validating → Indexing` (UI §14.4) is emitted from ACTUAL Core stages only as F10-shaped events (`import.stage_entered`) — progress is never a fabricated percentage and no percentage member exists. `rejected` and `failed` carry the explicit failure code and reason (the MB §6.3 explicit-failure list: dependency cycle, invalid signature, unsupported schema, revoked trust, digest mismatch, license-policy failure each produce an EXPLICIT failure or quarantine — never a suppressed warning). `cancelled` is Core-confirmed only. `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN surface: a timeout or lost response is never proof of success, cancellation, or safe retry — reconcile by the operation ID through the authoritative state read. */
+        KnowledgeOperationState: string;
+        /** @description One knowledge operation's authoritative record (import or export) — the state endpoint's payload. */
+        KnowledgeOperation: {
+            operation_id: string;
+            kind: components["schemas"]["KnowledgeOperationKind"];
+            state: components["schemas"]["KnowledgeOperationState"];
+            /** @description The operation's correlation ID — the identity a lost response reconciles through. */
+            correlation_id: string;
+            /** @description The coded failure (the family's register codes) on rejected/failed; empty otherwise. */
+            failure_code?: string;
+            /** @description The Core-supplied explicit reason — the honest statement, never a suppressed warning. */
+            failure_reason?: string;
+            result?: components["schemas"]["KnowledgeOperationResult"];
+            untrusted_label?: components["schemas"]["UntrustedLabel"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description One operation's Core-confirmed result — what persists (artifact, pack-version reference, derived indexes) and what the retention policy applies; no erasure claim beyond Core-confirmed scope. Present only once the operation carries it. */
+        KnowledgeOperationResult: {
+            kind: components["schemas"]["KnowledgeOperationKind"];
+            /** @description The import's pack-version reference's pack identity. */
+            pack_id?: string;
+            /** @description The import's pack-version reference's version identity. */
+            version_id?: string;
+            /** @description The export artifact's reference. */
+            export_ref?: string;
+            /** @description The produced bytes' digest where one is produced. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 portable digest profile stays behind its owner technical/security gate; this contract does not approve SHA-256 or any algorithm as the permanent digest profile. */
+            digest?: string;
+        };
+        /** @description One submit's accepted outcome — the operation reference (replayed=true on the M-9 same-digest replay). */
+        KnowledgeOperationSubmitResult: {
+            operation: components["schemas"]["KnowledgeOperation"];
+            replayed: boolean;
+        };
+        /** @description The KnowledgePack family's domain codes added to the coded error register (F1) additively at the 2026-11-07 publication act — each riding the published ErrorEnvelope with its retryable value and the coded retryClass. The MB §6.3 explicit-failure list: KNOWLEDGE_DEPENDENCY_CYCLE, KNOWLEDGE_SIGNATURE_INVALID, KNOWLEDGE_SCHEMA_UNSUPPORTED, KNOWLEDGE_TRUST_REVOKED, KNOWLEDGE_DIGEST_MISMATCH, KNOWLEDGE_LICENSE_POLICY_FAIL (each never — explicit failures never retry). The import rejection vocabulary: IMPORT_TYPE_UNSUPPORTED, IMPORT_SIZE_OVER_LIMIT, IMPORT_MALFORMED, IMPORT_DUPLICATE_DIGEST, IMPORT_PERMISSION_DENIED, IMPORT_POLICY_BLOCKED, IMPORT_INTEGRITY_SIGNATURE_FAILURE (each never), IMPORT_NETWORK_INTERRUPTED (backoff — transient network). The idempotency/state conflicts ride the PUBLISHED codes exactly — CONFLICT_IDEMPOTENCY_KEY (same key + different bytes; the M-9 fingerprintMatch:false datum in data) and CONFLICT_STATE (replay past the window). */
+        KnowledgeErrorCode: string;
+        /** @description The KnowledgePack family's F10 aggregate types — knowledgePack | knowledgePackVersion | knowledgeImportOperation | knowledgeExportOperation. */
+        KnowledgeEventAggregateType: string;
+        /** @description The KnowledgePack family's F10 event_type vocabulary — pack.created | pack_version.created | pack_version.superseded | import.submitted | import.stage_entered | import.completed | import.rejected | import.cancelled | export.submitted | export.completed | export.failed. `import.stage_entered` carries the `Uploading → Extracting → Validating → Indexing` vocabulary from actual Core stages only. Events ride the frozen F10 EventRecord field set; events are never the source of truth — the authoritative state endpoint is. */
+        KnowledgeEventType: string;
     };
     responses: never;
     parameters: {
@@ -1312,6 +1704,9 @@ export interface components {
         ConnectionId: string;
         ProviderId: string;
         ConversationId: string;
+        KnowledgePackId: string;
+        KnowledgePackVersionId: string;
+        KnowledgeOperationId: string;
     };
     requestBodies: never;
     headers: never;
@@ -2352,6 +2747,221 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConversationExchangeResult"];
+                };
+            };
+        };
+    };
+    listKnowledgePacks: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgePackList"];
+                };
+            };
+        };
+    };
+    getKnowledgePack: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgePackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pack. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        pack: components["schemas"]["KnowledgePack"];
+                    };
+                };
+            };
+        };
+    };
+    listKnowledgePackVersions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgePackId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgePackVersionList"];
+                };
+            };
+        };
+    };
+    getKnowledgePackVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgePackId"];
+                version_id: components["parameters"]["KnowledgePackVersionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        version: components["schemas"]["KnowledgePackVersion"];
+                    };
+                };
+            };
+        };
+    };
+    getKnowledgeImportRegistry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The served registry members. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        sources: components["schemas"]["KnowledgeImportSourceSpec"][];
+                    };
+                };
+            };
+        };
+    };
+    submitKnowledgeImport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KnowledgeImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted for processing (the Core-confirmed operation reference). */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeOperationSubmitResult"];
+                };
+            };
+        };
+    };
+    submitKnowledgeExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KnowledgeExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted for processing (the Core-confirmed operation reference). */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KnowledgeOperationSubmitResult"];
+                };
+            };
+        };
+    };
+    getKnowledgeOperationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgeOperationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The operation's authoritative record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        operation: components["schemas"]["KnowledgeOperation"];
+                    };
+                };
+            };
+        };
+    };
+    cancelKnowledgeOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["KnowledgeOperationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted for processing; the authoritative state read confirms. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        operation: components["schemas"]["KnowledgeOperation"];
+                    };
                 };
             };
         };

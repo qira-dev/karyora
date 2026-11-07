@@ -1037,6 +1037,251 @@ paths:
                 $ref: '#/components/schemas/ConversationExchangeResult'
     parameters:
       - $ref: '#/components/parameters/ConversationId'
+  /knowledgepacks:
+    get:
+      operationId: listKnowledgePacks
+      summary: List knowledge packs (the B1 family; the keyset list semantics).
+      description: >-
+        The workspace-scoped pack list (the C1-05 group 5 class). The
+        cursor's absence marks the final page.
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePackList'
+  /knowledgepacks/{id}:
+    get:
+      operationId: getKnowledgePack
+      summary: Read one knowledge pack's authoritative state (the B1 family).
+      description: >-
+        The pack's identity members and its current-version reference.
+        Workspace-scoped (the C1-05 group 5 class); every protected effect
+        rides the Core's single decision port — UI visibility is never
+        enforcement. A digest/signature mismatch on any read or verify is
+        reject or quarantine — never a silent substitution (MB §18).
+      parameters:
+        - $ref: '#/components/parameters/KnowledgePackId'
+      responses:
+        '200':
+          description: The pack.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pack]
+                properties:
+                  pack: { $ref: '#/components/schemas/KnowledgePack' }
+    parameters:
+      - $ref: '#/components/parameters/KnowledgePackId'
+  /knowledgepacks/{id}/versions:
+    get:
+      operationId: listKnowledgePackVersions
+      summary: List one knowledge pack's versions (the B1 family; the keyset list semantics).
+      parameters:
+        - $ref: '#/components/parameters/KnowledgePackId'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000 }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: The page; the cursor's absence marks the final page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePackVersionList'
+    parameters:
+      - $ref: '#/components/parameters/KnowledgePackId'
+  /knowledgepacks/{id}/versions/{version_id}:
+    get:
+      operationId: getKnowledgePackVersion
+      summary: Read one immutable pack version (the B1 family; the version's structural view).
+      description: >-
+        Prior versions are immutable — Core-enforced: a source-snapshot
+        change creates a new version or an explicit supersession, never
+        edits old evidence. The read returns the version's structural
+        members; the pack-root digest carries the algorithm-qualified form
+        note (the D-41 gate rides the description).
+      parameters:
+        - $ref: '#/components/parameters/KnowledgePackId'
+        - $ref: '#/components/parameters/KnowledgePackVersionId'
+      responses:
+        '200':
+          description: The version.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version]
+                properties:
+                  version: { $ref: '#/components/schemas/KnowledgePackVersion' }
+    parameters:
+      - $ref: '#/components/parameters/KnowledgePackId'
+      - $ref: '#/components/parameters/KnowledgePackVersionId'
+  /knowledgepacks/import/registry:
+    get:
+      operationId: getKnowledgeImportRegistry
+      summary: Read the served supported-source registry (the B1 family; the Core's own contract data).
+      description: >-
+        The Core's definitive supported-source list — the file types, size
+        limits, URL policy, and implemented connectors the active Core
+        supports — as queryable data; the read creates nothing and probes
+        nothing. The Core-authoritative law: the served registry contents
+        ARE the canonical values; if the Core cannot return a definitive
+        list, no speculative format or connector is displayed anywhere
+        (UI §14.6). The list's CONTENTS are Core-owned. URL handling obeys
+        the SSRF/DNS-rebinding/redirect policy with redirect limits and
+        response size/time bounds (MB §12.2 law 8; §12.5's class).
+      responses:
+        '200':
+          description: The served registry members.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sources]
+                properties:
+                  sources:
+                    type: array
+                    items: { $ref: '#/components/schemas/KnowledgeImportSourceSpec' }
+  /knowledgepacks/import:
+    post:
+      operationId: submitKnowledgeImport
+      summary: Submit one KnowledgePack import (the B1 family; the M-9 digest-keyed idempotency class).
+      description: >-
+        202 Accepted means accepted for processing, never completion — the
+        authoritative operation-state read confirms every outcome. The
+        recorded M-9 idempotency class exactly: the same idempotency key
+        with the same SOURCE DIGEST of the submitted bytes replays the
+        existing pack-version reference while the operation is live or
+        within the selected replay window — 72 h after the operation's
+        terminal transition (the F6-precedent window, selected at the
+        2026-11-07 publication act); the same key with different bytes is
+        409 CONFLICT_IDEMPOTENCY_KEY (fingerprintMatch:false); a replay
+        past the window is 409 CONFLICT_STATE. The pack create (destination
+        pack absent) and the version create (destination pack present) are
+        distinct identity operations (MB §6.2); their duplicate-create
+        replay rides the selected short window — 1 h after terminal
+        (selected at the same act). A lost response resolves ONLY by the
+        authoritative operation-state read — never a blind re-submit (the
+        S0–S4 reconcile-by-operation-ID law). The submitted bytes are
+        UNTRUSTED: Core-side validation is authoritative for file type,
+        size, schema, archive paths, signatures, permissions, network
+        destinations, and resource policy (path traversal, symlink,
+        decompression bombs, malformed, oversized, recursive-dependency
+        defense) — client checks are early feedback only. The retry class
+        is reconcile (the digest-keyed replay makes a same-bytes retry
+        safe and a different-bytes retry a 409).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeImportRequest'
+      responses:
+        '202':
+          description: Accepted for processing (the Core-confirmed operation reference).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeOperationSubmitResult'
+  /knowledgepacks/export:
+    post:
+      operationId: submitKnowledgeExport
+      summary: Submit one KnowledgePack export generation (the B1 family; the read-with-output class).
+      description: >-
+        202 Accepted means accepted for processing, never completion — the
+        authoritative operation-state read confirms every outcome. The
+        read-with-output class (the recorded M-32 class; the exportAudit
+        precedent): safe to re-issue, no durable effect to duplicate — the
+        idempotency class is none required, NO replay window (selected at
+        the 2026-11-07 publication act). The exact object/category scope
+        and the destination are shown before generation. SECRETS ARE
+        EXCLUDED BY DEFAULT — a prohibition, not a preference (UI §24.2):
+        no secret value ever enters an export artifact. Integrity is
+        stated only where digest/signature verification was actually
+        performed — never claimed. An uncertain export reconciles by its
+        operation ID before another copy (the S0–S4 law). The retry class
+        is safe-retry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeExportRequest'
+      responses:
+        '202':
+          description: Accepted for processing (the Core-confirmed operation reference).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeOperationSubmitResult'
+  /knowledgepacks/operations/{id}:
+    get:
+      operationId: getKnowledgeOperationStatus
+      summary: Read one knowledge operation's authoritative state (the B1 family's authoritative state endpoint; a pure query — never a retry).
+      description: >-
+        Resolved by the operation identity; returns the authoritative
+        register state of the import/export state machines. This read IS
+        the family's unknown-outcome lookup: a timeout or lost response is
+        NEVER proof of success, cancellation, or safe retry (the S0–S4
+        model) — reconcile by the operation ID through this pure query
+        BEFORE any retry. An unresolvable outcome surfaces outcome_unknown
+        with the operation reference — never a timeout-inferred state.
+        Events are never the source of truth; this endpoint is.
+      parameters:
+        - $ref: '#/components/parameters/KnowledgeOperationId'
+      responses:
+        '200':
+          description: The operation's authoritative record.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [operation]
+                properties:
+                  operation: { $ref: '#/components/schemas/KnowledgeOperation' }
+    parameters:
+      - $ref: '#/components/parameters/KnowledgeOperationId'
+  /knowledgepacks/operations/{id}/cancel:
+    post:
+      operationId: cancelKnowledgeOperation
+      summary: Request one knowledge operation's cancellation (the B1 family; Core-confirmed only — 202 = accepted for processing).
+      description: >-
+        Post-submit cancellation exists ONLY as this Core-confirmed
+        operation with its own state — a distinct operation from the
+        pre-submit queue removal, which is a local act with NO Core
+        meaning. The request is never displayed as the confirmation (the
+        J-5 rule): the authoritative operation-state read confirms the
+        terminal cancelled state. The cancellation's replay window is the
+        cancelled operation's OWN window (selected at the 2026-11-07
+        publication act). Post-boundary operations may be non-cancellable
+        — the Core-confirmed state decides, never the client.
+      parameters:
+        - $ref: '#/components/parameters/KnowledgeOperationId'
+      responses:
+        '202':
+          description: Accepted for processing; the authoritative state read confirms.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [operation]
+                properties:
+                  operation: { $ref: '#/components/schemas/KnowledgeOperation' }
+    parameters:
+      - $ref: '#/components/parameters/KnowledgeOperationId'
 components:
   parameters:
     JobId:
@@ -1055,6 +1300,21 @@ components:
       required: true
       schema: { type: string }
     ConversationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    KnowledgePackId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+    KnowledgePackVersionId:
+      name: version_id
+      in: path
+      required: true
+      schema: { type: string }
+    KnowledgeOperationId:
       name: id
       in: path
       required: true
@@ -1792,3 +2052,336 @@ components:
         cursor:
           type: string
           description: Omitted on the final page; the absence is the end marker.
+    KnowledgePack:
+      type: object
+      description: >-
+        One durable knowledge pack (the B1 family; the CF-1 publication act
+        of 2026-11-07). The pack's identity members and its
+        current-version reference; the `.kpack` unit's manifest / claims /
+        evidence / sources / relations / summaries / policies / signatures
+        / indexes structure owns the content — indexes are rebuildable,
+        never canonical.
+      required: [pack_id, schema_version, title, created_at, updated_at, current_version_id]
+      properties:
+        pack_id: { type: string, description: 'The Core-owned stable pack identifier; the consumer-side reference form packID or packID@version resolves against it.' }
+        schema_version: { type: integer, description: 'The pack schema''s own version field, carried alongside the pack identity.' }
+        title: { type: string, description: 'The display title — a label, never a path.' }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        current_version_id: { type: string, description: 'The pack''s current version''s identity; empty = no version stored yet.' }
+    KnowledgePackList:
+      type: object
+      description: One bounded knowledge-pack page (the keyset list semantics).
+      required: [packs]
+      properties:
+        packs:
+          type: array
+          items: { $ref: '#/components/schemas/KnowledgePack' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    KnowledgePackVersion:
+      type: object
+      description: >-
+        One immutable pack version (the B1 family): the Core-owned identity,
+        the immutable content root, and the explicit supersession
+        references. Prior versions are immutable — a source-snapshot change
+        creates a new version or an explicit supersession, never edits old
+        evidence; immutability is Core-enforced.
+      required: [pack_id, version_id, schema_version, pack_root_digest, created_at]
+      properties:
+        pack_id: { type: string }
+        version_id: { type: string, description: 'The Core-owned immutable content root''s identity.' }
+        schema_version: { type: integer }
+        pack_root_digest:
+          type: string
+          description: >-
+            The version's pack-root digest over the normalized,
+            deterministically ordered entry paths, media types and blob
+            digests. The algorithm-qualified digest form
+            `sha256:<lowercase-hex>` is carried as a value format for
+            description only — the D-41 portable digest profile stays behind
+            its owner technical/security gate; this contract does not
+            approve SHA-256 or any algorithm as the permanent digest
+            profile. A digest establishes content identity relative to
+            compared bytes only — never publisher authorization,
+            authenticity, license compliance, factual truth, or freedom
+            from prompt injection.
+        entry_count: { type: integer, minimum: 0 }
+        claim_count: { type: integer, minimum: 0 }
+        evidence_count: { type: integer, minimum: 0 }
+        supersedes:
+          type: array
+          description: The explicit supersession references this version declares.
+          items: { type: string }
+        superseded_by: { type: string, description: 'The version that explicitly supersedes this one; empty = none.' }
+        license: { type: string, description: 'The license metadata — SPDX identifier/expression where applicable.' }
+        license_status: { type: string, description: 'known | unknown (the Core-assessed status; unknown renders honestly, never as a license claim).' }
+        claims:
+          type: array
+          description: The version's claims where the Core serves them (the structural read's optional members).
+          items: { $ref: '#/components/schemas/KnowledgeClaim' }
+        evidence:
+          type: array
+          description: The version's evidence where the Core serves them.
+          items: { $ref: '#/components/schemas/KnowledgeEvidence' }
+    KnowledgePackVersionList:
+      type: object
+      description: One bounded pack-version page (the keyset list semantics).
+      required: [versions]
+      properties:
+        versions:
+          type: array
+          items: { $ref: '#/components/schemas/KnowledgePackVersion' }
+        cursor:
+          type: string
+          description: Omitted on the final page; the absence is the end marker.
+    KnowledgeClaimStatus:
+      type: string
+      description: >-
+        The closed claim-status register — candidate | active | contested |
+        superseded | revoked | archived (the approved basis's six-value
+        list). Conflicting claims are never hidden — shown via the explicit
+        relations.
+    KnowledgeClaim:
+      type: object
+      description: One knowledge claim (MB §6.3's model carried).
+      required: [claim_id, subject, predicate, object, scope, status]
+      properties:
+        claim_id: { type: string }
+        subject: { type: string }
+        predicate: { type: string }
+        object: { type: string }
+        scope: { type: string }
+        status: { $ref: '#/components/schemas/KnowledgeClaimStatus' }
+        valid_from: { type: string, format: date-time, description: 'The claim''s valid time.' }
+        valid_until: { type: string, format: date-time }
+        observed_at: { type: string, format: date-time, description: 'The observed time.' }
+        source_refs:
+          type: array
+          items: { type: string }
+        evidence_refs:
+          type: array
+          items: { type: string }
+        derived_from:
+          type: array
+          items: { type: string }
+        supersedes:
+          type: array
+          items: { type: string }
+        conflicts_with:
+          type: array
+          description: The explicit conflict relations — conflicts are surfaced, never suppressed (the MB §6.3 explicit-failure law).
+          items: { type: string }
+        language: { type: string }
+        validation_note: { type: string, description: 'The validation metadata where the Core carries it.' }
+    KnowledgeEvidenceVerificationState:
+      type: string
+      description: >-
+        The closed evidence verification-state register — unsigned |
+        verified | revoked | quarantined (the Core's implemented
+        trust-state register carried canonical at this act). A verified
+        state is content-identity evidence only — never publisher
+        authorization, authenticity, license compliance, factual truth, or
+        freedom from prompt injection; a signature is not safety or
+        authenticity.
+    KnowledgeEvidence:
+      type: object
+      description: One evidence record (MB §6.3's model carried).
+      required: [evidence_id, source_id, locator, captured_at, verification_state]
+      properties:
+        evidence_id: { type: string }
+        source_id: { type: string }
+        locator: { type: string, description: 'The source locator — a reference, never a rendered path.' }
+        digest:
+          type: string
+          description: >-
+            The excerpt/content digest. The algorithm-qualified digest form
+            `sha256:<lowercase-hex>` is carried as a value format for
+            description only — the D-41 portable digest profile stays behind
+            its owner technical/security gate; this contract does not
+            approve SHA-256 or any algorithm as the permanent digest
+            profile.
+        source_snapshot_ref: { type: string, description: 'The optional source-snapshot reference.' }
+        captured_at: { type: string, format: date-time }
+        verification_state: { $ref: '#/components/schemas/KnowledgeEvidenceVerificationState' }
+    KnowledgePackSource:
+      type: object
+      description: One source identity (the locator, the capture metadata, and the license/freshness members).
+      required: [source_id, kind, locator, captured_at]
+      properties:
+        source_id: { type: string }
+        kind: { type: string, description: 'The Core-supported source kind — the import registry read is the definitive list; never a client-invented value.' }
+        locator: { type: string }
+        captured_at: { type: string, format: date-time }
+        observed_at: { type: string, format: date-time, description: 'The observed time where the Core carries one.' }
+        license: { type: string, description: 'SPDX identifier/expression where applicable.' }
+        license_status: { type: string, description: 'known | unknown.' }
+        freshness_policy_ref: { type: string, description: 'The freshness policy reference.' }
+    KnowledgeImportSourceSpec:
+      type: object
+      description: One served supported-source registry member — the Core's own supported kinds and per-kind size bounds as queryable contract data.
+      required: [source_kind, max_bytes]
+      properties:
+        source_kind: { type: string }
+        max_bytes: { type: integer, format: int64 }
+        url_policy: { type: string, description: 'The URL policy statement where the kind fetches URLs (SSRF/DNS-rebinding/redirect policy; redirect limits; response size/time bounds).' }
+        notes: { type: string }
+    KnowledgeImportRequest:
+      type: object
+      description: >-
+        The import submit body — the identity key, the display source name,
+        a registry source kind, the base64 (standard, padded) content, and
+        the destination/duplicate intents. The content rides the JSON
+        envelope transport (the F4 attachment class's transport typing).
+      required: [idempotency_key, source_name, source_kind, content_b64]
+      properties:
+        idempotency_key: { type: string, description: 'The M-9 idempotency key — the key whose duplicate behavior is digest-keyed.' }
+        source_name: { type: string, description: 'The display source name — a label, never a path.' }
+        source_kind: { type: string, description: 'One registry source kind — the registry read''s values; never a client-invented kind.' }
+        content_b64: { type: string, description: 'The base64 (standard, padded) submitted bytes.' }
+        destination_pack_id:
+          type: string
+          description: >-
+            Present = the version-create identity operation on the named
+            pack; absent = the pack-create identity operation (distinct
+            identity operations — MB §6.2). The identity-create idempotency
+            fingerprint is the request identity + the target pack/version
+            identity; its replay window is the selected short window — 1 h
+            post-terminal (selected at the 2026-11-07 publication act):
+            within it a re-issued same-intent create returns the existing
+            pack/version reference; past it a repeated create intent is the
+            caller's explicit new operation.
+        duplicate_mode: { $ref: '#/components/schemas/KnowledgeImportDuplicateMode' }
+        external_transfer_confirmed:
+          type: boolean
+          description: >-
+            The explicit pre-submit confirmation for the external-transfer
+            boundary (a provider/remote-Core crossing; UI §24.4) — present
+            only where the destination crosses it. A Remote Core cannot
+            interpret the user's local localhost path/endpoint as its own
+            local resource.
+    KnowledgeImportDuplicateMode:
+      type: string
+      description: >-
+        The Core-exposed digest-match choices — logical_reference |
+        deduplication | distinct_reference. Displayed and accepted ONLY
+        where the Core defines the corresponding operation; the original
+        pack/version stays visible until the new operation confirms.
+    KnowledgeExportRequest:
+      type: object
+      description: The export request body — the exact scope and the destination shown before generation.
+      required: [correlation_id, pack_id, destination]
+      properties:
+        correlation_id: { type: string, description: 'The request identity (the read-with-output class''s correlation; safe re-issue).' }
+        pack_id: { type: string }
+        version_id: { type: string, description: 'The exact version to export; absent = the pack''s current version.' }
+        destination: { type: string, description: 'The destination descriptor — displayed before generation, never assumed.' }
+        external_transfer_confirmed:
+          type: boolean
+          description: The explicit pre-submit confirmation for the external-transfer boundary (UI §24.4).
+    KnowledgeOperationKind:
+      type: string
+      description: The closed knowledge-operation kind register — import | export.
+    KnowledgeOperationState:
+      type: string
+      description: >-
+        The closed knowledge-operation state register — submitted |
+        uploading | extracting | validating | indexing | generating |
+        completed | rejected | failed | cancelled | outcome_unknown. The
+        import stage vocabulary `Uploading → Extracting → Validating →
+        Indexing` (UI §14.4) is emitted from ACTUAL Core stages only as
+        F10-shaped events (`import.stage_entered`) — progress is never a
+        fabricated percentage and no percentage member exists. `rejected`
+        and `failed` carry the explicit failure code and reason (the
+        MB §6.3 explicit-failure list: dependency cycle, invalid signature,
+        unsupported schema, revoked trust, digest mismatch, license-policy
+        failure each produce an EXPLICIT failure or quarantine — never a
+        suppressed warning). `cancelled` is Core-confirmed only.
+        `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN surface: a timeout
+        or lost response is never proof of success, cancellation, or safe
+        retry — reconcile by the operation ID through the authoritative
+        state read.
+    KnowledgeOperation:
+      type: object
+      description: One knowledge operation's authoritative record (import or export) — the state endpoint's payload.
+      required: [operation_id, kind, state, correlation_id, created_at, updated_at]
+      properties:
+        operation_id: { type: string }
+        kind: { $ref: '#/components/schemas/KnowledgeOperationKind' }
+        state: { $ref: '#/components/schemas/KnowledgeOperationState' }
+        correlation_id: { type: string, description: 'The operation''s correlation ID — the identity a lost response reconciles through.' }
+        failure_code: { type: string, description: 'The coded failure (the family''s register codes) on rejected/failed; empty otherwise.' }
+        failure_reason: { type: string, description: 'The Core-supplied explicit reason — the honest statement, never a suppressed warning.' }
+        result: { $ref: '#/components/schemas/KnowledgeOperationResult' }
+        untrusted_label: { $ref: '#/components/schemas/UntrustedLabel' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    KnowledgeOperationResult:
+      type: object
+      description: >-
+        One operation's Core-confirmed result — what persists (artifact,
+        pack-version reference, derived indexes) and what the retention
+        policy applies; no erasure claim beyond Core-confirmed scope.
+        Present only once the operation carries it.
+      required: [kind]
+      properties:
+        kind: { $ref: '#/components/schemas/KnowledgeOperationKind' }
+        pack_id: { type: string, description: 'The import''s pack-version reference''s pack identity.' }
+        version_id: { type: string, description: 'The import''s pack-version reference''s version identity.' }
+        export_ref: { type: string, description: 'The export artifact''s reference.' }
+        digest:
+          type: string
+          description: >-
+            The produced bytes' digest where one is produced. The
+            algorithm-qualified digest form `sha256:<lowercase-hex>` is
+            carried as a value format for description only — the D-41
+            portable digest profile stays behind its owner
+            technical/security gate; this contract does not approve SHA-256
+            or any algorithm as the permanent digest profile.
+    KnowledgeOperationSubmitResult:
+      type: object
+      description: One submit's accepted outcome — the operation reference (replayed=true on the M-9 same-digest replay).
+      required: [operation, replayed]
+      properties:
+        operation: { $ref: '#/components/schemas/KnowledgeOperation' }
+        replayed: { type: boolean }
+    KnowledgeErrorCode:
+      type: string
+      description: >-
+        The KnowledgePack family's domain codes added to the coded error
+        register (F1) additively at the 2026-11-07 publication act — each
+        riding the published ErrorEnvelope with its retryable value and the
+        coded retryClass. The MB §6.3 explicit-failure list:
+        KNOWLEDGE_DEPENDENCY_CYCLE, KNOWLEDGE_SIGNATURE_INVALID,
+        KNOWLEDGE_SCHEMA_UNSUPPORTED, KNOWLEDGE_TRUST_REVOKED,
+        KNOWLEDGE_DIGEST_MISMATCH, KNOWLEDGE_LICENSE_POLICY_FAIL (each
+        never — explicit failures never retry). The import rejection
+        vocabulary: IMPORT_TYPE_UNSUPPORTED, IMPORT_SIZE_OVER_LIMIT,
+        IMPORT_MALFORMED, IMPORT_DUPLICATE_DIGEST,
+        IMPORT_PERMISSION_DENIED, IMPORT_POLICY_BLOCKED,
+        IMPORT_INTEGRITY_SIGNATURE_FAILURE (each never),
+        IMPORT_NETWORK_INTERRUPTED (backoff — transient network). The
+        idempotency/state conflicts ride the PUBLISHED codes exactly —
+        CONFLICT_IDEMPOTENCY_KEY (same key + different bytes; the M-9
+        fingerprintMatch:false datum in data) and CONFLICT_STATE (replay
+        past the window).
+    KnowledgeEventAggregateType:
+      type: string
+      description: >-
+        The KnowledgePack family's F10 aggregate types — knowledgePack |
+        knowledgePackVersion | knowledgeImportOperation |
+        knowledgeExportOperation.
+    KnowledgeEventType:
+      type: string
+      description: >-
+        The KnowledgePack family's F10 event_type vocabulary —
+        pack.created | pack_version.created | pack_version.superseded |
+        import.submitted | import.stage_entered | import.completed |
+        import.rejected | import.cancelled | export.submitted |
+        export.completed | export.failed. `import.stage_entered` carries
+        the `Uploading → Extracting → Validating → Indexing` vocabulary
+        from actual Core stages only. Events ride the frozen F10
+        EventRecord field set; events are never the source of truth — the
+        authoritative state endpoint is.
