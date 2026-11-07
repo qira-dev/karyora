@@ -1226,6 +1226,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workflows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List workflow definitions (the B4 Workflow family; the keyset list semantics).
+         * @description The Workflow-Definition authoring operation group's list member — the recorded operation-group-addition ask (P1.5 R8, carried by P4.2 §3.5(a) and riding the P4.2 §9 approval) materializes AS this group's addition at the 2026-11-08 publication act per the owner's LIVE card. The keyset list semantics; the cursor's absence marks the final page (the published keyset pattern, listJobs). Every protected effect rides the Core's single decision port (MB §12.3): principal, resource, action, and policy context in; one allow/deny decision out — UI visibility is never enforcement — and the concrete resource/action pair names are the Core/API owner's residual; no permission policy is invented here. Local mode stays role-free; Team role names remain NAMES only (D-36 open) — no Team-facing authorization behavior is defined here. Correlation-ID class only (the recorded M-1 read class; safe to re-issue; no idempotency row; none required — no replay window).
+         */
+        get: operations["listWorkflowDefinitions"];
+        put?: never;
+        /**
+         * Create one workflow definition (the B4 Workflow family; the aggregate-create class — the Core mints the identity).
+         * @description The Workflow-Definition authoring operation group's create member. The Core mints the stable definition identity — the body never carries one (the published Core-mints-the-identity precedent, createConversation). The aggregate-create class: the same idempotency key (scoped workspace Core-side) with the same request identity (the correlation ID — the fingerprint) replays the recorded create while the operation is live or within the selected replay window — 72 h after the operation's terminal transition (the F6-precedent candidate offered by the CF-4 draft §3(g), selected at this act); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. An unknown outcome is reconciled by the correlation ID before any retry (the S0–S4 law; the keyed replay returns the recorded outcome) — never a duplicate create. The retry class is reconcile. Every protected effect rides the Core's single decision port (MB §12.3); UI visibility is never enforcement.
+         */
+        post: operations["createWorkflowDefinition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run the Core-authoritative validation over a draft (the B4 Workflow family; a read-like operation producing a Core-owned typed result).
+         * @description The group's validate member — Core-side authoritative: schema, policy, capability, resource, privacy, and side-effect checks run in the Core before execution (Core MB §8.1); CLIENT CHECKS ARE ADVISORY and labeled as such at the point of display — a local validation result is never a truth source. The result is Core-owned typed output: blocking errors, non-blocking warnings, permission gaps, schema compatibility — each typed, each linkable to the offending node/edge (P4.9 O-1's contract structure); the UI invents no error category, warning class, or count. Run stays disabled until validation passes or identified non-blocking warnings are explicitly acknowledged — the acknowledgment is a visible, explicit user act, never a timeout, never implicit, never a dismissed toast (VRC-VAL-2). The exact-object labeling law: the result labels EXACTLY which draft or revision it evaluated — validation of one object is never presented as another object's result (RUN-LINK-2). This operation is read-like: it mutates no stored revision and NEVER silently saves the draft (the no-silent-save law). The idempotency class is none required — the result-reference read class; the key scope is the evaluated object's identity (draft vs revision — the exact-object law) with the correlation ID as fingerprint; a validation that never returns is an unknown outcome → query-before-retry (VRC-VAL-4). The retry class is safe-retry (a read class). A node type the active Core does not contract is WORKFLOW_UNKNOWN_NODE_TYPE; a node requiring a capability/permission the current principal lacks surfaces in the typed permission gaps (WORKFLOW_NODE_PERMISSION_DENIED where it blocks) — the Core's validation and the single decision port re-check authoritatively; client-side permission filtering is presentation, not enforcement.
+         */
+        post: operations["validateWorkflowDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/ai-proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request one AI-proposed workflow diff as untrusted reviewable TEXT (the B4 Workflow family; the M-23 class).
+         * @description The group's AI-diff propose member — the M-23 class. The proposal generation is a Core call producing UNTRUSTED REVIEWABLE TEXT, rendered as a reviewable diff (old region / new region). THE AI-PROPOSAL LAW (binding as carried): AI-proposed diffs cannot grant permissions, mint capabilities, execute, or change system instructions; approval is EXPLICIT and is the USER's — the user is the approval authority; AI changes are never auto-saved, never auto-run, never executed without explicit user approval. THE APPROVAL IS DRAFT-LOCAL: it saves nothing and runs nothing — no Core write happens at approval time; the approved change enters the DRAFT only and then follows the normal laws (the subsequent save carries its own row and its own class; run submission stays GATED [D-40 + the stack] and is NOT published by this family). Escape, dismissal, navigation, or a timeout NEVER approves and NEVER silently discards the DRAFT (VRC-AI-2). The idempotency class is none required — a draft-local generation with no stored artifact; a lost response is resolved by re-proposing (a fresh proposal — never a duplicated artifact; the proposal is not stored state). The retry class is safe-retry at most. The untrusted label rides the published UntrustedLabel register.
+         */
+        post: operations["proposeWorkflowAIDiff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{definition_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Inspect one workflow definition with its revisions (the B4 Workflow family; the inspect member).
+         * @description The group's inspect member — the definition-detail read including its revisions: each revision immutable and reachable (P4.9 §3.0's state (2); O-10). The read class (safe to re-issue; no idempotency row; none required). The exact-object labeling law: this read returns exactly the stated definition's record — never another object's result. The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule; the typed-404 pattern is the published precedent). Every protected effect rides the Core's single decision port (MB §12.3); the concrete resource/action pair names are the Core/API owner's residual.
+         */
+        get: operations["getWorkflowDefinition"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{definition_id}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save one NEW immutable revision of a workflow definition (the B4 Workflow family; the M-21 class).
+         * @description The group's save-revision member — the M-21 class: the save creates a NEW immutable revision; the response states the new revision ID; the old revision is preserved immutable and reachable; there is NO update-in-place (the NO-silent-overwrite law; UI §17.7). The draft's dirty state clears only on the Core-confirmed confirmation — never a pre-emptive "saved" label. A typed Core rejection leaves the draft surviving byte-for-byte, visibly so; nothing is overwritten. A concurrent-revision conflict is 409 WORKFLOW_REVISION_CONFLICT: the interim conflict rule governs — without an approved policy, no overwrite and no merge is performed; both sides are shown separately and labeled (the current stored revision read-only and the local draft); compare/reload/merge appear ONLY as the Core-supported conflict semantics define — any choice the contract does not define is ABSENT, never approximated by a disabled look-alike; the draft is preserved until the user explicitly discards it or a supported merge completes and is Core-confirmed; the conflict state persists until the user resolves it — never auto-resolved, never timed out into a resolution, never resolved by a refresh; the resolution never rewrites a historical revision or any Run's source-revision link. THE IF-MATCH CLAUSE (verbatim, carried): "RFC 9110 If-Match is a possible standard mechanism, not a UI-mandated wire contract"; the client does not assert If-Match or another concurrency protocol unless Core implements and documents it — no If-Match/ETag/precondition member exists in this contract and none is added by this family; the interim rule above is the governing semantics. THE NO-SILENT-SAVE LAW: validation and run submission never silently save a draft unless stated AND Core-confirmed — this operation is the save; no other family operation saves. A lost response reconciles by the authoritative definition/revision-state read BEFORE any retry (VRC-LOST-1; the S0–S4 law) — never a blind retry. The retry class is reconcile. Every protected effect rides the Core's single decision port (MB §12.3); the concrete resource/action pair names are the Core/API owner's residual.
+         */
+        post: operations["saveWorkflowRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{definition_id}/run-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a definition's run history beside its Core-reported source revisions (the B4 Workflow family; a pure read).
+         * @description The group's run-history query member — a pure read; no item-state change. Each entry renders beside its Core-reported source revision: the Run ↔ source-revision link is immutable and Core-owned; missing linkage renders `unavailable` — NEVER an inferred link (RUN-LINK-3). THE D-40 GATE (carried): this read is a LINKAGE record, not a Run schema — no Run/step lifecycle vocabulary, no run-state register, no Run/Job cardinality claim exists here (C1-10 designs no Run schema while D-40 stands; the run execution operation stays GATED and is NOT published by this family). Where a Run resolves to a durable Job submission, the published F6/F7/F9 classes govern at that future act — cited, never extended. "Run completed" appears only after the corresponding Core evidence and policy conditions are met — never from a timeout or a local optimistic update. Old runs and old revisions are preserved: no edit, conflict resolution, AI diff, failed save, or guard discard rewrites a historical revision or any entry's link (RUN-LINK-12). The idempotency class is none required (the read class); the retry class is safe-retry. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        get: operations["listWorkflowRunHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workflows/{definition_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a definition's authoritative revision state (the B4 Workflow family's authoritative state endpoint; a pure query — never a retry).
+         * @description The family's authoritative state endpoint — a pure-query definition/revision-state read resolved by (workspace, definition identity [+ revision identity]) — the published pure-query precedents (getAttachmentStatus — a pure query, never a re-upload; getConversationExchange — the correlation ID is PRIMARY and its uniqueness is what makes the query authoritative; getJobStatus — the authoritative state read). Returns the authoritative state of the stated definition; where the optional revision query rides, the state of that specific revision. A timeout or lost response is NEVER proof of success or safe retry (the S0–S4 model) — reconcile by the authoritative definition/revision identity through this pure query BEFORE any retry (VRC-LOST-1). The client's unsaved draft is never Core state (the no-silent-save law); the current immutable stored revision is what this read reports. Events are never the source of truth; this endpoint is. The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule). Reconnect and recovery: cursor replay where supported, then authoritative refetch (the four-step recovery plan and the gap message).
+         */
+        get: operations["getWorkflowDefinitionState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2299,6 +2451,178 @@ export interface components {
         ContextEventAggregateType: string;
         /** @description The Context family's F10 event_type vocabulary — compilation.omission_recorded | snapshot.saved | compilation.actual_reported (proposed by the CF-3 draft; materialized canonical by this act). `compilation.omission_recorded` is the explicit omission record (the no-silent-truncation budget law, MB §18). `snapshot.saved` is recorded CONDITIONAL on durable snapshot storage existing — the GC-3 un-gate precondition is the owner's PROPOSED decision and no snapshot.saved event can exist while it is open. `compilation.actual_reported` is recorded CONDITIONAL on the provider/Core usage-reporting fields existing — the owner's PROPOSED decision; where unreported, the honest "not yet reported" state stands (P4.6 ST-6) and nothing is extrapolated. Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); the F10 replay-retention window stays the recorded Proposed 30 days/stream open choice — not disposed by this act; events are never the source of truth — the authoritative state endpoint is. */
         ContextEventType: string;
+        /** @description One workflow definition's identity record. Workflow Definitions are immutable and versioned (Core MB §8.1): editing creates a NEW immutable revision; each Run keeps its own durable graph revision/history — a Run of revision R executes R forever, whatever the definition's later revisions are; AI replanning never silently mutates a historical graph. The three states stay distinct (the plan's non-negotiable rule): the unsaved draft (client-local — never Core state); the current immutable stored revision; each Run of a specific revision. */
+        WorkflowDefinition: {
+            /** @description The Core-minted definition identity — never client-carried (the Core-mints law; the published precedent, createConversation). */
+            definition_id: string;
+            /** @description The Core-carried display name where one exists; absence is the absence. */
+            display_name?: string;
+            /** @description The Core-reported current immutable revision reference, where a stored revision exists; a definition with no saved revision carries none (the authoritative state read confirms). */
+            current_revision_ref?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        /** @description The keyset page (the published keyset list pattern) — the cursor's absence marks the final page. */
+        WorkflowDefinitionList: {
+            definitions: components["schemas"]["WorkflowDefinition"][];
+            /** @description The opaque cursor; absent on the final page (the published keyset pattern). */
+            next_cursor?: string;
+        };
+        /** @description One immutable revision record. The revision identity's wire form is an opaque Core-owned reference — no digest-keyed identity is published (the D-41 digest classes stay gated; where a future digest member enters this family it publishes ONLY in the algorithm-qualified string form `sha256:<lowercase-hex>` as a value FORMAT inside descriptions — the CF-1 precedent note — and no algorithm is approved as the permanent digest profile). */
+        WorkflowRevision: {
+            /** @description The opaque Core-owned revision reference — stable, immutable, always reachable. */
+            revision_ref: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @description One draft node — the client-local authoring unit. The node vocabulary CLASS is carried here in descriptions only (Core MB §8.1's typed set: Trigger → Knowledge/Retrieve → LLM/Tool/Plugin → Transform/Condition → Parallel/Join → HumanApproval/Wait → Checkpoint/Subworkflow → Result; the compound entries name related classes whose final split into distinct Core-owned types the Core's node-schema contract defines); every concrete per-node value stays UNSUPPLIED [B4]: no node catalogue and no per-node schema is published here (P4.7 owns the catalogue and the ten-dimension discipline — input schema; output schema; required capability; permission; data egress; side effects; idempotency/retry safety; timeout/resource budget; checkpoint; errors and the result where returned — every node contract carries all ten dimensions; the Core-owned supported set is narrower until contracted and the UI exposes only the contracted types). config is open-typed because the per-node schema is UNSUPPLIED [B4] — the Core validates it against its own contract. The Parallel/Join-propagation and Subworkflow-nesting dimensions are DOUBLY blocked (B4 + the D-40 open decisions — Run/Job cardinality, nested-workflow behavior, and retry/cancel/pause propagation stay OPEN). */
+        WorkflowDraftNode: {
+            /** @description The draft-local node reference the Core echoes in validation results (the exact-object labeling law's linkage anchor — never Core-minted). */
+            node_ref: string;
+            /** @description The node type as the draft declares it — the Core validates against its own catalogue; a type the active Core does not contract is WORKFLOW_UNKNOWN_NODE_TYPE. */
+            node_type: string;
+            /** @description The node's configuration — open-typed; the per-node schema is UNSUPPLIED [B4] and the Core's node-schema contract owns it. */
+            config: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description One draft edge — the client-local connection between two draft nodes. */
+        WorkflowDraftEdge: {
+            /** @description The draft-local edge reference the Core echoes in validation results. */
+            edge_ref: string;
+            /** @description The source node_ref. */
+            from_node: string;
+            /** @description The target node_ref. */
+            to_node: string;
+        };
+        /** @description The draft's graph content — the client-local authoring state the family's write-path operations carry. The draft is never Core state until a save-revision confirms one: validation and run submission never silently save a draft unless stated AND Core-confirmed (UI §17.7; the no-silent-save law). */
+        WorkflowDraftContent: {
+            nodes: components["schemas"]["WorkflowDraftNode"][];
+            edges: components["schemas"]["WorkflowDraftEdge"][];
+        };
+        /** @description The create body — the aggregate-create class. The Core mints the definition identity; the body never carries one. */
+        WorkflowCreateRequest: {
+            /** @description The create idempotency key — scoped workspace Core-side; its fingerprint is the request identity (the correlation ID); the replay window is 72 h post-terminal (the F6-precedent candidate, selected at this act per the CF-4 draft §3(g)'s proposal). */
+            idempotency_key: string;
+            /** @description The request identity — the fingerprint the selected replay window keys on; the unknown-outcome reconcile anchor before any retry (the S0–S4 law). */
+            correlation_id: string;
+            /** @description The definition's display name as the user states it. */
+            display_name: string;
+        };
+        /** @description The Core-confirmed created definition and the replay datum (the Supplied-keyed replay pattern — a replay returns the recorded outcome, never a regenerated identity). */
+        WorkflowCreateResult: {
+            definition: components["schemas"]["WorkflowDefinition"];
+            /** @description True when the keyed replay returned the recorded create — the same Core-minted identity, never a second one. */
+            replayed: boolean;
+        };
+        /** @description The validate body. The evaluated object's identity rides the request so the result labels EXACTLY which draft or revision it evaluated (the exact-object labeling law — validation of one object is never presented as another object's result, RUN-LINK-2). */
+        WorkflowValidateRequest: {
+            /** @description The operation's correlation ID — the read-class identity; none-required idempotency (the result-reference read class). */
+            correlation_id: string;
+            /** @description The definition the draft belongs to, where the draft edits an existing definition; absent for a new definition's draft. */
+            definition_id?: string;
+            draft: components["schemas"]["WorkflowDraftContent"];
+        };
+        /** @description One Core-owned typed validation issue — linkable to the offending node/edge by its draft-local reference. The UI invents no error category, warning class, or count (P4.1 B19): every member here is the Core's typed output. */
+        WorkflowValidationIssue: {
+            /** @description The closed issue-class register — blocking_error | non_blocking_warning | permission_gap | schema_compatibility (the four typed classes CF-4 §3(d) carries). */
+            issue_class: string;
+            /** @description The offending node's draft-local reference where the issue links to a node. */
+            node_ref?: string;
+            /** @description The offending edge's draft-local reference where the issue links to an edge. */
+            edge_ref?: string;
+            /** @description The family's register code where one applies (e.g. WORKFLOW_UNKNOWN_NODE_TYPE, WORKFLOW_NODE_PERMISSION_DENIED). */
+            code?: string;
+            /** @description The Core-reported statement — carried verbatim, never synthesized. */
+            message: string;
+        };
+        /** @description The Core-authoritative typed validation result. Core-side authoritative: schema, policy, capability, resource, privacy, and side-effect checks run in the Core before execution; CLIENT CHECKS ARE ADVISORY and labeled as such at the point of display — a local validation result is never a truth source. Run stays disabled until validation passes or identified non-blocking warnings are explicitly acknowledged — the acknowledgment is a visible, explicit user act, never a timeout, never implicit, never a dismissed toast (VRC-VAL-2). The exact-object labeling law applies (the evaluated_object_ref). This operation is read-like: it mutates no stored revision and NEVER silently saves the draft (the no-silent-save law). */
+        WorkflowValidationResult: {
+            /** @description The exact-object label — which draft or revision this result evaluates (the exact-object labeling law). */
+            evaluated_object_ref: string;
+            /** @description The typed blocking errors — each linkable to the offending node/edge. */
+            blocking_errors: components["schemas"]["WorkflowValidationIssue"][];
+            /** @description The typed non-blocking warnings — each linkable to the offending node/edge. */
+            warnings: components["schemas"]["WorkflowValidationIssue"][];
+            /** @description The typed permission gaps — a node type requiring a capability/permission the current principal lacks (RUN-LINK-8; the Core re-checks authoritatively — client-side permission filtering is presentation, not enforcement). */
+            permission_gaps: components["schemas"]["WorkflowValidationIssue"][];
+            /** @description The typed schema-compatibility findings — each linkable to the offending node/edge. */
+            schema_compatibility: components["schemas"]["WorkflowValidationIssue"][];
+        };
+        /** @description The save-revision body — the M-21 class. The save creates a NEW immutable revision; the response states the new revision ID; the old revision is preserved immutable and reachable — there is NO update-in-place (the NO-silent-overwrite law). The concurrency contract is Open behind UI-30: RFC 9110 If-Match is a possible standard mechanism, not a UI-mandated wire contract — the client does not assert If-Match or another concurrency protocol unless Core implements and documents it; NO If-Match/ETag/precondition member exists in this contract and none is added by this family (the interim conflict rule governs instead). The save never silently saves a draft as a side effect of any other operation. */
+        WorkflowRevisionSaveRequest: {
+            /** @description The save idempotency key — scoped workspace + definition ID Core-side; its fingerprint is the correlation ID + the revision's current state reference (the M-21 class); the replay window is 1 h post-terminal (the short-window M-16-class precedent, selected at this act per the CF-4 draft §3(g)'s proposal). */
+            idempotency_key: string;
+            /** @description The request identity — half of the idempotency fingerprint; the reconcile anchor after a lost response. */
+            correlation_id: string;
+            /** @description The revision the draft was based on — the revision's current state reference (the fingerprint's other half); the Core's concurrent-revision detection input (WORKFLOW_REVISION_CONFLICT on conflict). The detection mechanism itself is Core-contract-owned and Open (the If-Match clause above); this member carries the client's known base and asserts no protocol. */
+            base_revision_ref: string;
+            draft: components["schemas"]["WorkflowDraftContent"];
+        };
+        /** @description The Core-confirmed save outcome — the NEW revision reference STATED on save; the old revision preserved immutable and reachable. The draft's dirty state clears only on this confirmation — never a pre-emptive "saved" label. A typed Core rejection leaves the draft surviving byte-for-byte, visibly so; nothing is overwritten. A lost response reconciles by the authoritative definition/revision-state read BEFORE any retry (VRC-LOST-1; the S0–S4 law) — never a blind retry, never an update-in-place. */
+        WorkflowRevisionSaveResult: {
+            /** @description The NEW immutable revision's Core-owned reference — stated on save. */
+            revision_ref: string;
+            /** @description True when the keyed replay returned the recorded save — the same revision, never a second one. */
+            replayed: boolean;
+        };
+        /** @description The AI-diff propose body — the M-23 class. The proposal generation is a Core call producing untrusted reviewable TEXT; the approval that follows is DRAFT-LOCAL and carries no Core write (the approval saves nothing and runs nothing — the subsequent save carries its own row and its own class). */
+        WorkflowAIDiffProposeRequest: {
+            /** @description The operation's correlation ID — none-required idempotency (a draft-local generation with no stored artifact). */
+            correlation_id: string;
+            /** @description The definition the draft belongs to, where the draft edits an existing definition; absent for a new definition's draft. */
+            definition_id?: string;
+            draft: components["schemas"]["WorkflowDraftContent"];
+            /** @description The user's stated request for the proposal — carried verbatim to the Core's proposal path; the proposal output is never treated as a command (the untrusted-input law). */
+            instruction: string;
+        };
+        /** @description THE AI-PROPOSAL LAW (binding as carried): AI-proposed diffs are UNTRUSTED REVIEWABLE TEXT — they cannot grant permissions, mint capabilities, execute, or change system instructions; approval is EXPLICIT and is the USER's — the user is the approval authority (P1.6 M-23); AI changes are never auto-saved, never auto-run, never executed without explicit user approval; the approval itself saves nothing and runs nothing — the approved change enters the DRAFT and then follows the normal laws. Escape, dismissal, navigation, or a timeout NEVER approves and NEVER silently discards the DRAFT (VRC-AI-2). The proposal renders as a reviewable diff — old region / new region. The Run/step rows stay GATED [D-40 + the stack] — nothing here enables any execution. */
+        WorkflowAIDiffProposal: {
+            /** @description The reviewable old region of the proposed diff — untrusted TEXT, rendered as received. */
+            old_region: string;
+            /** @description The reviewable new region of the proposed diff — untrusted TEXT, rendered as received. */
+            new_region: string;
+            /** @description The published UntrustedLabel register value — the closed register `untrusted`; the proposal is untrusted data that cannot grant permissions or change system instructions. */
+            untrusted_label: string;
+        };
+        /** @description One run-history entry — a LINKAGE record, NOT the D-40-blocked Run schema: it carries no Run/step lifecycle vocabulary, no run-state register, no step model, and no Run/Job cardinality claim (the D-40 remainder — Run/Job cardinality, nested-workflow behavior, and retry/cancel/pause propagation — stays OPEN). The Run ↔ source-revision link is immutable and Core-owned: the entry renders the link ONLY as the Core reports it — missing linkage renders `unavailable`, NEVER an inferred link (RUN-LINK-3). Where a Run resolves to a durable Job submission, the published F6/F7/F9 classes govern at that future act — cited here, never extended. Editing and saving a new revision leaves every entry's link intact — no history is rewritten by any edit, conflict resolution, AI diff, failed save, or guard discard (RUN-LINK-12). */
+        WorkflowRunHistoryEntry: {
+            /** @description The Core-owned opaque run reference — rendered as reported. */
+            run_ref: string;
+            /** @description The Core-reported source-revision reference — the revision the Run executed; absent where the Core reports no link. */
+            source_revision?: string;
+            /** @description The closed linkage register — linked | unavailable. `unavailable` is the honest state for a missing linkage — never an inferred link. */
+            linkage_state: string;
+            /**
+             * Format: date-time
+             * @description The Core-reported record time where one exists.
+             */
+            created_at?: string;
+        };
+        /** @description The run-history read's payload — a pure read; each entry beside its Core-reported source revision. */
+        WorkflowRunHistory: {
+            entries: components["schemas"]["WorkflowRunHistoryEntry"][];
+        };
+        /** @description The authoritative definition/revision-state record — the family's authoritative state endpoint's payload (a pure query). Events are never the source of truth; this endpoint is. The three states stay distinct: the client's unsaved draft is NEVER Core state (the no-silent-save law); the current immutable stored revision is reported here; each Run of a specific revision keeps its own durable revision. The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule). Reconnect and recovery: cursor replay where supported, then authoritative refetch (the four-step recovery plan; the gap message). */
+        WorkflowDefinitionState: {
+            /** @description The stated definition identity. */
+            definition_id: string;
+            /** @description The Core-reported current immutable revision reference; absent where no revision exists yet. */
+            current_revision_ref?: string;
+            /**
+             * Format: date-time
+             * @description The Core-reported state time where one exists.
+             */
+            updated_at?: string;
+        };
+        /** @description The Workflow family's domain codes added to the coded error register (F1) additively at the 2026-11-08 publication act — each riding the published ErrorEnvelope with its retryable value and the coded retryClass (the per-code retryable values are this publication act's assignments following the CF-4 draft §3(k) retryClass proposals, stated here). WORKFLOW_VALIDATION_FAILED (never — the Core-owned typed blocking-error outcome; the result is a fact about the evaluated object, not a transient failure; the exact-object labeling law applies), WORKFLOW_WARNING_UNACKNOWLEDGED (never — a save or run attempted while identified non-blocking warnings requiring acknowledgment are unacknowledged; the acknowledgment is the user's explicit act — never a timeout, never implicit, never a dismissed toast; a retry without acknowledgment re-fails deterministically), WORKFLOW_REVISION_CONFLICT (never — the concurrent-revision outcome; the interim conflict rule governs: without an approved policy no overwrite and no merge is performed, both sides are shown separately and labeled, the draft is preserved, and the conflict state persists until the user resolves it — never auto-resolved, never timed out into a resolution, never resolved by a refresh; the resolution never rewrites a historical revision or any Run's source-revision link), WORKFLOW_UNKNOWN_NODE_TYPE (never — a node type the active Core does not contract; the palette source is ONLY the Core-contracted node vocabulary, never a client-side list; no placeholder node can be saved or run), WORKFLOW_NODE_PERMISSION_DENIED (never — a node requiring a capability/permission the current principal lacks; the Core's validation and the single decision port re-check authoritatively — client-side permission filtering is presentation, not enforcement), WORKFLOW_NOT_SAVED (never — an operation attempted against a draft that is not a Core-confirmed saved revision; the no-silent-save law). The idempotency/state conflicts ride the PUBLISHED codes exactly — CONFLICT_IDEMPOTENCY_KEY (same key + different request identity) and CONFLICT_STATE (replay past the window). */
+        WorkflowErrorCode: string;
+        /** @description The Workflow family's F10 aggregate types — workflowDefinition | workflowRevision (proposed by the CF-4 draft; materialized canonical by this act). Events ride the frozen F10 EventRecord field set; events are never the source of truth (MB §14.2) — the authoritative state endpoint is. */
+        WorkflowEventAggregateType: string;
+        /** @description The Workflow family's F10 event_type vocabulary — revision.created | revision.remote_changed | validation.completed (proposed by the CF-4 draft; materialized canonical by this act). NO Run/step lifecycle event exists in this vocabulary — that vocabulary is a GATED row (D-40 + the stack: C1-10 designs no Run schema while D-40 stands) and nothing here drafts one. THE NO-SECOND-RUN-JOURNAL LAW (carried, binding as recorded): no second UI-side run journal and no separate Workflow-Run event stream exists while the D-40 mapping stands. `revision.created` records each NEW immutable revision's creation; `revision.remote_changed` records the concurrent-revision outcome's remote-change signal — the interim conflict rule governs its rendering (both sides shown; the draft preserved; the conflict state persists until the user resolves it); `validation.completed` records the Core-authoritative typed validation result's completion for the exact evaluated object (the exact-object labeling law applies to events too). Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); the F10 replay-retention window stays the recorded Proposed 30 days/stream open choice — not disposed by this act; events are never the source of truth — the authoritative state endpoint is. */
+        WorkflowEventType: string;
     };
     responses: never;
     parameters: {
@@ -2312,6 +2636,7 @@ export interface components {
         MemoryItemId: string;
         MemoryOperationId: string;
         ContextOperationId: string;
+        WorkflowDefinitionId: string;
     };
     requestBodies: never;
     headers: never;
@@ -3957,6 +4282,202 @@ export interface operations {
                 content: {
                     "application/json": {
                         operation: components["schemas"]["ContextOperation"];
+                    };
+                };
+            };
+        };
+    };
+    listWorkflowDefinitions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowDefinitionList"];
+                };
+            };
+        };
+    };
+    createWorkflowDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed created definition and the replay datum. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowCreateResult"];
+                };
+            };
+        };
+    };
+    validateWorkflowDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowValidateRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-owned typed validation result for the exact evaluated object. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowValidationResult"];
+                };
+            };
+        };
+    };
+    proposeWorkflowAIDiff: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowAIDiffProposeRequest"];
+            };
+        };
+        responses: {
+            /** @description The untrusted reviewable proposal — rendered as received, approved or rejected only by explicit user commands. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowAIDiffProposal"];
+                };
+            };
+        };
+    };
+    getWorkflowDefinition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The definition and its revision records — each revision immutable and reachable. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        definition: components["schemas"]["WorkflowDefinition"];
+                        /** @description The definition's revision records — each immutable and reachable; never overwritten; never silently replaced (the no-update-in-place law). */
+                        revisions: components["schemas"]["WorkflowRevision"][];
+                    };
+                };
+            };
+        };
+    };
+    saveWorkflowRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowRevisionSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed save outcome — the NEW revision reference stated on save. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRevisionSaveResult"];
+                };
+            };
+        };
+    };
+    listWorkflowRunHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The entries — each beside its Core-reported source revision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunHistory"];
+                };
+            };
+        };
+    };
+    getWorkflowDefinitionState: {
+        parameters: {
+            query?: {
+                /** @description The optional revision identity — where the query states one, the state of that specific revision is returned. */
+                revision_id?: string;
+            };
+            header?: never;
+            path: {
+                definition_id: components["parameters"]["WorkflowDefinitionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authoritative state record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        definition_state: components["schemas"]["WorkflowDefinitionState"];
                     };
                 };
             };
