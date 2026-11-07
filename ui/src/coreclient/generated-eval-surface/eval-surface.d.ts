@@ -1378,6 +1378,162 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plugins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the user's installed plugins (the B5 Plugin family; the keyset list semantics).
+         * @description The plugin lifecycle group's list member — the lifecycle list/reads class (the recorded M-1 read class). The keyset list semantics; the cursor's absence marks the final page (the published keyset pattern, listJobs). Correlation-ID class only — safe to re-issue; no idempotency row; none required — no replay window; the retry class is safe-retry. THE DISTINCTNESS LAW (carried, binding): USER-INSTALLED ≠ CATALOG-LISTED, always — user-installed artifacts are listed SEPARATELY from catalog-listed ones, and catalog presence is metadata, never a trust signal; the plan's excluded list holds (no marketplace, no trust badges, no one-click install is designed or implied; a catalog exists ONLY when the Core supplies one — UNSUPPLIED [B5], and none is published here). THE FOUR-GATE STACK (carried, binding): B5's own family gate is resolved by this publication act, and UI-29, D-13/D-14, and the Core MB §10.2 runtime proof KEEP their recorded states — resolving any single gate enables nothing; the /plugins surfaces render the recorded gate states until the stack resolves. Every protected effect rides the Core's single decision port (MB §12.3): principal, resource, action, and policy context in; one allow/deny decision out — UI visibility is never enforcement — and the concrete resource/action pair names are the Core/API owner's residual; no permission policy is invented here. Local mode stays role-free; Team role names remain NAMES only (D-36 open).
+         */
+        get: operations["listPlugins"];
+        put?: never;
+        /**
+         * Install one plugin package (the B5 Plugin family; the recorded C1-07 install class — the Core mints the identities).
+         * @description The lifecycle group's install member — the recorded C1-07 install class carried EXACTLY: a duplicate with the same key returns the install-record reference; the same key with a different body is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. The replay window is 72 h post-terminal (the keyed creation-class precedent — the same class B1's import submit, B2's add, and B4's create received; selected at this act per the CF-5 draft §3(g) proposals). The key is scoped workspace + package identity Core-side; the fingerprint is the request identity (the correlation ID) + the package artifact digest/version reference. THE IDENTITY LAW: the Core mints the plugin, package, install-record, and grant identities — the body never carries one (the published Core-mints-the-identity precedent, createConversation). THE NEVER-GRANT LAW (binding): the plugin itself can NEVER grant permissions — not to itself, not to anything else; the user grants/denies; the Core mediates and enforces; every grant is explicit, scoped, revocable, auditable, and quota-bound. THE CARRIED ADMISSION PIPELINE (the STRUCTURE; Core MB §10.1's flow carried exactly): signature/digest/version check → manifest validation + compatibility check → host policy grants explicit capabilities → WASM sandbox + resource limits → host-mediated calls only → result schema validation + audit receipt. THE VERDICT LAW (binding): every admission verdict is the CORE's output — the UI performs no signature check, no digest computation for trust purposes, no manifest validation for admission, and no compatibility determination of its own; every verification state the UI renders is Core-returned. THE AUDIT-RECEIPT LAW: the pipeline's final stage's audit receipt rides the Core's audit layer — the F12 path with the plugin_id context field being the one supplied anchor — never a UI-side journal. A Core-confirmed install lands the plugin in its installed, NOT-yet-enabled state — activation is separate, through the permission review the consuming permission-review specification owns (P4.10 §3.3's flow; never un-gated here). A lost or unknown outcome reconciles by the authoritative package ID/version through the family's state read BEFORE any retry (the S0–S4 law; the recorded reconciliation key) — NEVER by timeout alone, never an optimistic "Installed". The retry class is reconcile. THE FOUR-GATE STACK (carried, binding): UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states — resolving B5 alone enables nothing. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        post: operations["installPlugin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{plugin_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Inspect one installed plugin (the B5 Plugin family; the pure-query read class).
+         * @description The lifecycle group's inspect member — a pure read; no state change. Renders ONLY Core-returned verification states (the artifact digest, the signature verification result, the trust root, and the rotation/revocation status are each Core-returned — the UI never computes one) and ONLY Core-returned, PROVEN limits where any limit is shown (the PROVEN-only law: no computed, assumed, or documented-in-theory budget; per-instruction CPU/fuel quota must NOT be assumed; wall-clock timeout is NOT fuel — the wazero caveat carried). THE DUTY SPLIT (binding, carried): REDACTION IS THE CORE'S DUTY — the UI displays only Core-returned sanitized content and never exposes, requests, or fabricates an unredacted channel. THE MAY-NEVER LIST (carried): no secret values of any kind (a named secret-handle's NAME only, never its value); no raw logs, runtime internals, stack traces, or memory contents; no raw plugin output or raw provider payloads as diagnostics (plugin output is untrusted data — rendered, never executed); no diagnostic the Core did not return (the surface never computes, reconstructs, or invents one). THE TYPED FAILURE CLASSES (carried; each DISTINCT, rendered only as the Core returns it): quota-terminated (the measured limit IF the Core returns it + a safe diagnostic reference), crash (the invocation ID + a sanitized failure category — no stack traces or runtime internals), compatibility failure (the ABI/runtime mismatch + update availability where the Core reports it), revoked (visibly disabled + future invocations blocked + the current invocation's behavior Core-reported) — a failure is never shown as a user-action state and vice versa. The idempotency class is none required (the recorded M-1 read class; safe to re-issue); the retry class is safe-retry. The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule). Every protected effect rides the Core's single decision port (MB §12.3); Local mode stays role-free; Team role names remain NAMES only (D-36 open). THE FOUR-GATE STACK (carried, binding): UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states — resolving B5 alone enables nothing.
+         */
+        get: operations["getPlugin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{plugin_id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enable or disable one installed plugin (the B5 Plugin family; the recorded M-29 class — one state-toggle member covering both directions).
+         * @description The lifecycle group's enable/disable member — the recorded M-29 class as the STATE-TOGGLE class: ONE member operation covering both directions via the body's target state (the published pin precedent's shape, setMemoryItemPin). The idempotency key is scoped workspace + plugin identity Core-side; the fingerprint is the request identity (the correlation ID); the replay window is 1 h post-terminal (the short-window M-16-class precedent; selected at this act per the CF-5 draft §3(g) proposals); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. THE DISTINCTNESS LAW (carried, binding): DISABLED (the user's action) ≠ GRANTS-REVOKED ≠ TRUST-REVOKED — the enabled/disabled toggle is its own state, never shown as a milder or merged form of a revoked state. Whether a disable→enable cycle re-opens the permission review is UNSUPPLIED [B5] — recorded Open (P4.11 L1's class); this contract does not decide it. A lost or unknown outcome reconciles by querying the plugin's authoritative state BEFORE any toggle retry (the recorded reconciliation key; the S0–S4 law) — no local flip, never an optimistic state change. The retry class is reconcile. THE FOUR-GATE STACK (carried, binding): UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states — resolving B5 alone enables nothing. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        post: operations["setPluginEnabled"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{plugin_id}/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Update one installed plugin to a stated target package version (the B5 Plugin family; the recorded M-30 class).
+         * @description The lifecycle group's update member — the recorded M-30 class. The idempotency key is scoped workspace + package identity Core-side; the fingerprint is the request identity (the correlation ID) + the target version reference; the replay window is 1 h post-terminal (the short-window M-16-class precedent, quantified by the CF-2 precedent; selected at this act per the CF-5 draft §3(g) proposals); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. THE FRESH-REVIEW LAW (binding, carried): update preserves the prior version/permissions summary, and ANY permission change triggers a FRESH review of the changed set — the update does not complete past an un-reviewed change; the review opens BEFORE completion and follows the consuming permission-review flow exactly (P4.10 §3.3; never un-gated here). THE ATOMIC UPGRADE (binding, carried; Core MB §10.3): no artifact overwrite while an old active plugin runs — the prior version keeps running until the Core confirms the switch. THE VERDICT LAW: every verification state is Core-returned; the UI computes none. A lost or unknown outcome reconciles by the authoritative package ID/version through the family's state read BEFORE any retry (the recorded reconciliation key; the S0–S4 law) — never a blind retry, never an optimistic "Updated". The retry class is reconcile. THE FOUR-GATE STACK (carried, binding): UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states — resolving B5 alone enables nothing. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        post: operations["updatePlugin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{plugin_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove one installed plugin (the B5 Plugin family; the recorded M-31 class).
+         * @description The lifecycle group's remove member — the recorded M-31 class. The idempotency key is scoped workspace + plugin identity Core-side; the fingerprint is the request identity (the correlation ID); the replay window is 1 h post-terminal (the short-window M-16-class precedent; selected at this act per the CF-5 draft §3(g) proposals); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. THE REMOVE-VS-REVOKE QUESTION RECORDED OPEN (binding on this family): removal and grant revocation are distinct ONLY if the Core distinguishes them — this contract records the question OPEN and NO text asserts they are the same or distinct; until the Core's contract decides, no surface may promise that removing a plugin revokes its grants, nor that revoking grants preserves the artifact. Removal is Core-confirmed; disposal follows the Core's retention — no erasure claim beyond the Core-confirmed scope (the deletion-honesty class). The high-risk confirmation is the consuming lifecycle specification's UI-layer duty (P4.11 L5's class) — never un-gated here. A lost or unknown outcome reconciles by the authoritative package/plugin identity through the family's state read BEFORE any retry (the recorded reconciliation key; the S0–S4 law) — removal is never assumed complete. The retry class is reconcile. THE FOUR-GATE STACK (carried, binding): UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states — resolving B5 alone enables nothing. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        post: operations["removePlugin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{plugin_id}/grants/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke one installed plugin's granted capabilities (the B5 Plugin family; the recorded G7 class).
+         * @description The lifecycle group's revoke-grants member — the recorded G7 class. The idempotency key is scoped workspace + plugin identity + the grant scope Core-side (the grant identity is Core-owned); the fingerprint is the request identity (the correlation ID); the replay window is 1 h post-terminal (the short-window M-16-class precedent; selected at this act per the CF-5 draft §3(g) proposals); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. REVOCATION SEMANTICS (carried, binding): revocation blocks FUTURE invocations; the current invocation's behavior is reported by the Core — never guessed by any surface. THE DISTINCTNESS LAW (carried, binding): DISABLED (the user's action) ≠ GRANTS-REVOKED ≠ TRUST-REVOKED — each state renders distinctly, never shown as a milder state. THE NEVER-GRANT LAW (binding): the plugin itself can NEVER grant permissions; the user grants/denies; the Core mediates and enforces; a retry of this operation never re-grants and a denial stands until the user's own explicit act. The capability CLASS only rides this family (the concrete enumerated capability set, each request's scope, and the grant-scope class are UNSUPPLIED [B5] — NO capability catalogue is published here). A lost or unknown outcome reconciles by the authoritative grant/operation reference through the family's state read BEFORE any retry (the recorded reconciliation key; the S0–S4 law) — no assumption about the grant state. The retry class is reconcile. THE FOUR-GATE STACK (carried, binding): UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states — resolving B5 alone enables nothing. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        post: operations["revokePluginGrants"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{plugin_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a plugin's authoritative lifecycle state (the B5 Plugin family's authoritative state endpoint; a pure query — never a retry).
+         * @description The family's authoritative state endpoint — a pure-query plugin-state read resolved by (workspace, plugin/package identity [+ grant/install reference]) — the published pure-query precedents (getAttachmentStatus — a pure query, never a re-upload; getConversationExchange — the correlation ID is PRIMARY and its uniqueness is what makes the query authoritative; getJobStatus — the authoritative state read). A timeout or lost response is NEVER proof of success, cancellation, or safe retry (the S0–S4 model) — reconcile by the authoritative plugin/package identity through this pure query BEFORE any retry; the family's reconciliation keys resolve here (install and update by package ID/version; remove by the package/plugin identity; enable by the plugin state; revoke by the grant/operation reference). Events are never the source of truth; this endpoint is. Reconnect and recovery: cursor replay where supported, then authoritative refetch (the four-step recovery plan and the gap message). The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule). The idempotency class is none required (the read class); the retry class is safe-retry. THE FOUR-GATE STACK (carried, binding): the recorded gate states are what this read reports today (the gate-absent meta-state holds until the stack resolves) — UI-29, D-13/D-14, and the Core MB §10.2 runtime proof keep their recorded states; resolving B5 alone enables nothing. Every protected effect rides the Core's single decision port (MB §12.3).
+         */
+        get: operations["getPluginState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2623,6 +2779,138 @@ export interface components {
         WorkflowEventAggregateType: string;
         /** @description The Workflow family's F10 event_type vocabulary — revision.created | revision.remote_changed | validation.completed (proposed by the CF-4 draft; materialized canonical by this act). NO Run/step lifecycle event exists in this vocabulary — that vocabulary is a GATED row (D-40 + the stack: C1-10 designs no Run schema while D-40 stands) and nothing here drafts one. THE NO-SECOND-RUN-JOURNAL LAW (carried, binding as recorded): no second UI-side run journal and no separate Workflow-Run event stream exists while the D-40 mapping stands. `revision.created` records each NEW immutable revision's creation; `revision.remote_changed` records the concurrent-revision outcome's remote-change signal — the interim conflict rule governs its rendering (both sides shown; the draft preserved; the conflict state persists until the user resolves it); `validation.completed` records the Core-authoritative typed validation result's completion for the exact evaluated object (the exact-object labeling law applies to events too). Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); the F10 replay-retention window stays the recorded Proposed 30 days/stream open choice — not disposed by this act; events are never the source of truth — the authoritative state endpoint is. */
         WorkflowEventType: string;
+        /** @description The plugin manifest structure — the declared fields carried EXACTLY from the approved basis (Core MB §10.1's list): plugin ID/version; publisher/trust metadata; artifact digest/signature; ABI version; requested capabilities; compatibility range; declared resource needs; license/SBOM reference; lifecycle state. THE NEVER-GRANT LAW (binding): the plugin itself can NEVER grant permissions — not to itself, not to anything else; the user grants/denies; the Core mediates and enforces (Core MB §10.1; UI §19.3; the consuming permission-review specification's flow — never un-gated here). THE ABI LAW (carried; Core MB §10.3): the ABI version is SEPARATE from the host capability version; requests/responses are schema-validated; an unknown required capability is rejected; host calls re-check user/workspace scope and permissions per call; plugin output is untrusted and never mints new privileges. THE PROVEN-ONLY QUOTA LAW (binding): the manifest declares resource needs; the Core enforces the limits; the surface displays ONLY Core-returned, PROVEN limits — never a computed, assumed, or documented-in-theory budget; per-instruction CPU/fuel quota must NOT be assumed; wall-clock timeout is NOT fuel (the wazero caveat carried) — no limit number appears anywhere in this contract. THE D-41 NOTE (the gate stays GATED): digest and signature members carry values only in the algorithm-qualified string form (`sha256:<lowercase-hex>`) as a value FORMAT — no algorithm is approved by this contract as the permanent digest profile; the D-41 gate keeps its recorded state. The compatibility-range representation, the concrete ABI version values, and the declared-resource wire representation are UNSUPPLIED [B5] — the Core's contract decides; this record carries the structure, not the values. */
+        PluginManifest: {
+            /** @description The manifest format version as declared — the Core validates the manifest (the verdict law — manifest validation for admission is the Core's). */
+            manifest_version: string;
+            /** @description The plugin identity as declared — the Core mints the authoritative plugin identity at admission (the identity law; never client-minted). */
+            plugin_id: string;
+            /** @description The plugin version as declared. */
+            plugin_version: string;
+            /** @description The publisher/trust metadata reference as declared — a declaration only; trust is NEVER inferred from it (a digest match is NOT publisher trust; a signature is NOT proof of safe behavior; a downloaded source is NOT verified — the trust-word discipline). */
+            publisher_ref?: string;
+            /** @description The artifact digest as declared — the algorithm-qualified string form (`sha256:<lowercase-hex>`) as a value FORMAT only (the D-41 note). A digest establishes content identity relative to compared bytes ONLY — never publisher authorization, authenticity, safety, or factual truth (the digest/truth-separation law). */
+            artifact_digest?: string;
+            /** @description The artifact signature as declared — verified by the Core only; the verification RESULT is Core-returned (PluginPackage), never computed UI-side (the verdict law). */
+            artifact_signature?: string;
+            /** @description The plugin's ABI version — SEPARATE from the host capability version (Core MB §10.3); the concrete values are UNSUPPLIED [B5]. */
+            abi_version?: string;
+            /** @description The capability names the manifest requests — the CLASS the approved basis carries only; the concrete enumerated capability set, each request's scope, and the grant-scope class (global / workspace-scoped / invocation-scoped) are UNSUPPLIED [B5] — NO capability catalogue is published here. A declared name the active Core does not contract is unknown to it — an unknown required capability is rejected, Core-side. */
+            requested_capabilities?: string[];
+            /** @description The declared host-compatibility range — its representation is UNSUPPLIED [B5]; the Core's compatibility check is authoritative (the verdict law; the UI performs no compatibility determination of its own). */
+            compatibility_range?: string;
+            /** @description The declared resource needs — the Core enforces the limits; the PROVEN-only law governs any display (no assumed fuel; wall-clock timeout is NOT fuel). The wire representation is UNSUPPLIED [B5]. */
+            declared_resource_needs?: string;
+            /** @description The license/SBOM reference as declared. */
+            license_ref?: string;
+            /** @description The lifecycle-state field the manifest list carries (Core MB §10.1's list carried exactly) — the AUTHORITATIVE lifecycle state is the Core-returned one on the plugin record and the state read; the state-machine wire values are UNSUPPLIED [B5] and no register is invented here. */
+            lifecycle_state?: string;
+        };
+        /** @description The package structure — the package is admitted only through the Core's verification: the artifact digest, the signature verification result, the trust root, and the rotation/revocation status are each CORE-RETURNED verification states the UI renders, NEVER computes (the consuming register's carried structure; the digest/truth-separation law — a digest establishes content identity relative to compared bytes ONLY, never publisher authorization, authenticity, safety, or factual truth). Approved sources and the package format are the Core's enumeration; a local import exists only when the Core implements validation + quarantine. THE TRUST-WORD DISCIPLINE (binding, carried): "Verified," "Trusted," and "Installed" appear ONLY after the corresponding Core evidence and policy conditions are met. THE D-41 NOTE rides the digest member: the algorithm-qualified string form (`sha256:<lowercase-hex>`) as a value FORMAT only — no algorithm approved; the D-41 gate stays GATED. */
+        PluginPackage: {
+            /** @description The Core-owned package identity — Core-minted, never client-minted (the identity law). */
+            package_ref: string;
+            /** @description The Core-verified artifact digest — the algorithm-qualified string form (`sha256:<lowercase-hex>`) as a value FORMAT only (the D-41 note). The digest/truth-separation law applies. */
+            artifact_digest?: string;
+            /** @description The Core-returned signature verification result — rendered as returned, never computed UI-side (the verdict law). Absent where the Core returns none. */
+            signature_verification_result?: string;
+            /** @description The Core-returned trust-root reference — rendered as returned, never resolved or chosen UI-side. Absent where the Core returns none. */
+            trust_root_ref?: string;
+            /** @description The Core-returned trust-rotation status — rendered as returned, never computed. Absent where the Core returns none. */
+            rotation_status?: string;
+            /** @description The Core-returned revocation status — TRUST-REVOKED is DISTINCT from DISABLED and from GRANTS-REVOKED (the distinctness law). Rendered as returned, never computed. Absent where the Core returns none. */
+            revocation_status?: string;
+        };
+        /** @description One installed plugin record — the inspect member's payload. THE IDENTITY LAW: the Core mints the plugin, package, install-record, and grant identities — never client-minted (the published Core-mints-the-identity precedent). The record renders ONLY Core-returned verification states and lifecycle state; the trust-word discipline binds every rendering. THE DISTINCTNESS LAWS (carried, binding): DISABLED (the user's action) ≠ GRANTS-REVOKED ≠ TRUST-REVOKED; INVOCATION TERMINATION ≠ PLUGIN DISABLE/REVOCATION (a WASM quota failure terminates THAT invocation, preserves Core stability, and emits safe audit evidence — it does not disable or revoke the plugin); USER- INSTALLED ≠ CATALOG-LISTED (catalog presence is metadata, never a trust signal). The state-machine wire values are UNSUPPLIED [B5] — the Core's contract decides; no register is invented here. THE DUTY SPLIT (binding, carried): REDACTION IS THE CORE'S DUTY — the UI displays only Core-returned sanitized content and never exposes, requests, or fabricates an unredacted channel. */
+        Plugin: {
+            /** @description The Core-minted plugin identity — never client-minted (the identity law). */
+            plugin_id: string;
+            manifest?: components["schemas"]["PluginManifest"];
+            package?: components["schemas"]["PluginPackage"];
+            /** @description The Core-returned authoritative lifecycle state — rendered as returned; the distinctness laws bind its rendering (DISABLED ≠ GRANTS-REVOKED ≠ TRUST-REVOKED); the state-machine wire values are UNSUPPLIED [B5]. */
+            lifecycle_state: string;
+            /** @description The Core-minted install-record identity — the reference the C1-07 keyed duplicate returns (the install class). */
+            install_record_ref?: string;
+            /**
+             * Format: date-time
+             * @description The Core-reported install time where one exists.
+             */
+            installed_at?: string;
+        };
+        /** @description The lifecycle list read's payload — the keyset page (the published keyset list pattern); the cursor's absence marks the final page. USER-INSTALLED ≠ CATALOG-LISTED, always; catalog presence is metadata, never a trust signal. */
+        PluginList: {
+            plugins: components["schemas"]["Plugin"][];
+            /** @description The opaque cursor; absent on the final page (the published keyset pattern). */
+            next_cursor?: string;
+        };
+        /** @description The install body — the recorded C1-07 install class. The Core mints the plugin, package, install-record, and grant identities — the body never carries one (the identity law). The key is scoped workspace + package identity Core-side; the fingerprint is the request identity (the correlation ID) + the package artifact digest/version reference; the replay window is 72 h post-terminal (the keyed creation-class precedent). THE CARRIED ADMISSION PIPELINE rides the install member's description (the STRUCTURE; the verdict law; the audit-receipt law). */
+        PluginInstallRequest: {
+            /** @description The install idempotency key — scoped workspace + package identity Core-side; a duplicate with the same key returns the install-record reference (the C1-07 class); the same key with a different body is 409 CONFLICT_IDEMPOTENCY_KEY. */
+            idempotency_key: string;
+            /** @description The request identity — the fingerprint's first half; the unknown-outcome reconcile anchor before any retry (the S0–S4 law). */
+            correlation_id: string;
+            /** @description The package artifact/version reference to install — the fingerprint's second half and the reconciliation key (reconcile by package ID/version — NEVER by timeout alone). The Core verifies and admits the package; the admission verdict is the Core's output. */
+            package_ref: string;
+        };
+        /** @description The Core-confirmed install outcome — the recorded C1-07 class: a duplicate with the same key returns the SAME install-record reference, never a second one. The install lands the plugin in its installed, NOT-yet-enabled state — activation is separate, through the permission review the consuming permission-review specification owns (never un-gated here). A lost response reconciles by package ID/version through the family's state read BEFORE any retry (the S0–S4 law) — never an optimistic "Installed". */
+        PluginInstallResult: {
+            /** @description The Core-minted install-record identity — the duplicate replay returns THIS reference, never a new one (the C1-07 class). */
+            install_record_ref: string;
+            /** @description True when the keyed replay returned the recorded install — the same install-record reference, never a second one. */
+            replayed: boolean;
+        };
+        /** @description The state-toggle body — the recorded M-29 class as the state-toggle class — ONE member operation covers both directions via the target state (the published pin precedent's shape, setMemoryItemPin). */
+        PluginEnableRequest: {
+            /** @description The target state — true to enable, false to disable. DISABLED (the user's action) is DISTINCT from GRANTS-REVOKED and from TRUST-REVOKED (the distinctness law); whether a disable→enable cycle re-opens the permission review is UNSUPPLIED [B5] — recorded Open. */
+            enabled: boolean;
+        };
+        /** @description The update body — the recorded M-30 class. THE FRESH-REVIEW LAW (binding): ANY permission change triggers a FRESH review of the changed set — the update does not complete past an un-reviewed change. THE ATOMIC UPGRADE (binding; Core MB §10.3): no artifact overwrite while an old active plugin runs — the prior version keeps running until the Core confirms the switch. */
+        PluginUpdateRequest: {
+            /** @description The update idempotency key — scoped workspace + package identity Core-side; the replay window is 1 h post-terminal; the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY. */
+            idempotency_key: string;
+            /** @description The request identity — the fingerprint's first half; the unknown-outcome reconcile anchor before any retry (the S0–S4 law). */
+            correlation_id: string;
+            /** @description The target package version reference — the fingerprint's second half and the reconciliation key (reconcile by package ID/version — never by timeout alone). */
+            target_version_ref: string;
+        };
+        /** @description The keyed mutation body shared by the remove and revoke-grants members (the recorded M-31 and G7 classes) — the plugin identity rides the path; the key scope and any grant-scope component are Core-side (the grant identity is Core-owned; the grant-scope class is UNSUPPLIED [B5]). */
+        PluginMutationRequest: {
+            /** @description The mutation idempotency key — scoped workspace + plugin identity Core-side (revoke adds the grant-scope component Core-side); the replay window is 1 h post-terminal; the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. */
+            idempotency_key: string;
+            /** @description The request identity — the fingerprint; the unknown-outcome reconcile anchor before any retry (the S0–S4 law). */
+            correlation_id: string;
+        };
+        /** @description The Core-confirmed mutation outcome — the enable/disable, update, remove, and revoke-grants members' shared result shape (the published mutation-result precedent, MemoryMutationResult). THE ATOMIC UPGRADE law binds the update member (the prior version keeps running until the Core confirms the switch); the remove-vs-revoke question stays OPEN (no text asserts removal and grant revocation are the same or distinct — the Core's contract decides); revocation blocks FUTURE invocations and the current invocation's behavior is Core-reported — never guessed. A lost response reconciles through the family's authoritative state read BEFORE any retry (the S0–S4 law) — never an optimistic confirmation. */
+        PluginMutationResult: {
+            /** @description The Core-minted plugin identity the mutation applied to. */
+            plugin_id: string;
+            /** @description The Core-minted operation reference — the reconciliation anchor for the lost-response lookup (never a timeout-inferred state). */
+            operation_ref: string;
+            /** @description True when the keyed replay returned the recorded outcome — the same Core-confirmed result, never a second mutation. */
+            replayed: boolean;
+        };
+        /** @description The authoritative plugin-state record — the family's authoritative state endpoint's payload (a pure query). Events are never the source of truth; this endpoint is. The distinctness laws bind the rendered state (DISABLED ≠ GRANTS-REVOKED ≠ TRUST-REVOKED; INVOCATION TERMINATION ≠ PLUGIN DISABLE/REVOCATION — a WASM quota failure terminates THAT invocation, preserves Core stability, and emits safe audit evidence — never disables or revokes the plugin). The state-machine wire values are UNSUPPLIED [B5] — the Core's contract decides. The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule). Reconnect and recovery: cursor replay where supported, then authoritative refetch (the four-step recovery plan and the gap message). */
+        PluginState: {
+            /** @description The Core-minted plugin identity. */
+            plugin_id: string;
+            /** @description The Core-returned authoritative lifecycle state — rendered as returned; the distinctness laws bind its rendering. */
+            lifecycle_state: string;
+            /** @description The Core-owned package reference where one exists. */
+            package_ref?: string;
+            /** @description The Core-minted install-record reference where one exists. */
+            install_record_ref?: string;
+            /**
+             * Format: date-time
+             * @description The Core-reported state time where one exists.
+             */
+            updated_at?: string;
+        };
+        /** @description The Plugin family's domain codes added to the coded error register (F1) additively at the 2026-11-08 publication act — each riding the published ErrorEnvelope with its retryable value (the per-code retryable values are this publication act's assignments following the CF-5 draft §3(k) retryClass routing, stated here), each naming the admission/lifecycle check whose typed outcome it carries (the consuming admission decision table's mutually exclusive states). PLUGIN_TRUST_UNKNOWN (reconcile — the UNKNOWN admission state's outcome: publisher/trust root unverified or not determinable by the Core; the state can change only Core-side — reconcile through the authoritative state read before any retry, never a blind resubmit), PLUGIN_SIGNATURE_INVALID (never — the signature verification failure; a DISTINCT typed INVALID outcome; a fact about the submitted bytes; a retry of the same bytes re-fails deterministically), PLUGIN_DIGEST_MISMATCH (never — the digest mismatch; a DISTINCT typed INVALID outcome; a fact about the submitted bytes), PLUGIN_MANIFEST_INVALID (never — the malformed-manifest outcome; a DISTINCT typed INVALID outcome; a fact about the submitted manifest), PLUGIN_ABI_INCOMPATIBLE (never — the INCOMPATIBLE state's outcome: the ABI/runtime mismatch; update availability is rendered where the Core reports it), PLUGIN_TRUST_REVOKED (never — the REVOKED state's outcome: trust revoked; FUTURE invocations blocked and the current invocation's behavior Core-reported — never guessed), PLUGIN_CAPABILITY_DENIED (never — the DENIED state's outcome: policy denies a required capability, or the user denies it in the review; a retry never grants — the user's explicit act governs). THE SHAPE QUESTION RECORDED OPEN: whether the Core collapses the three typed INVALID outcomes (PLUGIN_SIGNATURE_INVALID, PLUGIN_DIGEST_MISMATCH, PLUGIN_MANIFEST_INVALID) into one typed `data` payload instead is still OPEN — the three codes stay DISTINCT here as the draft proposes, and both readings satisfy the consuming table's distinctness law; no text decides the question. The idempotency/state conflicts ride the PUBLISHED codes exactly — CONFLICT_IDEMPOTENCY_KEY (same key + different request identity) and CONFLICT_STATE (replay past the window). */
+        PluginErrorCode: string;
+        /** @description The Plugin family's F10 aggregate type — plugin (proposed by the CF-5 draft; materialized canonical by this act). Events ride the frozen F10 EventRecord field set; events are never the source of truth (MB §14.2) — the authoritative state endpoint is. */
+        PluginEventAggregateType: string;
+        /** @description The Plugin family's F10 event_type vocabulary — plugin.install_completed | plugin.enabled | plugin.disabled | plugin.updated | plugin.removed | plugin.grants_revoked | plugin.trust_revoked (proposed by the CF-5 draft; materialized canonical by this act) — each naming a Core-confirmed lifecycle transition. NO invocation/execution event exists in this vocabulary — the invocation/execution event vocabulary is a GATED row [D-13/D-14 + the Core MB §10.2 runtime proof] and nothing here drafts one; the Core MB §17.5 Plugin call reference sequence is CITED, never extended (every step is Core-owned; no surface observes anything the Core does not report). `plugin.grants_revoked` records the grant-revocation transition (GRANTS-REVOKED ≠ TRUST-REVOKED ≠ DISABLED — each distinct); `plugin.trust_revoked` records the Core's trust-revocation transition. Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); the F10 replay-retention window stays the recorded Proposed 30 days/stream open choice — not disposed by this act; events are never the source of truth — the authoritative state endpoint is. */
+        PluginEventType: string;
     };
     responses: never;
     parameters: {
@@ -2637,6 +2925,7 @@ export interface components {
         MemoryOperationId: string;
         ContextOperationId: string;
         WorkflowDefinitionId: string;
+        PluginId: string;
     };
     requestBodies: never;
     headers: never;
@@ -4479,6 +4768,201 @@ export interface operations {
                     "application/json": {
                         definition_state: components["schemas"]["WorkflowDefinitionState"];
                     };
+                };
+            };
+        };
+    };
+    listPlugins: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The page; the cursor's absence marks the final page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginList"];
+                };
+            };
+        };
+    };
+    installPlugin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginInstallRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed install outcome — the install-record reference and the replay datum. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginInstallResult"];
+                };
+            };
+        };
+    };
+    getPlugin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plugin record — manifest, package verification states, and lifecycle state, each as the Core returns them. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Plugin"];
+                };
+            };
+        };
+    };
+    setPluginEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginEnableRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed mutation outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginMutationResult"];
+                };
+            };
+        };
+    };
+    updatePlugin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed mutation outcome — the updated record itself is read from the authoritative state read. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginMutationResult"];
+                };
+            };
+        };
+    };
+    removePlugin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed mutation outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginMutationResult"];
+                };
+            };
+        };
+    };
+    revokePluginGrants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed mutation outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginMutationResult"];
+                };
+            };
+        };
+    };
+    getPluginState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plugin_id: components["parameters"]["PluginId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authoritative state record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PluginState"];
                 };
             };
         };
