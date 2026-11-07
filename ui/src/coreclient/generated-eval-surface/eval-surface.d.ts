@@ -1144,6 +1144,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/context/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Save one request-context snapshot durably (the B3 family; the M-19 class — conditional, hidden while unsupported).
+         * @description The Context family's save-snapshot command — the M-19 class: a Core-confirmed operation with its own confirmation — NOT canonical knowledge truth (a saved snapshot is never canonical knowledge truth; UI §16.3). CONDITIONAL on durable snapshot storage existing (the GC-3 un-gate precondition — the owner's PROPOSED decision, not made by this act): HIDDEN ENTIRELY in the UI while unsupported — never a dead stub (UI §31.5). Publishing this shape un-gates nothing — the conditional law above is the operation's published semantics. The keyed idempotency class: the same idempotency key (scoped workspace + request context Core-side) with the same request identity (the correlation ID — the fingerprint) replays the recorded save while the operation is live or within the selected replay window — 72 h after the operation's terminal transition (the F6-precedent window, selected at this act per the CF-3 draft's offered candidate); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. A lost response resolves ONLY by the authoritative reconcile read — the operation-status read by the operation ID — never a blind re-save (the S0–S4 reconcile-by-identity law). The retry class is reconcile. The raw rendered payload is stored only where the Core's policy/retention permits it — otherwise source refs + the digest (MB §7.3); the raw payload is never rendered where the Core's policy does not permit it. No secret value ever enters a snapshot artifact — digests and references only, never content or secret values (the AuditRecord law; the compilation reveals what influenced a result — sensitive data whose sources' content is never rendered wholesale).
+         */
+        post: operations["saveContextSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/context/snapshots/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compare two context snapshots (the B3 family; the M-20 class — read-only, conditional on stable Core comparison).
+         * @description The Context family's snapshot-compare — the M-20 class: READ-ONLY and CONDITIONAL on stable Core comparison existing (the GC-4 un-gate precondition) — never a fabricated diff. The read-with-output class (the recorded M-32 class; the exportAudit precedent): mutates nothing, safe to re-issue — the idempotency class is none required, NO replay window (selected at this act per the CF-3 draft's proposal). Where stable Core comparison does not exist the family answers CONTEXT_COMPARE_UNSUPPORTED — the comparison-unavailable state renders honestly and no diff is ever fabricated. The comparison output is the Core's own stable comparison — this contract defines no diff vocabulary of its own. The retry class is safe-retry at most (a read-only, effect-free read).
+         */
+        post: operations["compareContextSnapshots"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/context/inclusion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set the per-request memory-inclusion decision (the B3 family; the M-18 request-scoped decision).
+         * @description The Context family's per-request memory-inclusion decision — the M-18 class: REQUEST-SCOPED ONLY, with no global effect and no scope broadening (UI §15.5). The decision applies ONLY to the stated request carried by request_ref — it changes no Memory item's lifecycle state, creates no Memory action row (the P4.6 §4 boundary — the Inspector renders only what the Core's context policy exposes about inclusion), and never widens any scope. The idempotency fingerprint is the request's correlation ID + the decided item IDs; the key scope is the stated request/scope ONLY; the retention is request-lifetime at most (selected at this act per the CF-3 draft's proposal). The retry class is safe-retry within the request's lifetime (the CF-3 draft §3(i) proposal, assigned at this act).
+         */
+        post: operations["setContextInclusion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/context/operations/{operation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: components["parameters"]["ContextOperationId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read one context operation's authoritative snapshot/compilation state (the B3 family's authoritative state endpoint; a pure query — never a retry).
+         * @description The family's authoritative state endpoint — a pure-query snapshot/compilation-state read resolved by (scope, operation identity) — the operation-ID half of the unknown-outcome lookup (the getAttachmentStatus/getConversationExchange/getJobStatus pure-query precedents). Returns the authoritative state of a Context-domain operation (the save-snapshot class; the kind register carries it). A timeout or lost response is NEVER proof of success or safe retry (the S0–S4 model) — reconcile by the operation identity through this pure query BEFORE any retry (the reconcile-by-identity law). An unresolvable outcome surfaces outcome_unknown with the operation reference — never a timeout-inferred state. The unknown identity and the out-of-scope identity are the SAME typed 404 (the no-leak rule; the typed-404 pattern is the published precedent). The compiled content is never carried (the F5 law): the served Job-flow snapshot read (/jobs/{id}/snapshot) stays the structural read's boundary and is never duplicated or redefined here. Events are never the source of truth; this endpoint is.
+         */
+        get: operations["getContextOperationStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2079,6 +2161,144 @@ export interface components {
         MemoryEventAggregateType: string;
         /** @description The Memory family's F10 event_type vocabulary — memory_candidate.extracted | memory_item.added | memory_review.approved | memory_review.rejected | memory_item.updated | memory_item.pinned | memory_item.unpinned | memory_item.expired | memory_item.forgotten | memory_item.deleted. `memory_item.forgotten` is recorded conditional on the OPEN forget/delete distinctness — whether a forgotten event exists as distinct from deleted is the Core's semantics (carried OPEN; no published text asserts two distinct operations exist). `memory_candidate.extracted` is the sensitivity check's routing event (auto-save low-risk vs approval-required). Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); events are never the source of truth — the authoritative state reads are. */
         MemoryEventType: string;
+        /** @description The ADDITIVE metadata extension of the served Job-flow snapshot read (F5 /jobs/{id}/snapshot → SnapshotView) toward the Core MB §7.3 required-metadata list — the CF-3 draft's 15-row extension map, materialized canonical by the 2026-11-08 publication act. This extension NEVER duplicates, redefines, or modifies the served SnapshotView or its member schemas (SnapshotItem, SnapshotOmission, SnapshotBudgetRequested, SnapshotBudget): the served read stays the boundary of what the Core serves about a context today, the delivered Jobs-flow presentation is untouched, and the served members it carries (task_ref, user_input_digest, included, omitted, budget, compression_method, retrieval_config_version, estimator_version, renderer_version, assembled_digest) are the published forms this extension extends — never restated here. Every member below is present only where the Core reports it — absence is the honest unreported state, never a synthesized value. RECORDED GAPS (never fabricated members): the tool-result/previous-output item-class vocabulary is unsupplied (the CF-3 draft row 3 — no member exists); the provider/Core usage-reporting fields are UNSUPPLIED — the owner's PROPOSED decision (the CF-3 draft §3(f)), the honest "not yet reported" state applies and nothing is extrapolated (row 8; the honest-absence law rides used_budget); the privacy/ data-classification decisions are the Core's — no UI-minted member exists (row 10); the prompt/template/system-instruction and output-schema version refs are unsupplied (row 12 — no member exists); the concrete pack/claim/evidence/source breakdown classes are the owner's residual (row 2's residual — source_digests records the digests only). This act publishes no standalone compiled-context read route: the only snapshot route in existence is F5's, and the future standalone contract composes this extension ADDITIVELY alongside the served read. */
+        ContextSnapshotMetadataExtension: {
+            /** @description The owning workflow's reference where the Core reports one (the MB §7.3 request's owning task/workflow/run class — the served task_ref extended; the CF-3 draft row 1's extension). A reference string carried in snapshot metadata only: the Workflow family's Run rows stay GATED (D-40) and this member makes no cross-family wire claim. */
+            workflow_ref?: string;
+            /** @description The owning run's reference where the Core reports one (the MB §7.3 class; the CF-3 draft row 1's extension). A reference string carried in snapshot metadata only: the Run rows stay GATED (D-40/CF-4) — no cross-family wire claim is made. */
+            run_ref?: string;
+            source_digests?: components["schemas"]["ContextSnapshotSourceDigests"];
+            /** @description The compression's version where the Core reports one (the served compression_method extended — the CF-3 draft row 4's extension). */
+            compression_version?: string;
+            /** @description The source-snapshot references where the Core reports them (the CF-3 draft row 4's extension; the references are the Core's own identity strings). */
+            source_snapshot_refs?: string[];
+            used_budget?: components["schemas"]["ContextSnapshotUsedBudget"];
+            /** @description The model/provider target the Core reports for the compilation (the MB §7.3 class; the CF-3 draft row 7's extension, keyed per the published F2 CapabilityDescriptor class). Optimization/target metadata — NEVER canonical context identity and never a context identifier (the P1.5 R5 law; P4.6 ST-1/F-6). */
+            model_ref?: string;
+            /** @description The capability profile the compilation resolved through where the Core reports one — keyed per the published F2 CapabilityDescriptor class (the CF-3 draft row 7's keying). The descriptor's own "no capability promise exists — C3-29's frozen boundary" rides unchanged. */
+            capability_profile?: components["schemas"]["ProfileID"];
+            /** @description A digest over the snapshot record itself where the Core reports one (the served assembled_digest is the payload's digest — this member is the record's; the CF-3 draft row 11's extension). The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 portable digest profile stays behind its owner technical/security gate; this contract does not approve SHA-256 or any algorithm as the permanent digest profile. */
+            snapshot_digest?: string;
+            /** @description The applicable policy/signature references where the Core reports them (the CF-3 draft row 11's extension; the signature/digest profile classes cite the B1 family AS PROPOSED behind D-41's gate — the references are the Core's own identity strings). */
+            policy_signature_refs?: string[];
+            /** @description The provider-adapter's version where the Core reports one (the served renderer_version extended — the CF-3 draft row 14's extension). */
+            provider_adapter_version?: string;
+            /** @description The exact rendered request/context representation's version, including tool schemas and ordering, where the Core reports one (the CF-3 draft row 15's extension; the served assembled_digest carries the payload's digest — this member versions the representation). */
+            representation_version?: string;
+            /** @description Whether the raw rendered payload is retained — the Core's policy/retention decision (MB §7.3: the raw rendered payload is stored only when policy/retention permits, otherwise source refs + the digest). The raw payload is never rendered where the Core's policy does not permit it (the P4.6 §3.2 row 13 law). Absent = the Core reports no statement — never inferred. */
+            raw_payload_stored?: boolean;
+        };
+        /** @description The selected pack/claim/evidence/source digests beyond the served flat included items (the MB §7.3 class; the CF-3 draft row 2's extension) — the served per-item form (SnapshotItem) is flat and untouched. The typed pack/claim/evidence/source breakdown's concrete classes are the owner's residual (recorded in the CF-3 draft): this object records the digests the Core reports per class and defines no pack/claim/evidence wire shape (the pack classes cite the B1 family AS PROPOSED — no cross-family claim; pack_ref and the review-sources form remain the compatibility anchors). An absent member = the Core reports no digest for the class — never fabricated. */
+        ContextSnapshotSourceDigests: {
+            /** @description The selected packs' digests where the Core reports them. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 gate stands; no algorithm is approved as the permanent digest profile. */
+            packs?: string[];
+            /** @description The selected claims' digests where the Core reports them. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 gate stands; no algorithm is approved as the permanent digest profile. */
+            claims?: string[];
+            /** @description The selected evidence's digests where the Core reports them. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 gate stands; no algorithm is approved as the permanent digest profile. */
+            evidence?: string[];
+            /** @description The selected sources' digests where the Core reports them. The algorithm-qualified digest form `sha256:<lowercase-hex>` is carried as a value format for description only — the D-41 gate stands; no algorithm is approved as the permanent digest profile. */
+            sources?: string[];
+        };
+        /** @description The used budget and the provider-overhead extension (the MB §7.3 requested/used budget class; the CF-3 draft row 6's extension) — the served requested form (SnapshotBudgetRequested) and the Core estimate (SnapshotBudget) are untouched; reserved output IS already served in the requested form. THE USAGE-REPORTING HONESTY LAW: the provider/Core usage-reporting fields are UNSUPPLIED — the owner's PROPOSED decision (the CF-3 draft §3(f)); the honest "not yet reported" state applies until they exist (P4.6 ST-6) — a member is present only where the Core reports it, never extrapolated, never synthesized. */
+        ContextSnapshotUsedBudget: {
+            /** @description The input tokens the Core accounts as used, where the Core reports them (absent = not yet reported — never extrapolated). */
+            used_input_tokens?: number;
+            /** @description The output tokens the Core accounts as used, where the Core reports them (absent = not yet reported — never extrapolated). */
+            used_output_tokens?: number;
+            /** @description The provider-overhead tokens the Core reports, where the Core reports them (absent = not yet reported — never extrapolated). */
+            provider_overhead_tokens?: number;
+        };
+        /** @description The save-snapshot member's body — the M-19 Core-confirmed command class. The idempotency key is scoped workspace + request context Core-side; the fingerprint is the request identity (the correlation ID). CONDITIONAL on durable snapshot storage existing (the owner's PROPOSED decision): hidden entirely in the UI while unsupported, never a dead stub. */
+        ContextSnapshotSaveRequest: {
+            /** @description The M-19 idempotency key — scoped workspace + request context Core-side. Same key + same request identity replays the recorded save while the operation is live or within the selected replay window — 72 h after the operation's terminal transition (the F6-precedent window, selected at this act per the CF-3 draft's offered candidate); the same key with a different request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409 CONFLICT_STATE. */
+            idempotency_key: string;
+            /** @description The request's correlation ID — the fingerprint's identity and the reconcile identity for a lost response (the S0–S4 law). */
+            correlation_id: string;
+            /** @description The compilation Job whose snapshot is saved — the served F5 flow's identity (/jobs/{id}/snapshot); the save persists that compiled context's snapshot for the stated request context. The Job's policy-snapshot law carries (MB §12.3). */
+            source_job_id: string;
+        };
+        /** @description One save's accepted outcome — the operation reference (replayed=true on the M-19 same-request-identity replay). 202 = accepted for processing, never completion (the F6 law); the authoritative operation-state read confirms every outcome; the request is never displayed as the confirmation (the J-5 rule). */
+        ContextSnapshotSaveResult: {
+            operation: components["schemas"]["ContextOperation"];
+            replayed: boolean;
+        };
+        /** @description The compare member's body — the M-20 read-only class. READ-ONLY and CONDITIONAL on stable Core comparison existing (the GC-4 un-gate precondition) — never a fabricated diff. */
+        ContextSnapshotCompareRequest: {
+            /** @description The baseline snapshot's identity (the served SnapshotView's snapshot_id class). */
+            baseline_snapshot_id: string;
+            /** @description The candidate snapshot's identity (the served SnapshotView's snapshot_id class). */
+            candidate_snapshot_id: string;
+        };
+        /** @description The compare member's Core-reported output — the read-with-output result (mutates nothing). The comparison content is the Core's own stable comparison output — this contract defines no diff/delta vocabulary of its own; a compare runs ONLY where stable Core comparison exists and no diff is ever fabricated. */
+        ContextSnapshotCompareResult: {
+            baseline_snapshot_id: string;
+            candidate_snapshot_id: string;
+            /** @description The Core's own stable comparison output, exactly as the Core reports it. Where stable Core comparison does not exist the family answers CONTEXT_COMPARE_UNSUPPORTED instead — the comparison-unavailable state renders honestly. */
+            comparison: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description The per-request memory-inclusion member's body — the M-18 request-scoped decision. It applies ONLY to the stated request, changes no Memory item's lifecycle state, creates no Memory action row (the P4.6 §4 boundary), and never widens any scope. */
+        ContextInclusionRequest: {
+            /** @description The request's correlation ID — the fingerprint's first half. */
+            correlation_id: string;
+            /** @description The stated request reference — the ONLY scope this decision applies to (the key scope is the stated request/scope ONLY; retention request-lifetime at most). */
+            request_ref: string;
+            /** @description The per-item inclusion decisions for the stated request. */
+            decisions: {
+                /** @description The memory item the decision concerns (the per-request MEMORY-inclusion decision's class — cited AS PROPOSED by the CF-3 draft from the B2 family's row). */
+                memory_item_id: string;
+                /** @description Whether the item is included in the stated request's compiled context. */
+                included: boolean;
+            }[];
+        };
+        /** @description The per-request memory-inclusion member's Core-confirmed outcome — a decision record for the stated request ONLY, never an item-state change and never a Memory action row. */
+        ContextInclusionResult: {
+            request_ref: string;
+            decisions: {
+                memory_item_id: string;
+                /** @description The Core-confirmed inclusion for the stated request. */
+                included: boolean;
+                /** @description The Core-reported outcome reason where the Core's context policy reports one — carried verbatim, never synthesized; absence is the absence (the Core-provided-only reason law). */
+                reason?: string;
+            }[];
+        };
+        /** @description The closed context-operation kind register — save_snapshot (the M-19 Core-confirmed command class; CONDITIONAL on durable snapshot storage existing — the GC-3 un-gate precondition, the owner's PROPOSED decision: while unsupported the command stays hidden entirely in the UI, never a dead stub, and no operation row can exist). The compare is the read-with-output class and the inclusion decision is request-scoped — neither carries a durable operation row; the compilation itself remains the served Job flow (F5/getJobStatus) — never duplicated here. */
+        ContextOperationKind: string;
+        /** @description The closed context-operation state register — accepted | saved | failed | outcome_unknown. `accepted` is the submit confirmation (202 = accepted for processing, never completion — the F6 law). `saved` is the Core-confirmed terminal state (the snapshot durably stored under the selected 72 h post-terminal retention window). `failed` carries the explicit failure code and reason — never a suppressed warning. `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN surface: a timeout or lost response is never proof of success or safe retry — reconcile by the operation ID through the authoritative state read. */
+        ContextOperationState: string;
+        /** @description One context operation's authoritative record — the state endpoint's payload (the S0–S4 unknown-outcome lookup's operation-ID half). */
+        ContextOperation: {
+            /** @description The Core-minted operation reference. */
+            operation_id: string;
+            kind: components["schemas"]["ContextOperationKind"];
+            state: components["schemas"]["ContextOperationState"];
+            /** @description The operation's correlation ID. */
+            correlation_id: string;
+            /** @description The source compilation Job where the operation carries one (the served F5 flow's identity — the Job read stays the compilation's authoritative state, never duplicated here). */
+            source_job_id?: string;
+            /** @description The Core-confirmed saved-snapshot reference once the operation carries it — present only on the Core-confirmed saved outcome. */
+            result?: {
+                /** @description The Core-confirmed saved snapshot's identity (the served SnapshotView's snapshot_id class). */
+                snapshot_id?: string;
+                /** @description The Core-confirmed retention statement where the Core carries one (the selected window is 72 h post-terminal); empty = none reported. */
+                retention_note?: string;
+            };
+            /** @description The coded failure (the family's register codes) where the confirmed outcome is a failure; empty otherwise. */
+            failure_code?: string;
+            /** @description The Core-supplied explicit reason — the honest statement, never a suppressed warning. */
+            failure_reason?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        /** @description The Context family's domain codes added to the coded error register (F1) additively at the 2026-11-08 publication act — each riding the published ErrorEnvelope with its retryable value and the coded retryClass (the per-code retryable values are this publication act's assignments following the CF-3 draft §3(i) retryClass proposals, stated here). CONTEXT_BUDGET_EXHAUSTED (never — the budget-exhaustion outcome producing the explicit omission/partial-context record; the no-silent-truncation budget law, MB §18 — a repeat with the same budget re-exhausts; the omission record is the explicit outcome, not a transient failure), CONTEXT_OMISSION_REASON_UNAVAILABLE (safe-retry — the typed carrier for the honest reason-unavailable state: the Core reports an omission without a reason and the absence is displayed as the absence, never a synthesized reason, P4.6 ST-3), CONTEXT_COMPILATION_UNAVAILABLE (safe-retry — the compilation/preview cannot be served; the unavailable state renders honestly, never a fabricated state, P4.6 ST-9/C7), CONTEXT_COMPARE_UNSUPPORTED (safe-retry — compare attempted without stable Core comparison support; safe to re-issue as a read-only effect-free read while the outcome persists until support exists — the GC-4 law; never a fabricated diff), CONTEXT_SNAPSHOT_NOT_FOUND (never — the unknown snapshot/operation identity, the SAME typed 404 for unknown and out-of-scope — the no-leak rule; the typed-404 pattern is the published precedent). The idempotency/state conflicts ride the PUBLISHED codes exactly — CONFLICT_IDEMPOTENCY_KEY (same key + different request identity) and CONFLICT_STATE (replay past the window). */
+        ContextErrorCode: string;
+        /** @description The Context family's F10 aggregate types — contextSnapshot | contextCompilation (proposed by the CF-3 draft; materialized canonical by this act). Events ride the frozen F10 EventRecord field set; events are never the source of truth (MB §14.2) — the authoritative state endpoint is. */
+        ContextEventAggregateType: string;
+        /** @description The Context family's F10 event_type vocabulary — compilation.omission_recorded | snapshot.saved | compilation.actual_reported (proposed by the CF-3 draft; materialized canonical by this act). `compilation.omission_recorded` is the explicit omission record (the no-silent-truncation budget law, MB §18). `snapshot.saved` is recorded CONDITIONAL on durable snapshot storage existing — the GC-3 un-gate precondition is the owner's PROPOSED decision and no snapshot.saved event can exist while it is open. `compilation.actual_reported` is recorded CONDITIONAL on the provider/Core usage-reporting fields existing — the owner's PROPOSED decision; where unreported, the honest "not yet reported" state stands (P4.6 ST-6) and nothing is extrapolated. Events ride the frozen F10 EventRecord field set with the C1-08 cursor semantics (opaque, stream/workspace-scoped, authorization-checked cursors; dedup by event_id; reconcile by the per-aggregate monotonic sequence; at-least-once delivery); the F10 replay-retention window stays the recorded Proposed 30 days/stream open choice — not disposed by this act; events are never the source of truth — the authoritative state endpoint is. */
+        ContextEventType: string;
     };
     responses: never;
     parameters: {
@@ -2091,6 +2311,7 @@ export interface components {
         KnowledgeOperationId: string;
         MemoryItemId: string;
         MemoryOperationId: string;
+        ContextOperationId: string;
     };
     requestBodies: never;
     headers: never;
@@ -3640,6 +3861,102 @@ export interface operations {
                 content: {
                     "application/json": {
                         operation: components["schemas"]["MemoryOperation"];
+                    };
+                };
+            };
+        };
+    };
+    saveContextSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContextSnapshotSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted for processing, never completion (the F6 law) — the authoritative operation-state read confirms every outcome. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextSnapshotSaveResult"];
+                };
+            };
+        };
+    };
+    compareContextSnapshots: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContextSnapshotCompareRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-reported comparison of the two snapshots. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextSnapshotCompareResult"];
+                };
+            };
+        };
+    };
+    setContextInclusion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContextInclusionRequest"];
+            };
+        };
+        responses: {
+            /** @description The Core-confirmed per-request inclusion outcome. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContextInclusionResult"];
+                };
+            };
+        };
+    };
+    getContextOperationStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                operation_id: components["parameters"]["ContextOperationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The operation's authoritative record. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        operation: components["schemas"]["ContextOperation"];
                     };
                 };
             };
