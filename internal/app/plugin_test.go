@@ -379,3 +379,123 @@ func TestPluginStoreImplementsPort(t *testing.T) {
 	var _ PluginStore = (*storage.Store)(nil)
 	_ = time.Now // keep the import honest if assertions change
 }
+
+// TestPluginRemoveRevokeDistinctnessThroughService pins THE
+// REMOVE-VS-REVOKE DISTINCTNESS through the service boundary (the G-09a
+// fixture set — the recorded 2026-11-09 resolution act, binding on this
+// family): removal (M-31) and grant revocation (G7) are DISTINCT Core
+// semantics — removing a plugin does NOT revoke its grants; revoking
+// grants does NOT remove the artifact; each acts only on its own named
+// object. The service's served outcomes pin the distinctness: the
+// removal's outcome is the artifact's absence from the user-installed
+// list + the typed 404 on the authoritative state read (the artifact
+// gone; no revocation outcome served anywhere); the revocation's outcome
+// is the grants-revoked state on the STILL-INSTALLED artifact (still
+// listed, still inspectable); and the two members' intents are distinct
+// shapes (the service builds RemoveKey vs RevokeKey — the same client
+// body key carries two independent recorded outcomes; a post-removal
+// revoke intent cannot resolve; a removal after a revocation still
+// applies).
+func TestPluginRemoveRevokeDistinctnessThroughService(t *testing.T) {
+	env, slice := newPluginEnv(t)
+	ctx := env.ctx()
+
+	// PART 1 — REMOVE-NEVER-REVOKES through the service: the removal's
+	// outcome is the artifact GONE (its own named object), never a
+	// revocation outcome.
+	plug := pluginFixture(t, slice, ctx, "g09a-r")
+	removedID := plug.PluginID
+	out, err := slice.RemovePlugin(ctx, removedID, PluginMutationRequestBody{IdempotencyKey: "mkey-g09a", CorrelationID: "corr-g09a-rm"})
+	if err != nil || out.Replayed || out.PluginID != removedID || out.OperationRef == "" {
+		t.Fatalf("the M-31 removal through the service: %v %+v", err, out)
+	}
+	// The authoritative state read: the typed 404 (the artifact gone).
+	if _, err := slice.PluginState(ctx, removedID); err == nil {
+		t.Fatalf("the removed artifact is gone from the authoritative state")
+	} else {
+		assertKnowledgeEnvelope(t, err, errs.CodeNotFound)
+	}
+	// The user-installed list no longer carries the artifact.
+	page, err := slice.Plugins(ctx, PluginListRequest{})
+	if err != nil {
+		t.Fatalf("the installed list: %v", err)
+	}
+	for _, listed := range page.Plugins {
+		if listed.PluginID == removedID {
+			t.Fatalf("the removed artifact is absent from the installed list: %+v", page.Plugins)
+		}
+	}
+	// The removal's replay resolves the RECORDED removal outcome (never a
+	// second removal, never a revocation).
+	replay, err := slice.RemovePlugin(ctx, removedID, PluginMutationRequestBody{IdempotencyKey: "mkey-g09a", CorrelationID: "corr-g09a-rm"})
+	if err != nil || !replay.Replayed || replay.OperationRef != out.OperationRef {
+		t.Fatalf("the removal's replay resolves the recorded removal outcome: %v %+v", err, replay)
+	}
+
+	// PART 2 — REVOKE-NEVER-REMOVES through the service: the revocation's
+	// outcome is the grants-revoked state on the STILL-INSTALLED artifact.
+	plug = pluginFixture(t, slice, ctx, "g09a-v")
+	revokedID := plug.PluginID
+	out, err = slice.RevokePluginGrants(ctx, revokedID, PluginMutationRequestBody{IdempotencyKey: "rkey-g09a", CorrelationID: "corr-g09a-v"})
+	if err != nil || out.Replayed || out.OperationRef == "" {
+		t.Fatalf("the G7 revocation through the service: %v %+v", err, out)
+	}
+	// The authoritative state read: grants-revoked — DISTINCT from
+	// disabled and from trust-revoked, and DISTINCT from a removed
+	// artifact (the state endpoint still resolves it).
+	st, err := slice.PluginState(ctx, revokedID)
+	if err != nil || st.LifecycleState != plugindomain.StateGrantsRevoked {
+		t.Fatalf("the artifact stays installed under the grants-revoked state: %v %+v", err, st)
+	}
+	// The artifact is still inspectable and still listed (revoking grants
+	// does NOT remove the artifact).
+	inspected, err := slice.PluginInspect(ctx, revokedID)
+	if err != nil || inspected.PluginID != revokedID || inspected.LifecycleState != plugindomain.StateGrantsRevoked {
+		t.Fatalf("the artifact stays inspectable after the revocation: %v %+v", err, inspected)
+	}
+	page, err = slice.Plugins(ctx, PluginListRequest{})
+	if err != nil {
+		t.Fatalf("the installed list: %v", err)
+	}
+	stillListed := false
+	for _, listed := range page.Plugins {
+		if listed.PluginID == revokedID {
+			stillListed = true
+		}
+	}
+	if !stillListed {
+		t.Fatalf("revoking grants does NOT remove the artifact — it stays listed: %+v", page.Plugins)
+	}
+	// The revocation's replay resolves the RECORDED revocation outcome.
+	replay, err = slice.RevokePluginGrants(ctx, revokedID, PluginMutationRequestBody{IdempotencyKey: "rkey-g09a", CorrelationID: "corr-g09a-v"})
+	if err != nil || !replay.Replayed || replay.OperationRef != out.OperationRef {
+		t.Fatalf("the revocation's replay resolves the recorded revocation outcome: %v %+v", err, replay)
+	}
+
+	// PART 3 — THE DISTINCT OUTCOME IDENTITIES at the service boundary.
+	// (a) The same client body key across the two members carries two
+	// independent recorded outcomes — the distinct keying scopes (the
+	// service builds RemoveKey vs RevokeKey from the same body members).
+	plug = pluginFixture(t, slice, ctx, "g09a-d")
+	distinctID := plug.PluginID
+	if _, err := slice.RevokePluginGrants(ctx, distinctID, PluginMutationRequestBody{IdempotencyKey: "dkey-g09a", CorrelationID: "corr-d1"}); err != nil {
+		t.Fatalf("the revocation under the shared client key: %v", err)
+	}
+	if _, err := slice.RemovePlugin(ctx, distinctID, PluginMutationRequestBody{IdempotencyKey: "dkey-g09a", CorrelationID: "corr-d2"}); err != nil {
+		t.Fatalf("the removal under the SAME client key does not collide with the revocation's record (distinct keying scopes): %v", err)
+	}
+	// (b) A post-removal revoke intent cannot resolve (the revoke's own
+	// named object no longer exists once the artifact is removed).
+	if _, err := slice.RevokePluginGrants(ctx, distinctID, PluginMutationRequestBody{IdempotencyKey: "rkey-post", CorrelationID: "corr-post"}); err == nil {
+		t.Fatalf("a revoke intent on a removed artifact must refuse")
+	} else {
+		assertKnowledgeEnvelope(t, err, errs.CodeNotFound)
+	}
+	// (c) A removal after a revocation still applies (the artifact is
+	// still installed — grants-revoked is not trust-revoked).
+	if _, err := slice.RemovePlugin(ctx, revokedID, PluginMutationRequestBody{IdempotencyKey: "mkey-after-revoke", CorrelationID: "corr-after-revoke"}); err != nil {
+		t.Fatalf("the removal after the revocation (the artifact still installed): %v", err)
+	}
+	_, err = slice.PluginState(ctx, revokedID)
+	assertKnowledgeEnvelope(t, err, errs.CodeNotFound)
+}

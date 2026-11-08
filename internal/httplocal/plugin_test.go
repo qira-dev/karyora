@@ -393,3 +393,170 @@ func TestPluginInvocationAbsence(t *testing.T) {
 		}
 	}
 }
+
+// TestPluginRemoveRevokeDistinctnessWire pins THE REMOVE-VS-REVOKE
+// DISTINCTNESS over the live loopback test server (the G-09a fixture set —
+// the recorded 2026-11-09 resolution act, binding on this family): the two
+// published members are DISTINCT Core semantics — removing a plugin does
+// NOT revoke its grants; revoking grants does NOT remove the artifact;
+// each acts only on its own named object. The wire's served outcomes pin
+// the distinctness: the M-31 remove member's outcome is the artifact GONE
+// (the state endpoint resolves the typed 404 and the list no longer
+// carries it); the G7 revoke-grants member's outcome is the
+// grants-revoked state on the STILL-INSTALLED artifact (the state endpoint
+// still resolves it and the list still carries it); and the two intents
+// are distinct shapes (the same client body key across the two routes
+// carries two independent recorded outcomes; a post-removal revoke intent
+// resolves the typed 404; a removal after a revocation still applies).
+func TestPluginRemoveRevokeDistinctnessWire(t *testing.T) {
+	env := newTestEnv(t)
+
+	// The fixture install (the Core mints the identities; the body never
+	// carries one).
+	status, body := env.do(t, "POST", "/v1/plugins", pluginInstallBody("key-g09aw-r", "corr-g09aw-r", "pkgref-g09aw-r"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("fixture install (remove case): %d %s", status, body)
+	}
+	status, body = env.do(t, "GET", "/v1/plugins?limit=1", "", env.token, nil)
+	if status != 200 {
+		t.Fatalf("fixture list: %d %s", status, body)
+	}
+	var listResult struct {
+		Plugins []struct {
+			PluginID string `json:"plugin_id"`
+		} `json:"plugins"`
+	}
+	if err := json.Unmarshal(body, &listResult); err != nil || len(listResult.Plugins) != 1 {
+		t.Fatalf("fixture list body: %v (%s)", err, body)
+	}
+	removedID := listResult.Plugins[0].PluginID
+
+	// PART 1 — REMOVE-NEVER-REVOKES on the wire: the removal's outcome is
+	// the artifact GONE.
+	status, body = env.do(t, "POST", "/v1/plugins/"+removedID+"/remove", pluginMutationBody("mkey-g09aw", "corr-g09aw-rm"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("remove: %d %s", status, body)
+	}
+	if pluginField(t, body, "plugin_id") != removedID || pluginBool(t, body, "replayed") {
+		t.Fatalf("the Core-confirmed removal: %s", body)
+	}
+	status, body = env.do(t, "GET", "/v1/plugins/"+removedID+"/state", "", env.token, nil)
+	if status != 404 {
+		t.Fatalf("the removed artifact's state read: %d %s", status, body)
+	}
+	if code, _ := workflowEnvelopeCode(t, body); code != "NOT_FOUND" {
+		t.Fatalf("the removed artifact is the typed NOT_FOUND: %s", body)
+	}
+	// The removal's replay resolves the RECORDED removal outcome (never a
+	// second removal).
+	status, body = env.do(t, "POST", "/v1/plugins/"+removedID+"/remove", pluginMutationBody("mkey-g09aw", "corr-g09aw-rm"), env.token, nil)
+	if status != 200 || !pluginBool(t, body, "replayed") {
+		t.Fatalf("the removal's replay returns the recorded outcome: %d %s", status, body)
+	}
+
+	// PART 2 — REVOKE-NEVER-REMOVES on the wire: the revocation's outcome
+	// is the grants-revoked state on the STILL-INSTALLED artifact.
+	status, body = env.do(t, "POST", "/v1/plugins", pluginInstallBody("key-g09aw-v", "corr-g09aw-v", "pkgref-g09aw-v"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("fixture install (revoke case): %d %s", status, body)
+	}
+	status, body = env.do(t, "GET", "/v1/plugins?limit=50", "", env.token, nil)
+	if status != 200 {
+		t.Fatalf("fixture list: %d %s", status, body)
+	}
+	if err := json.Unmarshal(body, &listResult); err != nil {
+		t.Fatalf("fixture list body: %v (%s)", err, body)
+	}
+	var revokedID string
+	for _, p := range listResult.Plugins {
+		if p.PluginID != removedID {
+			revokedID = p.PluginID
+		}
+	}
+	if revokedID == "" {
+		t.Fatalf("the second fixture plugin is missing: %s", body)
+	}
+	status, body = env.do(t, "POST", "/v1/plugins/"+revokedID+"/grants/revoke", pluginMutationBody("rkey-g09aw", "corr-g09aw-v"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("revoke grants: %d %s", status, body)
+	}
+	// The state endpoint still resolves the artifact — serving the
+	// grants-revoked state (DISTINCT from a removed artifact's typed 404).
+	status, body = env.do(t, "GET", "/v1/plugins/"+revokedID+"/state", "", env.token, nil)
+	if status != 200 || pluginField(t, body, "lifecycle_state") != "grants_revoked" {
+		t.Fatalf("the artifact stays installed under the grants-revoked state: %d %s", status, body)
+	}
+	// The artifact is still inspectable and still listed (revoking grants
+	// does NOT remove the artifact).
+	status, body = env.do(t, "GET", "/v1/plugins/"+revokedID, "", env.token, nil)
+	if status != 200 || pluginField(t, body, "lifecycle_state") != "grants_revoked" {
+		t.Fatalf("the artifact stays inspectable after the revocation: %d %s", status, body)
+	}
+	status, body = env.do(t, "GET", "/v1/plugins?limit=50", "", env.token, nil)
+	if err := json.Unmarshal(body, &listResult); err != nil {
+		t.Fatalf("list body: %v (%s)", err, body)
+	}
+	stillListed := false
+	for _, p := range listResult.Plugins {
+		if p.PluginID == revokedID {
+			stillListed = true
+		}
+	}
+	if !stillListed {
+		t.Fatalf("revoking grants does NOT remove the artifact — it stays listed: %s", body)
+	}
+	// The revocation's replay resolves the RECORDED revocation outcome.
+	status, body = env.do(t, "POST", "/v1/plugins/"+revokedID+"/grants/revoke", pluginMutationBody("rkey-g09aw", "corr-g09aw-v"), env.token, nil)
+	if status != 200 || !pluginBool(t, body, "replayed") {
+		t.Fatalf("the revocation's replay returns the recorded outcome: %d %s", status, body)
+	}
+
+	// PART 3 — THE DISTINCT OUTCOME IDENTITIES on the wire.
+	// (a) The same client body key across the two routes carries two
+	// independent recorded outcomes (the distinct keying scopes: the
+	// remove scope vs the revoke scope).
+	status, body = env.do(t, "POST", "/v1/plugins", pluginInstallBody("key-g09aw-d", "corr-g09aw-d", "pkgref-g09aw-d"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("fixture install (identities case): %d %s", status, body)
+	}
+	status, body = env.do(t, "GET", "/v1/plugins?limit=50", "", env.token, nil)
+	if err := json.Unmarshal(body, &listResult); err != nil {
+		t.Fatalf("list body: %v (%s)", err, body)
+	}
+	var distinctID string
+	for _, p := range listResult.Plugins {
+		if p.PluginID != removedID && p.PluginID != revokedID {
+			distinctID = p.PluginID
+		}
+	}
+	if distinctID == "" {
+		t.Fatalf("the third fixture plugin is missing: %s", body)
+	}
+	status, body = env.do(t, "POST", "/v1/plugins/"+distinctID+"/grants/revoke", pluginMutationBody("dkey-g09aw", "corr-g09aw-d1"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("the revocation under the shared client key: %d %s", status, body)
+	}
+	status, body = env.do(t, "POST", "/v1/plugins/"+distinctID+"/remove", pluginMutationBody("dkey-g09aw", "corr-g09aw-d2"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("the removal under the SAME client key does not collide with the revocation's record (distinct keying scopes): %d %s", status, body)
+	}
+	// (b) A post-removal revoke intent cannot resolve (the revoke's own
+	// named object no longer exists once the artifact is removed).
+	status, body = env.do(t, "POST", "/v1/plugins/"+distinctID+"/grants/revoke", pluginMutationBody("rkey-post", "corr-post"), env.token, nil)
+	if status != 404 {
+		t.Fatalf("a revoke intent on a removed artifact must refuse: %d %s", status, body)
+	}
+	if code, _ := workflowEnvelopeCode(t, body); code != "NOT_FOUND" {
+		t.Fatalf("the post-removal revoke intent is the typed NOT_FOUND: %s", body)
+	}
+	// (c) A removal after a revocation still applies (the artifact is
+	// still installed — grants-revoked is not trust-revoked).
+	status, body = env.do(t, "POST", "/v1/plugins/"+revokedID+"/remove", pluginMutationBody("mkey-after-revoke", "corr-after-revoke"), env.token, nil)
+	if status != 200 {
+		t.Fatalf("the removal after the revocation (the artifact still installed): %d %s", status, body)
+	}
+	status, body = env.do(t, "GET", "/v1/plugins/"+revokedID+"/state", "", env.token, nil)
+	if status != 404 {
+		t.Fatalf("the removed artifact's state read: %d %s", status, body)
+	}
+}

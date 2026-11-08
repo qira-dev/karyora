@@ -606,3 +606,234 @@ func TestPluginReads(t *testing.T) {
 		t.Fatalf("the continuation order: %+v", cont.Plugins)
 	}
 }
+
+// TestPluginRemoveRevokeDistinctness pins THE REMOVE-VS-REVOKE
+// DISTINCTNESS (recorded at the 2026-11-09 resolution act, binding on this
+// family — the G-09a fixture set, the XC-1 §5 G-09 row's decided half):
+// removal (M-31) and grant revocation (G7) are DISTINCT Core semantics —
+// removing a plugin does NOT revoke its grants; revoking grants does NOT
+// remove the artifact; each acts only on its own named object. Pinned per
+// what the Core actually serves: the removal's effect is the artifact
+// record's deletion (its own named object) with NO revocation semantics
+// applied anywhere (no grants-revoked state on any record, no revocation
+// event in the journal, no revoke_grants operation record); the
+// revocation's effect is the granted set of record emptied + the
+// grants-revoked state on the STILL-INSTALLED artifact record; and the two
+// intents carry distinct operation identities (the distinct keying scopes
+// RemoveKey vs RevokeKey; the distinct operation-record kinds; the
+// distinct event types), so the same client key carries two independent
+// recorded outcomes, a post-removal revoke intent cannot resolve, and a
+// removal after a revocation still applies.
+func TestPluginRemoveRevokeDistinctness(t *testing.T) {
+	s := openTestStore(t)
+	ctx := stdcontext.Background()
+
+	// seedGrants records a granted set of record on the fixture plugin
+	// (the never-grant law: no served operation grants, so the fixture
+	// records the set the Core holds — the established store-fixture
+	// idiom) and pins that the set exists at mutation time.
+	seedGrants := func(pluginID string) {
+		t.Helper()
+		if err := s.CommitStateChange(ctx, "corr-g09a-seed", func(tx *sqlTx) error {
+			_, err := tx.Exec(`UPDATE plugins SET granted_capabilities_json = ? WHERE plugin_id = ?`,
+				`["network.connect","storage.read"]`, pluginID)
+			return err
+		}); err != nil {
+			t.Fatalf("granted-set fixture: %v", err)
+		}
+		var granted string
+		if err := s.readers.QueryRowContext(ctx, `SELECT granted_capabilities_json FROM plugins WHERE plugin_id = ?`, pluginID).Scan(&granted); err != nil {
+			t.Fatalf("granted-set read: %v", err)
+		}
+		if granted != `["network.connect","storage.read"]` {
+			t.Fatalf("the granted set of record at mutation time: %s", granted)
+		}
+	}
+
+	// PART 1 — REMOVE-NEVER-REVOKES: the removal acts on its own named
+	// object (the artifact record) and applies NO revocation semantics.
+	if _, err := s.SubmitPluginInstall(ctx, pluginInstallIntent("plug-g09a-r", "key-g09a-r", "corr-g09a-r", "pkgref-g09a-r")); err != nil {
+		t.Fatalf("fixture install (remove case): %v", err)
+	}
+	seedGrants("plug-g09a-r")
+	out, err := s.SubmitPluginRemove(ctx, pluginMutationIntent("plug-g09a-r", "mkey-g09a-r", "corr-g09a-rm", "remove"))
+	if err != nil || out.Replayed {
+		t.Fatalf("the M-31 removal: %v %+v", err, out)
+	}
+	// The authoritative state read: the artifact GONE (the SAME typed 404
+	// the inspect read serves; absent from the user-installed list).
+	if _, err := s.LoadPlugin(ctx, "plug-g09a-r"); err == nil {
+		t.Fatalf("the removed artifact leaves the installed set")
+	} else if se, ok := err.(*Error); !ok || se.Code != errs.CodeNotFound {
+		t.Fatalf("the removed artifact is the typed NOT_FOUND: %v", err)
+	}
+	if _, err := s.LoadPluginState(ctx, "plug-g09a-r"); err == nil {
+		t.Fatalf("the authoritative state read: the artifact is gone")
+	} else if se, ok := err.(*Error); !ok || se.Code != errs.CodeNotFound {
+		t.Fatalf("the state read's typed NOT_FOUND: %v", err)
+	}
+	page, err := s.ListPlugins(ctx, plugindomain.ListQuery{Limit: 100})
+	if err != nil {
+		t.Fatalf("the user-installed list: %v", err)
+	}
+	for _, listed := range page.Plugins {
+		if listed.PluginID == "plug-g09a-r" {
+			t.Fatalf("the removed artifact is absent from the user-installed list: %+v", page.Plugins)
+		}
+	}
+	// THE GRANT RECORDS ARE NOT ASSERTED-REVOKED (per what the Core
+	// actually serves): the removal applied NO revocation semantics — no
+	// grants-revoked state on any record, no revocation event in the
+	// journal, no revoke_grants operation record. The grant records ride
+	// the artifact record per the Core's own storage; the removal deletes
+	// the artifact record whole (the deletion-honesty class — no erasure
+	// claim beyond the Core-confirmed scope) and never rides the
+	// revocation vocabulary.
+	var grantsRevokedStates, revokeEvents, revokeOps, removedEvents, removeOps int
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugins WHERE lifecycle_state = ?`, plugindomain.StateGrantsRevoked).Scan(&grantsRevokedStates); err != nil {
+		t.Fatalf("grants-revoked state count: %v", err)
+	}
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM events_journal WHERE event_type = ?`, plugindomain.EventGrantsRevoked).Scan(&revokeEvents)
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugin_operations WHERE kind = ?`, pluginKindRevokeGrants).Scan(&revokeOps)
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM events_journal WHERE event_type = ?`, plugindomain.EventRemoved).Scan(&removedEvents)
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugin_operations WHERE kind = ?`, pluginKindRemove).Scan(&removeOps); err != nil {
+		t.Fatalf("operation record count: %v", err)
+	}
+	if grantsRevokedStates != 0 || revokeEvents != 0 || revokeOps != 0 {
+		t.Fatalf("the removal never rode the revocation semantics: grants_revoked states=%d revoke events=%d revoke op records=%d", grantsRevokedStates, revokeEvents, revokeOps)
+	}
+	if removedEvents != 1 || removeOps != 1 {
+		t.Fatalf("the removal's own recorded trace (its own identity only): removed events=%d remove op records=%d", removedEvents, removeOps)
+	}
+	// The removal's replay resolves the RECORDED removal outcome (never a
+	// second removal, never a revocation).
+	replay, err := s.SubmitPluginRemove(ctx, pluginMutationIntent("plug-g09a-r", "mkey-g09a-r", "corr-g09a-rm", "remove"))
+	if err != nil || !replay.Replayed || replay.OperationRef != out.OperationRef {
+		t.Fatalf("the removal's replay resolves the recorded removal outcome: %v %+v", err, replay)
+	}
+
+	// PART 2 — REVOKE-NEVER-REMOVES: the revocation acts on its own named
+	// object (the granted set of record + the lifecycle state) and the
+	// artifact STAYS INSTALLED.
+	if _, err := s.SubmitPluginInstall(ctx, pluginInstallIntent("plug-g09a-v", "key-g09a-v", "corr-g09a-v", "pkgref-g09a-v")); err != nil {
+		t.Fatalf("fixture install (revoke case): %v", err)
+	}
+	seedGrants("plug-g09a-v")
+	out, err = s.SubmitPluginRevokeGrants(ctx, pluginMutationIntent("plug-g09a-v", "rkey-g09a-v", "corr-g09a-v", "revoke"))
+	if err != nil || out.Replayed {
+		t.Fatalf("the G7 revocation: %v %+v", err, out)
+	}
+	// The authoritative state read: the artifact STILL INSTALLED — the
+	// grants-revoked state on the still-loadable record; still in the
+	// user-installed list.
+	rec, err := s.LoadPlugin(ctx, "plug-g09a-v")
+	if err != nil || rec.LifecycleState != plugindomain.StateGrantsRevoked {
+		t.Fatalf("the artifact stays installed under the grants-revoked state: %v %+v", err, rec)
+	}
+	st, err := s.LoadPluginState(ctx, "plug-g09a-v")
+	if err != nil || st.LifecycleState != plugindomain.StateGrantsRevoked {
+		t.Fatalf("the authoritative state read: %v %+v", err, st)
+	}
+	page, err = s.ListPlugins(ctx, plugindomain.ListQuery{Limit: 100})
+	if err != nil {
+		t.Fatalf("the user-installed list: %v", err)
+	}
+	stillListed := false
+	for _, listed := range page.Plugins {
+		if listed.PluginID == "plug-g09a-v" {
+			stillListed = true
+		}
+	}
+	if !stillListed {
+		t.Fatalf("revoking grants does NOT remove the artifact — it stays in the user-installed list: %+v", page.Plugins)
+	}
+	// The revocation acted on ITS own named object: the granted set of
+	// record is emptied (revocation blocks FUTURE invocations) while the
+	// artifact record persists.
+	var granted string
+	if err := s.readers.QueryRowContext(ctx, `SELECT granted_capabilities_json FROM plugins WHERE plugin_id = ?`, "plug-g09a-v").Scan(&granted); err != nil {
+		t.Fatalf("granted-set read after the revocation: %v", err)
+	}
+	if granted != "[]" {
+		t.Fatalf("the granted set of record is emptied by the revocation: %s", granted)
+	}
+	// THE REMOVAL SEMANTICS WERE NEVER APPLIED (per what the Core actually
+	// serves, scoped to this plugin): the artifact record still exists (not
+	// deleted), no removal event rode the revocation, no remove-kind
+	// operation record exists; the revocation's own trace is exactly one
+	// grants_revoked event + one revoke_grants record.
+	var artifactRows, vRemovedEvents, vRemoveOps, vRevokeEvents, vRevokeOps int
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugins WHERE plugin_id = ?`, "plug-g09a-v").Scan(&artifactRows); err != nil {
+		t.Fatalf("artifact record count: %v", err)
+	}
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM events_journal WHERE aggregate_id = ? AND event_type = ?`, "plug-g09a-v", plugindomain.EventRemoved).Scan(&vRemovedEvents)
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugin_operations WHERE plugin_id = ? AND kind = ?`, "plug-g09a-v", pluginKindRemove).Scan(&vRemoveOps); err != nil {
+		t.Fatalf("remove op count: %v", err)
+	}
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM events_journal WHERE aggregate_id = ? AND event_type = ?`, "plug-g09a-v", plugindomain.EventGrantsRevoked).Scan(&vRevokeEvents)
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugin_operations WHERE plugin_id = ? AND kind = ?`, "plug-g09a-v", pluginKindRevokeGrants).Scan(&vRevokeOps); err != nil {
+		t.Fatalf("revoke op count: %v", err)
+	}
+	if artifactRows != 1 || vRemovedEvents != 0 || vRemoveOps != 0 {
+		t.Fatalf("the revocation never rode the removal semantics: artifact rows=%d removed events=%d remove op records=%d", artifactRows, vRemovedEvents, vRemoveOps)
+	}
+	if vRevokeEvents != 1 || vRevokeOps != 1 {
+		t.Fatalf("the revocation's own recorded trace: revoke events=%d revoke op records=%d", vRevokeEvents, vRevokeOps)
+	}
+	replay, err = s.SubmitPluginRevokeGrants(ctx, pluginMutationIntent("plug-g09a-v", "rkey-g09a-v", "corr-g09a-v", "revoke"))
+	if err != nil || !replay.Replayed || replay.OperationRef != out.OperationRef {
+		t.Fatalf("the revocation's replay resolves the recorded revocation outcome: %v %+v", err, replay)
+	}
+
+	// PART 3 — THE DISTINCT OUTCOME IDENTITIES: the two intents' distinct
+	// shapes (the published classes' distinct keying scopes and journals).
+	// (a) The distinct keying scopes: the same client key under the two
+	// classes builds two DIFFERENT effective keys (remove: workspace +
+	// plugin; revoke: workspace + plugin + the grant-scope component
+	// Core-side).
+	if plugindomain.RemoveKey("key-x", "plug-1") == plugindomain.RevokeKey("key-x", "plug-1") {
+		t.Fatalf("the remove and revoke keying scopes are distinct")
+	}
+	// (b) The same client key carries two independent recorded outcomes —
+	// no key collision across the classes (each class's effective key is
+	// its own scope).
+	if _, err := s.SubmitPluginInstall(ctx, pluginInstallIntent("plug-g09a-d", "key-g09a-d", "corr-g09a-d", "pkgref-g09a-d")); err != nil {
+		t.Fatalf("fixture install (identities case): %v", err)
+	}
+	if _, err := s.SubmitPluginRevokeGrants(ctx, pluginMutationIntent("plug-g09a-d", "key-d", "corr-d1", "revoke")); err != nil {
+		t.Fatalf("the revocation under the shared client key: %v", err)
+	}
+	if _, err := s.SubmitPluginRemove(ctx, pluginMutationIntent("plug-g09a-d", "key-d", "corr-d2", "remove")); err != nil {
+		t.Fatalf("the removal under the SAME client key does not collide with the revocation's record (distinct keying scopes): %v", err)
+	}
+	// (c) The two intents each left their own DISTINCT journal trace on
+	// the one plugin: one remove record + one revoke_grants record; one
+	// plugin.removed event + one plugin.grants_revoked event.
+	var dRemoveOps, dRevokeOps, dRemovedEvents, dRevokeEvents int
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugin_operations WHERE plugin_id = ? AND kind = ?`, "plug-g09a-d", pluginKindRemove).Scan(&dRemoveOps); err != nil {
+		t.Fatalf("distinct remove records: %v", err)
+	}
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM plugin_operations WHERE plugin_id = ? AND kind = ?`, "plug-g09a-d", pluginKindRevokeGrants).Scan(&dRevokeOps)
+	_ = s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM events_journal WHERE aggregate_id = ? AND event_type = ?`, "plug-g09a-d", plugindomain.EventRemoved).Scan(&dRemovedEvents)
+	if err := s.readers.QueryRowContext(ctx, `SELECT COUNT(*) FROM events_journal WHERE aggregate_id = ? AND event_type = ?`, "plug-g09a-d", plugindomain.EventGrantsRevoked).Scan(&dRevokeEvents); err != nil {
+		t.Fatalf("distinct revoke events: %v", err)
+	}
+	if dRemoveOps != 1 || dRevokeOps != 1 || dRemovedEvents != 1 || dRevokeEvents != 1 {
+		t.Fatalf("the two intents carry distinct operation identities: removeOps=%d revokeOps=%d removedEvents=%d revokeEvents=%d", dRemoveOps, dRevokeOps, dRemovedEvents, dRevokeEvents)
+	}
+	// (d) A post-removal revoke intent cannot resolve (the revoke's own
+	// named object — the granted set of record on an installed artifact —
+	// no longer exists once the artifact is removed); the typed 404.
+	_, err = s.SubmitPluginRevokeGrants(ctx, pluginMutationIntent("plug-g09a-d", "rkey-post", "corr-post", "revoke"))
+	if err == nil {
+		t.Fatalf("a revoke intent on a removed artifact must refuse")
+	} else if se, ok := err.(*Error); !ok || se.Code != errs.CodeNotFound {
+		t.Fatalf("the post-removal revoke intent is the typed NOT_FOUND: %v", err)
+	}
+	// (e) A removal after a revocation still applies (the artifact is
+	// still installed — grants-revoked is not trust-revoked): the removal
+	// acts on its own named object.
+	if _, err := s.SubmitPluginRemove(ctx, pluginMutationIntent("plug-g09a-v", "mkey-after-revoke", "corr-after-revoke", "remove")); err != nil {
+		t.Fatalf("the removal after the revocation (the artifact still installed): %v", err)
+	}
+}
