@@ -1,0 +1,257 @@
+/* The Context Inspector (B3-U1): the two-region inspection view, the
+   conditional gate-state note, the operation-status surface, and the
+   inclusion trigger. Styles ride the same design tokens as every other
+   surface; logical properties throughout (P2.4 §4.5). */
+
+.description {
+  margin: 0 0 var(--space-3);
+  max-width: 72ch;
+  color: var(--color-text-secondary);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.fieldLabel {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.fieldInput {
+  min-width: 20ch;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-family: var(--font-mono);
+}
+
+.primaryControl,
+.control {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.primaryControl {
+  background: var(--color-accent-surface, var(--color-surface-2));
+  font-weight: 600;
+}
+
+.primaryControl:disabled,
+.control:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.note {
+  margin: 0 0 var(--space-3);
+  max-width: 72ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.code {
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.code code {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+}
+
+.snapshotPanel {
+  margin-block-end: var(--space-5);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card, var(--radius-input));
+  background: var(--color-surface-1);
+}
+
+.confirmed {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.lawNote {
+  margin: 0 0 var(--space-2);
+  max-width: 72ch;
+  font-size: var(--text-metadata-size);
+  border-inline-start: 3px solid var(--color-border);
+  padding-inline-start: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.sectionTitle {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.subheading {
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.fieldList {
+  display: grid;
+  grid-template-columns: minmax(16ch, max-content) 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin-block-end: var(--space-3);
+}
+
+.fieldRow {
+  display: contents;
+}
+
+.fieldLabel {
+  align-self: start;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.fieldValue {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.notReported {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  min-height: var(--size-button-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--text-metadata-size);
+}
+
+.chipNeutral {
+  color: var(--color-text-primary);
+}
+
+.chipInfo {
+  color: var(--color-info);
+}
+
+.chipSuccess {
+  color: var(--color-success);
+}
+
+.chipWarning {
+  color: var(--color-warning);
+}
+
+.chipDanger {
+  color: var(--color-danger);
+}
+
+.reasonUnavailable {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.noteBlock {
+  display: block;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.table {
+  inline-size: 100%;
+  margin-block-end: var(--space-3);
+  border-collapse: collapse;
+  font-size: var(--text-metadata-size);
+}
+
+.table th,
+.table td {
+  padding: var(--space-1) var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.cellMono {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* The conditional gate-state note (C7): visible, keyboard-reachable
+   content (not a control), persisting at all widths — never a dead
+   stub, never a disabled-with-tooltip fake (UI §31.5). */
+.gateNote {
+  margin-block: var(--space-4);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card, var(--radius-input));
+  background: var(--color-surface-0, var(--color-surface-1));
+}
+
+.gateNoteTitle {
+  margin: 0 0 var(--space-1);
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.gateNote p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.operationsSection {
+  margin-block-start: var(--space-5);
+}
+
+/* Responsive reflow (the 320–640 px band): the identity grid collapses
+   to one column and the toolbars stay wrapped. */
+@media (max-width: 640px) {
+  .fieldList {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .fieldRow {
+    display: block;
+    padding-block: var(--space-1);
+  }
+
+  .fieldValue {
+    margin-block-start: 0;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+}

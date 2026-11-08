@@ -40,6 +40,15 @@ func TestRegisterMatchesSpecification(t *testing.T) {
 		CodeMemoryReviewStateConflict: {retryable: false, class: RetryNever},
 		CodeMemoryConflict:            {retryable: false, class: RetryReconcile},
 		CodeMemoryNotEditable:         {retryable: false, class: RetryNever},
+		// The Context family's domain codes (the published ContextErrorCode
+		// register; the CF-3 publication act) join additively at their
+		// implementation per the same recorded register-extension class —
+		// each with its PUBLISHED retryable value and coded retryClass.
+		CodeContextBudgetExhausted:           {retryable: false, class: RetryNever},
+		CodeContextOmissionReasonUnavailable: {retryable: true, class: RetrySafe},
+		CodeContextCompilationUnavailable:    {retryable: true, class: RetrySafe},
+		CodeContextCompareUnsupported:        {retryable: true, class: RetrySafe},
+		CodeContextSnapshotNotFound:          {retryable: false, class: RetryNever},
 	}
 	if len(register) != len(want) {
 		t.Fatalf("register holds %d codes, specification lists %d", len(register), len(want))

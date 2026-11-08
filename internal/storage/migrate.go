@@ -555,17 +555,53 @@ CREATE TABLE IF NOT EXISTS memory_inclusions (
 );
 `,
 	},
+	{
+		Version: 15,
+		Name:    "0015-context-snapshot-family",
+		SQL: `
+CREATE TABLE IF NOT EXISTS context_operations (
+    operation_id    TEXT PRIMARY KEY,
+    kind            TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL,
+    source_job_id   TEXT NOT NULL DEFAULT '',
+    result_json     TEXT NOT NULL DEFAULT '',
+    failure_code    TEXT NOT NULL DEFAULT '',
+    failure_reason  TEXT NOT NULL DEFAULT '',
+    terminal_at     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_context_operations_correlation
+    ON context_operations (correlation_id, created_at);
+
+CREATE TABLE IF NOT EXISTS context_inclusions (
+    request_ref    TEXT NOT NULL,
+    memory_item_id TEXT NOT NULL,
+    included       INTEGER NOT NULL,
+    correlation_id TEXT NOT NULL,
+    updated_at     TEXT NOT NULL,
+    PRIMARY KEY (request_ref, memory_item_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_context_inclusions_request
+    ON context_inclusions (request_ref, updated_at);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
 // versions [N_min, N]. Phase 3 adds the knowledge-pack store; the window is
 // recorded per release and published floors remain a Phase 5/D-30 concern.
 // Migration 0013 adds the B1 KnowledgePack family's tables; migration 0014
-// adds the B2 Memory family's tables; existing migrations are never
-// modified (checksums authoritative).
+// adds the B2 Memory family's tables; migration 0015 adds the B3
+// ContextSnapshot family's tables (the authoritative operation records and
+// the M-18 request-scoped inclusion decisions); existing migrations are
+// never modified (checksums authoritative).
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 14
+	schemaVersionMax = 15
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

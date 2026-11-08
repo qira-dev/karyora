@@ -233,6 +233,10 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		// twin of the composition root's wiring — the same store implements
 		// the memory port.
 		Memory: st,
+		// The B3 ContextSnapshot family surface (DE-0 queue row 5): the
+		// test-side twin of the composition root's wiring — the same store
+		// implements the context port.
+		Context: st,
 		// The C-4 session-command surface (IMPL-23): the real composition
 		// wires the same session service the Guard and this transport hold.
 		Sessions: sessions,

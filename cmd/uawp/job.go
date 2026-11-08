@@ -304,7 +304,14 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		// implements the memory port (the memory tables over migration
 		// 0014, the M-17/M-16/M-18 rulings transactionally under the same
 		// single-writer gate).
-		Memory:              store,
+		Memory: store,
+		// The B3 ContextSnapshot family surface (DE-0 queue row 5): the
+		// SAME store implements the context port (the context tables over
+		// migration 0015 — the M-18 request-scoped inclusion ruling
+		// transactionally under the same single-writer gate; the two
+		// conditional commands serve their typed unmet-condition refusals
+		// before any store call while their un-gate preconditions stand).
+		Context:             store,
 		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
 		// The C-4 session-command surface (IMPL-23): the SAME session
 		// service the Guard's policy and the local transport already hold

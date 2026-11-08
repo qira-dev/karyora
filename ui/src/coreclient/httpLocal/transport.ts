@@ -131,6 +131,14 @@ import type {
   WireMemoryListResult,
   WireMemoryMutationResult,
   WireMemoryOperationResult,
+  ContextInclusionRequest,
+  ContextOperation,
+  ContextSnapshotCompareRequest,
+  ContextSnapshotSaveRequest,
+  WireContextInclusionResult,
+  WireContextOperationResult,
+  WireContextSnapshotCompareResult,
+  WireContextSnapshotSaveResult,
 } from "./wire";
 
 /** The outcome of one transport call: typed data, the verbatim D-35
@@ -603,6 +611,66 @@ function isWireMemoryOperationResult(value: unknown): value is WireMemoryOperati
   const shaped = value as Record<string, unknown>;
   return (
     shaped.operation !== null && typeof shaped.operation === "object" && isWireMemoryOperation(shaped.operation)
+  );
+}
+
+/** The coded context guards (B3-U1): each response must carry its
+ *  published shape's required members (the closed registers' string
+ *  values ride as strings; an unknown reported register value renders
+ *  verbatim downstream — never mapped). The save/compare result guards
+ *  exist for the un-gated producer's day; no instance can be served while
+ *  the conditional gates stand. */
+function isWireContextOperation(value: unknown): value is ContextOperation {
+  if (value === null || typeof value !== "object") return false;
+  const op = value as Record<string, unknown>;
+  return (
+    typeof op.operation_id === "string" &&
+    typeof op.kind === "string" &&
+    typeof op.state === "string" &&
+    typeof op.correlation_id === "string" &&
+    typeof op.created_at === "string" &&
+    typeof op.updated_at === "string"
+  );
+}
+
+function isWireContextOperationResult(value: unknown): value is WireContextOperationResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.operation !== null && typeof shaped.operation === "object" && isWireContextOperation(shaped.operation)
+  );
+}
+
+function isWireContextInclusionResult(value: unknown): value is WireContextInclusionResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (typeof shaped.request_ref !== "string" || !Array.isArray(shaped.decisions)) return false;
+  return shaped.decisions.every(
+    (row: unknown) =>
+      row !== null &&
+      typeof row === "object" &&
+      typeof (row as Record<string, unknown>).memory_item_id === "string" &&
+      typeof (row as Record<string, unknown>).included === "boolean",
+  );
+}
+
+function isWireContextSnapshotSaveResult(value: unknown): value is WireContextSnapshotSaveResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.operation !== null && typeof shaped.operation === "object" && isWireContextOperation(shaped.operation) &&
+    typeof shaped.replayed === "boolean"
+  );
+}
+
+function isWireContextSnapshotCompareResult(value: unknown): value is WireContextSnapshotCompareResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    typeof shaped.baseline_snapshot_id === "string" &&
+    typeof shaped.candidate_snapshot_id === "string" &&
+    shaped.comparison !== null &&
+    typeof shaped.comparison === "object"
   );
 }
 
@@ -1904,6 +1972,73 @@ export function createHttpLocalTransport() {
         `/v1/memories/operations/${encodeURIComponent(operationID)}`,
         get(),
         isWireMemoryOperationResult,
+      );
+    },
+
+    // The context surface (B3-U1; the DE-0 queue row 5): the adapter's
+    // serving of the published `/context` family (B3-A1 §2.1) — the M-18
+    // request-scoped inclusion decision (unconditional), the two
+    // CONDITIONAL commands (both serving their typed unmet-condition
+    // refusals while their un-gate preconditions stand — the owner's
+    // PROPOSED decisions, unresolved), and the family's authoritative
+    // state endpoint. The truthfulness rules above apply unchanged: a
+    // lost response is `unknown` and is NEVER proof of success or safe
+    // retry (the S0–S4 law) — reconcile through the state endpoint by the
+    // operation identity BEFORE any retry.
+
+    /** `POST /v1/context/snapshots` — the save-snapshot member (the M-19
+     *  class, CONDITIONAL on durable snapshot storage existing — the GC-3
+     *  un-gate precondition, the owner's PROPOSED decision, unresolved).
+     *  The typed unmet-condition refusal is the served behavior: NEVER a
+     *  202, never a fabricated operation, never a fake success path. The
+     *  UI hides this control ENTIRELY while the condition stands (never a
+     *  dead stub — GC-3); this method exists so a typed refusal renders
+     *  honestly if a direct path ever reaches it. */
+    contextSnapshotSave(payload: ContextSnapshotSaveRequest): Promise<TransportOutcome<WireContextSnapshotSaveResult>> {
+      return call<WireContextSnapshotSaveResult>(
+        "/v1/context/snapshots",
+        post(JSON.stringify(payload)),
+        isWireContextSnapshotSaveResult,
+      );
+    },
+
+    /** `POST /v1/context/snapshots/compare` — the snapshot-compare member
+     *  (the M-20 class, READ-ONLY and CONDITIONAL on stable Core
+     *  comparison — the GC-4 un-gate precondition). Where stable
+     *  comparison does not exist the family answers the typed
+     *  CONTEXT_COMPARE_UNSUPPORTED — the comparison-unavailable state
+     *  renders honestly and no diff is ever fabricated. The UI hides this
+     *  control ENTIRELY while the condition stands (never a dead stub —
+     *  GC-4). */
+    contextSnapshotCompare(payload: ContextSnapshotCompareRequest): Promise<TransportOutcome<WireContextSnapshotCompareResult>> {
+      return call<WireContextSnapshotCompareResult>(
+        "/v1/context/snapshots/compare",
+        post(JSON.stringify(payload)),
+        isWireContextSnapshotCompareResult,
+      );
+    },
+
+    /** `POST /v1/context/inclusion` — the per-request memory-inclusion
+     *  decision (the M-18 class, UNCONDITIONAL): request-scoped ONLY, no
+     *  item-state change, no Memory action row, no scope broadening. The
+     *  Core-confirmed decision record carries the per-item outcomes; the
+     *  reason members are the Core's alone — absence is the absence (the
+     *  Core-provided-only reason law), never a synthesized reason. */
+    contextInclusion(payload: ContextInclusionRequest): Promise<TransportOutcome<WireContextInclusionResult>> {
+      return call<WireContextInclusionResult>("/v1/context/inclusion", post(JSON.stringify(payload)), isWireContextInclusionResult);
+    },
+
+    /** `GET /v1/context/operations/{id}` — the family's authoritative
+     *  state endpoint (a pure query — never a retry): the operation-ID
+     *  half of the unknown-outcome lookup. Events are never the source of
+     *  truth; this endpoint is. The unknown identity and the out-of-scope
+     *  identity are the SAME typed 404 (CONTEXT_SNAPSHOT_NOT_FOUND — the
+     *  no-leak rule). */
+    contextOperationStatus(operationID: string): Promise<TransportOutcome<WireContextOperationResult>> {
+      return call<WireContextOperationResult>(
+        `/v1/context/operations/${encodeURIComponent(operationID)}`,
+        get(),
+        isWireContextOperationResult,
       );
     },
 

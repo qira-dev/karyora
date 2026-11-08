@@ -113,6 +113,11 @@ type SliceDeps struct {
 	// memory surface (typed refusals, fail closed) — every other surface is
 	// unchanged.
 	Memory MemoryStore
+	// Context is the B3 ContextSnapshot family's durable surface port (the
+	// published /context route family; DE-0 queue row 5). Optional: nil
+	// disables the context surface (typed refusals, fail closed) — every
+	// other surface is unchanged.
+	Context ContextStore
 	// Secrets is the D-37 SecretWriter face the connection operations use
 	// (the keyring store implements both faces). Nil disables credential
 	// persistence — the connection writes then refuse with the typed

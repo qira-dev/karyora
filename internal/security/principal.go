@@ -110,6 +110,19 @@ const (
 	// every protected effect; no permission policy is invented and Local
 	// mode stays role-free.
 	ResourceMemory = "memory"
+	// ResourceContext is the B3 ContextSnapshot family's surface (the
+	// published /context route family — the per-request memory-inclusion
+	// decisions (the M-18 class, request-scoped), the conditional save/
+	// compare commands (the M-19/M-20 classes — both CONDITIONAL and both
+	// serving their typed unmet-condition refusals while their un-gate
+	// preconditions stand), and the family's authoritative operation
+	// records; DE-0 queue row 5). It joins this register ADDITIVELY — the
+	// same deliberate, recorded register-extension class: the fail-closed
+	// default-deny machinery, its predicates, and every existing row are
+	// unchanged; unknown types deny exactly as before. The single decision
+	// port (MB §12.3) decides every protected effect; no permission policy
+	// is invented and Local mode stays role-free.
+	ResourceContext = "context"
 )
 
 var localResourceTypes = map[string]bool{
@@ -126,6 +139,7 @@ var localResourceTypes = map[string]bool{
 	ResourceNotification: true,
 	ResourceKnowledge:    true,
 	ResourceMemory:       true,
+	ResourceContext:      true,
 }
 
 func (r Resource) validate() error {

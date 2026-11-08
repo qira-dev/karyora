@@ -14,6 +14,7 @@ import notifications from "./locales/en/notifications.json";
 import activity from "./locales/en/activity.json";
 import knowledge from "./locales/en/knowledge.json";
 import memory from "./locales/en/memory.json";
+import context from "./locales/en/context.json";
 
 /**
  * Localization (G-10; UI-18 LOCKED set; P1.9 §6.5 / P1.10 A-7 APPROVED
@@ -100,6 +101,7 @@ function englishResources(): Record<string, unknown> {
     activity,
     knowledge,
     memory,
+    context,
   );
 }
 

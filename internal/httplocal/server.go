@@ -16,6 +16,7 @@ import (
 
 	"github.com/qira-dev/karyora/internal/aijobrelay"
 	"github.com/qira-dev/karyora/internal/app"
+	appcontext "github.com/qira-dev/karyora/internal/domain/context"
 	"github.com/qira-dev/karyora/internal/domain/conversation"
 	"github.com/qira-dev/karyora/internal/domain/errs"
 	"github.com/qira-dev/karyora/internal/domain/knowledge"
@@ -346,6 +347,28 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/memories", mutates: true, handler: (*Server).handleMemoryAdd},
 		{method: http.MethodGet, prefix: "/v1/memories/", hasID: true, handler: (*Server).handleMemoryItemGet},
 		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, mutates: true, handler: (*Server).handleMemoryEdit},
+		// The B3 ContextSnapshot family (DE-0 queue row 5): the published
+		// /context route family as this adapter serves it (the /v1
+		// adapter-prefix convention; the canonical members live verbatim in
+		// contracts/openapi.yaml — never restated). Every operation rides
+		// the slice's one decision port (the ResourceContext register
+		// extension; Local mode stays role-free). THE CONDITIONAL LAW
+		// (carried exactly): the save-snapshot command is CONDITIONAL on
+		// durable snapshot storage existing and the compare on stable Core
+		// comparison — both conditions are UNMET (the owner's PROPOSED
+		// decisions, unresolved), so both routes serve their typed
+		// unmet-condition refusals and NEITHER is ever a fake success;
+		// the M-18 inclusion decision is UNCONDITIONAL and implemented
+		// fully; the state endpoint is the family's authoritative source
+		// of truth (a pure query — never a retry). The compare route is
+		// the M-20 READ-ONLY class (it mutates nothing — no operation row,
+		// no diff — so it rides no CSRF mutation gate; the slice's
+		// authorization still answers every call); the inclusion route is
+		// a real mutation (the decision rows) and carries the CSRF gate.
+		{method: http.MethodPost, prefix: "/v1/context/snapshots/compare", handler: (*Server).handleContextSnapshotCompare},
+		{method: http.MethodPost, prefix: "/v1/context/snapshots", mutates: true, handler: (*Server).handleContextSnapshotSave},
+		{method: http.MethodPost, prefix: "/v1/context/inclusion", mutates: true, handler: (*Server).handleContextInclusion},
+		{method: http.MethodGet, prefix: "/v1/context/operations/", hasID: true, handler: (*Server).handleContextOperationStatus},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -2000,6 +2023,116 @@ func (s *Server) handleMemoryOperationStatus(w http.ResponseWriter, r *http.Requ
 	s.writeJSON(w, http.StatusOK, memoryOperationResult{Operation: op})
 }
 
+// The B3 ContextSnapshot family handlers (DE-0 queue row 5): the published
+// /context operations over the slice's context surface. Every handler runs
+// the use case through the one decision port inside the slice — an
+// unauthenticated request reaches the typed AUTHZ_DENIED/SESSION_INVALID
+// envelope, never the data. THE CONDITIONAL LAW (carried exactly): the
+// save and compare handlers NEVER answer a fabricated success — their
+// typed unmet-condition refusals are the served behavior while the owner's
+// PROPOSED decisions stand unresolved; the inclusion handler serves the
+// M-18 decision class fully; the state handler is the authoritative pure
+// query whose unknown identity is the SAME typed 404.
+
+// handleContextSnapshotSave exposes the M-19 save-snapshot command in its
+// CONDITIONAL unmet state: the typed unmet-condition refusal (never a 202,
+// never a fabricated operation row, never a fake success path).
+func (s *Server) handleContextSnapshotSave(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req contextSnapshotSaveRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	_, err := s.deps.Slice.SaveContextSnapshot(s.callCtx(r, token), app.ContextSaveRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+		SourceJobID:    req.SourceJobID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	// UNREACHABLE while the durable-storage gate stands (the slice refuses
+	// before any success path exists); the compile-time shape is kept for
+	// the un-gated producer's day.
+	s.writeJSON(w, http.StatusAccepted, contextSnapshotSaveResult{
+		Operation: appcontext.Operation{}, Replayed: false,
+	})
+}
+
+// handleContextSnapshotCompare exposes the M-20 snapshot compare in its
+// CONDITIONAL unmet state: the typed CONTEXT_COMPARE_UNSUPPORTED refusal
+// (the comparison-unavailable state renders honestly and no diff is ever
+// fabricated; the read-only class mutates nothing).
+func (s *Server) handleContextSnapshotCompare(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req contextSnapshotCompareRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	_, err := s.deps.Slice.CompareContextSnapshots(s.callCtx(r, token), app.ContextCompareRequest{
+		BaselineSnapshotID:  req.BaselineSnapshotID,
+		CandidateSnapshotID: req.CandidateSnapshotID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	// UNREACHABLE while the comparison gate stands (the slice refuses
+	// before any success path exists); the compile-time shape is kept for
+	// the un-gated producer's day.
+	s.writeJSON(w, http.StatusOK, contextSnapshotCompareResult{})
+}
+
+// handleContextInclusion exposes the M-18 request-scoped inclusion
+// decision (UNCONDITIONAL — implemented fully; no item-state change, no
+// Memory action row, no scope broadening).
+func (s *Server) handleContextInclusion(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req contextInclusionRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	decisions := make([]appcontext.InclusionDecision, 0, len(req.Decisions))
+	for _, d := range req.Decisions {
+		decisions = append(decisions, appcontext.InclusionDecision{
+			MemoryItemID: d.MemoryItemID,
+			Included:     d.Included,
+		})
+	}
+	res, err := s.deps.Slice.SetContextInclusion(s.callCtx(r, token), app.ContextInclusionRequest{
+		CorrelationID: req.CorrelationID,
+		RequestRef:    req.RequestRef,
+		Decisions:     decisions,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	out := make([]appcontext.InclusionDecisionResult, 0, len(res.Decisions))
+	out = append(out, res.Decisions...)
+	s.writeJSON(w, http.StatusOK, contextInclusionResult{
+		RequestRef: res.RequestRef,
+		Decisions:  out,
+	})
+}
+
+// handleContextOperationStatus exposes the family's authoritative state
+// endpoint (a pure query — never a retry; the operation-ID half of the
+// unknown-outcome lookup; the unknown identity is the SAME typed
+// CONTEXT_SNAPSHOT_NOT_FOUND 404).
+func (s *Server) handleContextOperationStatus(w http.ResponseWriter, r *http.Request, token, opID string) {
+	op, err := s.deps.Slice.ContextOperationStatus(s.callCtx(r, token), opID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, contextOperationResult{Operation: op})
+}
+
 // decodeOptionalJSON decodes a request body that the published operation
 // declares no schema for (the recorded delete/forget carrier gap): an
 // empty body decodes to the zero value; a present body must be one JSON
@@ -2190,6 +2323,25 @@ func statusFor(code errs.Code) int {
 		return http.StatusNotFound
 	case errs.CodeMemoryReviewStateConflict, errs.CodeMemoryConflict, errs.CodeMemoryNotEditable:
 		return http.StatusConflict
+	// The Context family's domain codes (the additive register extension):
+	// the typed snapshot/operation 404 rides 404 (the no-leak rule — the
+	// SAME code for unknown and out-of-scope); the honest unavailable
+	// states (the compilation/preview and the comparison-unavailable
+	// carrier) ride 503 (the state cannot be served right now; the
+	// register's safe-retry class); the budget-exhaustion outcome (the
+	// explicit omission-record state, never produced on this surface
+	// today) rides 409 (the stated budget conflicts with the
+	// compilation's capacity); the reason-unavailable carrier (never
+	// produced on this surface today) rides 503 (the fully-reasoned state
+	// cannot be served; the absence is displayed as the absence).
+	case errs.CodeContextSnapshotNotFound:
+		return http.StatusNotFound
+	case errs.CodeContextCompilationUnavailable, errs.CodeContextOmissionReasonUnavailable:
+		return http.StatusServiceUnavailable
+	case errs.CodeContextBudgetExhausted:
+		return http.StatusConflict
+	case errs.CodeContextCompareUnsupported:
+		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
@@ -2835,6 +2987,58 @@ type memoryOperationResult struct {
 type memoryItemListResult struct {
 	Items  []memory.Item `json:"items"`
 	Cursor string        `json:"cursor,omitempty"`
+}
+
+// The B3 ContextSnapshot family's wire shapes (DE-0 queue row 5): the JSON
+// tags are the canonical contract's member names verbatim (the
+// ContextSnapshotSaveRequest / ContextSnapshotCompareRequest /
+// ContextInclusionRequest bodies; the ContextSnapshotSaveResult /
+// ContextSnapshotCompareResult / ContextInclusionResult responses and the
+// {operation} state wrapper); the record members ride the domain structs'
+// contract tags (internal/contextdomain — the published Context* schemas
+// carried verbatim). No member outside the published schemas exists
+// anywhere in these shapes. THE CONDITIONAL LAW rides the save/compare
+// result shapes: no instance of either result is ever produced while the
+// durable-storage and comparison gates stand (the typed refusals are the
+// served behavior; the shapes exist for the un-gated producer's day).
+type contextSnapshotSaveRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+	SourceJobID    string `json:"source_job_id"`
+}
+
+type contextSnapshotSaveResult struct {
+	Operation appcontext.Operation `json:"operation"`
+	Replayed  bool                 `json:"replayed"`
+}
+
+type contextSnapshotCompareRequest struct {
+	BaselineSnapshotID  string `json:"baseline_snapshot_id"`
+	CandidateSnapshotID string `json:"candidate_snapshot_id"`
+}
+
+type contextSnapshotCompareResult struct {
+	BaselineSnapshotID  string         `json:"baseline_snapshot_id"`
+	CandidateSnapshotID string         `json:"candidate_snapshot_id"`
+	Comparison          map[string]any `json:"comparison"`
+}
+
+type contextInclusionRequest struct {
+	CorrelationID string `json:"correlation_id"`
+	RequestRef    string `json:"request_ref"`
+	Decisions     []struct {
+		MemoryItemID string `json:"memory_item_id"`
+		Included     bool   `json:"included"`
+	} `json:"decisions"`
+}
+
+type contextInclusionResult struct {
+	RequestRef string                               `json:"request_ref"`
+	Decisions  []appcontext.InclusionDecisionResult `json:"decisions"`
+}
+
+type contextOperationResult struct {
+	Operation appcontext.Operation `json:"operation"`
 }
 
 // compile-time interface check.

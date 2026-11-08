@@ -83,7 +83,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       // honesty list — the review actions render their honest disabled
       // state with reasons).
       { id: "memory", labelKey: "items.memory", icon: Bookmark, route: "/memory" },
-      { id: "context", labelKey: "items.context", icon: Filter, disabled: true },
+      // The Context Inspector ships at B3-U1 (the DE-0 queue row 5): the
+      // item activates its accepted §4.1 route target — `/context` (the
+      // inspection view of the served F5 snapshot data; P1.1 #12; P4.1
+      // §3.6). The conditional `/context/:snapshotId` detail route stays
+      // UNSHIPPED while its condition is unmet (the GC-5 law), and the
+      // save/compare controls stay HIDDEN ENTIRELY on the surface while
+      // their un-gate preconditions stand (the owner's PROPOSED
+      // decisions, unresolved — GC-3/GC-4; never dead stubs).
+      { id: "context", labelKey: "items.context", icon: Filter, route: "/context" },
       { id: "workflows", labelKey: "items.workflows", icon: Workflow, disabled: true },
     ],
   },

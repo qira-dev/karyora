@@ -69,6 +69,44 @@ const (
 	CodeMemoryNotEditable Code = "MEMORY_NOT_EDITABLE"
 )
 
+// The Context family's domain codes (the published ContextErrorCode
+// register carried verbatim; the CF-3 publication act) join the coded
+// register ADDITIVELY at their implementation (the same recorded
+// register-extension class as the Memory codes above) — each riding the
+// published ErrorEnvelope with its PUBLISHED retryable value and coded
+// retryClass (the per-code values are the publication act's assignments
+// following the CF-3 draft §3(i) retryClass proposals). The
+// idempotency/state conflicts ride the PUBLISHED codes exactly
+// (CONFLICT_IDEMPOTENCY_KEY / CONFLICT_STATE) — no Context-specific
+// conflict code exists.
+const (
+	// CodeContextBudgetExhausted — the budget-exhaustion outcome producing
+	// the explicit omission/partial-context record (the
+	// no-silent-truncation budget law, MB §18); retry class never (a
+	// repeat with the same budget re-exhausts; the omission record is the
+	// explicit outcome, not a transient failure).
+	CodeContextBudgetExhausted Code = "CONTEXT_BUDGET_EXHAUSTED"
+	// CodeContextOmissionReasonUnavailable — the typed carrier for the
+	// honest reason-unavailable state: the Core reports an omission
+	// without a reason and the absence is displayed as the absence, never
+	// a synthesized reason (P4.6 ST-3); retry class safe-retry.
+	CodeContextOmissionReasonUnavailable Code = "CONTEXT_OMISSION_REASON_UNAVAILABLE"
+	// CodeContextCompilationUnavailable — the compilation/preview cannot
+	// be served; the honest unavailable state renders, never a fabricated
+	// state (P4.6 ST-9/C7); retry class safe-retry.
+	CodeContextCompilationUnavailable Code = "CONTEXT_COMPILATION_UNAVAILABLE"
+	// CodeContextCompareUnsupported — compare attempted without stable
+	// Core comparison support; safe to re-issue as a read-only
+	// effect-free read while the outcome persists until support exists
+	// (the GC-4 law); never a fabricated diff; retry class safe-retry.
+	CodeContextCompareUnsupported Code = "CONTEXT_COMPARE_UNSUPPORTED"
+	// CodeContextSnapshotNotFound — the unknown snapshot/operation
+	// identity, the SAME typed 404 for unknown and out-of-scope (the
+	// no-leak rule; the typed-404 pattern is the published precedent);
+	// retry class never.
+	CodeContextSnapshotNotFound Code = "CONTEXT_SNAPSHOT_NOT_FOUND"
+)
+
 // RetryClass is the operation-level retry classification. On the wire it
 // travels inside Data under the reserved "retryClass" key so the accepted
 // envelope field set stays exactly the owner-approved four fields (D-35).
@@ -107,6 +145,15 @@ var register = map[Code]codeDefault{
 	CodeMemoryReviewStateConflict: {retryable: false, class: RetryNever},
 	CodeMemoryConflict:            {retryable: false, class: RetryReconcile},
 	CodeMemoryNotEditable:         {retryable: false, class: RetryNever},
+	// The Context family's domain codes (the published ContextErrorCode
+	// register; the CF-3 publication act) — each with its PUBLISHED
+	// retryable value and coded retryClass (the publication act's
+	// assignments).
+	CodeContextBudgetExhausted:           {retryable: false, class: RetryNever},
+	CodeContextOmissionReasonUnavailable: {retryable: true, class: RetrySafe},
+	CodeContextCompilationUnavailable:    {retryable: true, class: RetrySafe},
+	CodeContextCompareUnsupported:        {retryable: true, class: RetrySafe},
+	CodeContextSnapshotNotFound:          {retryable: false, class: RetryNever},
 }
 
 // RetryClassOf reports the registered default classification for a code and

@@ -1430,3 +1430,77 @@ export type WireMemoryExportResult = MemoryExportResult;
 export interface WireMemoryOperationResult {
   readonly operation: MemoryOperation;
 }
+
+// The context surface (B3-U1; the DE-0 queue row 5). The typed shapes are
+// the GENERATED canonical contract types consumed verbatim (see the
+// header note) — the adapter's context JSON tags carry the published
+// member names exactly (B3-A1 §2), so the generated types ARE the served
+// shapes. Honest boundary (the same class as every family above):
+// - The `/v1/context...` paths are the adapter's own serving of the
+//   published `/context` family (B3-A1 §2.1) — the published members
+//   verbatim under the adapter's `/v1` prefix.
+// - THE CONDITIONAL LAW (BINDING): the save-snapshot command (the M-19
+//   class) is CONDITIONAL on durable snapshot storage existing and the
+//   compare (the M-20 class) on stable Core comparison — both conditions
+//   are UNMET (the owner's PROPOSED decisions, unresolved), so BOTH
+//   surfaces answer their typed unmet-condition refusals and NEITHER is
+//   ever a fake success. The UI hides both controls ENTIRELY while the
+//   conditions stand (never dead stubs — GC-3/GC-4); the transport
+//   methods below exist so the typed refusal renders honestly if a
+//   direct path ever reaches them.
+// - The M-18 inclusion decision is request-scoped only: no item-state
+//   change, no Memory action row, no scope broadening; the result's
+//   reason members are the Core's alone — absence is the absence (the
+//   Core-provided-only reason law; no reason producer exists on this
+//   surface, so reason is never set — B3-A1 §2.6).
+// - The metadata extension (ContextSnapshotMetadataExtension) has NO
+//   serving source today (no standalone compiled-context read route was
+//   published — the only snapshot route is F5's): nothing renders from
+//   it anywhere downstream.
+
+/** The published ContextSnapshotSaveRequest schema (generated, consumed
+ *  verbatim). */
+export type ContextSnapshotSaveRequest = components["schemas"]["ContextSnapshotSaveRequest"];
+
+/** The published ContextSnapshotCompareRequest schema (generated,
+ *  consumed verbatim). */
+export type ContextSnapshotCompareRequest = components["schemas"]["ContextSnapshotCompareRequest"];
+
+/** The published ContextInclusionRequest schema (generated, consumed
+ *  verbatim). */
+export type ContextInclusionRequest = components["schemas"]["ContextInclusionRequest"];
+
+/** The published results (generated, consumed verbatim):
+ *  ContextSnapshotSaveResult (the accepted outcome — no instance exists
+ *  while the durable-storage gate stands), ContextSnapshotCompareResult
+ *  (no instance exists while the comparison gate stands),
+ *  ContextInclusionResult (the decision record for the stated request
+ *  ONLY), ContextOperation (the state endpoint's authoritative record). */
+export type ContextSnapshotSaveResult = components["schemas"]["ContextSnapshotSaveResult"];
+export type ContextSnapshotCompareResult = components["schemas"]["ContextSnapshotCompareResult"];
+export type ContextInclusionResult = components["schemas"]["ContextInclusionResult"];
+export type ContextOperation = components["schemas"]["ContextOperation"];
+
+/** `POST /v1/context/snapshots` success (202 — UNREACHABLE while the
+ *  durable-storage gate stands; the typed unmet-condition refusal is the
+ *  served behavior): the published `ContextSnapshotSaveResult`. */
+export type WireContextSnapshotSaveResult = ContextSnapshotSaveResult;
+
+/** `POST /v1/context/snapshots/compare` success (200 — UNREACHABLE while
+ *  the comparison gate stands; the typed CONTEXT_COMPARE_UNSUPPORTED
+ *  refusal is the served behavior): the published
+ *  `ContextSnapshotCompareResult`. */
+export type WireContextSnapshotCompareResult = ContextSnapshotCompareResult;
+
+/** `POST /v1/context/inclusion` success (200): the published
+ *  `ContextInclusionResult` — the decision record for the stated request
+ *  ONLY (never an item-state change, never a Memory action row). */
+export type WireContextInclusionResult = ContextInclusionResult;
+
+/** `GET /v1/context/operations/{id}` success (200): `{operation}` — the
+ *  family's authoritative state endpoint (a pure query, never a retry);
+ *  the unknown identity is the SAME typed 404
+ *  (CONTEXT_SNAPSHOT_NOT_FOUND — the no-leak rule). */
+export interface WireContextOperationResult {
+  readonly operation: ContextOperation;
+}

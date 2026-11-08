@@ -23,6 +23,7 @@ import { KnowledgePackDetailPage } from "../pages/knowledge/KnowledgePackDetailP
 import { KnowledgeVersionPage } from "../pages/knowledge/KnowledgeVersionPage";
 import { MemoryLibraryPage } from "../pages/memory/MemoryLibraryPage";
 import { MemoryItemDetailPage } from "../pages/memory/MemoryItemDetailPage";
+import { ContextInspectorPage } from "../pages/context/ContextInspectorPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
@@ -89,10 +90,23 @@ import { MemoryItemDetailPage } from "../pages/memory/MemoryItemDetailPage";
  * and render nothing the adapter does not serve (B2-A1 §2.6's honesty
  * list — the review actions render their honest disabled state; no
  * pending-review producer, no event feed, no TTL sweep, no download
- * surface, and no invented badge exists anywhere). The remaining
- * UIR-6/7 feature routes (Context, Workflows, Plugins) are still NOT
- * surfaces — no route, no stub, and no placeholder screen exists for
- * them (the no-dead-stub rule).
+ * surface, and no invented badge exists anywhere).
+ *
+ * B3-U1 (the DE-0 queue row 5) adds the Context Inspector's route
+ * exactly as the records name it (P1.1 #12; P4.1 §3.6): `/context` —
+ * the inspection view of the served F5 snapshot data (the Job-scoped
+ * read through the existing transport method), the M-18 per-request
+ * memory-inclusion decision, and the authoritative operation-status
+ * surface. THE CONDITIONAL LAW (carried exactly): the conditional
+ * `/context/:snapshotId` detail route (#13) stays UNSHIPPED while its
+ * condition is unmet (persistent snapshots do not exist — the GC-5 law;
+ * never a dead stub), and the save/compare controls stay HIDDEN
+ * ENTIRELY on the Inspector while their un-gate preconditions stand
+ * (the owner's PROPOSED decisions, unresolved — GC-3/GC-4; never dead
+ * stubs, never disabled-with-tooltip fakes). The remaining UIR-7
+ * feature routes (Workflows, Plugins) are still NOT surfaces — no
+ * route, no stub, and no placeholder screen exists for them (the
+ * no-dead-stub rule).
  *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
@@ -111,6 +125,7 @@ export const appRouteElements: ReactElement = (
     <Route path="knowledge/packs/:packId/versions/:versionId" element={<KnowledgeVersionPage />} />
     <Route path="memory" element={<MemoryLibraryPage />} />
     <Route path="memory/:memoryItemId" element={<MemoryItemDetailPage />} />
+    <Route path="context" element={<ContextInspectorPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />
