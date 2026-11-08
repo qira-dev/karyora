@@ -118,6 +118,12 @@ type SliceDeps struct {
 	// disables the context surface (typed refusals, fail closed) — every
 	// other surface is unchanged.
 	Context ContextStore
+	// Workflow is the B4 Workflow authoring family's durable surface port
+	// (the published /workflows route family; DE-0 queue row 6). Optional:
+	// nil disables the workflow surface (typed refusals, fail closed) —
+	// every other surface is unchanged. THE D-40 GATE: the port carries NO
+	// run-execution member — nothing here enables any execution.
+	Workflow WorkflowStore
 	// Secrets is the D-37 SecretWriter face the connection operations use
 	// (the keyring store implements both faces). Nil disables credential
 	// persistence — the connection writes then refuse with the typed

@@ -589,6 +589,65 @@ CREATE INDEX IF NOT EXISTS idx_context_inclusions_request
     ON context_inclusions (request_ref, updated_at);
 `,
 	},
+	{
+		Version: 16,
+		Name:    "0016-workflow-authoring-family",
+		SQL: `
+CREATE TABLE IF NOT EXISTS workflow_definitions (
+    definition_id        TEXT PRIMARY KEY,
+    display_name         TEXT NOT NULL DEFAULT '',
+    current_revision_ref TEXT NOT NULL DEFAULT '',
+    created_at           TEXT NOT NULL,
+    updated_at           TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_definitions_created
+    ON workflow_definitions (created_at, definition_id);
+
+CREATE TABLE IF NOT EXISTS workflow_revisions (
+    definition_id TEXT NOT NULL REFERENCES workflow_definitions(definition_id),
+    revision_ref  TEXT NOT NULL,
+    created_at    TEXT NOT NULL,
+    PRIMARY KEY (definition_id, revision_ref)
+);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_revisions_created
+    ON workflow_revisions (definition_id, created_at, revision_ref);
+
+CREATE TABLE IF NOT EXISTS workflow_operations (
+    operation_id    TEXT PRIMARY KEY,
+    kind            TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL,
+    definition_id   TEXT NOT NULL DEFAULT '',
+    revision_ref    TEXT NOT NULL DEFAULT '',
+    failure_code    TEXT NOT NULL DEFAULT '',
+    failure_reason  TEXT NOT NULL DEFAULT '',
+    idempotency_key TEXT NOT NULL DEFAULT '',
+    fingerprint     TEXT NOT NULL DEFAULT '',
+    terminal_at     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_workflow_operations_key_unique
+    ON workflow_operations (idempotency_key) WHERE idempotency_key != '';
+
+CREATE INDEX IF NOT EXISTS idx_workflow_operations_definition
+    ON workflow_operations (definition_id, created_at);
+
+CREATE TABLE IF NOT EXISTS workflow_run_history (
+    run_ref         TEXT PRIMARY KEY,
+    definition_id   TEXT NOT NULL,
+    source_revision TEXT NOT NULL DEFAULT '',
+    linkage_state   TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_run_history_definition
+    ON workflow_run_history (definition_id, created_at, run_ref);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -597,11 +656,15 @@ CREATE INDEX IF NOT EXISTS idx_context_inclusions_request
 // Migration 0013 adds the B1 KnowledgePack family's tables; migration 0014
 // adds the B2 Memory family's tables; migration 0015 adds the B3
 // ContextSnapshot family's tables (the authoritative operation records and
-// the M-18 request-scoped inclusion decisions); existing migrations are
-// never modified (checksums authoritative).
+// the M-18 request-scoped inclusion decisions); migration 0016 adds the B4
+// Workflow authoring family's tables (the Core-minted definitions, the
+// immutable revision records — INSERT only, never updated or removed, the
+// keyed create/save operation records, and the run-history linkage
+// records); existing migrations are never modified (checksums
+// authoritative).
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 15
+	schemaVersionMax = 16
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

@@ -123,6 +123,19 @@ const (
 	// port (MB §12.3) decides every protected effect; no permission policy
 	// is invented and Local mode stays role-free.
 	ResourceContext = "context"
+	// ResourceWorkflow is the B4 Workflow authoring family's surface (the
+	// published /workflows route family — the definition list/create, the
+	// Core-authoritative validation, the M-21 immutable-revision saves,
+	// the AI-diff propose member, the run-history LINKAGE read, and the
+	// family's authoritative state endpoint; DE-0 queue row 6). THE D-40
+	// GATE: no run-execution operation exists on this surface — nothing
+	// here enables any execution. It joins this register ADDITIVELY — the
+	// same deliberate, recorded register-extension class: the fail-closed
+	// default-deny machinery, its predicates, and every existing row are
+	// unchanged; unknown types deny exactly as before. The single decision
+	// port (MB §12.3) decides every protected effect; no permission policy
+	// is invented and Local mode stays role-free.
+	ResourceWorkflow = "workflow"
 )
 
 var localResourceTypes = map[string]bool{
@@ -140,6 +153,7 @@ var localResourceTypes = map[string]bool{
 	ResourceKnowledge:    true,
 	ResourceMemory:       true,
 	ResourceContext:      true,
+	ResourceWorkflow:     true,
 }
 
 func (r Resource) validate() error {

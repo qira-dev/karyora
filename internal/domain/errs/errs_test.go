@@ -49,6 +49,17 @@ func TestRegisterMatchesSpecification(t *testing.T) {
 		CodeContextCompilationUnavailable:    {retryable: true, class: RetrySafe},
 		CodeContextCompareUnsupported:        {retryable: true, class: RetrySafe},
 		CodeContextSnapshotNotFound:          {retryable: false, class: RetryNever},
+		// The Workflow family's domain codes (the published
+		// WorkflowErrorCode register; the CF-4 publication act) join
+		// additively at their implementation per the same recorded
+		// register-extension class — each with its PUBLISHED retryable
+		// value (`never`).
+		CodeWorkflowValidationFailed:      {retryable: false, class: RetryNever},
+		CodeWorkflowWarningUnacknowledged: {retryable: false, class: RetryNever},
+		CodeWorkflowRevisionConflict:      {retryable: false, class: RetryNever},
+		CodeWorkflowUnknownNodeType:       {retryable: false, class: RetryNever},
+		CodeWorkflowNodePermissionDenied:  {retryable: false, class: RetryNever},
+		CodeWorkflowNotSaved:              {retryable: false, class: RetryNever},
 	}
 	if len(register) != len(want) {
 		t.Fatalf("register holds %d codes, specification lists %d", len(register), len(want))

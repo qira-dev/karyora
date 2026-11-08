@@ -182,7 +182,18 @@ func TestGenerationPersists(t *testing.T) {
 	}
 }
 
-// The D-12/D-33 exclusion holds: no Work tables exist in the schema.
+// The D-12/D-33 exclusion holds: no Work-AGGREGATE tables exist in the
+// schema. The exclusion's subject is the Work aggregate (the deferred
+// `Work` scope and Work-dependent storage/API/flows — P1.5 R12; the owner
+// disposition 2026-10-27), NOT the Workflow authoring family: the B4
+// Workflow definitions/revisions are the canonical contract family the
+// CF-4 publication act delivered (commit ba824ed; migration 0016; DE-0
+// queue row 6) — a different domain from the Work aggregate. THE D-40 LAW
+// rides beside the exclusion as a structural pin: no Workflow-Run
+// event-stream or run-execution journal table exists (the no-second-run-
+// journal law; the D-40 gate stands), and the family's only run surface —
+// the published run-history LINKAGE read's backing table — carries NO
+// lifecycle, NO state register, and NO cardinality claim.
 func TestNoWorkTables(t *testing.T) {
 	s := openTestStore(t)
 	rows, err := s.readers.Query(`SELECT name FROM sqlite_master WHERE type='table'`)
@@ -195,9 +206,38 @@ func TestNoWorkTables(t *testing.T) {
 		if err := rows.Scan(&name); err != nil {
 			t.Fatal(err)
 		}
-		if strings.HasPrefix(strings.ToLower(name), "work") || strings.Contains(strings.ToLower(name), "workflow_run") {
-			t.Fatalf("Work-dependent table %q must not exist (D-12/D-33 exclusion)", name)
+		lower := strings.ToLower(name)
+		if strings.HasPrefix(lower, "work_") {
+			t.Fatalf("Work-aggregate table %q must not exist (D-12/D-33 exclusion)", name)
 		}
+		if strings.Contains(lower, "workflow_run") && lower != "workflow_run_history" {
+			t.Fatalf("no Workflow-Run event-stream or run-execution journal table may exist (the D-40 no-second-run-journal law; the only run surface is the published LINKAGE read): %q", name)
+		}
+	}
+	// The published LINKAGE table carries no lifecycle, no state register,
+	// and no cardinality claim (the D-40 gate's structural absence — the
+	// linkage record is run_ref / source_revision / linkage_state /
+	// created_at beside its definition, nothing more).
+	linkCols, err := s.readers.Query(`SELECT name FROM pragma_table_info('workflow_run_history')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer linkCols.Close()
+	allowed := map[string]bool{
+		"run_ref": true, "definition_id": true, "source_revision": true,
+		"linkage_state": true, "created_at": true,
+	}
+	for linkCols.Next() {
+		var col string
+		if err := linkCols.Scan(&col); err != nil {
+			t.Fatal(err)
+		}
+		if !allowed[col] {
+			t.Fatalf("the LINKAGE record carries no lifecycle/state/cardinality member (the D-40 gate): %q", col)
+		}
+	}
+	if err := linkCols.Err(); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -107,6 +107,51 @@ const (
 	CodeContextSnapshotNotFound Code = "CONTEXT_SNAPSHOT_NOT_FOUND"
 )
 
+// The Workflow family's domain codes (the published WorkflowErrorCode
+// register carried verbatim; the CF-4 publication act) join the coded
+// register ADDITIVELY at their implementation (the same recorded
+// register-extension class as the Memory and Context codes above) — each
+// riding the published ErrorEnvelope with its PUBLISHED retryable value
+// and coded retryClass (the publication act's assignments: every
+// Workflow domain code is `never`). The idempotency/state conflicts ride
+// the PUBLISHED codes exactly (CONFLICT_IDEMPOTENCY_KEY / CONFLICT_STATE)
+// — no Workflow-specific conflict code exists.
+const (
+	// CodeWorkflowValidationFailed — the Core-owned typed blocking-error
+	// outcome (the save's authoritative re-check refusing a draft that
+	// carries blocking findings); the result is a fact about the evaluated
+	// object, not a transient failure; the exact-object labeling law
+	// applies; retry class never.
+	CodeWorkflowValidationFailed Code = "WORKFLOW_VALIDATION_FAILED"
+	// CodeWorkflowWarningUnacknowledged — a save or run attempted while
+	// identified non-blocking warnings requiring acknowledgment are
+	// unacknowledged; the acknowledgment is the user's explicit act —
+	// never a timeout, never implicit, never a dismissed toast; a retry
+	// without acknowledgment re-fails deterministically; retry class
+	// never.
+	CodeWorkflowWarningUnacknowledged Code = "WORKFLOW_WARNING_UNACKNOWLEDGED"
+	// CodeWorkflowRevisionConflict — the concurrent-revision outcome; the
+	// interim conflict rule governs (no overwrite; no merge without an
+	// approved policy; both sides survive; the conflict state persists
+	// until user resolution — never auto-resolved, never timed out);
+	// retry class never.
+	CodeWorkflowRevisionConflict Code = "WORKFLOW_REVISION_CONFLICT"
+	// CodeWorkflowUnknownNodeType — a node type the active Core does not
+	// contract (the palette source is ONLY the Core-contracted node
+	// vocabulary; no placeholder node can be saved or run); rides the
+	// validation issue's typed `code` member; retry class never.
+	CodeWorkflowUnknownNodeType Code = "WORKFLOW_UNKNOWN_NODE_TYPE"
+	// CodeWorkflowNodePermissionDenied — a node requiring a
+	// capability/permission the current principal lacks (the Core's
+	// validation and the single decision port re-check authoritatively);
+	// retry class never.
+	CodeWorkflowNodePermissionDenied Code = "WORKFLOW_NODE_PERMISSION_DENIED"
+	// CodeWorkflowNotSaved — an operation attempted against a draft that
+	// is not a Core-confirmed saved revision (the no-silent-save law);
+	// retry class never.
+	CodeWorkflowNotSaved Code = "WORKFLOW_NOT_SAVED"
+)
+
 // RetryClass is the operation-level retry classification. On the wire it
 // travels inside Data under the reserved "retryClass" key so the accepted
 // envelope field set stays exactly the owner-approved four fields (D-35).
@@ -154,6 +199,15 @@ var register = map[Code]codeDefault{
 	CodeContextCompilationUnavailable:    {retryable: true, class: RetrySafe},
 	CodeContextCompareUnsupported:        {retryable: true, class: RetrySafe},
 	CodeContextSnapshotNotFound:          {retryable: false, class: RetryNever},
+	// The Workflow family's domain codes (the published WorkflowErrorCode
+	// register; the CF-4 publication act) — each with its PUBLISHED
+	// retryable value (`never`) and coded retryClass.
+	CodeWorkflowValidationFailed:      {retryable: false, class: RetryNever},
+	CodeWorkflowWarningUnacknowledged: {retryable: false, class: RetryNever},
+	CodeWorkflowRevisionConflict:      {retryable: false, class: RetryNever},
+	CodeWorkflowUnknownNodeType:       {retryable: false, class: RetryNever},
+	CodeWorkflowNodePermissionDenied:  {retryable: false, class: RetryNever},
+	CodeWorkflowNotSaved:              {retryable: false, class: RetryNever},
 }
 
 // RetryClassOf reports the registered default classification for a code and

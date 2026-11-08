@@ -23,6 +23,7 @@ import (
 	"github.com/qira-dev/karyora/internal/domain/memory"
 	"github.com/qira-dev/karyora/internal/domain/notification"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
+	workflowdomain "github.com/qira-dev/karyora/internal/domain/workflow"
 	"github.com/qira-dev/karyora/internal/events"
 	"github.com/qira-dev/karyora/internal/security"
 )
@@ -369,6 +370,31 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/context/snapshots", mutates: true, handler: (*Server).handleContextSnapshotSave},
 		{method: http.MethodPost, prefix: "/v1/context/inclusion", mutates: true, handler: (*Server).handleContextInclusion},
 		{method: http.MethodGet, prefix: "/v1/context/operations/", hasID: true, handler: (*Server).handleContextOperationStatus},
+		// The B4 Workflow authoring family (DE-0 queue row 6): the published
+		// /workflows route family as this adapter serves it (the /v1
+		// adapter-prefix convention; the canonical members live verbatim in
+		// contracts/openapi.yaml — never restated). Every operation rides
+		// the slice's one decision port (the ResourceWorkflow register
+		// extension; Local mode stays role-free). THE D-40 GATE (carried
+		// exactly): THE RUN-EXECUTION OPERATION DOES NOT EXIST — no Run
+		// submission, no Run start/resume/cancel, no Run schema, no Run/step
+		// lifecycle event, no second run journal; the run-history route is
+		// the LINKAGE read only. THE IF-MATCH CLAUSE: prose-only — no
+		// precondition member exists anywhere; the interim conflict rule
+		// governs. The create and save routes are real mutations (the CSRF
+		// gate); the validate route is the read-like class (it mutates no
+		// stored revision and never silently saves — no mutation gate); the
+		// ai-proposals route is the draft-local generation class (nothing
+		// stored — no mutation gate). Literal routes register before the
+		// generic {definition_id} reads so match() resolves them first.
+		{method: http.MethodGet, prefix: "/v1/workflows", handler: (*Server).handleWorkflowList},
+		{method: http.MethodPost, prefix: "/v1/workflows", mutates: true, handler: (*Server).handleWorkflowCreate},
+		{method: http.MethodPost, prefix: "/v1/workflows/validate", handler: (*Server).handleWorkflowValidate},
+		{method: http.MethodPost, prefix: "/v1/workflows/ai-proposals", handler: (*Server).handleWorkflowAIDiffPropose},
+		{method: http.MethodGet, prefix: "/v1/workflows/", hasID: true, suffix: "/state", handler: (*Server).handleWorkflowDefinitionState},
+		{method: http.MethodGet, prefix: "/v1/workflows/", hasID: true, suffix: "/run-history", handler: (*Server).handleWorkflowRunHistory},
+		{method: http.MethodPost, prefix: "/v1/workflows/", hasID: true, suffix: "/revisions", mutates: true, handler: (*Server).handleWorkflowRevisionSave},
+		{method: http.MethodGet, prefix: "/v1/workflows/", hasID: true, handler: (*Server).handleWorkflowDefinitionGet},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -2133,6 +2159,173 @@ func (s *Server) handleContextOperationStatus(w http.ResponseWriter, r *http.Req
 	s.writeJSON(w, http.StatusOK, contextOperationResult{Operation: op})
 }
 
+// The B4 Workflow authoring family handlers (DE-0 queue row 6): the
+// published /workflows operations over the slice's workflow surface. Every
+// handler runs the use case through the one decision port inside the slice
+// — an unauthenticated request reaches the typed
+// AUTHZ_DENIED/SESSION_INVALID envelope, never the data. THE D-40 GATE
+// (carried exactly): NO run-execution handler exists — the only `run`
+// surface is the run-history LINKAGE read; every plausible run-execution
+// path resolves the router's NOT_FOUND (the register's stable vocabulary).
+// THE IF-MATCH CLAUSE: prose-only — no handler reads, sets, or echoes any
+// If-Match/ETag/precondition member; the interim conflict rule governs.
+
+// handleWorkflowList exposes the keyset list read (the cursor's absence
+// marks the final page; the M-1 correlation class).
+func (s *Server) handleWorkflowList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.WorkflowDefinitions(s.callCtx(r, token), app.WorkflowListRequest{Limit: limit, Cursor: cursor})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, workflowListResult{Definitions: res.Definitions, NextCursor: res.Cursor})
+}
+
+// handleWorkflowCreate exposes the aggregate-create member: the Core mints
+// the definition identity — the body never carries one (the Core-mints
+// law); the keyed replay returns the recorded identity, never a second one.
+func (s *Server) handleWorkflowCreate(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req workflowCreateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.CreateWorkflowDefinition(s.callCtx(r, token), app.WorkflowCreateRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+		DisplayName:    req.DisplayName,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, workflowCreateResult{Definition: res.Definition, Replayed: res.Replayed})
+}
+
+// handleWorkflowValidate exposes the Core-authoritative typed validation
+// (a read-like operation: it mutates no stored revision and never silently
+// saves the draft — the no-silent-save law; the result labels exactly
+// which draft it evaluated).
+func (s *Server) handleWorkflowValidate(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req workflowValidateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.ValidateWorkflowDraft(s.callCtx(r, token), app.WorkflowValidateRequest{
+		CorrelationID: req.CorrelationID,
+		DefinitionID:  req.DefinitionID,
+		Draft:         req.Draft,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, res)
+}
+
+// handleWorkflowAIDiffPropose exposes the M-23 AI-diff propose member in
+// its honest unmet-producer state: the typed unwired-producer refusal (the
+// AI-PROPOSAL LAW carried exactly — no proposal is ever fabricated, nothing
+// is stored, the approval is draft-local and carries no Core write).
+func (s *Server) handleWorkflowAIDiffPropose(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req workflowAIDiffProposeRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	_, err := s.deps.Slice.ProposeWorkflowAIDiff(s.callCtx(r, token), app.WorkflowAIDiffProposeRequest{
+		CorrelationID: req.CorrelationID,
+		DefinitionID:  req.DefinitionID,
+		Draft:         req.Draft,
+		Instruction:   req.Instruction,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	// UNREACHABLE while the producer's condition stands (the slice refuses
+	// before any success path exists); the compile-time shape is kept for
+	// the wired producer's day.
+	s.writeJSON(w, http.StatusOK, workflowdomain.AIDiffProposal{})
+}
+
+// handleWorkflowDefinitionGet exposes the inspect member: the definition
+// and its revision records — each immutable and reachable (the unknown
+// identity is the SAME typed 404).
+func (s *Server) handleWorkflowDefinitionGet(w http.ResponseWriter, r *http.Request, token, definitionID string) {
+	res, err := s.deps.Slice.WorkflowDefinitionInspect(s.callCtx(r, token), definitionID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, workflowDefinitionResult{Definition: res.Definition, Revisions: res.Revisions})
+}
+
+// handleWorkflowRevisionSave exposes the M-21 save member: the NEW
+// immutable revision reference STATED on save; no update-in-place; the
+// interim conflict rule governs the concurrent-revision outcome.
+func (s *Server) handleWorkflowRevisionSave(w http.ResponseWriter, r *http.Request, token, definitionID string) {
+	var req workflowRevisionSaveRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SaveWorkflowRevision(s.callCtx(r, token), definitionID, app.WorkflowRevisionSaveRequest{
+		IdempotencyKey:  req.IdempotencyKey,
+		CorrelationID:   req.CorrelationID,
+		BaseRevisionRef: req.BaseRevisionRef,
+		Draft:           req.Draft,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, workflowRevisionSaveResult{RevisionRef: res.RevisionRef, Replayed: res.Replayed})
+}
+
+// handleWorkflowRunHistory exposes the run-history LINKAGE read (a pure
+// read; the D-40 gate stands — the honest empty page while no Run producer
+// exists; missing linkage renders `unavailable`, never an inferred link).
+func (s *Server) handleWorkflowRunHistory(w http.ResponseWriter, r *http.Request, token, definitionID string) {
+	res, err := s.deps.Slice.WorkflowRunHistory(s.callCtx(r, token), definitionID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, workflowRunHistoryResult{Entries: res.Entries})
+}
+
+// handleWorkflowDefinitionState exposes the family's authoritative state
+// endpoint (a pure query — never a retry; the reconcile anchor after a
+// lost write response; the unknown identity is the SAME typed 404).
+func (s *Server) handleWorkflowDefinitionState(w http.ResponseWriter, r *http.Request, token, definitionID string) {
+	revisionID := r.URL.Query().Get("revision_id")
+	res, err := s.deps.Slice.WorkflowDefinitionState(s.callCtx(r, token), definitionID, revisionID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, workflowStateResult{DefinitionState: res})
+}
+
 // decodeOptionalJSON decodes a request body that the published operation
 // declares no schema for (the recorded delete/forget carrier gap): an
 // empty body decodes to the zero value; a present body must be one JSON
@@ -2342,6 +2535,23 @@ func statusFor(code errs.Code) int {
 		return http.StatusConflict
 	case errs.CodeContextCompareUnsupported:
 		return http.StatusServiceUnavailable
+	// The Workflow family's domain codes (the additive register extension):
+	// the typed blocking-error outcome (the save's authoritative re-check
+	// refusing a draft carrying blocking findings) rides 400 (the body's
+	// content is unacceptable — the typed rejection preserves the draft
+	// byte-for-byte client-side); the concurrent-revision outcome, the
+	// acknowledgment law's refusal, and the not-saved law's refusal ride
+	// 409 (state/eligibility conflicts with the request); the unknown-node
+	// code rides 400 (issue-level in validation results; the envelope
+	// mapping kept for completeness); the node-permission code rides 403
+	// (an authorization-class boundary; the Core re-checks
+	// authoritatively).
+	case errs.CodeWorkflowValidationFailed, errs.CodeWorkflowUnknownNodeType:
+		return http.StatusBadRequest
+	case errs.CodeWorkflowRevisionConflict, errs.CodeWorkflowWarningUnacknowledged, errs.CodeWorkflowNotSaved:
+		return http.StatusConflict
+	case errs.CodeWorkflowNodePermissionDenied:
+		return http.StatusForbidden
 	default:
 		return http.StatusInternalServerError
 	}
@@ -3039,6 +3249,65 @@ type contextInclusionResult struct {
 
 type contextOperationResult struct {
 	Operation appcontext.Operation `json:"operation"`
+}
+
+// The B4 Workflow family's wire shapes (the published /workflows members'
+// bodies as this adapter decodes and answers them; every key is a coded
+// name mirroring the canonical contract member names verbatim — never a
+// restatement).
+
+type workflowCreateRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+	DisplayName    string `json:"display_name"`
+}
+
+type workflowCreateResult struct {
+	Definition workflowdomain.Definition `json:"definition"`
+	Replayed   bool                      `json:"replayed"`
+}
+
+type workflowListResult struct {
+	Definitions []workflowdomain.Definition `json:"definitions"`
+	NextCursor  string                      `json:"next_cursor,omitempty"`
+}
+
+type workflowValidateRequest struct {
+	CorrelationID string                      `json:"correlation_id"`
+	DefinitionID  string                      `json:"definition_id,omitempty"`
+	Draft         workflowdomain.DraftContent `json:"draft"`
+}
+
+type workflowAIDiffProposeRequest struct {
+	CorrelationID string                      `json:"correlation_id"`
+	DefinitionID  string                      `json:"definition_id,omitempty"`
+	Draft         workflowdomain.DraftContent `json:"draft"`
+	Instruction   string                      `json:"instruction"`
+}
+
+type workflowDefinitionResult struct {
+	Definition workflowdomain.Definition `json:"definition"`
+	Revisions  []workflowdomain.Revision `json:"revisions"`
+}
+
+type workflowRevisionSaveRequest struct {
+	IdempotencyKey  string                      `json:"idempotency_key"`
+	CorrelationID   string                      `json:"correlation_id"`
+	BaseRevisionRef string                      `json:"base_revision_ref"`
+	Draft           workflowdomain.DraftContent `json:"draft"`
+}
+
+type workflowRevisionSaveResult struct {
+	RevisionRef string `json:"revision_ref"`
+	Replayed    bool   `json:"replayed"`
+}
+
+type workflowRunHistoryResult struct {
+	Entries []workflowdomain.RunHistoryEntry `json:"entries"`
+}
+
+type workflowStateResult struct {
+	DefinitionState workflowdomain.DefinitionState `json:"definition_state"`
 }
 
 // compile-time interface check.

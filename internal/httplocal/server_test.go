@@ -237,6 +237,11 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		// test-side twin of the composition root's wiring — the same store
 		// implements the context port.
 		Context: st,
+		// The B4 Workflow authoring family surface (DE-0 queue row 6): the
+		// test-side twin of the composition root's wiring — the same store
+		// implements the workflow port (the D-40 gate: no run-execution
+		// member exists on the port).
+		Workflow: st,
 		// The C-4 session-command surface (IMPL-23): the real composition
 		// wires the same session service the Guard and this transport hold.
 		Sessions: sessions,

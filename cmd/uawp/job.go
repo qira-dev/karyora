@@ -311,7 +311,14 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		// transactionally under the same single-writer gate; the two
 		// conditional commands serve their typed unmet-condition refusals
 		// before any store call while their un-gate preconditions stand).
-		Context:             store,
+		Context: store,
+		// The B4 Workflow authoring family surface (DE-0 queue row 6): the
+		// SAME store implements the workflow port (the workflow tables over
+		// migration 0016 — the aggregate-create and M-21 keyed rulings
+		// transactionally under the same single-writer gate; the immutable
+		// revision rows are INSERT-only). THE D-40 GATE: the port carries
+		// NO run-execution member — nothing here enables any execution.
+		Workflow:            store,
 		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
 		// The C-4 session-command surface (IMPL-23): the SAME session
 		// service the Guard's policy and the local transport already hold
