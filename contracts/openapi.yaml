@@ -2361,10 +2361,12 @@ paths:
         CONFLICT_STATE. THE DISTINCTNESS LAW (carried, binding):
         DISABLED (the user's action) ≠ GRANTS-REVOKED ≠ TRUST-REVOKED —
         the enabled/disabled toggle is its own state, never shown as a
-        milder or merged form of a revoked state. Whether a
-        disable→enable cycle re-opens the permission review is
-        UNSUPPLIED [B5] — recorded Open (P4.11 L1's class); this contract
-        does not decide it. A lost or unknown outcome reconciles by
+        milder or merged form of a revoked state. THE
+        DISABLE→ENABLE REVIEW RULE (recorded at the 2026-11-09
+        resolution act, binding): a disable→enable cycle does NOT
+        re-open the permission review — the review rides ACTIVATION (the
+        first enable) and the fresh-review law rides UPDATE (changed
+        capabilities); disabling never changes the grant set. A lost or unknown outcome reconciles by
         querying the plugin's authoritative state BEFORE any toggle retry
         (the recorded reconciliation key; the S0–S4 law) — no local flip,
         never an optimistic state change. The retry class is reconcile.
@@ -2450,13 +2452,12 @@ paths:
         short-window M-16-class precedent; selected at this act per the
         CF-5 draft §3(g) proposals); the same key with a different
         request identity is 409 CONFLICT_IDEMPOTENCY_KEY; a replay past
-        the window is 409 CONFLICT_STATE. THE REMOVE-VS-REVOKE QUESTION
-        RECORDED OPEN (binding on this family): removal and grant
-        revocation are distinct ONLY if the Core distinguishes them —
-        this contract records the question OPEN and NO text asserts they
-        are the same or distinct; until the Core's contract decides, no
-        surface may promise that removing a plugin revokes its grants,
-        nor that revoking grants preserves the artifact. Removal is
+        the window is 409 CONFLICT_STATE. THE REMOVE-VS-REVOKE
+        DISTINCTNESS (recorded at the 2026-11-09 resolution act, binding
+        on this family): removal and grant revocation are DISTINCT Core
+        semantics — removing a plugin does not revoke its grants;
+        revoking grants does not remove the artifact; each acts only on
+        its own named object. Removal is
         Core-confirmed; disposal follows the Core's retention — no
         erasure claim beyond the Core-confirmed scope (the
         deletion-honesty class). The high-risk confirmation is the
@@ -5095,7 +5096,7 @@ components:
       properties:
         enabled:
           type: boolean
-          description: The target state — true to enable, false to disable. DISABLED (the user's action) is DISTINCT from GRANTS-REVOKED and from TRUST-REVOKED (the distinctness law); whether a disable→enable cycle re-opens the permission review is UNSUPPLIED [B5] — recorded Open.
+          description: The target state — true to enable, false to disable. DISABLED (the user's action) is DISTINCT from GRANTS-REVOKED and from TRUST-REVOKED (the distinctness law); THE DISABLE→ENABLE REVIEW RULE (recorded at the 2026-11-09 resolution act, binding) — a disable→enable cycle does NOT re-open the permission review; the review rides ACTIVATION (the first enable) and the fresh-review law rides UPDATE (changed capabilities); disabling never changes the grant set.
     PluginUpdateRequest:
       type: object
       description: >-
@@ -5134,10 +5135,13 @@ components:
         remove, and revoke-grants members' shared result shape (the
         published mutation-result precedent, MemoryMutationResult). THE
         ATOMIC UPGRADE law binds the update member (the prior version
-        keeps running until the Core confirms the switch); the
-        remove-vs-revoke question stays OPEN (no text asserts removal and
-        grant revocation are the same or distinct — the Core's contract
-        decides); revocation blocks FUTURE invocations and the current
+        keeps running until the Core confirms the switch); THE
+        REMOVE-VS-REVOKE DISTINCTNESS (recorded at the 2026-11-09
+        resolution act, binding on this family): removal and grant
+        revocation are DISTINCT Core semantics — removing a plugin does
+        not revoke its grants; revoking grants does not remove the
+        artifact; each acts only on its own named object; revocation
+        blocks FUTURE invocations and the current
         invocation's behavior is Core-reported — never guessed. A lost
         response reconciles through the family's authoritative state read
         BEFORE any retry (the S0–S4 law) — never an optimistic
@@ -5218,13 +5222,15 @@ components:
         PLUGIN_CAPABILITY_DENIED (never — the DENIED state's outcome:
         policy denies a required capability, or the user denies it in the
         review; a retry never grants — the user's explicit act governs).
-        THE SHAPE QUESTION RECORDED OPEN: whether the Core collapses the
-        three typed INVALID outcomes (PLUGIN_SIGNATURE_INVALID,
-        PLUGIN_DIGEST_MISMATCH, PLUGIN_MANIFEST_INVALID) into one typed
-        `data` payload instead is still OPEN — the three codes stay
-        DISTINCT here as the draft proposes, and both readings satisfy
-        the consuming table's distinctness law; no text decides the
-        question. The idempotency/state conflicts ride the PUBLISHED
+        THE SHAPE DECISION (recorded at the 2026-11-09 resolution act,
+        binding): the three typed INVALID outcomes
+        (PLUGIN_SIGNATURE_INVALID, PLUGIN_DIGEST_MISMATCH,
+        PLUGIN_MANIFEST_INVALID) stay three DISTINCT codes — facts about
+        different input aspects (the bytes' signature, the bytes'
+        digest, the manifest's structure); the Core does not collapse
+        them into one typed `data` payload; each stays DISTINCT under
+        the consuming table's distinctness law. The idempotency/state
+        conflicts ride the PUBLISHED
         codes exactly — CONFLICT_IDEMPOTENCY_KEY (same key + different
         request identity) and CONFLICT_STATE (replay past the window).
     PluginEventAggregateType:

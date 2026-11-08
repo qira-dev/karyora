@@ -156,10 +156,12 @@ const (
 	// ErrorEnvelope with its PUBLISHED retryable assignment (the
 	// publication act's assignments following the CF-5 draft §3(k)
 	// retryClass routing), each naming the admission/lifecycle check whose
-	// typed outcome it carries. THE SHAPE QUESTION RECORDED OPEN: whether
-	// the Core collapses the three typed INVALID outcomes into one typed
-	// `data` payload instead is still OPEN — the three codes stay DISTINCT
-	// here as the contract publishes them. The idempotency/state conflicts
+	// typed outcome it carries. THE SHAPE DECISION (recorded at the
+	// 2026-11-09 resolution act, binding): the three typed INVALID
+	// outcomes stay three DISTINCT codes — facts about different input
+	// aspects (the bytes' signature, the bytes' digest, the manifest's
+	// structure); the Core does not collapse them into one typed `data`
+	// payload, exactly as the contract publishes them. The idempotency/state conflicts
 	// ride the PUBLISHED codes exactly (CONFLICT_IDEMPOTENCY_KEY /
 	// CONFLICT_STATE) — no Plugin-specific conflict code exists.
 	//

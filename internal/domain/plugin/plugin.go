@@ -92,9 +92,12 @@ func ValidLifecycleState(s string) bool {
 // exitable through the toggle (a user toggle never merges a revoked state
 // into a user-action state; re-grant is the user's explicit act through
 // the Core's defined path, and re-admission after a trust revocation is
-// the Core policy's decision alone). UNSUPPLIED transition detail
-// (whether a disable→enable cycle re-opens the permission review) stays
-// recorded Open — this predicate decides no review question.
+// the Core policy's decision alone). THE DISABLE→ENABLE REVIEW RULE
+// (recorded at the 2026-11-09 resolution act, binding): a disable→enable
+// cycle does NOT re-open the permission review — the review rides
+// ACTIVATION (the first enable) and the fresh-review law rides UPDATE
+// (changed capabilities); disabling never changes the grant set; this
+// predicate decides no review question.
 func ToggleTargetable(state string) bool {
 	switch state {
 	case StateInstalled, StateEnabled, StateDisabled:
@@ -149,12 +152,14 @@ func ValidEventType(s string) bool {
 // carried verbatim — each riding the published ErrorEnvelope with its
 // PUBLISHED retryable assignment and the coded retryClass; the codes join
 // the coded register additively at their implementation, the established
-// register-extension class). THE SHAPE QUESTION RECORDED OPEN: whether the
-// Core collapses the three typed INVALID outcomes
+// register-extension class). THE SHAPE DECISION (recorded at the
+// 2026-11-09 resolution act, binding): the three typed INVALID outcomes
 // (PLUGIN_SIGNATURE_INVALID, PLUGIN_DIGEST_MISMATCH,
-// PLUGIN_MANIFEST_INVALID) into one typed `data` payload instead is still
-// OPEN — the three codes stay DISTINCT here as the contract publishes
-// them, and both readings satisfy the consuming table's distinctness law.
+// PLUGIN_MANIFEST_INVALID) stay three DISTINCT codes — facts about
+// different input aspects (the bytes' signature, the bytes' digest, the
+// manifest's structure); the Core does not collapse them into one typed
+// `data` payload; each stays DISTINCT under the consuming table's
+// distinctness law, exactly as the contract publishes them.
 // The idempotency/state conflicts ride the PUBLISHED codes exactly
 // (CONFLICT_IDEMPOTENCY_KEY / CONFLICT_STATE) — no Plugin-specific
 // conflict code exists.
@@ -366,11 +371,13 @@ type MutationRequest struct {
 // MutationResult is the Core-confirmed mutation outcome (the published
 // PluginMutationResult schema carried verbatim) — the enable/disable,
 // update, remove, and revoke-grants members' shared result shape (the
-// published mutation-result precedent, MemoryMutationResult). The
-// remove-vs-revoke question stays OPEN (no text asserts removal and grant
-// revocation are the same or distinct — the Core's contract decides);
-// revocation blocks FUTURE invocations and the current invocation's
-// behavior is Core-reported — never guessed.
+// published mutation-result precedent, MemoryMutationResult). THE
+// REMOVE-VS-REVOKE DISTINCTNESS (recorded at the 2026-11-09 resolution
+// act, binding on this family): removal and grant revocation are DISTINCT
+// Core semantics — removing a plugin does not revoke its grants; revoking
+// grants does not remove the artifact; each acts only on its own named
+// object; revocation blocks FUTURE invocations and the current
+// invocation's behavior is Core-reported — never guessed.
 type MutationResult struct {
 	PluginID     string `json:"plugin_id"`
 	OperationRef string `json:"operation_ref"`

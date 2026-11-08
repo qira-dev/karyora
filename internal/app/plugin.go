@@ -23,8 +23,10 @@ import (
 // directions via the body's target state; the Core-recorded state-checked
 // mutation — the published body carries no keyed members), the M-30 update
 // member (the fresh-review law; the atomic upgrade), the M-31 remove
-// member (the remove-vs-revoke question RECORDED OPEN — no text asserts
-// they are the same or distinct), the G7 revoke-grants member (revocation
+// member (THE REMOVE-VS-REVOKE DISTINCTNESS recorded at the 2026-11-09
+// resolution act, binding — removal and grant revocation are DISTINCT Core
+// semantics: removing a plugin does not revoke its grants; revoking grants
+// does not remove the artifact), the G7 revoke-grants member (revocation
 // blocks FUTURE invocations; the current invocation's behavior
 // Core-reported), the keyset lifecycle list, the inspect member, and the
 // family's authoritative state endpoint (a pure query — never a retry; the
@@ -72,8 +74,9 @@ type PluginStore interface {
 	// un-reviewed change; the atomic upgrade).
 	SubmitPluginUpdate(ctx stdcontext.Context, intent plugindomain.UpdateIntent) (plugindomain.MutationOutcome, error)
 	// SubmitPluginRemove applies the M-31 remove class's ruling (1 h
-	// post-terminal; Core-confirmed removal; the remove-vs-revoke question
-	// stays OPEN).
+	// post-terminal; Core-confirmed removal; the remove-vs-revoke
+	// distinctness recorded — removal and grant revocation are DISTINCT
+	// Core semantics, neither implies the other).
 	SubmitPluginRemove(ctx stdcontext.Context, intent plugindomain.MutationIntent) (plugindomain.MutationOutcome, error)
 	// SubmitPluginRevokeGrants applies the G7 revoke-grants class's ruling
 	// (1 h post-terminal; revocation blocks FUTURE invocations; the
@@ -217,9 +220,12 @@ func (s *Slice) InstallPlugin(ctx stdcontext.Context, req PluginInstallRequest) 
 // precedent's shape). THE DISTINCTNESS LAW (binding): DISABLED (the user's
 // action) ≠ GRANTS-REVOKED ≠ TRUST-REVOKED — the toggle is its own state
 // class; a revoked state is never exitable through the toggle (the typed
-// refusals ride the published register codes the states carry). Whether a
-// disable→enable cycle re-opens the permission review is UNSUPPLIED [B5] —
-// recorded Open; this member decides no review question. THE CARRIER GAP
+// refusals ride the published register codes the states carry). THE
+// DISABLE→ENABLE REVIEW RULE (recorded at the 2026-11-09 resolution act,
+// binding): a disable→enable cycle does NOT re-open the permission review
+// — the review rides ACTIVATION (the first enable) and the fresh-review
+// law rides UPDATE (changed capabilities); disabling never changes the
+// grant set. THE CARRIER GAP
 // (recorded honestly): the published body carries exactly the target
 // state — the keyed-class members its description references are
 // UNSUPPLIED, so the served toggle is the Core-recorded state-checked
@@ -317,9 +323,12 @@ func (s *Slice) UpdatePlugin(ctx stdcontext.Context, pluginID string, req Plugin
 // RemovePlugin is the M-31 remove member: Core-confirmed removal; disposal
 // follows the Core's retention — no erasure claim beyond the
 // Core-confirmed scope (the deletion-honesty class). THE REMOVE-VS-REVOKE
-// QUESTION RECORDED OPEN: no text asserts removal and grant revocation are
-// the same or distinct — this member implements its own published behavior
-// and asserts neither. A lost or unknown outcome reconciles by the
+// DISTINCTNESS (recorded at the 2026-11-09 resolution act, binding on this
+// family): removal and grant revocation are DISTINCT Core semantics —
+// removing a plugin does not revoke its grants; revoking grants does not
+// remove the artifact; each acts only on its own named object. This member
+// implements its own published behavior under that law. A lost or unknown
+// outcome reconciles by the
 // authoritative package/plugin identity through the family's state read
 // BEFORE any retry (the S0–S4 law) — removal is never assumed complete.
 func (s *Slice) RemovePlugin(ctx stdcontext.Context, pluginID string, req PluginMutationRequestBody) (plugindomain.MutationResult, error) {
