@@ -92,7 +92,17 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       // their un-gate preconditions stand (the owner's PROPOSED
       // decisions, unresolved — GC-3/GC-4; never dead stubs).
       { id: "context", labelKey: "items.context", icon: Filter, route: "/context" },
-      { id: "workflows", labelKey: "items.workflows", icon: Workflow, disabled: true },
+      // The Workflow surface ships at B4-U1 (the DE-0 queue row 7): the
+      // item activates its accepted §4.1 route target — the list is
+      // `/workflows`, and every definition link opens the ONE canonical
+      // detail route `/workflows/:workflowId` (P1.1 #14/#15; P4.1 §3.7/
+      // §3.8; X-2). The surface renders only what the live B4 adapter's
+      // READ members serve and carries the recorded gate states for
+      // everything the gates withhold (B4-A1 §2.4's honesty list): the
+      // creation/editing/revision controls stay hidden while UI-30 is
+      // open, NO Run control exists (the D-40 remainder), and the
+      // AI-proposal producer's unwired state renders honestly.
+      { id: "workflows", labelKey: "items.workflows", icon: Workflow, route: "/workflows" },
     ],
   },
   {

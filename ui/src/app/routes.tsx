@@ -24,6 +24,8 @@ import { KnowledgeVersionPage } from "../pages/knowledge/KnowledgeVersionPage";
 import { MemoryLibraryPage } from "../pages/memory/MemoryLibraryPage";
 import { MemoryItemDetailPage } from "../pages/memory/MemoryItemDetailPage";
 import { ContextInspectorPage } from "../pages/context/ContextInspectorPage";
+import { WorkflowLibraryPage } from "../pages/workflow/WorkflowLibraryPage";
+import { WorkflowDetailPage } from "../pages/workflow/WorkflowDetailPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
@@ -103,10 +105,25 @@ import { ContextInspectorPage } from "../pages/context/ContextInspectorPage";
  * never a dead stub), and the save/compare controls stay HIDDEN
  * ENTIRELY on the Inspector while their un-gate preconditions stand
  * (the owner's PROPOSED decisions, unresolved — GC-3/GC-4; never dead
- * stubs, never disabled-with-tooltip fakes). The remaining UIR-7
- * feature routes (Workflows, Plugins) are still NOT surfaces — no
- * route, no stub, and no placeholder screen exists for them (the
- * no-dead-stub rule).
+ * stubs, never disabled-with-tooltip fakes).
+ *
+ * B4-U1 (the DE-0 queue row 7) adds the Workflow surface's routes exactly
+ * as the records name them (P1.1 #14/#15; P4.1 §3.7/§3.8): `/workflows`
+ * (the keyset definition list, W1–W6) and `/workflows/:workflowId` (the
+ * ONE canonical definition detail route — every definition link opens
+ * it, W4/X-2). The surfaces consume the now-live B4 `/workflows` adapter
+ * family's READ members only (B4-A1 §2.1) and render nothing the adapter
+ * does not serve (B4-A1 §2.4's honesty list — no revision content, no
+ * invented run records, no fabricated validation output). THE GATE LAW
+ * (binding): UI-30 keeps its recorded OPEN state — the creation/editing/
+ * revision controls stay hidden (W2; the Builder tab renders disabled
+ * with the accurate reason; no save control, no palette, no editor), the
+ * Validate control renders its honest disabled-with-reason state (no
+ * draft can exist while the builder is withheld), NO Run control exists
+ * anywhere (the D-40 remainder), and NO If-Match/concurrency-protocol
+ * control exists (the clause is prose-only). The remaining UIR-7 feature
+ * route (Plugins) is still NOT a surface — no route, no stub, and no
+ * placeholder screen exists for it (the no-dead-stub rule).
  *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
@@ -126,6 +143,8 @@ export const appRouteElements: ReactElement = (
     <Route path="memory" element={<MemoryLibraryPage />} />
     <Route path="memory/:memoryItemId" element={<MemoryItemDetailPage />} />
     <Route path="context" element={<ContextInspectorPage />} />
+    <Route path="workflows" element={<WorkflowLibraryPage />} />
+    <Route path="workflows/:workflowId" element={<WorkflowDetailPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />

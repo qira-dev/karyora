@@ -1504,3 +1504,93 @@ export type WireContextInclusionResult = ContextInclusionResult;
 export interface WireContextOperationResult {
   readonly operation: ContextOperation;
 }
+
+// The workflow surface (B4-U1; the DE-0 queue row 7). The typed shapes are
+// the GENERATED canonical contract types consumed verbatim (see the header
+// note) — the adapter's workflow JSON tags carry the published member names
+// exactly (B4-A1 §2), so the generated types ARE the served shapes. Honest
+// boundary (the same class as every family above):
+// - The `/v1/workflows...` paths are the adapter's own serving of the
+//   published `/workflows` family (B4-A1 §2.1) — the published members
+//   verbatim under the adapter's `/v1` prefix.
+// - THE UI-30 GATE (the stacking law, P4.7 §3.6): this milestone's
+//   transport carries the family's READ members only — the keyset list,
+//   the inspect member, the run-history LINKAGE read, and the
+//   authoritative state endpoint. The create/save-revision/validate/
+//   ai-proposal members are served by the Core but have NO caller here:
+//   the creation/editing/revision controls are withheld by the UI-30
+//   interaction gate (open), no draft can exist to validate while the
+//   builder is withheld, and the AI-proposal producer is UNWIRED (the
+//   typed refusal — B4-A1 §2.4 gap 1). None of the four write members is
+//   invented anywhere downstream.
+// - THE D-40 GATE (carried exactly): NO run-execution method exists
+//   anywhere — the run-execution operation does not exist server-side
+//   (B4-A1 §2.3's scripted absence checks) and none is typed here; the
+//   only `run`-named surface is the run-history LINKAGE read, whose
+//   entries are LINKAGE records (run_ref / source_revision /
+//   linkage_state `linked | unavailable` / created_at) carrying NO
+//   lifecycle, NO state register, and NO Run/Job cardinality claim. A
+//   missing linkage renders `unavailable` — never an inferred link.
+// - NO If-Match/ETag/precondition member exists anywhere — the clause is
+//   prose-only (B4-A1 §2.2's scripted zero-member verification).
+
+/** The published WorkflowDefinition schema (generated, consumed verbatim). */
+export type WorkflowDefinition = components["schemas"]["WorkflowDefinition"];
+
+/** The published WorkflowDefinitionList schema (generated, consumed
+ *  verbatim): the keyset page; `next_cursor` is OMITTED on the final page
+ *  — the absence is the end marker. */
+export type WorkflowDefinitionList = components["schemas"]["WorkflowDefinitionList"];
+
+/** The published WorkflowRevision schema (generated, consumed verbatim):
+ *  the immutable revision's identity record (revision_ref + created_at).
+ *  The family publishes NO revision-content read (B4-A1 §2.4 gap 7), so
+ *  no node/edge content type exists to consume — nothing beyond the
+ *  identity record is rendered anywhere downstream. */
+export type WorkflowRevision = components["schemas"]["WorkflowRevision"];
+
+/** The published WorkflowRunHistoryEntry schema (generated, consumed
+ *  verbatim): a LINKAGE record, NOT the D-40-blocked Run schema. */
+export type WorkflowRunHistoryEntry = components["schemas"]["WorkflowRunHistoryEntry"];
+
+/** The published WorkflowRunHistory schema (generated, consumed verbatim). */
+export type WorkflowRunHistory = components["schemas"]["WorkflowRunHistory"];
+
+/** The published WorkflowDefinitionState schema (generated, consumed
+ *  verbatim): the family's authoritative state endpoint's record. */
+export type WorkflowDefinitionState = components["schemas"]["WorkflowDefinitionState"];
+
+/** The published WorkflowValidationResult schema (generated, consumed
+ *  verbatim): the Core-authoritative typed validation output (the
+ *  client-checks-advisory law binds the DISPLAY, never this type). */
+export type WorkflowValidationResult = components["schemas"]["WorkflowValidationResult"];
+
+/** The published WorkflowValidationIssue schema (generated, consumed
+ *  verbatim). */
+export type WorkflowValidationIssue = components["schemas"]["WorkflowValidationIssue"];
+
+/** `GET /v1/workflows?limit=&cursor=` success (200): the published
+ *  `WorkflowDefinitionList` — the keyset page; the cursorless page IS the
+ *  final page (no has_more/total vocabulary exists). */
+export type WireWorkflowListResult = WorkflowDefinitionList;
+
+/** `GET /v1/workflows/{id}` success (200): `{definition, revisions}` —
+ *  the inspect member; each revision immutable and reachable. The unknown
+ *  identity and the out-of-scope identity are the SAME typed 404 (the
+ *  no-leak rule). */
+export interface WireWorkflowInspectResult {
+  readonly definition: WorkflowDefinition;
+  readonly revisions: readonly WorkflowRevision[];
+}
+
+/** `GET /v1/workflows/{id}/run-history` success (200): the published
+ *  `WorkflowRunHistory` — the honest empty page while the D-40 gate
+ *  stands (the linkage table's producer is the GATED run execution). */
+export type WireWorkflowRunHistoryResult = WorkflowRunHistory;
+
+/** `GET /v1/workflows/{id}/state?revision_id=` success (200):
+ *  `{definition_state}` — the family's authoritative state endpoint (a
+ *  pure query — never a retry). */
+export interface WireWorkflowStateResult {
+  readonly definition_state: WorkflowDefinitionState;
+}

@@ -139,6 +139,14 @@ import type {
   WireContextOperationResult,
   WireContextSnapshotCompareResult,
   WireContextSnapshotSaveResult,
+  WorkflowDefinition,
+  WorkflowDefinitionState,
+  WorkflowRevision,
+  WorkflowRunHistoryEntry,
+  WireWorkflowInspectResult,
+  WireWorkflowListResult,
+  WireWorkflowRunHistoryResult,
+  WireWorkflowStateResult,
 } from "./wire";
 
 /** The outcome of one transport call: typed data, the verbatim D-35
@@ -671,6 +679,80 @@ function isWireContextSnapshotCompareResult(value: unknown): value is WireContex
     typeof shaped.candidate_snapshot_id === "string" &&
     shaped.comparison !== null &&
     typeof shaped.comparison === "object"
+  );
+}
+
+/** The coded workflow guards (B4-U1): each response must carry its
+ *  distinguishing published members to be presented as data; anything
+ *  else stays unknown — never reinterpreted, never fabricated. The
+ *  optional members are checked only where their presence distinguishes
+ *  the shape; the generated types carry the full member set. */
+function isWireWorkflowDefinition(value: unknown): value is WorkflowDefinition {
+  if (value === null || typeof value !== "object") return false;
+  const definition = value as Record<string, unknown>;
+  return (
+    typeof definition.definition_id === "string" && typeof definition.created_at === "string"
+  );
+}
+
+function isWireWorkflowRevision(value: unknown): value is WorkflowRevision {
+  if (value === null || typeof value !== "object") return false;
+  const revision = value as Record<string, unknown>;
+  return typeof revision.revision_ref === "string" && typeof revision.created_at === "string";
+}
+
+function isWireWorkflowList(value: unknown): value is WireWorkflowListResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (!Array.isArray(shaped.definitions)) return false;
+  if (!shaped.definitions.every((row) => isWireWorkflowDefinition(row))) return false;
+  // The cursor key is absent on the final page: absence is data (the end
+  // marker), never an error.
+  return shaped.next_cursor === undefined || typeof shaped.next_cursor === "string";
+}
+
+function isWireWorkflowInspectResult(value: unknown): value is WireWorkflowInspectResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (
+    shaped.definition === null ||
+    typeof shaped.definition !== "object" ||
+    !isWireWorkflowDefinition(shaped.definition)
+  ) {
+    return false;
+  }
+  if (!Array.isArray(shaped.revisions)) return false;
+  return shaped.revisions.every((row) => isWireWorkflowRevision(row));
+}
+
+function isWireWorkflowRunHistoryEntry(value: unknown): value is WorkflowRunHistoryEntry {
+  if (value === null || typeof value !== "object") return false;
+  const entry = value as Record<string, unknown>;
+  // `linkage_state` is the closed register `linked | unavailable`; an
+  // unknown reported value renders verbatim downstream — never mapped.
+  return typeof entry.run_ref === "string" && typeof entry.linkage_state === "string";
+}
+
+function isWireWorkflowRunHistory(value: unknown): value is WireWorkflowRunHistoryResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (!Array.isArray(shaped.entries)) return false;
+  return shaped.entries.every((row) => isWireWorkflowRunHistoryEntry(row));
+}
+
+function isWireWorkflowState(value: unknown): value is WorkflowDefinitionState {
+  if (value === null || typeof value !== "object") return false;
+  const state = value as Record<string, unknown>;
+  return typeof state.definition_id === "string";
+}
+
+function isWireWorkflowStateResult(value: unknown): value is WireWorkflowStateResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.definition_state !== null &&
+    typeof shaped.definition_state === "object" &&
+    isWireWorkflowState(shaped.definition_state)
   );
 }
 
@@ -2042,8 +2124,81 @@ export function createHttpLocalTransport() {
       );
     },
 
+    // The workflow surface (B4-U1; the DE-0 queue row 7): the READ members
+    // of the adapter's serving of the published `/workflows` family
+    // (B4-A1 §2.1) — the keyset list, the inspect member, the run-history
+    // LINKAGE read, and the family's authoritative state endpoint. The
+    // truthfulness rules above apply unchanged: a lost response is
+    // `unknown` and is NEVER proof of success or safe retry (the S0–S4
+    // law) — reconcile through the authoritative state endpoint (a pure
+    // query — never a retry) by the definition/revision identity BEFORE
+    // any retry. THE UI-30 GATE (rendered by the surfaces, not here): the
+    // create/save-revision/validate/ai-proposal members are served by the
+    // Core but carried by NO method in this transport — their surfaces are
+    // withheld by the UI-30 interaction gate (open), no draft can exist to
+    // validate while the builder is withheld, and the AI-proposal producer
+    // is UNWIRED (the typed refusal — B4-A1 §2.4 gap 1). THE D-40 GATE:
+    // NO run-execution method exists anywhere — the operation does not
+    // exist server-side (B4-A1 §2.3's scripted absence checks) and none is
+    // typed here.
+
+    /** `GET /v1/workflows?limit=&cursor=` — the workspace-scoped keyset
+     *  definition list. Omitted parameters are not sent (the Core's
+     *  default limit applies); the cursorless page IS the final page. */
+    workflowList(params: { limit?: number; cursor?: string } = {}): Promise<TransportOutcome<WireWorkflowListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireWorkflowListResult>(`/v1/workflows${suffix}`, get(), isWireWorkflowList);
+    },
+
+    /** `GET /v1/workflows/{id}` — the inspect member: the definition and
+     *  its immutable revision records (each reachable; the Core's history
+     *  order). Unknown and out-of-scope definitions are the SAME typed 404
+     *  surfaced verbatim (the no-leak rule). */
+    workflowGet(definitionID: string): Promise<TransportOutcome<WireWorkflowInspectResult>> {
+      return call<WireWorkflowInspectResult>(
+        `/v1/workflows/${encodeURIComponent(definitionID)}`,
+        get(),
+        isWireWorkflowInspectResult,
+      );
+    },
+
+    /** `GET /v1/workflows/{id}/run-history` — the run-history LINKAGE read
+     *  (a pure read; the family's only `run`-named surface). Each entry is
+     *  a LINKAGE record beside its Core-reported source revision; the
+     *  honest empty page stands while the D-40 gate holds (no run
+     *  producer); missing linkage renders `unavailable` — never an
+     *  inferred link. The unknown identity is the SAME typed 404. */
+    workflowRunHistory(definitionID: string): Promise<TransportOutcome<WireWorkflowRunHistoryResult>> {
+      return call<WireWorkflowRunHistoryResult>(
+        `/v1/workflows/${encodeURIComponent(definitionID)}/run-history`,
+        get(),
+        isWireWorkflowRunHistory,
+      );
+    },
+
+    /** `GET /v1/workflows/{id}/state?revision_id=` — the family's
+     *  authoritative state endpoint (a pure query — never a retry): the
+     *  lost/uncertain-outcome reconcile anchor. Where the optional
+     *  revision query rides, the state of that specific revision is
+     *  returned; the unknown identity and the out-of-scope revision are
+     *  the SAME typed 404 (the no-leak rule). Events are never the source
+     *  of truth; this endpoint is. */
+    workflowState(definitionID: string, revisionID?: string): Promise<TransportOutcome<WireWorkflowStateResult>> {
+      const query = new URLSearchParams();
+      if (revisionID !== undefined && revisionID !== "") query.set("revision_id", revisionID);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireWorkflowStateResult>(
+        `/v1/workflows/${encodeURIComponent(definitionID)}/state${suffix}`,
+        get(),
+        isWireWorkflowStateResult,
+      );
+    },
+
     /** Discards the held token from memory (the expiry/recovery path).
-     * Returns the safe metadata snapshot for the truthful display. */
+     Returns the safe metadata snapshot for the truthful display. */
     discardSession(): CoreSessionMetadata | null {
       return discardHeldSecret();
     },
