@@ -90,6 +90,15 @@ const (
 	// default-deny machinery, its predicates, and every existing row are
 	// unchanged; unknown types deny exactly as before.
 	ResourceNotification = "notification"
+	// ResourceKnowledge is the B1 KnowledgePack family's surface (the
+	// published /knowledgepacks route family — packs, versions, and their
+	// import/export operations; DE-0 queue row 1). It joins this register
+	// ADDITIVELY — the same deliberate, recorded register-extension class:
+	// the fail-closed default-deny machinery, its predicates, and every
+	// existing row are unchanged; unknown types deny exactly as before.
+	// The single decision port (MB §12.3) decides every protected effect;
+	// no permission policy is invented and Local mode stays role-free.
+	ResourceKnowledge = "knowledge"
 )
 
 var localResourceTypes = map[string]bool{
@@ -104,6 +113,7 @@ var localResourceTypes = map[string]bool{
 	ResourceJob:          true,
 	ResourceConversation: true,
 	ResourceNotification: true,
+	ResourceKnowledge:    true,
 }
 
 func (r Resource) validate() error {

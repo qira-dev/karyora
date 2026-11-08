@@ -103,6 +103,11 @@ type SliceDeps struct {
 	// S6 supply, P-S6-03: the identity store is new Core state). Optional:
 	// nil disables the notification surface (typed refusals, fail closed).
 	Notifications NotificationStore
+	// Knowledge is the B1 KnowledgePack family's durable surface port (the
+	// published /knowledgepacks route family; DE-0 queue row 1). Optional:
+	// nil disables the knowledge surface (typed refusals, fail closed) —
+	// every other surface is unchanged.
+	Knowledge KnowledgeStore
 	// Secrets is the D-37 SecretWriter face the connection operations use
 	// (the keyring store implements both faces). Nil disables credential
 	// persistence — the connection writes then refuse with the typed

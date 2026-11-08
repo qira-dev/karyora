@@ -420,14 +420,88 @@ CREATE INDEX IF NOT EXISTS idx_conv_attachments_conv
     ON conversation_attachments (conversation_id, created_at, attachment_id);
 `,
 	},
+	{
+		Version: 13,
+		Name:    "0013-knowledge-pack-family",
+		SQL: `
+CREATE TABLE IF NOT EXISTS knowledge_packs (
+    pack_id            TEXT PRIMARY KEY,
+    schema_version     INTEGER NOT NULL,
+    title              TEXT NOT NULL,
+    description        TEXT NOT NULL DEFAULT '',
+    created_at         TEXT NOT NULL,
+    updated_at         TEXT NOT NULL,
+    current_version_id TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_packs_created
+    ON knowledge_packs (created_at, pack_id);
+
+CREATE TABLE IF NOT EXISTS knowledge_pack_versions (
+    pack_id          TEXT NOT NULL REFERENCES knowledge_packs(pack_id),
+    version_id       TEXT NOT NULL,
+    schema_version   INTEGER NOT NULL,
+    pack_root_digest TEXT NOT NULL,
+    entry_count      INTEGER NOT NULL DEFAULT 0,
+    claim_count      INTEGER NOT NULL DEFAULT 0,
+    evidence_count   INTEGER NOT NULL DEFAULT 0,
+    supersedes       TEXT NOT NULL DEFAULT '[]',
+    superseded_by    TEXT NOT NULL DEFAULT '',
+    license          TEXT NOT NULL DEFAULT '',
+    license_status   TEXT NOT NULL DEFAULT 'unknown',
+    created_at       TEXT NOT NULL,
+    PRIMARY KEY (pack_id, version_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_versions_created
+    ON knowledge_pack_versions (pack_id, created_at, version_id);
+
+CREATE TABLE IF NOT EXISTS knowledge_pack_entries (
+    pack_id      TEXT NOT NULL,
+    version_id   TEXT NOT NULL,
+    entry_path   TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes   INTEGER NOT NULL,
+    digest       TEXT NOT NULL,
+    content      BLOB NOT NULL,
+    PRIMARY KEY (pack_id, version_id, entry_path),
+    FOREIGN KEY (pack_id, version_id) REFERENCES knowledge_pack_versions(pack_id, version_id)
+);
+
+CREATE TABLE IF NOT EXISTS knowledge_operations (
+    operation_id    TEXT PRIMARY KEY,
+    kind            TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL,
+    failure_code    TEXT NOT NULL DEFAULT '',
+    failure_reason  TEXT NOT NULL DEFAULT '',
+    untrusted_label TEXT NOT NULL DEFAULT '',
+    idempotency_key TEXT NOT NULL DEFAULT '',
+    source_digest   TEXT NOT NULL DEFAULT '',
+    create_intent   TEXT NOT NULL DEFAULT '',
+    result          TEXT NOT NULL DEFAULT '',
+    terminal_at     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_operations_key_unique
+    ON knowledge_operations (idempotency_key) WHERE idempotency_key != '';
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_operations_intent
+    ON knowledge_operations (create_intent, source_digest, state);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
 // versions [N_min, N]. Phase 3 adds the knowledge-pack store; the window is
 // recorded per release and published floors remain a Phase 5/D-30 concern.
+// Migration 0013 adds the B1 KnowledgePack family's tables; existing
+// migrations are never modified (checksums authoritative).
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 12
+	schemaVersionMax = 13
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

@@ -225,6 +225,10 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		// attachment port.
 		ConversationAttachments: st,
 		Notifications:           st,
+		// The B1 KnowledgePack family surface (DE-0 queue row 1): the
+		// test-side twin of the composition root's wiring — the same store
+		// implements the knowledge port.
+		Knowledge: st,
 		// The C-4 session-command surface (IMPL-23): the real composition
 		// wires the same session service the Guard and this transport hold.
 		Sessions: sessions,

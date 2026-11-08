@@ -17,6 +17,7 @@ import (
 	"github.com/qira-dev/karyora/internal/app"
 	"github.com/qira-dev/karyora/internal/domain/conversation"
 	"github.com/qira-dev/karyora/internal/domain/errs"
+	"github.com/qira-dev/karyora/internal/domain/knowledge"
 	"github.com/qira-dev/karyora/internal/domain/notification"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	"github.com/qira-dev/karyora/internal/events"
@@ -143,7 +144,9 @@ func ValidateBind(host string) error {
 // route is one registered endpoint. mutates drives the state-changing-GET
 // prohibition and the CSRF path. noSession marks the exchange route: its
 // credential check is the presented one-time bootstrap credential, not a
-// session token.
+// session token. midPath extends the registered shapes with the two-ID form
+// (the B1 immutable-version read: prefix + id + midPath + secondId); every
+// pre-existing route leaves it empty and the single-ID shape is unchanged.
 type route struct {
 	method    string
 	prefix    string // literal path prefix; the remainder is the job id where present
@@ -152,6 +155,10 @@ type route struct {
 	mutates   bool
 	noSession bool
 	handler   func(s *Server, w http.ResponseWriter, r *http.Request, token, jobID string)
+	// midPath + handler2 register the two-ID path shape; handler2 receives
+	// both resolved ids.
+	midPath  string
+	handler2 func(s *Server, w http.ResponseWriter, r *http.Request, token, id1, id2 string)
 }
 
 // routes is the fixed endpoint table. The paths are this adapter's own: no
@@ -287,6 +294,29 @@ func routes() []route {
 		{method: http.MethodPost, prefix: "/v1/notifications/read", mutates: true, handler: (*Server).handleNotificationMarkRead},
 		{method: http.MethodPost, prefix: "/v1/notifications/unread", mutates: true, handler: (*Server).handleNotificationMarkUnread},
 		{method: http.MethodPost, prefix: "/v1/notifications/clear", mutates: true, handler: (*Server).handleNotificationClear},
+		// The B1 KnowledgePack family (DE-0 queue row 1): the published
+		// /knowledgepacks route family as this adapter serves it (the /v1
+		// adapter-prefix convention; the canonical members live verbatim in
+		// contracts/openapi.yaml — never restated). Every operation rides
+		// the slice's one decision port (the ResourceKnowledge register
+		// extension; Local mode stays role-free); the submit routes are
+		// 202-class (accepted for processing — the authoritative
+		// operation-state read confirms every outcome); the state endpoint
+		// is the family's authoritative source of truth; cancellation is
+		// the Core-confirmed operation only (the pre-submit queue removal
+		// is a local act with NO Core meaning). Literal routes register
+		// before the generic {id} reads so match() resolves them first.
+		{method: http.MethodGet, prefix: "/v1/knowledgepacks/import/registry", handler: (*Server).handleKnowledgeImportRegistry},
+		{method: http.MethodPost, prefix: "/v1/knowledgepacks/import", mutates: true, handler: (*Server).handleKnowledgeImportSubmit},
+		{method: http.MethodPost, prefix: "/v1/knowledgepacks/export", mutates: true, handler: (*Server).handleKnowledgeExportSubmit},
+		{method: http.MethodPost, prefix: "/v1/knowledgepacks/operations/", hasID: true, suffix: "/cancel", mutates: true, handler: (*Server).handleKnowledgeOperationCancel},
+		{method: http.MethodGet, prefix: "/v1/knowledgepacks/operations/", hasID: true, handler: (*Server).handleKnowledgeOperationStatus},
+		// The immutable-version read (the two-ID shape): prefix + pack id +
+		// midPath + version id — the canonical deep link of the family.
+		{method: http.MethodGet, prefix: "/v1/knowledgepacks/", hasID: true, midPath: "/versions/", handler2: (*Server).handleKnowledgeVersionGet},
+		{method: http.MethodGet, prefix: "/v1/knowledgepacks/", hasID: true, suffix: "/versions", handler: (*Server).handleKnowledgeVersionList},
+		{method: http.MethodGet, prefix: "/v1/knowledgepacks", handler: (*Server).handleKnowledgePackList},
+		{method: http.MethodGet, prefix: "/v1/knowledgepacks/", hasID: true, handler: (*Server).handleKnowledgePackGet},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -302,10 +332,11 @@ func validateRoutes(rs []route) error {
 	return nil
 }
 
-// match resolves the route for method+path and returns the job id when the
-// route carries one. Method mismatches on known paths resolve to NOT_FOUND
+// match resolves the route for method+path and returns the resolved path
+// ids (one for the single-ID shape; two for the two-ID shape; none for the
+// literal routes). Method mismatches on known paths resolve to NOT_FOUND
 // (the register's stable vocabulary; no method-not-allowed code exists).
-func match(method, path string) (route, string, bool) {
+func match(method, path string) (route, string, string, bool) {
 	for _, rt := range routes() {
 		if rt.method != method {
 			continue
@@ -314,19 +345,41 @@ func match(method, path string) (route, string, bool) {
 		if !ok {
 			continue
 		}
+		if rt.midPath != "" {
+			id1, id2, ok := cutIDPair(rest, rt.midPath)
+			if !ok {
+				continue
+			}
+			return rt, id1, id2, true
+		}
 		if rt.hasID {
 			id, ok := cutID(rest, rt.suffix)
 			if !ok {
 				continue
 			}
-			return rt, id, true
+			return rt, id, "", true
 		}
 		if rt.suffix != "" || rest != "" {
 			continue
 		}
-		return rt, "", true
+		return rt, "", "", true
 	}
-	return route{}, "", false
+	return route{}, "", "", false
+}
+
+// cutIDPair resolves the two-ID shape: rest = id1 + mid + id2, both ids
+// bounded exactly like the single-ID one.
+func cutIDPair(rest, mid string) (string, string, bool) {
+	i := strings.Index(rest, mid)
+	if i <= 0 || i+len(mid) >= len(rest) {
+		return "", "", false
+	}
+	id1, id2 := rest[:i], rest[i+len(mid):]
+	if id1 == "" || id2 == "" || strings.Contains(id1, "/") || strings.Contains(id2, "/") ||
+		len(id1) > maxPathID || len(id2) > maxPathID {
+		return "", "", false
+	}
+	return id1, id2, true
 }
 
 func cutID(rest, suffix string) (string, bool) {
@@ -362,7 +415,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 3. Route resolution.
-	rt, jobID, ok := match(r.Method, r.URL.Path)
+	rt, id1, id2, ok := match(r.Method, r.URL.Path)
 	if !ok {
 		s.writeEnvelope(w, http.StatusNotFound, envelope(errs.CodeNotFound, errs.NewCorrelationID(),
 			map[string]any{"reason": "no such local endpoint"}))
@@ -382,7 +435,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	// 5. The handler runs the use case; the Guard's decision inside the
 	// slice (or the replay guard below) stays the authoritative check.
-	rt.handler(s, w, r, token, jobID)
+	if rt.handler2 != nil {
+		rt.handler2(s, w, r, token, id1, id2)
+		return
+	}
+	rt.handler(s, w, r, token, id1)
 }
 
 // handleExchange consumes a one-time bootstrap credential exactly once and
@@ -1486,6 +1543,166 @@ func (s *Server) handleNotificationClear(w http.ResponseWriter, r *http.Request,
 	s.handleNotificationMutation(w, r, token, s.deps.Slice.ClearNotifications)
 }
 
+// The B1 KnowledgePack family handlers (DE-0 queue row 1): the published
+// /knowledgepacks operations over the slice's knowledge surface. Every
+// handler runs the use case through the one decision port inside the slice
+// — an unauthenticated request reaches the typed AUTHZ_DENIED/SESSION_INVALID
+// envelope, never the data. The submit routes answer 202 (accepted for
+// processing — the authoritative state read confirms every outcome); the
+// reads answer 200; the error register rides the published envelope exactly
+// (writeError).
+
+// handleKnowledgeImportRegistry exposes the supported-source registry read
+// (the Core-authoritative read class): the read creates nothing and probes
+// nothing — the served contents ARE the canonical values.
+func (s *Server) handleKnowledgeImportRegistry(w http.ResponseWriter, r *http.Request, token, _ string) {
+	sources, err := s.deps.Slice.KnowledgeImportRegistry(s.callCtx(r, token))
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, knowledgeRegistryResult{Sources: sources})
+}
+
+// handleKnowledgeImportSubmit exposes the M-9 digest-keyed import submit:
+// 202 = accepted for processing, never completion.
+func (s *Server) handleKnowledgeImportSubmit(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req knowledgeImportRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SubmitKnowledgeImport(s.callCtx(r, token), app.KnowledgeImportRequest{
+		IdempotencyKey:            req.IdempotencyKey,
+		SourceName:                req.SourceName,
+		SourceKind:                req.SourceKind,
+		ContentB64:                req.ContentB64,
+		DestinationPackID:         req.DestinationPackID,
+		DuplicateMode:             req.DuplicateMode,
+		ExternalTransferConfirmed: req.ExternalTransferConfirmed,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusAccepted, knowledgeSubmitResult{Operation: res.Operation, Replayed: res.Replayed})
+}
+
+// handleKnowledgeExportSubmit exposes the export submit (the
+// read-with-output class — none-required idempotency, safe re-issue).
+func (s *Server) handleKnowledgeExportSubmit(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req knowledgeExportRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SubmitKnowledgeExport(s.callCtx(r, token), app.KnowledgeExportRequest{
+		CorrelationID:             req.CorrelationID,
+		PackID:                    req.PackID,
+		VersionID:                 req.VersionID,
+		Destination:               req.Destination,
+		ExternalTransferConfirmed: req.ExternalTransferConfirmed,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusAccepted, knowledgeSubmitResult{Operation: res.Operation, Replayed: res.Replayed})
+}
+
+// handleKnowledgeOperationStatus exposes the family's authoritative state
+// endpoint (a pure query — never a retry).
+func (s *Server) handleKnowledgeOperationStatus(w http.ResponseWriter, r *http.Request, token, opID string) {
+	op, err := s.deps.Slice.KnowledgeOperationStatus(s.callCtx(r, token), opID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, knowledgeOperationResult{Operation: op})
+}
+
+// handleKnowledgeOperationCancel exposes the Core-confirmed cancellation
+// request: the request is never displayed as the confirmation — the
+// authoritative state read confirms the terminal cancelled state.
+func (s *Server) handleKnowledgeOperationCancel(w http.ResponseWriter, r *http.Request, token, opID string) {
+	op, err := s.deps.Slice.CancelKnowledgeOperation(s.callCtx(r, token), opID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusAccepted, knowledgeOperationResult{Operation: op})
+}
+
+// handleKnowledgePackList exposes the workspace-scoped pack list (the
+// keyset list semantics; the cursor's absence marks the final page).
+func (s *Server) handleKnowledgePackList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.KnowledgePacks(s.callCtx(r, token), app.KnowledgeListRequest{Limit: limit, Cursor: cursor})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, knowledgePackListResult{Packs: res.Packs, Cursor: res.Cursor})
+}
+
+// handleKnowledgePackGet exposes one pack's authoritative state read.
+func (s *Server) handleKnowledgePackGet(w http.ResponseWriter, r *http.Request, token, packID string) {
+	pack, err := s.deps.Slice.KnowledgePack(s.callCtx(r, token), packID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, knowledgePackResult{Pack: pack})
+}
+
+// handleKnowledgeVersionList exposes one pack's version list.
+func (s *Server) handleKnowledgeVersionList(w http.ResponseWriter, r *http.Request, token, packID string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.KnowledgeVersions(s.callCtx(r, token), packID, app.KnowledgeListRequest{Limit: limit, Cursor: cursor})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, knowledgeVersionListResult{Versions: res.Versions, Cursor: res.Cursor})
+}
+
+// handleKnowledgeVersionGet exposes one immutable pack version read (the
+// family's canonical deep link; the two-ID route shape).
+func (s *Server) handleKnowledgeVersionGet(w http.ResponseWriter, r *http.Request, token, packID, versionID string) {
+	version, err := s.deps.Slice.KnowledgePackVersion(s.callCtx(r, token), packID, versionID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, knowledgeVersionResult{Version: version})
+}
+
 func (s *Server) handleReplay(w http.ResponseWriter, r *http.Request, token, _ string) {
 	q := r.URL.Query()
 	stream := q.Get("stream")
@@ -2130,6 +2347,63 @@ type sessionResult struct {
 	// time.Time already produces); the value is a Proposed constant the
 	// owner has not finalized.
 	Expires time.Time `json:"expires"`
+}
+
+// The B1 KnowledgePack family's wire shapes (DE-0 queue row 1): the JSON
+// tags are the canonical contract's member names verbatim (the
+// KnowledgeImportRequest/KnowledgeExportRequest bodies; the
+// KnowledgeOperationSubmitResult/KnowledgePackList/KnowledgePackVersionList
+// responses and their {pack}/{version}/{operation}/{sources} wrappers);
+// the record members ride the domain structs' contract tags
+// (internal/domain/knowledge). No member outside the published schemas
+// exists anywhere in these shapes.
+type knowledgeImportRequest struct {
+	IdempotencyKey            string `json:"idempotency_key"`
+	SourceName                string `json:"source_name"`
+	SourceKind                string `json:"source_kind"`
+	ContentB64                string `json:"content_b64"`
+	DestinationPackID         string `json:"destination_pack_id,omitempty"`
+	DuplicateMode             string `json:"duplicate_mode,omitempty"`
+	ExternalTransferConfirmed bool   `json:"external_transfer_confirmed,omitempty"`
+}
+
+type knowledgeExportRequest struct {
+	CorrelationID             string `json:"correlation_id"`
+	PackID                    string `json:"pack_id"`
+	VersionID                 string `json:"version_id,omitempty"`
+	Destination               string `json:"destination"`
+	ExternalTransferConfirmed bool   `json:"external_transfer_confirmed,omitempty"`
+}
+
+type knowledgeSubmitResult struct {
+	Operation knowledge.Operation `json:"operation"`
+	Replayed  bool                `json:"replayed"`
+}
+
+type knowledgeOperationResult struct {
+	Operation knowledge.Operation `json:"operation"`
+}
+
+type knowledgePackResult struct {
+	Pack knowledge.Pack `json:"pack"`
+}
+
+type knowledgeVersionResult struct {
+	Version knowledge.PackVersion `json:"version"`
+}
+
+type knowledgePackListResult struct {
+	Packs  []knowledge.Pack `json:"packs"`
+	Cursor string           `json:"cursor,omitempty"`
+}
+
+type knowledgeVersionListResult struct {
+	Versions []knowledge.PackVersion `json:"versions"`
+	Cursor   string                  `json:"cursor,omitempty"`
+}
+
+type knowledgeRegistryResult struct {
+	Sources []knowledge.ImportSourceSpec `json:"sources"`
 }
 
 // compile-time interface check.

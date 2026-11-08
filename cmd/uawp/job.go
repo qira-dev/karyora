@@ -295,7 +295,12 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		// over migration 0012).
 		ConversationAttachments: store,
 		Notifications:           store,
-		ConnectionExecutors:     newCustomExecutorFactory(secrets, reg),
+		// The B1 KnowledgePack family surface (DE-0 queue row 1): the SAME
+		// store implements the knowledge port (the knowledge tables over
+		// migration 0013, the M-9 ruling transactionally under the same
+		// single-writer gate).
+		Knowledge:           store,
+		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
 		// The C-4 session-command surface (IMPL-23): the SAME session
 		// service the Guard's policy and the local transport already hold
 		// — the coded Revoke/RevokeAll classes served through the slice.
