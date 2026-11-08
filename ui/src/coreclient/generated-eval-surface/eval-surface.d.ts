@@ -993,7 +993,7 @@ export interface paths {
         put?: never;
         /**
          * Delete one memory item (the B2 family; the M-16 destructive class).
-         * @description The Memory operation group's delete member — the M-16 destructive class, Core-confirmed only: only a confirmed 200 carries the deletion truth (the F11 law). Before the action the known destructive scope is stated (the active store, derived references, sync state, and backup retention as policy defines) and no immediate-total-erasure is promised — the retention caveat rides the Core-confirmed outcome, never the client's promise (UI §15.4; the M-16 retention-caveat rule). Memory deletion NEVER auto-deletes KnowledgePack claims (MB §7.5 — the promotion law's boundary; the promotion operation itself is the recorded sibling gap, P4.2 §5 — NOT part of this family). THE FORGET/DELETE OPEN DISCIPLINE: whether forget and delete name distinct Core semantics is Core-defined and OPEN (carried per the CF-2 draft §3(d); UI §15.4 holds either way) — the member names are published per the approved operation-group ask and no published text here asserts that two distinct operations exist; the Core's actual semantics decide. The idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays the recorded outcome within the selected window — 1 h post-terminal (selected at this act per the CF-2 draft's per-operation law, the same M-16 short window). A lost destructive response is NEVER assumed to have destroyed (the S0–S4 law) — reconcile by the operation ID or the item's authoritative state read BEFORE any retry. The retry class is reconcile.
+         * @description The Memory operation group's delete member — the M-16 destructive class, Core-confirmed only: only a confirmed 200 carries the deletion truth (the F11 law). Before the action the known destructive scope is stated (the active store, derived references, sync state, and backup retention as policy defines) and no immediate-total-erasure is promised — the retention caveat rides the Core-confirmed outcome, never the client's promise (UI §15.4; the M-16 retention-caveat rule). Memory deletion NEVER auto-deletes KnowledgePack claims (MB §7.5 — the promotion law's boundary; the promotion operation itself is the recorded sibling gap, P4.2 §5 — NOT part of this family). THE FORGET/DELETE OPEN DISCIPLINE: whether forget and delete name distinct Core semantics is Core-defined and OPEN (carried per the CF-2 draft §3(d); UI §15.4 holds either way) — the member names are published per the approved operation-group ask and no published text here asserts that two distinct operations exist; the Core's actual semantics decide. The idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays the recorded outcome within the selected window — 1 h post-terminal (selected at this act per the CF-2 draft's per-operation law, the same M-16 short window). A lost destructive response is NEVER assumed to have destroyed (the S0–S4 law) — reconcile by the operation ID or the item's authoritative state read BEFORE any retry. The retry class is reconcile. The keying members ride an OPTIONAL request body (MemoryDestructiveRequest): the keyed form replays per the M-16 window above; an empty body is the unkeyed record — a non-replayable destructive operation whose reconciliation rides the response's operation ID through the state endpoint.
          */
         post: operations["deleteMemoryItem"];
         delete?: never;
@@ -1013,7 +1013,7 @@ export interface paths {
         put?: never;
         /**
          * Request one memory item's forget (the B2 family; the OPEN-distinctness member).
-         * @description The Memory operation group's forget member, published per the approved operation-group ask with its distinctness carried OPEN: whether forget and delete name distinct Core semantics is Core-defined and OPEN (the CF-2 draft §3(d); UI §15.4 holds either way) — no published text here asserts that two distinct operations exist; the Core's actual semantics decide, and no label promises more than the semantics deliver. The M-16 destructive discipline governs regardless: the known destructive scope stated before the action (the active store, derived references, sync state, and backup retention as policy defines), no immediate-total-erasure promise, only a confirmed 200 carries the outcome truth, and a lost response is never assumed to have forgotten — reconcile by the operation ID or the item's authoritative state read BEFORE any retry (the S0–S4 law). The idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays within the selected window — 1 h post-terminal (selected at this act per the CF-2 draft's per-operation law). The retry class is reconcile.
+         * @description The Memory operation group's forget member, published per the approved operation-group ask with its distinctness carried OPEN: whether forget and delete name distinct Core semantics is Core-defined and OPEN (the CF-2 draft §3(d); UI §15.4 holds either way) — no published text here asserts that two distinct operations exist; the Core's actual semantics decide, and no label promises more than the semantics deliver. The M-16 destructive discipline governs regardless: the known destructive scope stated before the action (the active store, derived references, sync state, and backup retention as policy defines), no immediate-total-erasure promise, only a confirmed 200 carries the outcome truth, and a lost response is never assumed to have forgotten — reconcile by the operation ID or the item's authoritative state read BEFORE any retry (the S0–S4 law). The idempotency key (scoped user + item identity + scope; the fingerprint is the correlation ID + the item's current state reference) replays within the selected window — 1 h post-terminal (selected at this act per the CF-2 draft's per-operation law). The retry class is reconcile. The keying members ride an OPTIONAL request body (MemoryDestructiveRequest): the keyed form replays per the M-16 window above; an empty body is the unkeyed record — a non-replayable destructive operation whose reconciliation rides the response's operation ID through the state endpoint.
          */
         post: operations["forgetMemoryItem"];
         delete?: never;
@@ -2367,6 +2367,13 @@ export interface components {
             item_state_ref: string;
             /** @description The corrected content. */
             content: string;
+        };
+        /** @description The delete and forget members' OPTIONAL keying body — the M-16 keying carrier whose members are both OPTIONAL (no required array): the keyed form replays the recorded outcome within the 1 h post-terminal window; an empty body is the unkeyed record — a non-replayable destructive operation whose reconciliation rides the response's operation ID through the state endpoint (the S0–S4 law). */
+        MemoryDestructiveRequest: {
+            /** @description The M-16 idempotency key — scoped user + item identity + scope Core-side. OPTIONAL — omitting it together with the correlation_id records the unkeyed destructive operation. */
+            idempotency_key?: string;
+            /** @description The operation's correlation ID — the fingerprint's first half (the second half is the item's current state reference — Core-resolved). OPTIONAL alongside the idempotency_key. */
+            correlation_id?: string;
         };
         /** @description The review-action body (the approve and reject members) — the explicit user action's identity; the item identity rides the path. */
         MemoryReviewRequest: {
@@ -4293,7 +4300,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MemoryDestructiveRequest"];
+            };
+        };
         responses: {
             /** @description The Core-confirmed deletion outcome. */
             200: {
@@ -4315,7 +4326,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MemoryDestructiveRequest"];
+            };
+        };
         responses: {
             /** @description The Core-confirmed forget outcome. */
             200: {

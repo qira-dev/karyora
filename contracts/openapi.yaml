@@ -1464,8 +1464,19 @@ paths:
         response is NEVER assumed to have destroyed (the S0–S4 law) —
         reconcile by the operation ID or the item's authoritative state
         read BEFORE any retry. The retry class is reconcile.
+        The keying members ride an OPTIONAL request body
+        (MemoryDestructiveRequest): the keyed form replays per the M-16
+        window above; an empty body is the unkeyed record — a
+        non-replayable destructive operation whose reconciliation rides the
+        response's operation ID through the state endpoint.
       parameters:
         - $ref: '#/components/parameters/MemoryItemId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryDestructiveRequest'
       responses:
         '200':
           description: The Core-confirmed deletion outcome.
@@ -1496,8 +1507,19 @@ paths:
         item's current state reference) replays within the selected window
         — 1 h post-terminal (selected at this act per the CF-2 draft's
         per-operation law). The retry class is reconcile.
+        The keying members ride an OPTIONAL request body
+        (MemoryDestructiveRequest): the keyed form replays per the M-16
+        window above; an empty body is the unkeyed record — a
+        non-replayable destructive operation whose reconciliation rides the
+        response's operation ID through the state endpoint.
       parameters:
         - $ref: '#/components/parameters/MemoryItemId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemoryDestructiveRequest'
       responses:
         '200':
           description: The Core-confirmed forget outcome.
@@ -3818,6 +3840,18 @@ components:
         correlation_id: { type: string, description: The operation's correlation ID — the fingerprint's first half. }
         item_state_ref: { type: string, description: The item's current state reference the edit was prepared against — the fingerprint's second half; a mismatch is 409 MEMORY_CONFLICT (reconcile by re-reading the item's authoritative state, never overwrite). }
         content: { type: string, description: The corrected content. }
+    MemoryDestructiveRequest:
+      type: object
+      description: >-
+        The delete and forget members' OPTIONAL keying body — the M-16
+        keying carrier whose members are both OPTIONAL (no required array):
+        the keyed form replays the recorded outcome within the 1 h
+        post-terminal window; an empty body is the unkeyed record — a
+        non-replayable destructive operation whose reconciliation rides the
+        response's operation ID through the state endpoint (the S0–S4 law).
+      properties:
+        idempotency_key: { type: string, description: The M-16 idempotency key — scoped user + item identity + scope Core-side. OPTIONAL — omitting it together with the correlation_id records the unkeyed destructive operation. }
+        correlation_id: { type: string, description: The operation's correlation ID — the fingerprint's first half (the second half is the item's current state reference — Core-resolved). OPTIONAL alongside the idempotency_key. }
     MemoryReviewRequest:
       type: object
       description: The review-action body (the approve and reject members) — the explicit user action's identity; the item identity rides the path.
