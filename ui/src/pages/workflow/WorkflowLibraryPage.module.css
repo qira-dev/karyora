@@ -160,6 +160,75 @@
   color: var(--color-text-secondary);
 }
 
+/* The create dialog (B4-U2; the §8.9-style two-step flow — the B5-U2
+   install-dialog class). The name field, the review facts, and the
+   outcome blocks mirror the plugin dialog's recorded idiom. */
+.field {
+  margin-block-end: var(--space-3);
+}
+
+.field label {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--size-button-secondary);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.fieldNote {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.confirmBlock {
+  margin-block-end: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeBlock {
+  margin-block-end: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+
+.reviewFacts {
+  display: grid;
+  grid-template-columns: minmax(14ch, max-content) 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.reviewFacts dt {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.reviewFacts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* Compact reflow: the table collapses to stacked cards below 640 CSS px
    (the 320 px reflow law — no two-dimensional scrolling), per the B2
    list's recorded reflow idiom. */

@@ -139,14 +139,20 @@ import type {
   WireContextOperationResult,
   WireContextSnapshotCompareResult,
   WireContextSnapshotSaveResult,
+  WorkflowCreateRequest,
   WorkflowDefinition,
   WorkflowDefinitionState,
   WorkflowRevision,
+  WorkflowRevisionSaveRequest,
   WorkflowRunHistoryEntry,
+  WorkflowValidateRequest,
+  WireWorkflowCreateResult,
   WireWorkflowInspectResult,
   WireWorkflowListResult,
   WireWorkflowRunHistoryResult,
+  WireWorkflowSaveRevisionResult,
   WireWorkflowStateResult,
+  WireWorkflowValidateResult,
   Plugin,
   PluginEnableRequest,
   PluginInstallRequest,
@@ -767,6 +773,44 @@ function isWireWorkflowStateResult(value: unknown): value is WireWorkflowStateRe
     typeof shaped.definition_state === "object" &&
     isWireWorkflowState(shaped.definition_state)
   );
+}
+
+// The B4-U2 write-result guards (the UI-30 resolution's wired members):
+// each response must carry its distinguishing published members to be
+// presented as data; anything else stays unknown — never reinterpreted,
+// never fabricated.
+function isWireWorkflowCreateResult(value: unknown): value is WireWorkflowCreateResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.definition !== null &&
+    typeof shaped.definition === "object" &&
+    isWireWorkflowDefinition(shaped.definition) &&
+    typeof shaped.replayed === "boolean"
+  );
+}
+
+function isWireWorkflowValidationResult(value: unknown): value is WireWorkflowValidateResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  // The exact-object label + the four typed arrays (the closed issue-class
+  // register rides each issue; unknown reported values render verbatim
+  // downstream — never mapped, never invented).
+  return (
+    typeof shaped.evaluated_object_ref === "string" &&
+    Array.isArray(shaped.blocking_errors) &&
+    Array.isArray(shaped.warnings) &&
+    Array.isArray(shaped.permission_gaps) &&
+    Array.isArray(shaped.schema_compatibility)
+  );
+}
+
+function isWireWorkflowSaveRevisionResult(
+  value: unknown,
+): value is WireWorkflowSaveRevisionResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return typeof shaped.revision_ref === "string" && typeof shaped.replayed === "boolean";
 }
 
 /** The coded plugin guards (B5-U1): each response must carry its
@@ -2231,23 +2275,29 @@ export function createHttpLocalTransport() {
       );
     },
 
-    // The workflow surface (B4-U1; the DE-0 queue row 7): the READ members
-    // of the adapter's serving of the published `/workflows` family
-    // (B4-A1 §2.1) — the keyset list, the inspect member, the run-history
-    // LINKAGE read, and the family's authoritative state endpoint. The
-    // truthfulness rules above apply unchanged: a lost response is
-    // `unknown` and is NEVER proof of success or safe retry (the S0–S4
-    // law) — reconcile through the authoritative state endpoint (a pure
-    // query — never a retry) by the definition/revision identity BEFORE
-    // any retry. THE UI-30 GATE (rendered by the surfaces, not here): the
-    // create/save-revision/validate/ai-proposal members are served by the
-    // Core but carried by NO method in this transport — their surfaces are
-    // withheld by the UI-30 interaction gate (open), no draft can exist to
-    // validate while the builder is withheld, and the AI-proposal producer
-    // is UNWIRED (the typed refusal — B4-A1 §2.4 gap 1). THE D-40 GATE:
-    // NO run-execution method exists anywhere — the operation does not
-    // exist server-side (B4-A1 §2.3's scripted absence checks) and none is
-    // typed here.
+    // The workflow surface (B4-U1 reads; B4-U2 writes; the DE-0 queue row
+    // 7 / GR-0 queue row 4): the adapter's serving of the published
+    // `/workflows` family (B4-A1 §2.1) — the keyset list, the inspect
+    // member, the run-history LINKAGE read, the family's authoritative
+    // state endpoint, and (from the UI-30 resolution, GR-C2) the create
+    // member (the aggregate-create class), the validate member (the
+    // read-like Core-authoritative class), and the save-revision member
+    // (the M-21 class). The truthfulness rules above apply unchanged: a
+    // lost response is `unknown` and is NEVER proof of success or safe
+    // retry (the S0–S4 law) — reconcile through the authoritative state
+    // endpoint (a pure query — never a retry) by the definition/revision
+    // identity BEFORE any retry. THE KEYED MINTING (the caller's duty, per
+    // the published retention classes): the caller mints a FRESH
+    // idempotency key + correlation ID per new write attempt and re-issues
+    // the SAME pair on a lost outcome's reconcile retry — create 72 h;
+    // save-revision 1 h; the validate member is the none-required read
+    // class (correlation ID only, no key); the reads mint neither. THE
+    // AI-PROPOSAL MEMBER: served by the Core in its honest UNMET-PRODUCER
+    // state (the typed refusal — B4-A1 §2.4 gap 1) and carried by NO
+    // method here and NO caller anywhere — the producer is unwired and no
+    // proposal surface is fabricated. THE D-40 GATE: NO run-execution
+    // method exists anywhere — the operation does not exist server-side
+    // (B4-A1 §2.3's scripted absence checks) and none is typed here.
 
     /** `GET /v1/workflows?limit=&cursor=` — the workspace-scoped keyset
      *  definition list. Omitted parameters are not sent (the Core's
@@ -2301,6 +2351,70 @@ export function createHttpLocalTransport() {
         `/v1/workflows/${encodeURIComponent(definitionID)}/state${suffix}`,
         get(),
         isWireWorkflowStateResult,
+      );
+    },
+
+    /** `POST /v1/workflows` — the aggregate-create member (B4-U2; the
+     *  UI-30 resolution, GR-C2): the caller mints the idempotency key +
+     *  correlation ID (the 72 h replay window; the request identity is
+     *  the fingerprint). THE CORE-MINTS LAW: the Core mints the stable
+     *  definition identity — the body never carries one. The keyed
+     *  ruling: the same key + the same request identity replays the
+     *  recorded create (the SAME Core-minted identity, never a second
+     *  one); the same key with a different request identity is 409
+     *  CONFLICT_IDEMPOTENCY_KEY; a replay past the window is 409
+     *  CONFLICT_STATE. A lost response is `unknown` and reconciles by the
+     *  correlation ID through the keyed replay (the SAME pair re-issued —
+     *  never a duplicate create) BEFORE any retry (the S0–S4 law). */
+    workflowCreate(payload: WorkflowCreateRequest): Promise<TransportOutcome<WireWorkflowCreateResult>> {
+      return call<WireWorkflowCreateResult>("/v1/workflows", post(JSON.stringify(payload)), isWireWorkflowCreateResult);
+    },
+
+    /** `POST /v1/workflows/validate` — the read-like validation member
+     *  (B4-U2): Core-authoritative typed validation over the draft. THE
+     *  NO-SILENT-SAVE LAW: it mutates NO stored revision and NEVER saves
+     *  the draft. THE NONE-REQUIRED CLASS: no idempotency key is minted
+     *  or sent; the correlation ID rides as the request identity (the
+     *  result-reference read class; a validation that never returns is an
+     *  unknown outcome — the query-before-retry law binds the uncertain
+     *  state, and a re-validate is a FRESH validation, never a retry of a
+     *  possibly-succeeded mutation). The result labels EXACTLY which
+     *  draft it evaluated (`evaluated_object_ref` — the exact-object
+     *  labeling law, RUN-LINK-2). */
+    workflowValidate(payload: WorkflowValidateRequest): Promise<TransportOutcome<WireWorkflowValidateResult>> {
+      return call<WireWorkflowValidateResult>(
+        "/v1/workflows/validate",
+        post(JSON.stringify(payload)),
+        isWireWorkflowValidationResult,
+      );
+    },
+
+    /** `POST /v1/workflows/{definition_id}/revisions` — the save-revision
+     *  member (B4-U2; the M-21 class): the save creates a NEW immutable
+     *  revision, states the new reference, and preserves the old — NO
+     *  update-in-place ever. The caller mints the idempotency key +
+     *  correlation ID (the 1 h replay window); the fingerprint is the
+     *  correlation ID + the client's known base (`base_revision_ref`,
+     *  which asserts NO protocol — the empty string is the client's known
+     *  base for a definition with no revisions). The replay precedes the
+     *  concurrent-revision check so a lost save's keyed retry reconciles
+     *  (VRC-LOST-1). The concurrent-revision outcome is the typed 409
+     *  WORKFLOW_REVISION_CONFLICT (the interim conflict rule governs —
+     *  the envelope's `data.current_revision_ref` datum carries the
+     *  stored side's REFERENCE only; the local draft survives client-side
+     *  byte-for-byte). The save's authoritative re-check refuses a draft
+     *  carrying blocking findings (400 WORKFLOW_VALIDATION_FAILED — the
+     *  typed rejection stores nothing). A lost response reconciles by the
+     *  authoritative definition/revision-state read BEFORE any retry —
+     *  never a blind retry, never a second revision. */
+    workflowSaveRevision(
+      definitionID: string,
+      payload: WorkflowRevisionSaveRequest,
+    ): Promise<TransportOutcome<WireWorkflowSaveRevisionResult>> {
+      return call<WireWorkflowSaveRevisionResult>(
+        `/v1/workflows/${encodeURIComponent(definitionID)}/revisions`,
+        post(JSON.stringify(payload)),
+        isWireWorkflowSaveRevisionResult,
       );
     },
 

@@ -1505,24 +1505,28 @@ export interface WireContextOperationResult {
   readonly operation: ContextOperation;
 }
 
-// The workflow surface (B4-U1; the DE-0 queue row 7). The typed shapes are
-// the GENERATED canonical contract types consumed verbatim (see the header
-// note) — the adapter's workflow JSON tags carry the published member names
-// exactly (B4-A1 §2), so the generated types ARE the served shapes. Honest
-// boundary (the same class as every family above):
+// The workflow surface (B4-U1 reads; B4-U2 writes; the DE-0 queue row 7 /
+// the GR-0 queue row 4). The typed shapes are the GENERATED canonical
+// contract types consumed verbatim (see the header note) — the adapter's
+// workflow JSON tags carry the published member names exactly (B4-A1 §2),
+// so the generated types ARE the served shapes. Honest boundary (the same
+// class as every family above):
 // - The `/v1/workflows...` paths are the adapter's own serving of the
 //   published `/workflows` family (B4-A1 §2.1) — the published members
 //   verbatim under the adapter's `/v1` prefix.
-// - THE UI-30 GATE (the stacking law, P4.7 §3.6): this milestone's
-//   transport carries the family's READ members only — the keyset list,
-//   the inspect member, the run-history LINKAGE read, and the
-//   authoritative state endpoint. The create/save-revision/validate/
-//   ai-proposal members are served by the Core but have NO caller here:
-//   the creation/editing/revision controls are withheld by the UI-30
-//   interaction gate (open), no draft can exist to validate while the
-//   builder is withheld, and the AI-proposal producer is UNWIRED (the
-//   typed refusal — B4-A1 §2.4 gap 1). None of the four write members is
-//   invented anywhere downstream.
+// - THE UI-30 RESOLUTION (GR-C2, the owner's LIVE 2026-11-09 decision):
+//   the B4-U2 act (GR-0 queue row 4) wires the family's create member
+//   (the aggregate-create class — the Core mints the identity, the 72 h
+//   keyed replay), the validate member (the read-like Core-authoritative
+//   typed validation — no silent save), and the save-revision member (the
+//   M-21 class — INSERT-only, the new ref stated, the 1 h keyed replay,
+//   the interim conflict rule). The AI-proposal member
+//   (proposeWorkflowAIDiff) is served by the Core in its honest
+//   UNMET-PRODUCER state (the typed refusal — B4-A1 §2.4 gap 1) and
+//   carries NO method here and NO caller anywhere: the producer is
+//   unwired (the provider/model selection and the data-handling/egress
+//   review surface the published request schema does NOT carry are
+//   UNSUPPLIED), and no proposal surface is fabricated.
 // - THE D-40 GATE (carried exactly): NO run-execution method exists
 //   anywhere — the run-execution operation does not exist server-side
 //   (B4-A1 §2.3's scripted absence checks) and none is typed here; the
@@ -1532,7 +1536,14 @@ export interface WireContextOperationResult {
 //   lifecycle, NO state register, and NO Run/Job cardinality claim. A
 //   missing linkage renders `unavailable` — never an inferred link.
 // - NO If-Match/ETag/precondition member exists anywhere — the clause is
-//   prose-only (B4-A1 §2.2's scripted zero-member verification).
+//   prose-only (B4-A1 §2.2's scripted zero-member verification); the save
+//   carries the client's known base as `base_revision_ref`, which asserts
+//   no protocol.
+// - THE KEYED MINTING (B4-U2): the create (72 h) and save-revision (1 h)
+//   classes' idempotency key + correlation ID are CALLER-MINTED per new
+//   attempt (the retention classes' windows govern the keyed replays);
+//   the validate member is the none-required read class (correlation ID
+//   only); the reads mint neither.
 
 /** The published WorkflowDefinition schema (generated, consumed verbatim). */
 export type WorkflowDefinition = components["schemas"]["WorkflowDefinition"];
@@ -1544,9 +1555,10 @@ export type WorkflowDefinitionList = components["schemas"]["WorkflowDefinitionLi
 
 /** The published WorkflowRevision schema (generated, consumed verbatim):
  *  the immutable revision's identity record (revision_ref + created_at).
- *  The family publishes NO revision-content read (B4-A1 §2.4 gap 7), so
- *  no node/edge content type exists to consume — nothing beyond the
- *  identity record is rendered anywhere downstream. */
+ *  The family publishes NO revision-content read (B4-A1 §2.4 gap 7), so a
+ *  stored revision renders ONLY this identity record — the draft content
+ *  types below serve the WRITE path (the draft the save carries), never a
+ *  revision-content rendering. */
 export type WorkflowRevision = components["schemas"]["WorkflowRevision"];
 
 /** The published WorkflowRunHistoryEntry schema (generated, consumed
@@ -1594,6 +1606,91 @@ export type WireWorkflowRunHistoryResult = WorkflowRunHistory;
 export interface WireWorkflowStateResult {
   readonly definition_state: WorkflowDefinitionState;
 }
+
+// The B4-U2 write-path types (the UI-30 resolution's wired members; the
+// GR-0 queue row 4). All generated, consumed verbatim — never hand-restyped.
+
+/** The published WorkflowDraftNode schema (generated, consumed verbatim):
+ *  one draft node — the client-local authoring unit. `node_type` is the
+ *  type AS THE DRAFT DECLARES it (the Core validates against its own
+ *  catalogue — WORKFLOW_UNKNOWN_NODE_TYPE for an uncontracted type); no
+ *  node catalogue is published (the vocabulary is a CLASS only, P4.7
+ *  §3.1), so no palette entry or type list is invented anywhere
+ *  downstream. `config` is open-typed because the per-node schema is
+ *  UNSUPPLIED [B4]. */
+export type WorkflowDraftNode = components["schemas"]["WorkflowDraftNode"];
+
+/** The published WorkflowDraftEdge schema (generated, consumed verbatim):
+ *  one draft edge — the client-local connection between two draft nodes. */
+export type WorkflowDraftEdge = components["schemas"]["WorkflowDraftEdge"];
+
+/** The published WorkflowDraftContent schema (generated, consumed
+ *  verbatim): the draft's graph content — the client-local authoring
+ *  state. The draft is NEVER Core state until a save-revision confirms
+ *  one (the no-silent-save law); validation and run submission never
+ *  silently save it. */
+export type WorkflowDraftContent = components["schemas"]["WorkflowDraftContent"];
+
+/** The published WorkflowCreateRequest schema (generated, consumed
+ *  verbatim): the aggregate-create body — the caller mints the key +
+ *  correlation (the 72 h class); `display_name` is required; the body
+ *  NEVER carries a definition identity (the Core-mints law). */
+export type WorkflowCreateRequest = components["schemas"]["WorkflowCreateRequest"];
+
+/** The published WorkflowCreateResult schema (generated, consumed
+ *  verbatim): the Core-confirmed created definition and the honest
+ *  `replayed` (the keyed replay returns the SAME Core-minted identity,
+ *  never a second one). */
+export type WorkflowCreateResult = components["schemas"]["WorkflowCreateResult"];
+
+/** The published WorkflowValidateRequest schema (generated, consumed
+ *  verbatim): the read-like validation body — correlation ID only (the
+ *  none-required read class; no key minted); the optional
+ *  `definition_id` states the definition the draft edits (absent for an
+ *  unsaved new definition's draft). */
+export type WorkflowValidateRequest = components["schemas"]["WorkflowValidateRequest"];
+
+/** The published WorkflowRevisionSaveRequest schema (generated, consumed
+ *  verbatim): the M-21 save body — the caller mints the key + correlation
+ *  (the 1 h class); `base_revision_ref` is the client's known base (the
+ *  fingerprint's other half — asserts NO protocol; the empty string is
+ *  the client's known base for a definition with no revisions, the
+ *  adapter's recorded reading, B4-A1 §2.4 gap 8); `draft` is the saved
+ *  graph content. NO If-Match/ETag/precondition member exists. */
+export type WorkflowRevisionSaveRequest = components["schemas"]["WorkflowRevisionSaveRequest"];
+
+/** The published WorkflowRevisionSaveResult schema (generated, consumed
+ *  verbatim): the Core-confirmed save outcome — the NEW immutable
+ *  revision's reference STATED on save and the honest `replayed`. The
+ *  draft's dirty state clears only on this confirmation (never a
+ *  pre-emptive "saved" label). */
+export type WorkflowRevisionSaveResult = components["schemas"]["WorkflowRevisionSaveResult"];
+
+/** `POST /v1/workflows` success (200): the published
+ *  `WorkflowCreateResult` — the aggregate-create outcome. A lost response
+ *  is `unknown` and reconciles by the minted correlation ID through the
+ *  keyed replay (the SAME key + the SAME request identity replays the
+ *  recorded create — never a duplicate create) BEFORE any retry (the
+ *  S0–S4 law). */
+export type WireWorkflowCreateResult = WorkflowCreateResult;
+
+/** `POST /v1/workflows/validate` success (200): the published
+ *  `WorkflowValidationResult` — the Core-authoritative typed validation
+ *  for the exact evaluated object (the `evaluated_object_ref` label).
+ *  Read-like: it mutates NO stored revision and NEVER silently saves the
+ *  draft. */
+export type WireWorkflowValidateResult = WorkflowValidationResult;
+
+/** `POST /v1/workflows/{definition_id}/revisions` success (200): the
+ *  published `WorkflowRevisionSaveResult` — the M-21 outcome (the new
+ *  reference stated; the old revision preserved immutable). A lost
+ *  response reconciles by the authoritative definition/revision-state
+ *  read BEFORE any retry (VRC-LOST-1; the S0–S4 law) — never a blind
+ *  retry, never an update-in-place. The concurrent-revision outcome is
+ *  the typed 409 `WORKFLOW_REVISION_CONFLICT` whose envelope `data`
+ *  carries the stored side's REFERENCE only (`current_revision_ref`; the
+ *  redaction law — the interim conflict rule governs). */
+export type WireWorkflowSaveRevisionResult = WorkflowRevisionSaveResult;
 
 // The plugin surface (B5-U1 reads; B5-U2 mutations; the DE-0 queue rows
 // 9/GR-0 row 2). The typed shapes are the GENERATED canonical contract

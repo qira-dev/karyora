@@ -1,8 +1,10 @@
-/* Workflow detail page (B4-U1). The read-only detail surface: the
-   definition facts, the authoritative state read, and the tabbed
-   Versions/Runs/Validation/Permissions displays. The Builder tab renders
-   disabled (the UI-30 interaction gate) — no builder layout exists here.
-   Layout uses CSS logical properties (P2.4 §4.5). */
+/* Workflow detail page (B4-U1; the Builder/editing surface wired by
+   B4-U2 per the UI-30 resolution, GR-C2). The definition facts, the
+   authoritative state read, and the tabbed Builder/Validation/Versions/
+   Runs/Permissions displays. The builder renders the three-region
+   structure's honest form: the palette region, the structured node/edge
+   lists (the AT-suitable representation — position-free by design), and
+   the inspector. Layout uses CSS logical properties (P2.4 §4.5). */
 
 .backLink {
   margin: 0 0 var(--space-2);
@@ -130,8 +132,8 @@
 }
 
 /* The tablist (§8.8), per the Knowledge detail's recorded tab idiom:
-   Arrow keys move among the enabled tabs; the disabled Builder tab stays
-   out of the roving focus with its reason note beneath the list. */
+   Arrow keys move among the enabled tabs. The Builder tab is LIVE per
+   the UI-30 resolution (GR-C2) at its recorded first position. */
 .tabList {
   display: flex;
   flex-wrap: wrap;
@@ -141,8 +143,7 @@
 }
 
 .tab,
-.tabActive,
-.tabDisabled {
+.tabActive {
   min-height: var(--size-button-secondary);
   padding: 0 var(--space-3);
   border: 1px solid transparent;
@@ -164,20 +165,6 @@
   border-color: var(--color-border);
   color: var(--color-text-primary);
   font-weight: 600;
-}
-
-.tabDisabled {
-  color: var(--color-text-muted);
-  cursor: default;
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-
-.tabNote {
-  margin: var(--space-2) 0 var(--space-3);
-  max-width: 72ch;
-  font-size: var(--text-metadata-size);
-  color: var(--color-text-secondary);
 }
 
 /* The honest absent-state block (B19's pending/absent law; the runs tab's
@@ -289,6 +276,184 @@
   font-family: var(--font-mono);
   font-size: var(--text-metadata-size);
   overflow-wrap: anywhere;
+}
+
+/* ---- The builder surface (B4-U2; the UI-30 resolution, GR-C2). The
+   three-region structure's honest form: the palette region (the honest
+   empty state — the Core publishes no node-type catalogue), the
+   structured node/edge lists (the AT-suitable representation — position
+   is never information), and the inspector. */
+
+.builderRegion {
+  margin-block: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.builderColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  margin-block: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .builderColumns {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+/* The structured rows: natural tab stops with the pressed state exposed
+   programmatically (aria-pressed) and textually (the visually-hidden
+   label) — selection is never color-only (§7.3). */
+.rowList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.rowButton {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--size-button-secondary);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-metadata-size);
+  text-align: start;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.rowButton:hover {
+  background: var(--color-surface-3);
+}
+
+.rowButton[aria-pressed="true"] {
+  border-color: var(--color-focus);
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.rowFindings {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.commandList {
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-5);
+  max-width: 72ch;
+}
+
+.commandList li {
+  margin-block-end: var(--space-1);
+}
+
+.inspectorSubHeading {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 1rem;
+}
+
+.configBlock {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.linkButton {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-link);
+  font: inherit;
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.linkButton:hover {
+  background: var(--color-surface-3);
+}
+
+/* The conflict banner (the interim rule: the conflict persists until the
+   user resolves it — labeled text, never color alone; the resolution
+   dialog opens from here). */
+.conflictBanner {
+  margin-block: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-warning);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+/* The create dialog's name field (mirrors the B5-U2 dialog idiom). */
+.field {
+  margin-block-end: var(--space-3);
+}
+
+.field label {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-weight: 600;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--size-button-secondary);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.fieldNote {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.outcomeBlock {
+  margin-block: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+
+/* Narrow widths: the builder columns stack (the 320 px reflow law — no
+   two-dimensional scrolling). */
+@media (max-width: 719px) {
+  .builderColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Narrow widths: the tables collapse to stacked rows — no horizontal

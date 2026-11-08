@@ -150,6 +150,36 @@ export function fieldOrUnavailable(value: string | undefined, unavailableLabel: 
   return value === undefined || value === "" ? unavailableLabel : value;
 }
 
+/** The caller-minted aggregate-create key (B4-U2; the UI-30 resolution's
+ *  wired create member — the GR-0 queue row 4). The Core mints the
+ *  definition identity (the body never carries one); the caller mints its
+ *  own mutation identity: a fresh random key per NEW create attempt, the
+ *  SAME key + correlation re-issued on a lost outcome's reconcile (the
+ *  keyed replay returns the recorded create — never a duplicate create;
+ *  the replay window is 72 h post-terminal, the published selection). */
+export function mintWorkflowCreateKey(): string {
+  return `workflow-create-${crypto.randomUUID()}`;
+}
+
+/** The caller-minted M-21 save key (B4-U2; the save-revision member — the
+ *  1 h replay window; the key scope is workspace + definition ID
+ *  Core-side). A fresh random key per NEW save attempt; the SAME pair
+ *  re-issued on a lost outcome's reconcile (VRC-LOST-1) — the replay
+ *  precedes the concurrent-revision check, so the keyed retry never
+ *  produces a second revision. */
+export function mintWorkflowSaveKey(): string {
+  return `workflow-save-${crypto.randomUUID()}`;
+}
+
+/** The caller-minted correlation ID (the request identity — the create
+ *  class's fingerprint and the save class's fingerprint's first half; the
+ *  unknown-outcome reconcile anchor — the S0–S4 law). One per write
+ *  attempt; the validate member rides a correlation ID too (the
+ *  none-required read class — no key is minted for it). */
+export function mintWorkflowCorrelationId(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
 /** The copy control for the Core-minted identifiers (§8.7's copyable
  *  long IDs): the Jobs surface's CopyIdButton re-exported under one
  *  workflow-side import path. The copied value is the identifier itself —

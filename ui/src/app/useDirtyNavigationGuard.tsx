@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useBlocker } from "react-router-dom";
 
 import { Dialog, useDialogLabelId } from "../components/Dialog";
+import type { TranslationKey } from "../i18n/keys";
 import { useT } from "../i18n/useT";
 import styles from "./DirtyGuard.module.css";
 
@@ -34,6 +35,25 @@ export interface DirtyNavigationGuardOptions {
   onSave: () => void;
   /** Discard the unsaved entries (J-8's Discard action). */
   onDiscard: () => void;
+  /** Whether the Save option is currently offered. When the callback is
+   *  provided and returns false, the Save action is NOT rendered — the
+   *  guard offers only Keep editing / Discard (the X-4 law: a control's
+   *  unmet precondition is stated by its absence here, since the guard's
+   *  Save would otherwise imply a validity the flow has not confirmed).
+   *  Omitted by existing callers: the Save option renders as before. */
+  saveAvailable?: () => boolean;
+  /** Optional label overrides for a consuming surface whose copy must
+   *  state its own truth (the J-8 law keeps ONE guard implementation; the
+   *  copy stays the surface's own). Omitted by existing callers: the
+   *  wizard's recorded copy renders as before. */
+  labels?: {
+    readonly title: TranslationKey;
+    readonly body: TranslationKey;
+    readonly keepEditing: TranslationKey;
+    readonly discard: TranslationKey;
+    readonly save: TranslationKey;
+    readonly saveNote?: TranslationKey;
+  };
 }
 
 export interface DirtyNavigationGuard {
@@ -54,6 +74,10 @@ export function useDirtyNavigationGuard(options: DirtyNavigationGuardOptions): D
   discardRef.current = options.onDiscard;
   const saveRef = useRef(options.onSave);
   saveRef.current = options.onSave;
+  const saveAvailableRef = useRef(options.saveAvailable);
+  saveAvailableRef.current = options.saveAvailable;
+  const labelsRef = useRef(options.labels);
+  labelsRef.current = options.labels;
 
   // The leave action the guard will complete on Discard: either the
   // router's proceed (route navigation) or the page's own exit action.
@@ -118,20 +142,31 @@ export function useDirtyNavigationGuard(options: DirtyNavigationGuardOptions): D
   );
 
   const guardDialog = guardOpen ? (
-    <Dialog labelId={labelId} title={t("wizard.leaveGuard.title")} open onClose={keepEditing}>
+    <Dialog
+      labelId={labelId}
+      title={t(labelsRef.current?.title ?? "wizard.leaveGuard.title")}
+      open
+      onClose={keepEditing}
+    >
       <div className={styles.body}>
-        <p>{t("wizard.leaveGuard.body")}</p>
-        <p>{t("wizard.leaveGuard.saveNote")}</p>
+        <p>{t(labelsRef.current?.body ?? "wizard.leaveGuard.body")}</p>
+        {saveAvailableRef.current !== undefined && !saveAvailableRef.current() ? null : labelsRef.current?.saveNote !== undefined ? (
+          <p>{t(labelsRef.current.saveNote)}</p>
+        ) : (
+          <p>{t("wizard.leaveGuard.saveNote")}</p>
+        )}
         <div className={styles.actions}>
           <button type="button" className={styles.primary} onClick={keepEditing}>
-            {t("wizard.leaveGuard.keepEditing")}
+            {t(labelsRef.current?.keepEditing ?? "wizard.leaveGuard.keepEditing")}
           </button>
           <button type="button" className={styles.secondary} onClick={discardAndContinue}>
-            {t("wizard.leaveGuard.discard")}
+            {t(labelsRef.current?.discard ?? "wizard.leaveGuard.discard")}
           </button>
-          <button type="button" className={styles.secondary} onClick={saveAndStay}>
-            {t("wizard.leaveGuard.save")}
-          </button>
+          {saveAvailableRef.current !== undefined && !saveAvailableRef.current() ? null : (
+            <button type="button" className={styles.secondary} onClick={saveAndStay}>
+              {t(labelsRef.current?.save ?? "wizard.leaveGuard.save")}
+            </button>
+          )}
         </div>
       </div>
     </Dialog>
