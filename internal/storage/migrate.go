@@ -492,16 +492,80 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_operations_intent
     ON knowledge_operations (create_intent, source_digest, state);
 `,
 	},
+	{
+		Version: 14,
+		Name:    "0014-memory-item-family",
+		SQL: `
+CREATE TABLE IF NOT EXISTS memory_items (
+    memory_item_id    TEXT PRIMARY KEY,
+    scope             TEXT NOT NULL,
+    origin            TEXT NOT NULL,
+    lifecycle_state   TEXT NOT NULL,
+    content           TEXT NOT NULL,
+    pinned            INTEGER NOT NULL DEFAULT 0,
+    creation_method   TEXT NOT NULL DEFAULT '',
+    confidence        TEXT NOT NULL DEFAULT '',
+    originating_refs  TEXT NOT NULL DEFAULT '[]',
+    retention_ttl_ref TEXT NOT NULL DEFAULT '',
+    conflict_note     TEXT NOT NULL DEFAULT '',
+    untrusted_label   TEXT NOT NULL DEFAULT '',
+    created_at        TEXT NOT NULL,
+    last_used_at      TEXT NOT NULL DEFAULT '',
+    last_confirmed_at TEXT NOT NULL DEFAULT '',
+    updated_at        TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_items_created
+    ON memory_items (created_at, memory_item_id);
+
+CREATE INDEX IF NOT EXISTS idx_memory_items_scope
+    ON memory_items (scope, lifecycle_state, created_at);
+
+CREATE TABLE IF NOT EXISTS memory_operations (
+    operation_id    TEXT PRIMARY KEY,
+    kind            TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL DEFAULT '',
+    memory_item_id  TEXT NOT NULL DEFAULT '',
+    outcome_state   TEXT NOT NULL DEFAULT '',
+    export_ref      TEXT NOT NULL DEFAULT '',
+    failure_code    TEXT NOT NULL DEFAULT '',
+    failure_reason  TEXT NOT NULL DEFAULT '',
+    idempotency_key TEXT NOT NULL DEFAULT '',
+    fingerprint     TEXT NOT NULL DEFAULT '',
+    terminal_at     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_operations_key_unique
+    ON memory_operations (idempotency_key) WHERE idempotency_key != '';
+
+CREATE INDEX IF NOT EXISTS idx_memory_operations_item
+    ON memory_operations (memory_item_id, created_at);
+
+CREATE TABLE IF NOT EXISTS memory_inclusions (
+    request_ref    TEXT NOT NULL,
+    memory_item_id TEXT NOT NULL,
+    included       INTEGER NOT NULL,
+    correlation_id TEXT NOT NULL,
+    operation_id   TEXT NOT NULL,
+    updated_at     TEXT NOT NULL,
+    PRIMARY KEY (request_ref, memory_item_id)
+);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
 // versions [N_min, N]. Phase 3 adds the knowledge-pack store; the window is
 // recorded per release and published floors remain a Phase 5/D-30 concern.
-// Migration 0013 adds the B1 KnowledgePack family's tables; existing
-// migrations are never modified (checksums authoritative).
+// Migration 0013 adds the B1 KnowledgePack family's tables; migration 0014
+// adds the B2 Memory family's tables; existing migrations are never
+// modified (checksums authoritative).
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 13
+	schemaVersionMax = 14
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

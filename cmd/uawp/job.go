@@ -299,7 +299,12 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		// store implements the knowledge port (the knowledge tables over
 		// migration 0013, the M-9 ruling transactionally under the same
 		// single-writer gate).
-		Knowledge:           store,
+		Knowledge: store,
+		// The B2 Memory family surface (DE-0 queue row 3): the SAME store
+		// implements the memory port (the memory tables over migration
+		// 0014, the M-17/M-16/M-18 rulings transactionally under the same
+		// single-writer gate).
+		Memory:              store,
 		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
 		// The C-4 session-command surface (IMPL-23): the SAME session
 		// service the Guard's policy and the local transport already hold

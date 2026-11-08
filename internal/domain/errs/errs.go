@@ -41,6 +41,34 @@ const (
 	CodeInternal               Code = "INTERNAL"
 )
 
+// The Memory family's domain codes join the coded register ADDITIVELY at
+// their implementation (the same recorded register-extension class as
+// CONFLICT_IDEMPOTENCY_KEY above) — the published MemoryErrorCode register
+// carried verbatim (the B2 family; the CF-2 publication act): each riding
+// the published ErrorEnvelope with its retryable value and the coded
+// retryClass.
+const (
+	// CodeMemoryScopeViolation — a read/write crossing the forbidden
+	// cross-scope default (MB §7.5); retry class never.
+	CodeMemoryScopeViolation Code = "MEMORY_SCOPE_VIOLATION"
+	// CodeMemorySecretsRejected — a write attempting secret storage; the
+	// BINDING secrets law (MB §12.2 law 3); retry class never.
+	CodeMemorySecretsRejected Code = "MEMORY_SECRETS_REJECTED"
+	// CodeMemoryItemNotFound — the unknown or out-of-scope item, the SAME
+	// typed 404 (the no-leak rule); retry class never.
+	CodeMemoryItemNotFound Code = "MEMORY_ITEM_NOT_FOUND"
+	// CodeMemoryReviewStateConflict — approve/reject against an item not
+	// in the required review state; retry class never.
+	CodeMemoryReviewStateConflict Code = "MEMORY_REVIEW_STATE_CONFLICT"
+	// CodeMemoryConflict — the correction/conflict path's concurrent-edit
+	// outcome; reconcile by re-reading the item's authoritative state,
+	// never overwrite.
+	CodeMemoryConflict Code = "MEMORY_CONFLICT"
+	// CodeMemoryNotEditable — the eligibility law's refusal; the Core owns
+	// eligibility; retry class never.
+	CodeMemoryNotEditable Code = "MEMORY_NOT_EDITABLE"
+)
+
 // RetryClass is the operation-level retry classification. On the wire it
 // travels inside Data under the reserved "retryClass" key so the accepted
 // envelope field set stays exactly the owner-approved four fields (D-35).
@@ -60,19 +88,25 @@ type codeDefault struct {
 
 // register is the single source of Phase 2 code semantics.
 var register = map[Code]codeDefault{
-	CodeValidationFailed:       {retryable: false, class: RetryNever},
-	CodeConfigConflict:         {retryable: false, class: RetryNever},
-	CodeAuthzDenied:            {retryable: false, class: RetryNever},
-	CodeNotFound:               {retryable: false, class: RetryNever},
-	CodeConflictState:          {retryable: false, class: RetryNever},
-	CodeConflictIdempotencyKey: {retryable: false, class: RetryNever},
-	CodeSingleInstanceConflict: {retryable: true, class: RetryBackoff},
-	CodeStorageUnavailable:     {retryable: true, class: RetryBackoff},
-	CodeMigrationFailed:        {retryable: true, class: RetryReconcile},
-	CodeStateCorrupt:           {retryable: true, class: RetryReconcile},
-	CodeRecoveryRequired:       {retryable: true, class: RetryReconcile},
-	CodeRateLimited:            {retryable: true, class: RetryBackoff},
-	CodeInternal:               {retryable: true, class: RetrySafe},
+	CodeValidationFailed:          {retryable: false, class: RetryNever},
+	CodeConfigConflict:            {retryable: false, class: RetryNever},
+	CodeAuthzDenied:               {retryable: false, class: RetryNever},
+	CodeNotFound:                  {retryable: false, class: RetryNever},
+	CodeConflictState:             {retryable: false, class: RetryNever},
+	CodeConflictIdempotencyKey:    {retryable: false, class: RetryNever},
+	CodeSingleInstanceConflict:    {retryable: true, class: RetryBackoff},
+	CodeStorageUnavailable:        {retryable: true, class: RetryBackoff},
+	CodeMigrationFailed:           {retryable: true, class: RetryReconcile},
+	CodeStateCorrupt:              {retryable: true, class: RetryReconcile},
+	CodeRecoveryRequired:          {retryable: true, class: RetryReconcile},
+	CodeRateLimited:               {retryable: true, class: RetryBackoff},
+	CodeInternal:                  {retryable: true, class: RetrySafe},
+	CodeMemoryScopeViolation:      {retryable: false, class: RetryNever},
+	CodeMemorySecretsRejected:     {retryable: false, class: RetryNever},
+	CodeMemoryItemNotFound:        {retryable: false, class: RetryNever},
+	CodeMemoryReviewStateConflict: {retryable: false, class: RetryNever},
+	CodeMemoryConflict:            {retryable: false, class: RetryReconcile},
+	CodeMemoryNotEditable:         {retryable: false, class: RetryNever},
 }
 
 // RetryClassOf reports the registered default classification for a code and

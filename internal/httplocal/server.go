@@ -1,6 +1,7 @@
 package httplocal
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -18,6 +19,7 @@ import (
 	"github.com/qira-dev/karyora/internal/domain/conversation"
 	"github.com/qira-dev/karyora/internal/domain/errs"
 	"github.com/qira-dev/karyora/internal/domain/knowledge"
+	"github.com/qira-dev/karyora/internal/domain/memory"
 	"github.com/qira-dev/karyora/internal/domain/notification"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	"github.com/qira-dev/karyora/internal/events"
@@ -317,6 +319,33 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/knowledgepacks/", hasID: true, suffix: "/versions", handler: (*Server).handleKnowledgeVersionList},
 		{method: http.MethodGet, prefix: "/v1/knowledgepacks", handler: (*Server).handleKnowledgePackList},
 		{method: http.MethodGet, prefix: "/v1/knowledgepacks/", hasID: true, handler: (*Server).handleKnowledgePackGet},
+		// The B2 Memory family (DE-0 queue row 3): the published /memories
+		// route family as this adapter serves it (the /v1 adapter-prefix
+		// convention; the canonical members live verbatim in
+		// contracts/openapi.yaml — never restated). Every operation rides
+		// the slice's one decision port (the ResourceMemory register
+		// extension; Local mode stays role-free); the mutation answers are
+		// 200-class Core confirmations (the F11 law: only a confirmed 200
+		// carries the outcome truth); the state endpoint is the family's
+		// authoritative source of truth; the list/inspect reads are the
+		// M-1 correlation class. THE SECRETS LAW (BINDING): a write
+		// attempting secret storage is refused (MEMORY_SECRETS_REJECTED);
+		// the law extends to exports, logs, URLs, and error messages.
+		// Literal routes register before the generic {id} reads so match()
+		// resolves them first (GET /v1/memories/export resolves the generic
+		// item read — an item named "export"; the same typed 404).
+		{method: http.MethodPost, prefix: "/v1/memories/export", mutates: true, handler: (*Server).handleMemoryExport},
+		{method: http.MethodGet, prefix: "/v1/memories/operations/", hasID: true, handler: (*Server).handleMemoryOperationStatus},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, suffix: "/delete", mutates: true, handler: (*Server).handleMemoryDelete},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, suffix: "/forget", mutates: true, handler: (*Server).handleMemoryForget},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, suffix: "/approve", mutates: true, handler: (*Server).handleMemoryApprove},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, suffix: "/reject", mutates: true, handler: (*Server).handleMemoryReject},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, suffix: "/pin", mutates: true, handler: (*Server).handleMemoryPin},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, suffix: "/inclusion", mutates: true, handler: (*Server).handleMemoryInclusion},
+		{method: http.MethodGet, prefix: "/v1/memories", handler: (*Server).handleMemoryList},
+		{method: http.MethodPost, prefix: "/v1/memories", mutates: true, handler: (*Server).handleMemoryAdd},
+		{method: http.MethodGet, prefix: "/v1/memories/", hasID: true, handler: (*Server).handleMemoryItemGet},
+		{method: http.MethodPost, prefix: "/v1/memories/", hasID: true, mutates: true, handler: (*Server).handleMemoryEdit},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -1703,6 +1732,293 @@ func (s *Server) handleKnowledgeVersionGet(w http.ResponseWriter, r *http.Reques
 	s.writeJSON(w, http.StatusOK, knowledgeVersionResult{Version: version})
 }
 
+// The B2 Memory family handlers (DE-0 queue row 3): the published /memories
+// operations over the slice's memory surface. Every handler runs the use
+// case through the one decision port inside the slice — an unauthenticated
+// request reaches the typed AUTHZ_DENIED/SESSION_INVALID envelope, never
+// the data. The mutation answers are 200-class Core confirmations (the F11
+// law); the reads answer 200; the error register rides the published
+// envelope exactly (writeError).
+
+// handleMemoryList exposes the scope- and review-filtered list read (the
+// keyset list semantics; the cursor's absence marks the final page; the
+// M-1 correlation class).
+func (s *Server) handleMemoryList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.MemoryItems(s.callCtx(r, token), app.MemoryListRequest{
+		Limit: limit, Cursor: cursor, Scope: q.Get("scope"), State: q.Get("state"),
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryItemListResult{Items: res.Items, Cursor: res.Cursor})
+}
+
+// handleMemoryAdd exposes the M-17 creation-class add: the Core mints the
+// memory_item_id — the body never carries one.
+func (s *Server) handleMemoryAdd(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req memoryAddRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.AddMemoryItem(s.callCtx(r, token), app.MemoryAddRequest{
+		IdempotencyKey:  req.IdempotencyKey,
+		CorrelationID:   req.CorrelationID,
+		Scope:           req.Scope,
+		Origin:          req.Origin,
+		Content:         req.Content,
+		OriginatingRefs: req.OriginatingRefs,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
+}
+
+// handleMemoryItemGet exposes the inspect read (a pure query — never a
+// mutation; the item-state half of the unknown-outcome lookup).
+func (s *Server) handleMemoryItemGet(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	item, err := s.deps.Slice.MemoryItem(s.callCtx(r, token), itemID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryItemResult{MemoryItem: item})
+}
+
+// handleMemoryEdit exposes the M-16 revision-class edit/correct member
+// (provenance-preserving; the eligibility and state-reference laws are the
+// Core's).
+func (s *Server) handleMemoryEdit(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryEditRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.EditMemoryItem(s.callCtx(r, token), itemID, app.MemoryEditRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+		ItemStateRef:   req.ItemStateRef,
+		Content:        req.Content,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
+}
+
+// handleMemoryApprove exposes the explicit review approval (the J-5 rule:
+// the request is never displayed as the confirmation — the Core-confirmed
+// item state is the truth).
+func (s *Server) handleMemoryApprove(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryReviewRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.ApproveMemoryItem(s.callCtx(r, token), itemID, app.MemoryReviewRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
+}
+
+// handleMemoryReject exposes the explicit review rejection.
+func (s *Server) handleMemoryReject(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryReviewRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.RejectMemoryItem(s.callCtx(r, token), itemID, app.MemoryReviewRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
+}
+
+// handleMemoryPin exposes the pin/unpin member (one member operation
+// covering both directions via the body's pinned).
+func (s *Server) handleMemoryPin(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryPinRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SetMemoryItemPin(s.callCtx(r, token), itemID, app.MemoryPinRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+		Pinned:         req.Pinned,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
+}
+
+// handleMemoryDelete exposes the destructive delete member. THE RECORDED
+// CARRIER GAP: the published operation declares no requestBody while its
+// description names the M-16 keying members — the keying members ride an
+// OPTIONAL body here (empty body → the unkeyed record). Only a confirmed
+// 200 carries the deletion truth (the F11 law).
+func (s *Server) handleMemoryDelete(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryDestructiveRequest
+	if err := decodeOptionalJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.DeleteMemoryItem(s.callCtx(r, token), itemID, app.MemoryReviewCommand{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryDeleteResult{
+		MemoryItemID:  res.MemoryItemID,
+		OutcomeState:  res.OutcomeState,
+		RetentionNote: res.RetentionNote,
+		OperationID:   res.OperationID,
+	})
+}
+
+// handleMemoryForget exposes the forget member (the OPEN-distinctness
+// member; the M-16 destructive discipline governs regardless).
+func (s *Server) handleMemoryForget(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryDestructiveRequest
+	if err := decodeOptionalJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.ForgetMemoryItem(s.callCtx(r, token), itemID, app.MemoryReviewCommand{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
+}
+
+// handleMemoryInclusion exposes the M-18 request-scoped inclusion decision
+// (no item-state change, no global effect).
+func (s *Server) handleMemoryInclusion(w http.ResponseWriter, r *http.Request, token, itemID string) {
+	var req memoryInclusionRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SetMemoryItemInclusion(s.callCtx(r, token), itemID, app.MemoryInclusionRequest{
+		CorrelationID: req.CorrelationID,
+		RequestRef:    req.RequestRef,
+		Included:      req.Included,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryInclusionResult{
+		MemoryItemID: res.MemoryItemID,
+		RequestRef:   res.RequestRef,
+		Included:     res.Included,
+		OperationID:  res.OperationID,
+	})
+}
+
+// handleMemoryExport exposes the M-32 read-with-export member (mutates
+// nothing; honest truncation; SECRETS EXCLUDED BY DEFAULT).
+func (s *Server) handleMemoryExport(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req memoryExportRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.ExportMemoryItems(s.callCtx(r, token), app.MemoryExportRequest{
+		CorrelationID: req.CorrelationID,
+		Scope:         req.Scope,
+		ItemIDs:       req.ItemIDs,
+		Destination:   req.Destination,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryExportResult{
+		ExportOperationID: res.ExportOperationID,
+		Count:             res.Count,
+		GeneratedAt:       res.GeneratedAt,
+		Truncated:         res.Truncated,
+		Items:             res.Items,
+	})
+}
+
+// handleMemoryOperationStatus exposes the family's authoritative state
+// endpoint (a pure query — never a retry; the operation-ID half of the
+// unknown-outcome lookup).
+func (s *Server) handleMemoryOperationStatus(w http.ResponseWriter, r *http.Request, token, opID string) {
+	op, err := s.deps.Slice.MemoryOperationStatus(s.callCtx(r, token), opID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, memoryOperationResult{Operation: op})
+}
+
+// decodeOptionalJSON decodes a request body that the published operation
+// declares no schema for (the recorded delete/forget carrier gap): an
+// empty body decodes to the zero value; a present body must be one JSON
+// object.
+func decodeOptionalJSON(r *http.Request, v any) error {
+	defer func() { _, _ = io.Copy(io.Discard, r.Body) }()
+	if r.Body == nil {
+		return nil
+	}
+	b, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+	if len(bytes.TrimSpace(b)) == 0 {
+		return nil
+	}
+	return json.Unmarshal(b, v)
+}
+
 func (s *Server) handleReplay(w http.ResponseWriter, r *http.Request, token, _ string) {
 	q := r.URL.Query()
 	stream := q.Get("stream")
@@ -1859,6 +2175,21 @@ func statusFor(code errs.Code) int {
 		return http.StatusTooManyRequests
 	case errs.CodeStorageUnavailable, errs.CodeRecoveryRequired, errs.CodeStateCorrupt, errs.CodeMigrationFailed:
 		return http.StatusServiceUnavailable
+	// The Memory family's domain codes (the additive register extension):
+	// the scope violation rides 403 (the read/write crossing the forbidden
+	// cross-scope default — an authorization-class boundary); the secrets
+	// refusal rides 400 (the body's content is unacceptable); the typed
+	// item 404 rides 404 (the no-leak rule); the review-state, conflict,
+	// and eligibility refusals ride 409 (state/eligibility conflicts with
+	// the request).
+	case errs.CodeMemoryScopeViolation:
+		return http.StatusForbidden
+	case errs.CodeMemorySecretsRejected:
+		return http.StatusBadRequest
+	case errs.CodeMemoryItemNotFound:
+		return http.StatusNotFound
+	case errs.CodeMemoryReviewStateConflict, errs.CodeMemoryConflict, errs.CodeMemoryNotEditable:
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}
@@ -2404,6 +2735,106 @@ type knowledgeVersionListResult struct {
 
 type knowledgeRegistryResult struct {
 	Sources []knowledge.ImportSourceSpec `json:"sources"`
+}
+
+// The B2 Memory family's wire shapes (DE-0 queue row 3): the JSON tags are
+// the canonical contract's member names verbatim (the MemoryAddRequest/
+// MemoryEditRequest/MemoryReviewRequest/MemoryPinRequest/
+// MemoryInclusionRequest/MemoryExportRequest bodies; the MemoryMutation/
+// Delete/Inclusion/ExportResult responses and their {memory_item}/
+// {operation}/{items} wrappers); the record members ride the domain
+// structs' contract tags (internal/domain/memory). No member outside the
+// published schemas exists anywhere in these shapes — the one exception is
+// the item's `pinned` flag, this Core's served definition of the recorded
+// pin-register gap (the published MemoryItem schema carries no
+// additionalProperties:false; the pin/unpin member's description requires
+// the confirmed pin state to ride the response's item).
+type memoryAddRequest struct {
+	IdempotencyKey  string   `json:"idempotency_key"`
+	CorrelationID   string   `json:"correlation_id"`
+	Scope           string   `json:"scope"`
+	Origin          string   `json:"origin"`
+	Content         string   `json:"content"`
+	OriginatingRefs []string `json:"originating_refs,omitempty"`
+}
+
+type memoryEditRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+	ItemStateRef   string `json:"item_state_ref"`
+	Content        string `json:"content"`
+}
+
+type memoryReviewRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+}
+
+// memoryDestructiveRequest is the delete/forget members' OPTIONAL keying
+// body (the recorded carrier gap — the published operations declare no
+// requestBody; an empty body is the unkeyed record).
+type memoryDestructiveRequest struct {
+	IdempotencyKey string `json:"idempotency_key,omitempty"`
+	CorrelationID  string `json:"correlation_id,omitempty"`
+}
+
+type memoryPinRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+	Pinned         bool   `json:"pinned"`
+}
+
+type memoryInclusionRequest struct {
+	CorrelationID string `json:"correlation_id"`
+	RequestRef    string `json:"request_ref"`
+	Included      bool   `json:"included"`
+}
+
+type memoryExportRequest struct {
+	CorrelationID string   `json:"correlation_id"`
+	Scope         string   `json:"scope"`
+	ItemIDs       []string `json:"item_ids,omitempty"`
+	Destination   string   `json:"destination,omitempty"`
+}
+
+type memoryMutationResult struct {
+	MemoryItem  memory.Item `json:"memory_item"`
+	OperationID string      `json:"operation_id"`
+}
+
+type memoryDeleteResult struct {
+	MemoryItemID  string `json:"memory_item_id"`
+	OutcomeState  string `json:"outcome_state"`
+	RetentionNote string `json:"retention_note,omitempty"`
+	OperationID   string `json:"operation_id"`
+}
+
+type memoryInclusionResult struct {
+	MemoryItemID string `json:"memory_item_id"`
+	RequestRef   string `json:"request_ref"`
+	Included     bool   `json:"included"`
+	OperationID  string `json:"operation_id"`
+}
+
+type memoryExportResult struct {
+	ExportOperationID string        `json:"export_operation_id"`
+	Count             int           `json:"count"`
+	GeneratedAt       string        `json:"generated_at"`
+	Truncated         bool          `json:"truncated"`
+	Items             []memory.Item `json:"items"`
+}
+
+type memoryItemResult struct {
+	MemoryItem memory.Item `json:"memory_item"`
+}
+
+type memoryOperationResult struct {
+	Operation memory.Operation `json:"operation"`
+}
+
+type memoryItemListResult struct {
+	Items  []memory.Item `json:"items"`
+	Cursor string        `json:"cursor,omitempty"`
 }
 
 // compile-time interface check.

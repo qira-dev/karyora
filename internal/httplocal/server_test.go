@@ -229,6 +229,10 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		// test-side twin of the composition root's wiring — the same store
 		// implements the knowledge port.
 		Knowledge: st,
+		// The B2 Memory family surface (DE-0 queue row 3): the test-side
+		// twin of the composition root's wiring — the same store implements
+		// the memory port.
+		Memory: st,
 		// The C-4 session-command surface (IMPL-23): the real composition
 		// wires the same session service the Guard and this transport hold.
 		Sessions: sessions,

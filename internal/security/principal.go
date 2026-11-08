@@ -99,6 +99,17 @@ const (
 	// The single decision port (MB §12.3) decides every protected effect;
 	// no permission policy is invented and Local mode stays role-free.
 	ResourceKnowledge = "knowledge"
+	// ResourceMemory is the B2 Memory family's surface (the published
+	// /memories route family — items, their review/lifecycle mutations,
+	// the per-request inclusion decisions, the exports, and the
+	// authoritative operation records; DE-0 queue row 3). It joins this
+	// register ADDITIVELY — the same deliberate, recorded
+	// register-extension class: the fail-closed default-deny machinery,
+	// its predicates, and every existing row are unchanged; unknown types
+	// deny exactly as before. The single decision port (MB §12.3) decides
+	// every protected effect; no permission policy is invented and Local
+	// mode stays role-free.
+	ResourceMemory = "memory"
 )
 
 var localResourceTypes = map[string]bool{
@@ -114,6 +125,7 @@ var localResourceTypes = map[string]bool{
 	ResourceConversation: true,
 	ResourceNotification: true,
 	ResourceKnowledge:    true,
+	ResourceMemory:       true,
 }
 
 func (r Resource) validate() error {

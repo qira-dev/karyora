@@ -29,6 +29,17 @@ func TestRegisterMatchesSpecification(t *testing.T) {
 		CodeRecoveryRequired:       {retryable: true, class: RetryReconcile},
 		CodeRateLimited:            {retryable: true, class: RetryBackoff},
 		CodeInternal:               {retryable: true, class: RetrySafe},
+		// The Memory family's domain codes (the published MemoryErrorCode
+		// register; the CF-2 publication act) join additively at their
+		// implementation per the same recorded register-extension class as
+		// CONFLICT_IDEMPOTENCY_KEY above — each with its published
+		// retryable value and coded retryClass.
+		CodeMemoryScopeViolation:      {retryable: false, class: RetryNever},
+		CodeMemorySecretsRejected:     {retryable: false, class: RetryNever},
+		CodeMemoryItemNotFound:        {retryable: false, class: RetryNever},
+		CodeMemoryReviewStateConflict: {retryable: false, class: RetryNever},
+		CodeMemoryConflict:            {retryable: false, class: RetryReconcile},
+		CodeMemoryNotEditable:         {retryable: false, class: RetryNever},
 	}
 	if len(register) != len(want) {
 		t.Fatalf("register holds %d codes, specification lists %d", len(register), len(want))
