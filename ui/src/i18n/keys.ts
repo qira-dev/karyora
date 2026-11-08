@@ -10,6 +10,7 @@ import type chat from "./locales/en/chat.json";
 import type notifications from "./locales/en/notifications.json";
 import type activity from "./locales/en/activity.json";
 import type knowledge from "./locales/en/knowledge.json";
+import type memory from "./locales/en/memory.json";
 
 /**
  * The typed translation-key union (G-10's second, type-level parity
@@ -53,7 +54,7 @@ export type SourceTree = Merge<
   >,
   Merge<
     Merge<Merge<Merge<typeof jobs, typeof run>, typeof chat>, typeof notifications>,
-    Merge<typeof activity, typeof knowledge>
+    Merge<Merge<typeof activity, typeof knowledge>, typeof memory>
   >
 >;
 

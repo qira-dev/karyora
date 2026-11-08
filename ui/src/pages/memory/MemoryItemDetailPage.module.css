@@ -1,0 +1,233 @@
+/* Memory item detail page (B2-U1). Layout uses CSS logical properties
+   (P2.4 §4.5); the layout reflows to a single column at narrow widths. */
+
+.description {
+  margin: 0 0 var(--space-4);
+  max-width: 72ch;
+  color: var(--color-text-secondary);
+}
+
+.confirmed {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  color: var(--color-text-secondary);
+}
+
+.section {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.sectionHeading {
+  margin: 0 0 var(--space-2);
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: minmax(14ch, max-content) 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.facts dt {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contentBlock {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.refList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.refList li {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.primaryControl {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryControl:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.primaryControl:disabled {
+  cursor: default;
+  color: var(--color-primary-text);
+  opacity: 0.7;
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.control:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.dangerControl {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-danger);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.dangerControl:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.dangerControl:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+  border-color: var(--color-control-border);
+}
+
+/* The review actions' honest disabled-state reason (R2): visible text
+   beneath the disabled controls — never a dead stub, never a tooltip. */
+.actionReason {
+  margin: 0;
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+/* The state chip: icon + text; the tone classes supplement with color
+   only — the text label always carries the state (§7.2/§8.6). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  min-height: var(--size-button-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--text-metadata-size);
+}
+
+.chip.neutral {
+  color: var(--color-text-primary);
+}
+
+.chip.info {
+  color: var(--color-info);
+}
+
+.chip.success {
+  color: var(--color-success);
+}
+
+.chip.warning {
+  color: var(--color-warning);
+}
+
+.chip.danger {
+  color: var(--color-danger);
+}
+
+.copyId button {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.copyId span[role="status"] {
+  display: block;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.unavailable {
+  color: var(--color-text-secondary);
+}
+
+.code {
+  margin: var(--space-2) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .facts dd {
+    margin-block-end: var(--space-2);
+  }
+}

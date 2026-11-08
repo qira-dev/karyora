@@ -21,6 +21,8 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
 import { KnowledgeLibraryPage } from "../pages/knowledge/KnowledgeLibraryPage";
 import { KnowledgePackDetailPage } from "../pages/knowledge/KnowledgePackDetailPage";
 import { KnowledgeVersionPage } from "../pages/knowledge/KnowledgeVersionPage";
+import { MemoryLibraryPage } from "../pages/memory/MemoryLibraryPage";
+import { MemoryItemDetailPage } from "../pages/memory/MemoryItemDetailPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
@@ -77,9 +79,19 @@ import { KnowledgeVersionPage } from "../pages/knowledge/KnowledgeVersionPage";
  * `/knowledge/packs/:packId/versions/:versionId` (the canonical
  * immutable-version deep link). The surfaces consume the now-live B1
  * `/knowledgepacks` adapter family only (B1-A1 §2.1) and render nothing
- * the adapter does not serve (B1-A1 §2.6's honesty list). The remaining
- * UIR-6/7 feature routes (Memory, Context, Workflows, Plugins) are still
- * NOT surfaces — no route, no stub, and no placeholder screen exists for
+ * the adapter does not serve (B1-A1 §2.6's honesty list).
+ *
+ * B2-U1 (the DE-0 queue row 4) adds the Memory surface's routes exactly
+ * as the records name them (P1.1 #10/#11; P4.1 §3.4/§3.5): `/memory`
+ * (the list, M1–M6) and `/memory/:memoryItemId` (the ONE canonical item
+ * detail route — every item link opens it, X-2/R-3; R1–R8). The surfaces
+ * consume the now-live B2 `/memories` adapter family only (B2-A1 §2.1)
+ * and render nothing the adapter does not serve (B2-A1 §2.6's honesty
+ * list — the review actions render their honest disabled state; no
+ * pending-review producer, no event feed, no TTL sweep, no download
+ * surface, and no invented badge exists anywhere). The remaining
+ * UIR-6/7 feature routes (Context, Workflows, Plugins) are still NOT
+ * surfaces — no route, no stub, and no placeholder screen exists for
  * them (the no-dead-stub rule).
  *
  * The route ELEMENTS are exported so the app can build a data router
@@ -97,6 +109,8 @@ export const appRouteElements: ReactElement = (
     <Route path="knowledge" element={<KnowledgeLibraryPage />} />
     <Route path="knowledge/packs/:packId" element={<KnowledgePackDetailPage />} />
     <Route path="knowledge/packs/:packId/versions/:versionId" element={<KnowledgeVersionPage />} />
+    <Route path="memory" element={<MemoryLibraryPage />} />
+    <Route path="memory/:memoryItemId" element={<MemoryItemDetailPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />

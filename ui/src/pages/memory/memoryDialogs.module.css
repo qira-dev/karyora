@@ -1,0 +1,218 @@
+/* The Memory dialogs (B2-U1): add (M2), edit (R3), the destructive
+   confirmations (R5/R6), the per-request inclusion decision (M3), and
+   the export dialog (R7). Styles ride the same design tokens as every
+   other surface; logical properties throughout (P2.4 §4.5). */
+
+.fieldLabel {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.fieldNote {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.fieldInput,
+.fieldSelect,
+.fieldTextarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-block-end: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.fieldTextarea {
+  min-height: 8em;
+  resize: vertical;
+}
+
+.subHeading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.reviewFacts {
+  display: grid;
+  grid-template-columns: minmax(14ch, max-content) 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.reviewFacts dt {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.reviewFacts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.primaryControl {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryControl:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.primaryControl:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.control:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+.dangerControl {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-danger);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.dangerControl:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+/* The §8.9 destructive-confirmation block: the scope statement, the
+   effects, and the retention stance, rendered as visible text before the
+   explicit confirm act. */
+.confirmBlock {
+  padding: var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+}
+
+.confirmTitle {
+  margin: 0 0 var(--space-1);
+  font-weight: 700;
+}
+
+.outcomeBlock {
+  margin-block-start: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+}
+
+.outcomeTitle {
+  margin: 0 0 var(--space-1);
+  font-weight: 700;
+}
+
+/* The state chip: icon + text; the tone classes supplement with color
+   only — the text label always carries the state (§7.2/§8.6). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  min-height: var(--size-button-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--text-metadata-size);
+}
+
+.chip.neutral {
+  color: var(--color-text-primary);
+}
+
+.chip.info {
+  color: var(--color-info);
+}
+
+.chip.success {
+  color: var(--color-success);
+}
+
+.chip.warning {
+  color: var(--color-warning);
+}
+
+.chip.danger {
+  color: var(--color-danger);
+}
+
+/* The explicit include/exclude radio group (the M-18 decision's on/off
+   labels — non-color, explicit text per §8.6). */
+.radioGroup {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+}
+
+.radioGroup legend {
+  padding: 0;
+}
+
+.radioOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-1);
+}
+
+@media (max-width: 640px) {
+  .reviewFacts {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewFacts dd {
+    margin-block-end: var(--space-2);
+  }
+}

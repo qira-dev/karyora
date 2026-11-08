@@ -110,6 +110,14 @@ import type {
   KnowledgeOperationSubmitResult,
   KnowledgePack,
   KnowledgePackVersionServed,
+  MemoryAddRequest,
+  MemoryEditRequest,
+  MemoryExportRequest,
+  MemoryInclusionRequest,
+  MemoryItemServed,
+  MemoryOperation,
+  MemoryPinRequest,
+  MemoryReviewRequest,
   WireKnowledgeOperationResult,
   WireKnowledgePackListResult,
   WireKnowledgePackResult,
@@ -117,6 +125,12 @@ import type {
   WireKnowledgeSubmitResult,
   WireKnowledgeVersionListResult,
   WireKnowledgeVersionResult,
+  WireMemoryDeleteResult,
+  WireMemoryExportResult,
+  WireMemoryInclusionResult,
+  WireMemoryListResult,
+  WireMemoryMutationResult,
+  WireMemoryOperationResult,
 } from "./wire";
 
 /** The outcome of one transport call: typed data, the verbatim D-35
@@ -482,6 +496,114 @@ function isWireKnowledgeOperationResult(value: unknown): value is WireKnowledgeO
   if (value === null || typeof value !== "object") return false;
   const shaped = value as Record<string, unknown>;
   return shaped.operation !== null && typeof shaped.operation === "object" && isWireKnowledgeOperation(shaped.operation);
+}
+
+/** The coded memory guards (B2-U1): each response must carry its
+ *  distinguishing published members to be presented as data; anything
+ *  else stays unknown — never reinterpreted, never fabricated. The
+ *  optional members are checked only where their presence distinguishes
+ *  the shape; the generated types carry the full member set. The served
+ *  item's `pinned` flag rides every served item (see wire.ts's served-
+ *  shape note — B2-A1 §2.6 item 3). */
+function isWireMemoryItem(value: unknown): value is MemoryItemServed {
+  if (value === null || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.memory_item_id === "string" &&
+    typeof item.scope === "string" &&
+    typeof item.origin === "string" &&
+    typeof item.lifecycle_state === "string" &&
+    typeof item.content === "string" &&
+    // The served `pinned` flag (this Core's served pin-register position).
+    typeof item.pinned === "boolean" &&
+    typeof item.created_at === "string" &&
+    typeof item.updated_at === "string"
+  );
+}
+
+function isWireMemoryList(value: unknown): value is WireMemoryListResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (!Array.isArray(shaped.items)) return false;
+  if (!shaped.items.every((row) => isWireMemoryItem(row))) return false;
+  // The cursor key is absent on the final page: absence is data (the end
+  // marker), never an error.
+  return shaped.cursor === undefined || typeof shaped.cursor === "string";
+}
+
+function isWireMemoryMutationResult(value: unknown): value is WireMemoryMutationResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.memory_item !== null &&
+    typeof shaped.memory_item === "object" &&
+    isWireMemoryItem(shaped.memory_item) &&
+    typeof shaped.operation_id === "string"
+  );
+}
+
+function isWireMemoryItemResult(value: unknown): value is { readonly memory_item: MemoryItemServed } {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.memory_item !== null &&
+    typeof shaped.memory_item === "object" &&
+    isWireMemoryItem(shaped.memory_item)
+  );
+}
+
+function isWireMemoryDeleteResult(value: unknown): value is WireMemoryDeleteResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    typeof shaped.memory_item_id === "string" &&
+    typeof shaped.outcome_state === "string" &&
+    typeof shaped.operation_id === "string"
+  );
+}
+
+function isWireMemoryInclusionResult(value: unknown): value is WireMemoryInclusionResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    typeof shaped.memory_item_id === "string" &&
+    typeof shaped.request_ref === "string" &&
+    typeof shaped.included === "boolean" &&
+    typeof shaped.operation_id === "string"
+  );
+}
+
+function isWireMemoryExportResult(value: unknown): value is WireMemoryExportResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    typeof shaped.export_operation_id === "string" &&
+    typeof shaped.count === "number" &&
+    typeof shaped.generated_at === "string" &&
+    typeof shaped.truncated === "boolean" &&
+    Array.isArray(shaped.items) &&
+    shaped.items.every((row: unknown) => isWireMemoryItem(row))
+  );
+}
+
+function isWireMemoryOperation(value: unknown): value is MemoryOperation {
+  if (value === null || typeof value !== "object") return false;
+  const op = value as Record<string, unknown>;
+  return (
+    typeof op.operation_id === "string" &&
+    typeof op.kind === "string" &&
+    typeof op.state === "string" &&
+    typeof op.created_at === "string" &&
+    typeof op.updated_at === "string"
+  );
+}
+
+function isWireMemoryOperationResult(value: unknown): value is WireMemoryOperationResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    shaped.operation !== null && typeof shaped.operation === "object" && isWireMemoryOperation(shaped.operation)
+  );
 }
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
@@ -1607,6 +1729,181 @@ export function createHttpLocalTransport() {
         `/v1/knowledgepacks/operations/${encodeURIComponent(operationID)}/cancel`,
         post("{}"),
         isWireKnowledgeOperationResult,
+      );
+    },
+
+    // The memory surface (B2-U1; the DE-0 queue row 4): the adapter's
+    // serving of the published `/memories` family (B2-A1 §2.1) — twelve
+    // operations, the M-17/M-16 idempotency classes, the M-18
+    // request-scoped decision, the M-32 read-with-output export, and the
+    // family's authoritative state endpoint. The truthfulness rules above
+    // apply unchanged: a lost response is `unknown` and is NEVER proof of
+    // success, failure, or safe retry (the S0–S4 law) — a lost mutation
+    // reconciles ONLY through `memoryOperationStatus` (a pure query) by
+    // the operation ID, or the item's inspect read by the item identity,
+    // BEFORE any retry.
+
+    /** `GET /v1/memories?limit=&scope=&state=&cursor=` — the scope- and
+     *  review-filtered keyset item list. The `scope`/`state` filter
+     *  values are the Core's closed registers (unknown values are the
+     *  Core's typed refusal, never mapped); the cursorless page IS the
+     *  final page; removed items are not served. */
+    memoryList(
+      params: { limit?: number; scope?: string; state?: string; cursor?: string } = {},
+    ): Promise<TransportOutcome<WireMemoryListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.scope !== undefined && params.scope !== "") query.set("scope", params.scope);
+      if (params.state !== undefined && params.state !== "") query.set("state", params.state);
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireMemoryListResult>(`/v1/memories${suffix}`, get(), isWireMemoryList);
+    },
+
+    /** `POST /v1/memories` — the add member (the M-17 creation class).
+     *  The Core mints the memory_item_id — the body never carries one.
+     *  The BINDING secrets law applies Core-side: a body attempting
+     *  secret storage is refused MEMORY_SECRETS_REJECTED before any
+     *  accepted operation. A confirmed 200 carries the Core-confirmed
+     *  recorded item; a lost response is NEVER proof of either — it
+     *  reconciles through the M-17 keyed replay (the SAME key +
+     *  correlation re-issued explicitly) or the authoritative reads,
+     *  never a blind re-add. */
+    memoryAdd(payload: MemoryAddRequest): Promise<TransportOutcome<WireMemoryMutationResult>> {
+      return call<WireMemoryMutationResult>("/v1/memories", post(JSON.stringify(payload)), isWireMemoryMutationResult);
+    },
+
+    /** `GET /v1/memories/{id}` — the inspect read (a pure query, never a
+     *  mutation): the item's authoritative state and the item-state half
+     *  of the unknown-outcome lookup. Unknown and out-of-scope items are
+     *  the SAME typed 404 surfaced verbatim (the no-leak rule). */
+    memoryItemGet(itemID: string): Promise<TransportOutcome<{ readonly memory_item: MemoryItemServed }>> {
+      return call<{ readonly memory_item: MemoryItemServed }>(
+        `/v1/memories/${encodeURIComponent(itemID)}`,
+        get(),
+        isWireMemoryItemResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}` — the edit/correct member (the M-16
+     *  revision class, provenance-preserving): the corrected content
+     *  prepared against the item's current state reference; a stale
+     *  reference is 409 MEMORY_CONFLICT (reconcile by re-reading the
+     *  item's authoritative state, never overwrite); a non-eligible item
+     *  is 409 MEMORY_NOT_EDITABLE (the Core owns eligibility). */
+    memoryEdit(itemID: string, payload: MemoryEditRequest): Promise<TransportOutcome<WireMemoryMutationResult>> {
+      return call<WireMemoryMutationResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}`,
+        post(JSON.stringify(payload)),
+        isWireMemoryMutationResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}/delete` — the delete member (the M-16
+     *  destructive class). The keying body is OPTIONAL on the served
+     *  carrier (B2-A1 §2.6 item 1); this client sends the keyed form so a
+     *  lost destructive response's keyed retry reconciles through the
+     *  M-16 replay. Only a confirmed 200 carries the deletion truth
+     *  (the F11 law) with its Core-confirmed retention caveat. */
+    memoryDelete(
+      itemID: string,
+      payload: { idempotency_key: string; correlation_id: string },
+    ): Promise<TransportOutcome<WireMemoryDeleteResult>> {
+      return call<WireMemoryDeleteResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}/delete`,
+        post(JSON.stringify(payload)),
+        isWireMemoryDeleteResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}/forget` — the forget member (the
+     *  OPEN-distinctness member; the M-16 destructive discipline governs
+     *  regardless). The same optional-body carrier; the keyed form is
+     *  sent for the same reconcile path. The forget/delete distinctness
+     *  is Core-defined and OPEN — the confirmed outcome carries the
+     *  truth, never a client assertion. */
+    memoryForget(
+      itemID: string,
+      payload: { idempotency_key: string; correlation_id: string },
+    ): Promise<TransportOutcome<WireMemoryMutationResult>> {
+      return call<WireMemoryMutationResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}/forget`,
+        post(JSON.stringify(payload)),
+        isWireMemoryMutationResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}/approve` — the explicit user review action.
+     *  The request is never the confirmation (the J-5 rule); the response's
+     *  Core-confirmed item state is the truth. A non-reviewable item is
+     *  409 MEMORY_REVIEW_STATE_CONFLICT surfaced verbatim. */
+    memoryApprove(itemID: string, payload: MemoryReviewRequest): Promise<TransportOutcome<WireMemoryMutationResult>> {
+      return call<WireMemoryMutationResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}/approve`,
+        post(JSON.stringify(payload)),
+        isWireMemoryMutationResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}/reject` — the explicit user review action;
+     *  the rejected item's disposition follows the Core's semantics —
+     *  never a silent client-side deletion. */
+    memoryReject(itemID: string, payload: MemoryReviewRequest): Promise<TransportOutcome<WireMemoryMutationResult>> {
+      return call<WireMemoryMutationResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}/reject`,
+        post(JSON.stringify(payload)),
+        isWireMemoryMutationResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}/pin` — the pin/unpin member (one member
+     *  operation covering both directions via the body's `pinned`); the
+     *  Core-confirmed pin state rides the response's item, never a
+     *  client assumption. */
+    memoryPin(itemID: string, payload: MemoryPinRequest): Promise<TransportOutcome<WireMemoryMutationResult>> {
+      return call<WireMemoryMutationResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}/pin`,
+        post(JSON.stringify(payload)),
+        isWireMemoryMutationResult,
+      );
+    },
+
+    /** `POST /v1/memories/{id}/inclusion` — the per-request-inclusion
+     *  member (the M-18 class): a per-request decision, NOT an item-state
+     *  change, with no global effect; it applies ONLY to the stated
+     *  request/scope carried by request_ref. */
+    memoryInclusion(
+      itemID: string,
+      payload: MemoryInclusionRequest,
+    ): Promise<TransportOutcome<WireMemoryInclusionResult>> {
+      return call<WireMemoryInclusionResult>(
+        `/v1/memories/${encodeURIComponent(itemID)}/inclusion`,
+        post(JSON.stringify(payload)),
+        isWireMemoryInclusionResult,
+      );
+    },
+
+    /** `POST /v1/memories/export` — the export member (the M-32
+     *  read-with-output class): mutates nothing, no item-state change,
+     *  none-required idempotency (every re-issue mints a new operation);
+     *  the coded retry class is safe-retry. Secrets are excluded by
+     *  default Core-side (the binding law); the honest truncation flag
+     *  rides the result. */
+    memoryExport(payload: MemoryExportRequest): Promise<TransportOutcome<WireMemoryExportResult>> {
+      return call<WireMemoryExportResult>("/v1/memories/export", post(JSON.stringify(payload)), isWireMemoryExportResult);
+    },
+
+    /** `GET /v1/memories/operations/{id}` — the family's authoritative
+     *  state endpoint (a pure query — never a retry): the operation-ID
+     *  half of the unknown-outcome lookup. Events are never the source of
+     *  truth; this endpoint is. The unknown operation rides the register's
+     *  typed NOT_FOUND (no Memory operation-not-found domain code exists
+     *  in the published register — B2-A1 §2.6 item 12). */
+    memoryOperationStatus(operationID: string): Promise<TransportOutcome<WireMemoryOperationResult>> {
+      return call<WireMemoryOperationResult>(
+        `/v1/memories/operations/${encodeURIComponent(operationID)}`,
+        get(),
+        isWireMemoryOperationResult,
       );
     },
 

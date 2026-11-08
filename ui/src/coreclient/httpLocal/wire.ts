@@ -1307,3 +1307,126 @@ export type WireKnowledgeSubmitResult = KnowledgeOperationSubmitResult;
 export interface WireKnowledgeOperationResult {
   readonly operation: KnowledgeOperation;
 }
+
+// The memory surface (B2-U1; the DE-0 queue row 4). The typed shapes are
+// the GENERATED canonical contract types consumed verbatim (see the
+// header note) — the adapter's memory JSON tags carry the published
+// member names exactly (B2-A1 §2), so the generated types ARE the served
+// shapes. Honest boundary (the same class as every family above):
+// - The `/v1/memories...` paths are the adapter's own serving of the
+//   published `/memories` family (B2-A1 §2.1) — the published members
+//   verbatim under the adapter's `/v1` prefix.
+// - The one additional served member is the item's `pinned` flag (B2-A1
+//   §2.6 item 3 — this Core's served definition of the recorded
+//   pin-register gap; the published MemoryItem schema carries no
+//   additionalProperties:false): consumed through the narrow served-shape
+//   extension below, never a hand-restatement of the contract type.
+// - NO approve/reject positive path is reachable through the public API
+//   (B2-A1 §2.6 item 4 — no pending_review producer exists), no
+//   `memory_candidate.extracted`/`expired` event feed exists, no TTL
+//   sweep surface exists, and NO export-artifact download route exists —
+//   none of it is invented anywhere downstream.
+
+/** The published MemoryItem schema (generated, consumed verbatim). */
+export type MemoryItem = components["schemas"]["MemoryItem"];
+
+/** The served item's `pinned` flag. HONEST SERVED-SHAPE NOTE (the DE-0
+ *  §5 law, recorded in B2-A1 §2.6 item 3 — never a silent contract edit):
+ *  the adapter serves `pinned` on every item as this Core's own served
+ *  definition of the recorded pin-register gap (a FLAG, never a lifecycle
+ *  state). The generated type structurally omits it; the UI consumes the
+ *  served member through this narrow served-shape extension — never a
+ *  hand-restatement of the contract type itself. */
+export type MemoryItemServed = MemoryItem & { readonly pinned: boolean };
+
+/** The published MemoryItemList schema (generated, consumed verbatim):
+ *  the keyset page; `cursor` is OMITTED on the final page — the absence
+ *  is the end marker. */
+export type MemoryItemList = components["schemas"]["MemoryItemList"];
+
+/** The published request bodies (generated, consumed verbatim):
+ *  MemoryAddRequest (the M-17 creation identity), MemoryEditRequest (the
+ *  M-16 revision identity + the prepared-against state reference),
+ *  MemoryReviewRequest (approve/reject), MemoryPinRequest (one member
+ *  covering both directions), MemoryInclusionRequest (the M-18
+ *  request-scoped decision), MemoryExportRequest (the M-32 read-with-
+ *  output scope). */
+export type MemoryAddRequest = components["schemas"]["MemoryAddRequest"];
+export type MemoryEditRequest = components["schemas"]["MemoryEditRequest"];
+export type MemoryReviewRequest = components["schemas"]["MemoryReviewRequest"];
+export type MemoryPinRequest = components["schemas"]["MemoryPinRequest"];
+export type MemoryInclusionRequest = components["schemas"]["MemoryInclusionRequest"];
+export type MemoryExportRequest = components["schemas"]["MemoryExportRequest"];
+
+/** The published results (generated, consumed verbatim):
+ *  MemoryMutationResult (the confirmed post-state item + the Core-minted
+ *  operation reference), MemoryDeleteResult (the deletion truth + the
+ *  Core-confirmed retention caveat), MemoryInclusionResult (the decision
+ *  record — never an item-state change), MemoryExportResult (the honest
+ *  count + generation instant + truncation flag), MemoryOperation (the
+ *  state endpoint's authoritative record). */
+export type MemoryMutationResult = components["schemas"]["MemoryMutationResult"];
+export type MemoryDeleteResult = components["schemas"]["MemoryDeleteResult"];
+export type MemoryInclusionResult = components["schemas"]["MemoryInclusionResult"];
+export type MemoryExportResult = components["schemas"]["MemoryExportResult"];
+export type MemoryOperation = components["schemas"]["MemoryOperation"];
+
+/** The delete/forget members' OPTIONAL keying body (B2-A1 §2.6 item 1 —
+ *  the recorded carrier gap: the published operations declare no
+ *  requestBody while their descriptions name the M-16 keying members).
+ *  The adapter accepts the members through this OPTIONAL body and serves
+ *  the full M-16 ruling when keyed; an unkeyed call records a
+ *  non-replayable destructive operation. The UI sends the keyed form (the
+ *  caller-minted key + correlation), so a lost destructive response's
+ *  keyed retry reconciles through the M-16 replay (the S0–S4 law). */
+export interface WireMemoryDestructiveRequest {
+  readonly idempotency_key: string;
+  readonly correlation_id: string;
+}
+
+/** `GET /v1/memories?limit=&scope=&state=&cursor=` success (200): the
+ *  published `MemoryItemList` page shape with every served item carrying
+ *  its served `pinned` member (see MemoryItemServed's honest note — the
+ *  same class as the B1 version-list's served extension); the cursorless
+ *  page IS the final page (no has_more/total vocabulary exists). Removed
+ *  items are not served. */
+export interface WireMemoryListResult {
+  readonly items: readonly MemoryItemServed[];
+  readonly cursor?: string;
+}
+
+/** `POST /v1/memories` (add) and `POST /v1/memories/{id}` (edit) and the
+ *  approve/reject/forget/pin members success (200): `{memory_item,
+ *  operation_id}` — the Core-confirmed post-state item and the operation
+ *  reference a lost response reconciles through (the S0–S4 law). */
+export interface WireMemoryMutationResult {
+  readonly memory_item: MemoryItemServed;
+  readonly operation_id: string;
+}
+
+/** `GET /v1/memories/{id}` success (200): `{memory_item}` — the inspect
+ *  read (a pure query, never a mutation). The unknown item and the
+ *  out-of-scope item are the SAME typed 404 (the no-leak rule). */
+export interface WireMemoryItemResult {
+  readonly memory_item: MemoryItemServed;
+}
+
+/** `POST /v1/memories/{id}/delete` success (200): the published
+ *  `MemoryDeleteResult` — the Core-confirmed deletion truth and its
+ *  retention caveat (never a total-erasure promise). */
+export type WireMemoryDeleteResult = MemoryDeleteResult;
+
+/** `POST /v1/memories/{id}/inclusion` success (200): the published
+ *  `MemoryInclusionResult` — the decision record. */
+export type WireMemoryInclusionResult = MemoryInclusionResult;
+
+/** `POST /v1/memories/export` success (200): the published
+ *  `MemoryExportResult` — the read-with-output document (mutates
+ *  nothing); the honest count, generation instant, and truncation flag. */
+export type WireMemoryExportResult = MemoryExportResult;
+
+/** `GET /v1/memories/operations/{id}` success (200): `{operation}` — the
+ *  family's authoritative state endpoint (a pure query, never a retry). */
+export interface WireMemoryOperationResult {
+  readonly operation: MemoryOperation;
+}

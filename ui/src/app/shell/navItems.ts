@@ -74,7 +74,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       // carries the recorded gate states for everything it does not
       // (B1-A1 §2.6's honesty list).
       { id: "knowledge", labelKey: "items.knowledge", icon: BookOpen, route: "/knowledge" },
-      { id: "memory", labelKey: "items.memory", icon: Bookmark, disabled: true },
+      // The Memory surface ships at B2-U1 (the DE-0 queue row 4): the
+      // item activates its accepted §4.1 route target — the list is
+      // `/memory`, every item link opens the ONE canonical detail route
+      // `/memory/:memoryItemId` (P1.1 #10/#11; X-2/R-3). The surface
+      // renders only what the live B2 adapter serves and carries the
+      // recorded honesty states for everything it does not (B2-A1 §2.6's
+      // honesty list — the review actions render their honest disabled
+      // state with reasons).
+      { id: "memory", labelKey: "items.memory", icon: Bookmark, route: "/memory" },
       { id: "context", labelKey: "items.context", icon: Filter, disabled: true },
       { id: "workflows", labelKey: "items.workflows", icon: Workflow, disabled: true },
     ],
