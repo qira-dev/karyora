@@ -278,3 +278,62 @@
     min-width: 0;
   }
 }
+
+/* The lifecycle mutation dialog (B5-U2; the §8.9 two-step confirmation):
+   the scope/outcome blocks, the update target input, and the review
+   facts. Styles ride the same design tokens as every other surface;
+   logical properties throughout (P2.4 §4.5). */
+
+.confirmBlock {
+  margin-block-end: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeBlock {
+  margin-block-end: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+
+.fieldLabel {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.fieldInput {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-block-end: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.fieldNote {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.inputError {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}

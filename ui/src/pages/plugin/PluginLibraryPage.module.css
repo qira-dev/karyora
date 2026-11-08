@@ -237,3 +237,99 @@
     padding: var(--space-1) 0;
   }
 }
+
+/* The install surface (B5-U2; the C1-07 class): the explicit package
+   reference input, the §8.9 confirmation dialog's scope/outcome blocks,
+   and the review-facts pair. Styles ride the same design tokens as every
+   other surface; logical properties throughout (P2.4 §4.5). */
+
+.installPanel {
+  margin-block: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.installHeading {
+  margin: 0 0 var(--space-2);
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.fieldLabel {
+  display: block;
+  margin-block-end: var(--space-1);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.fieldInput {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-block-end: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.fieldNote {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.inputError {
+  margin: 0 0 var(--space-3);
+  max-width: 64ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.confirmBlock {
+  margin-block-end: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeBlock {
+  margin-block-end: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.outcomeTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+
+.reviewFacts {
+  display: grid;
+  grid-template-columns: minmax(14ch, max-content) 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.reviewFacts dt {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.reviewFacts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.code {
+  margin: var(--space-2) 0;
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}

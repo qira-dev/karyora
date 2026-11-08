@@ -1595,26 +1595,25 @@ export interface WireWorkflowStateResult {
   readonly definition_state: WorkflowDefinitionState;
 }
 
-// The plugin surface (B5-U1; the DE-0 queue row 9). The typed shapes are
-// the GENERATED canonical contract types consumed verbatim (see the header
-// note) — the adapter's plugin JSON tags carry the published member names
-// exactly (B5-A1 §2), so the generated types ARE the served shapes. Honest
-// boundary (the same class as every family above):
+// The plugin surface (B5-U1 reads; B5-U2 mutations; the DE-0 queue rows
+// 9/GR-0 row 2). The typed shapes are the GENERATED canonical contract
+// types consumed verbatim (see the header note) — the adapter's plugin
+// JSON tags carry the published member names exactly (B5-A1 §2), so the
+// generated types ARE the served shapes. Honest boundary (the same class
+// as every family above):
 // - The `/v1/plugins...` paths are the adapter's own serving of the
 //   published `/plugins` family (B5-A1 §2.1) — the published members
 //   verbatim under the adapter's `/v1` prefix.
-// - THE UI-29 GATE (the stacking law, P4.10 §3.5/P4.11 §3.5): this
-//   milestone's transport carries the family's READ members only — the
-//   keyset list, the inspect member, and the family's authoritative state
-//   endpoint. The install/enable-disable/update/remove/revoke-grants
-//   members are served by the Core but have NO caller here: there is no
-//   package source to install from (a catalog exists ONLY when the Core
-//   supplies one — none is published; B5-A1 §2.2's no-catalog law), the
-//   UI-29 trust/package gate withholds the activation/removal controls
-//   (P4.1 §4's UI-29 gate row), no served surface supplies an update's
-//   target version reference, and this milestone wires no mutation act.
-//   None of the five mutation members is invented anywhere downstream;
-//   their wiring act rides the gates that govern each.
+// - THE UI-29 RESOLUTION (GR-C1, the owner's LIVE 2026-11-09 decision):
+//   the B5-U2 act (GR-0 queue row 2) wires the family's mutation members
+//   — install (the C1-07 class), enable/disable (the M-29 class),
+//   update (the M-30 class), remove (the M-31 class), and revoke-grants
+//   (the G7 class) — against the served adapter, with the §8.9
+//   confirmations, the OC-1–OC-8 reconciliation, and the keyed
+//   idempotency-key/correlation minting per the published retention
+//   classes (install 72 h; update/remove/revoke 1 h). The D-13/D-14 +
+//   the Core MB §10.2 runtime proof are untouched: no invocation surface
+//   appears (the boundary below carries).
 // - THE EXECUTION GATE (carried exactly): NO invocation/execution method
 //   exists anywhere — the invocation/execution operation does not exist
 //   server-side (B5-A1 §2.3's scripted absence checks: no invocation
@@ -1623,7 +1622,19 @@ export interface WireWorkflowStateResult {
 // - THE NO-CATALOG LAW (carried exactly): USER-INSTALLED ≠
 //   CATALOG-LISTED, always — the list IS the user-installed list; no
 //   catalog contract, no marketplace, no trust badge, and no one-click
-//   install exists anywhere.
+//   install exists anywhere. The wired install surface consumes an
+//   EXPLICIT user-supplied package reference (the contract's own single
+//   body member) — never a catalog listing, never a recommendation; the
+//   admission verdict is the Core's alone. The local-package import
+//   member (P3) has NO served registry/upload shape in the published
+//   family and P4.10 C-1's validation+quarantine precondition is unmet —
+//   no import method is typed and no import control is fabricated.
+// - THE ENABLE CARRIER GAP (carried honestly, B5-A1 §2.4 gap 1): the
+//   published `PluginEnableRequest` body carries exactly ONE member
+//   (`enabled`) — the keyed-class members its description references are
+//   UNSUPPLIED on the published body, so the client sends exactly that
+//   one member; the served toggle is the Core-recorded state-checked
+//   mutation whose reconcile law is the authoritative state query.
 // - THE VERDICT LAW (binding): every verification state
 //   (signature/trust/rotation/revocation) is Core-RETURNED — the UI
 //   computes none; each optional member renders only where the Core
@@ -1669,6 +1680,26 @@ export type PluginList = components["schemas"]["PluginList"];
  *  family's authoritative state endpoint's record. */
 export type PluginState = components["schemas"]["PluginState"];
 
+/** The published request bodies (generated, consumed verbatim):
+ *  PluginInstallRequest (the C1-07 install identity — the Core mints the
+ *  plugin/package/install-record/grant identities; the body never carries
+ *  one), PluginUpdateRequest (the M-30 keyed identity + the target
+ *  version reference), PluginMutationRequest (the keyed body shared by
+ *  remove and revoke-grants), PluginEnableRequest (the M-29 toggle body —
+ *  exactly ONE member; the carrier gap stands). */
+export type PluginInstallRequest = components["schemas"]["PluginInstallRequest"];
+export type PluginUpdateRequest = components["schemas"]["PluginUpdateRequest"];
+export type PluginMutationRequest = components["schemas"]["PluginMutationRequest"];
+export type PluginEnableRequest = components["schemas"]["PluginEnableRequest"];
+
+/** The published results (generated, consumed verbatim):
+ *  PluginInstallResult (`install_record_ref` + the honest `replayed` —
+ *  the C1-07 replay returns the SAME install-record reference, never a
+ *  second one) and PluginMutationResult (`plugin_id` + the Core-minted
+ *  `operation_ref` + the honest `replayed`). */
+export type PluginInstallResult = components["schemas"]["PluginInstallResult"];
+export type PluginMutationResult = components["schemas"]["PluginMutationResult"];
+
 /** `GET /v1/plugins?limit=&cursor=` success (200): the published
  *  `PluginList` — the keyset page; the cursorless page IS the final page
  *  (no has_more/total vocabulary exists). */
@@ -1687,3 +1718,16 @@ export type WirePluginGetResult = Plugin;
  *  lifecycle outcome (the S0–S4 law). The unknown identity is the SAME
  *  typed 404 (the no-leak rule). */
 export type WirePluginStateResult = PluginState;
+
+/** `POST /v1/plugins` success (200): the published `PluginInstallResult`
+ *  — the C1-07 install outcome (installed, NOT-yet-enabled; activation
+ *  separate through the permission review). A lost response reconciles by
+ *  the authoritative package ID/version through the family's state read
+ *  BEFORE any retry (the S0–S4 law) — never an optimistic "Installed". */
+export type WirePluginInstallResult = PluginInstallResult;
+
+/** The enable/disable, update, remove, and revoke-grants members' shared
+ *  success (200): the published `PluginMutationResult` — the Core-minted
+ *  operation reference is the lost-response reconcile anchor (never a
+ *  timeout-inferred state). */
+export type WirePluginMutationResult = PluginMutationResult;

@@ -128,3 +128,41 @@ export function fieldOrUnavailable(value: string | undefined, unavailableLabel: 
  *  plugin-side import path. The copied value is the identifier itself —
  *  never secret material. */
 export { CopyIdButton } from "../jobs/jobStates";
+
+/** The caller-minted C1-07 install key (B5-U2; the caller's own mutation
+ *  identity — the Core mints the plugin/package/install-record/grant
+ *  identities, the body never carries one). A fresh random identity per
+ *  NEW install attempt; the SAME key + correlation is what makes a
+ *  re-issued install the C1-07 replay (the reconcile path for a lost
+ *  response — the replay window is 72 h post-terminal). */
+export function mintPluginInstallKey(): string {
+  return `plugin-install-${crypto.randomUUID()}`;
+}
+
+/** The caller-minted correlation ID (the request identity the keyed
+ *  fingerprint's first half and the unknown-outcome reconcile anchor —
+ *  the S0–S4 law). One per mutation attempt; a lost outcome's reconcile
+ *  retry re-issues the SAME pair. */
+export function mintPluginCorrelationId(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
+/** The caller-minted short-window mutation key (the M-30/M-31/G7 keyed
+ *  classes — update/remove/revoke-grants; the replay window is 1 h
+ *  post-terminal; the key scope is workspace + package/plugin identity
+ *  Core-side). The enable/disable member is NOT keyed (the carrier gap —
+ *  the published body carries exactly one member). */
+export function mintPluginMutationKey(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
+/** The toggle-targetability law (the distinctness laws, binding): the
+ *  enable/disable toggle operates on the installed/enabled/disabled class
+ *  only — a revoked state is NEVER exitable through it (the Core refuses
+ *  grants-revoked with PLUGIN_CAPABILITY_DENIED and trust-revoked with
+ *  PLUGIN_TRUST_REVOKED). An unknown reported state value is not
+ *  toggle-targetable by the client — the Core's own verdict governs, and
+ *  the client invents no eligibility the Core has not reported. */
+export function pluginToggleTargetable(lifecycleState: string): boolean {
+  return lifecycleState === "installed" || lifecycleState === "enabled" || lifecycleState === "disabled";
+}

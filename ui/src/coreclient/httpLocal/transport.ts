@@ -148,11 +148,17 @@ import type {
   WireWorkflowRunHistoryResult,
   WireWorkflowStateResult,
   Plugin,
+  PluginEnableRequest,
+  PluginInstallRequest,
   PluginManifest,
+  PluginMutationRequest,
   PluginPackage,
   PluginState,
+  PluginUpdateRequest,
   WirePluginGetResult,
+  WirePluginInstallResult,
   WirePluginListResult,
+  WirePluginMutationResult,
   WirePluginStateResult,
 } from "./wire";
 
@@ -834,6 +840,27 @@ function isWirePluginStateResult(value: unknown): value is WirePluginStateResult
   // The state endpoint's payload IS the published `PluginState` record
   // (no wrapper member — the family's authoritative state read).
   return isWirePluginState(value);
+}
+
+/** The B5-U2 mutation-result guards: each response must carry its
+ *  distinguishing published members to be presented as data (the
+ *  coded-shape guard class). The honest `replayed` flag rides both
+ *  results (the C1-07 class: a replay returns the SAME recorded outcome,
+ *  never a second mutation). */
+function isWirePluginInstallResult(value: unknown): value is WirePluginInstallResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return typeof shaped.install_record_ref === "string" && typeof shaped.replayed === "boolean";
+}
+
+function isWirePluginMutationResult(value: unknown): value is WirePluginMutationResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return (
+    typeof shaped.plugin_id === "string" &&
+    typeof shaped.operation_ref === "string" &&
+    typeof shaped.replayed === "boolean"
+  );
 }
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
@@ -2277,25 +2304,32 @@ export function createHttpLocalTransport() {
       );
     },
 
-    // The plugin surface (B5-U1; the DE-0 queue row 9): the READ members
-    // of the adapter's serving of the published `/plugins` family
-    // (B5-A1 §2.1) — the keyset list, the inspect member, and the
-    // family's authoritative state endpoint. The truthfulness rules above
-    // apply unchanged: a lost response is `unknown` and is NEVER proof of
-    // success or safe retry (the S0–S4 law) — reconcile through the
-    // authoritative state endpoint (a pure query — never a retry) by the
-    // plugin/package identity BEFORE any retry. THE UI-29 GATE (rendered
-    // by the surfaces, not here): the install/enable-disable/remove
-    // members are served by the Core but carried by NO method in this
-    // transport — the UI-29 trust/package gate withholds the
-    // catalog/install/activation/removal controls (P4.1 §4's UI-29 gate
-    // row), no package source exists (a catalog exists ONLY when the Core
-    // supplies one — none is published; the no-catalog law), no served
-    // surface supplies an update's target version reference, and this
-    // milestone wires no mutation act; their wiring act rides the gates
-    // that govern each. THE EXECUTION GATE: NO invocation/execution
-    // method exists anywhere — the operation does not exist server-side
-    // (B5-A1 §2.3's scripted absence checks) and none is typed here.
+    // The plugin surface (B5-U1 reads; B5-U2 mutations; the DE-0 queue
+    // row 9 / GR-0 queue row 2): the adapter's serving of the published
+    // `/plugins` family (B5-A1 §2.1) — the keyset list, the inspect
+    // member, the family's authoritative state endpoint, and (from the
+    // UI-29 resolution, GR-C1) the five mutation members: install (the
+    // C1-07 class), enable/disable (the M-29 class), update (the M-30
+    // class), remove (the M-31 class), and revoke-grants (the G7 class).
+    // The truthfulness rules above apply unchanged: a lost response is
+    // `unknown` and is NEVER proof of success or safe retry (the S0–S4
+    // law) — reconcile through the authoritative state endpoint (a pure
+    // query — never a retry) by the plugin/package identity BEFORE any
+    // retry. THE KEYED MINTING (the caller's duty, per the published
+    // retention classes): the caller mints a FRESH idempotency key +
+    // correlation ID per new mutation attempt and re-issues the SAME
+    // pair on a lost outcome's reconcile retry — install 72 h;
+    // update/remove/revoke 1 h; the enable member carries NO key members
+    // (the carrier gap, B5-A1 §2.4 gap 1) and reconciles by the state
+    // query. THE NO-CATALOG LAW: the install method consumes the
+    // EXPLICIT user-supplied package reference (the contract's own
+    // single body member) — never a catalog listing (none exists); no
+    // local-package import method is typed (no served registry/upload
+    // shape exists in the published family; P4.10 C-1's
+    // validation+quarantine precondition is unmet). THE EXECUTION GATE:
+    // NO invocation/execution method exists anywhere — the operation
+    // does not exist server-side (B5-A1 §2.3's scripted absence checks)
+    // and none is typed here.
 
     /** `GET /v1/plugins?limit=&cursor=` — the user-installed keyset
      *  plugin list (USER-INSTALLED ≠ CATALOG-LISTED, always — the list IS
@@ -2336,6 +2370,100 @@ export function createHttpLocalTransport() {
         `/v1/plugins/${encodeURIComponent(pluginID)}/state`,
         get(),
         isWirePluginStateResult,
+      );
+    },
+
+    /** `POST /v1/plugins` — the install member (the C1-07 class; B5-U2):
+     *  the Core mints the plugin, package, install-record, and grant
+     *  identities — the body never carries one. The caller mints the
+     *  idempotency key + correlation ID (the 72 h replay window); the
+     *  same key + the same fingerprint replays the recorded install (the
+     *  SAME install-record reference, never a second one); the same key +
+     *  a different fingerprint is 409 CONFLICT_IDEMPOTENCY_KEY; a replay
+     *  past the window is 409 CONFLICT_STATE. A fresh install lands the
+     *  plugin in its installed, NOT-yet-enabled state (activation is
+     *  separate — never implied). A lost response is `unknown` and
+     *  reconciles by the authoritative package ID/version through the
+     *  family's state read BEFORE any retry (the S0–S4 law) — never an
+     *  optimistic "Installed". The admission verdict is the Core's alone
+     *  (the verdict law). */
+    pluginInstall(payload: PluginInstallRequest): Promise<TransportOutcome<WirePluginInstallResult>> {
+      return call<WirePluginInstallResult>("/v1/plugins", post(JSON.stringify(payload)), isWirePluginInstallResult);
+    },
+
+    /** `POST /v1/plugins/{plugin_id}/enable` — the state-toggle member
+     *  (the M-29 class; B5-U2): ONE member covering both directions via
+     *  the body's target state. THE CARRIER GAP (B5-A1 §2.4 gap 1): the
+     *  published body carries exactly ONE member (`enabled`) — the
+     *  keyed-class members its description references are UNSUPPLIED, so
+     *  this client sends exactly that one member (no key is minted or
+     *  sent for this member). A lost response reconciles through the
+     *  authoritative state read BEFORE any retry (the Core's own
+     *  reconcile law for this member) — never a local flip. The revoked
+     *  states refuse through the toggle: grants-revoked rides
+     *  PLUGIN_CAPABILITY_DENIED; trust-revoked rides PLUGIN_TRUST_REVOKED
+     *  (the distinctness law — a revoked state is never exitable through
+     *  the toggle). */
+    pluginSetEnabled(pluginID: string, payload: PluginEnableRequest): Promise<TransportOutcome<WirePluginMutationResult>> {
+      return call<WirePluginMutationResult>(
+        `/v1/plugins/${encodeURIComponent(pluginID)}/enable`,
+        post(JSON.stringify(payload)),
+        isWirePluginMutationResult,
+      );
+    },
+
+    /** `POST /v1/plugins/{plugin_id}/update` — the update member (the
+     *  M-30 class; B5-U2): the caller mints the idempotency key +
+     *  correlation ID (the 1 h replay window); the target version
+     *  reference is the fingerprint's second half and the reconciliation
+     *  key. THE FRESH-REVIEW LAW (the Core enforces it): ANY permission
+     *  change triggers a fresh review of the changed set — the typed
+     *  PLUGIN_CAPABILITY_DENIED refusal stores nothing and consumes no
+     *  key (a retry never grants). THE ATOMIC UPGRADE: the prior version
+     *  keeps running until the Core confirms the switch. A lost response
+     *  reconciles by the authoritative package ID/version through the
+     *  family's state read BEFORE any retry — never a blind retry, never
+     *  an optimistic "Updated". */
+    pluginUpdate(pluginID: string, payload: PluginUpdateRequest): Promise<TransportOutcome<WirePluginMutationResult>> {
+      return call<WirePluginMutationResult>(
+        `/v1/plugins/${encodeURIComponent(pluginID)}/update`,
+        post(JSON.stringify(payload)),
+        isWirePluginMutationResult,
+      );
+    },
+
+    /** `POST /v1/plugins/{plugin_id}/remove` — the remove member (the
+     *  M-31 class; B5-U2): the caller mints the idempotency key +
+     *  correlation ID (the 1 h replay window). Core-confirmed removal;
+     *  disposal follows the Core's retention — no erasure claim beyond
+     *  the Core-confirmed scope. THE REMOVE-VS-REVOKE QUESTION STAYS
+     *  RECORDED OPEN — no surface may assert removal and grant revocation
+     *  are the same or distinct. A lost response reconciles by the
+     *  authoritative package/plugin identity through the family's state
+     *  read BEFORE any retry — removal is never assumed complete. */
+    pluginRemove(pluginID: string, payload: PluginMutationRequest): Promise<TransportOutcome<WirePluginMutationResult>> {
+      return call<WirePluginMutationResult>(
+        `/v1/plugins/${encodeURIComponent(pluginID)}/remove`,
+        post(JSON.stringify(payload)),
+        isWirePluginMutationResult,
+      );
+    },
+
+    /** `POST /v1/plugins/{plugin_id}/grants/revoke` — the revoke-grants
+     *  member (the G7 class; B5-U2): the caller mints the idempotency key
+     *  + correlation ID (the 1 h replay window; the grant-scope component
+     *  is Core-side). Revocation blocks FUTURE invocations; the current
+     *  invocation's behavior is Core-reported (no invocation path exists
+     *  on this Core while the execution rows are gated — the honest
+     *  absence). THE NEVER-GRANT LAW: a retry never re-grants and a
+     *  denial stands until the user's own explicit act. A lost response
+     *  reconciles through the family's state read BEFORE any retry — no
+     *  assumption about the grant state. */
+    pluginRevokeGrants(pluginID: string, payload: PluginMutationRequest): Promise<TransportOutcome<WirePluginMutationResult>> {
+      return call<WirePluginMutationResult>(
+        `/v1/plugins/${encodeURIComponent(pluginID)}/grants/revoke`,
+        post(JSON.stringify(payload)),
+        isWirePluginMutationResult,
       );
     },
 

@@ -1,20 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { useCoreConnection } from "../../app/coreConnectionState";
+import { Dialog, useDialogLabelId } from "../../components/Dialog";
 import { RecoveryPanel } from "../../components/RecoveryPanel";
-import type { CoreWireEnvelope, Plugin, PluginState } from "../../coreclient/httpLocal";
+import type {
+  CoreWireEnvelope,
+  Plugin,
+  PluginMutationResult,
+  PluginState,
+} from "../../coreclient/httpLocal";
 import type { TranslationKey } from "../../i18n/keys";
 import { useT, useTranslation } from "../../i18n/useT";
 import { PageHeading, PageLayout } from "../PageLayout";
 import styles from "./PluginDetailPage.module.css";
-import { CopyIdButton, pluginLifecycleChip } from "./pluginStates";
+import {
+  CopyIdButton,
+  mintPluginCorrelationId,
+  mintPluginMutationKey,
+  pluginLifecycleChip,
+  pluginToggleTargetable,
+} from "./pluginStates";
 
 /**
- * `/plugins/:pluginId` — the ONE canonical plugin-detail route (B5-U1;
- * the DE-0 queue row 9, the P4.1 G1–G10 rows against the now-live B5
- * adapter).
+ * `/plugins/:pluginId` — the ONE canonical plugin-detail route (B5-U1
+ * reads; B5-U2 lifecycle wiring; the DE-0 queue row 9 / GR-0 queue row 2,
+ * the P4.1 G1–G10 rows against the now-live B5 adapter).
  *
  * What this page consumes (exactly as the Core adapter serves it):
  * - `GET /v1/plugins/{id}` (the inspect member, B5-A1 §2.1 #3): the
@@ -30,6 +42,32 @@ import { CopyIdButton, pluginLifecycleChip } from "./pluginStates";
  *   B5-A1 §2.1 #8): a pure query — never a retry; the reconciliation
  *   anchor for every lost lifecycle outcome (the S0–S4 law). Events are
  *   never the source of truth; this read is.
+ * - THE UI-29 RESOLUTION (GR-C1, the owner's LIVE 2026-11-09 decision;
+ *   B5-U2, GR-0 queue row 2): the four lifecycle controls are LIVE
+ *   behind their §8.9 two-step confirmations — enable/disable (the M-29
+ *   toggle; the carrier gap stands: the body carries exactly one
+ *   member), update (the M-30 class; the target version reference is an
+ *   EXPLICIT user-supplied input — no served surface lists available
+ *   targets, and the note says so; the Core verifies the target), remove
+ *   (the M-31 class; the remove-vs-revoke distinctness stays RECORDED
+ *   OPEN — no copy asserts either), and revoke-grants (the G7 class; the
+ *   never-grant law binds — a retry never re-grants). The permission
+ *   review (G3, P4.10 §3.3) rides activation: the enable confirmation
+ *   carries the review's laws and its honest absence (no
+ *   requested-capability record is served on this Core — the manifest
+ *   member is absent), never a fabricated review item; Escape/Cancel
+ *   cancels with no implied grant and no implied deny.
+ * - THE KEYED MINTING (the caller's duty): update/remove/revoke mint a
+ *   FRESH idempotency key + correlation ID per NEW attempt (the 1 h
+ *   replay window class); the toggle carries NO key members (the
+ *   carrier gap) and reconciles by the state query.
+ * - THE OC RECONCILIATION (P4.11 §3.3): a lost mutation response renders
+ *   the explained uncertain state with its request reference and
+ *   reconciles ONLY through the authoritative state read (OC-2/3/4/5) —
+ *   no blind retry is ever offered; a reconcile read that itself fails
+   keeps the explained state with the re-query affordance (OC-8); while
+ *   a mutation is pending the other controls stay disabled (OC-7's
+ *   duplicate-submit discipline, the §8.11/§8.12 class).
  * - THE VERDICT LAW (binding): every verification state
  *   (signature/trust/rotation/revocation) renders ONLY as the Core
  *   returns it — never computed UI-side; an absent verification state is
@@ -47,18 +85,9 @@ import { CopyIdButton, pluginLifecycleChip } from "./pluginStates";
  *   action) ≠ GRANTS-REVOKED (the user's revocation of capabilities) ≠
  *   TRUST-REVOKED (the publisher/trust-root action) — each renders its
  *   own chip, never merged, never milder; INVOCATION TERMINATION ≠
- *   PLUGIN DISABLE/REVOCATION.
- * - THE LIFECYCLE CONTROLS (each at its recorded gate state, the B2
- *   review-actions' honest-disabled pattern): the enable/disable toggle
- *   (G4) and removal (G6) are UI-29-withheld — the controls render
- *   DISABLED with their accurate reasons, never dead stubs; the update
- *   (G5) has no servable input (no catalog exists — the no-catalog law;
- *   no served surface supplies a target version reference; the
- *   fresh-review producer's honest gap stands); grant revocation (G7) is
- *   the user's explicit high-risk act whose mutation caller is not wired
- *   in this milestone's read-only transport. THE REMOVE-VS-REVOKE
- *   DISTINCTNESS IS RECORDED OPEN: no copy here asserts removal and grant
- *   revocation are the same or distinct.
+ *   PLUGIN DISABLE/REVOCATION. The toggle operates on the
+ *   installed/enabled/disabled class only (a revoked state is never
+ *   exitable through it — the Core refuses).
  * - NO invocation/execution surface exists anywhere (the D-13/D-14 gate
  *   and the Core Master Blueprint §10.2 runtime proof): no invocation
  *   control, no invocation state, and no invocation-derived failure
@@ -69,6 +98,18 @@ import { CopyIdButton, pluginLifecycleChip } from "./pluginStates";
  */
 
 type ReadPhase = "loading" | "data" | "failure" | "unknown";
+
+/** The lifecycle mutation actions (B5-U2). The toggle's two directions
+ *  are the ONE M-29 member's two target states, rendered as explicit
+ *  intents. */
+type MutationAction = "enable" | "disable" | "update" | "remove" | "revoke";
+
+/** The mutation dialog's phases (the B2 destructive-dialog idiom): the
+ *  confirming step (the §8.9 first step — the scope statement), the
+ *  in-flight submission, the Core-confirmed outcome, the
+ *  reconciliation-resolved outcome (the authoritative state read landed),
+ *  the explained uncertain outcome (OC-2/3/4/5), and the typed refusal. */
+type MutationPhase = "confirming" | "submitting" | "confirmed" | "reconciled" | "unknown" | "failure";
 
 type TabId = "overview" | "manifest" | "capabilities" | "compatibility" | "digest" | "logs" | "audit";
 
@@ -111,6 +152,22 @@ export function PluginDetailPage() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [lastConfirmedAt, setLastConfirmedAt] = useState<Date | null>(null);
   const [notFound, setNotFound] = useState(false);
+  // The lifecycle mutation machinery (B5-U2): one pending mutation at a
+  // time (OC-7's duplicate-submit discipline); the §8.9 dialog carries
+  // each action's confirming/submitting/outcome phases; the uncertain
+  // outcome carries the minted request reference (the keyed members) and
+  // reconciles ONLY through the authoritative state read.
+  const [dialogAction, setDialogAction] = useState<MutationAction | null>(null);
+  const [dialogPhase, setDialogPhase] = useState<MutationPhase>("confirming");
+  const [pendingAction, setPendingAction] = useState(false);
+  const [mutationResult, setMutationResult] = useState<PluginMutationResult | null>(null);
+  const [mutationFailure, setMutationFailure] = useState<CoreWireEnvelope | null>(null);
+  const [unknownCorrelation, setUnknownCorrelation] = useState<string | null>(null);
+  const [reconcileFailed, setReconcileFailed] = useState(false);
+  const [reconciledState, setReconciledState] = useState<string | null>(null);
+  const [updateTargetRef, setUpdateTargetRef] = useState("");
+  const [updateTargetError, setUpdateTargetError] = useState(false);
+  const navigate = useNavigate();
 
   const tabListRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
@@ -160,6 +217,176 @@ export function PluginDetailPage() {
   useEffect(() => {
     readAll();
   }, [readAll]);
+
+  // The silent re-read behind a dialog (the B2 idiom's post-mutation
+  // authoritative re-read): the current render stays up while the fresh
+  // record/state land; no loading flash, no optimistic state — the
+  // Core's confirmed truth replaces the rendered record when it arrives.
+  const silentRefresh = useCallback(() => {
+    void transport.pluginGet(pluginId).then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        setPlugin(outcome.data);
+        setInspectPhase("data");
+        setInspectFailure(null);
+        setNotFound(false);
+        setLastConfirmedAt(new Date());
+      }
+    });
+    void transport.pluginState(pluginId).then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        setState(outcome.data);
+        setStatePhase("data");
+        setStateFailure(null);
+      }
+    });
+  }, [pluginId, transport]);
+
+  const openMutationDialog = (action: MutationAction) => {
+    setDialogAction(action);
+    setDialogPhase("confirming");
+    setMutationResult(null);
+    setMutationFailure(null);
+    setUnknownCorrelation(null);
+    setReconcileFailed(false);
+    setReconciledState(null);
+    setUpdateTargetError(false);
+  };
+
+  const closeMutationDialog = useCallback(() => {
+    const wasRemoveConfirmed = dialogAction === "remove" && dialogPhase === "confirmed";
+    setDialogAction(null);
+    setDialogPhase("confirming");
+    setMutationResult(null);
+    setMutationFailure(null);
+    setUnknownCorrelation(null);
+    setReconcileFailed(false);
+    setReconciledState(null);
+    if (wasRemoveConfirmed) {
+      // The Core-confirmed removal took the artifact out of the
+      // installed set: the honest landing is the list, not a dead detail
+      // page (the removed panel carried the confirmed outcome).
+      navigate("/plugins");
+    }
+  }, [dialogAction, dialogPhase, navigate]);
+
+  // The §8.9 second step: the explicit confirm action submits. The keyed
+  // members (update/remove/revoke) mint a FRESH key + correlation here (a
+  // new attempt = a new identity; the 1 h replay window class); the
+  // toggle carries NO key members (the carrier gap). A lost response is
+  // `unknown`: the minted correlation is retained as the request
+  // reference and the reconcile goes through the authoritative state
+  // read — NO blind retry is ever offered (the S0–S4 law).
+  const confirmMutation = useCallback(
+    (action: MutationAction) => {
+      if (pendingAction) return;
+      setPendingAction(true);
+      setDialogPhase("submitting");
+      const finishPending = () => setPendingAction(false);
+
+      if (action === "enable" || action === "disable") {
+        // The M-29 state-toggle member: exactly ONE body member (the
+        // carrier gap — no key members are minted or sent). The revoked
+        // states refuse through the Core (the distinctness law).
+        void transport.pluginSetEnabled(pluginId, { enabled: action === "enable" }).then((outcome) => {
+          finishPending();
+          if (!mountedRef.current) return;
+          if (outcome.kind === "data") {
+            setMutationResult(outcome.data);
+            setDialogPhase("confirmed");
+            silentRefresh();
+          } else if (outcome.kind === "rejection") {
+            setMutationFailure(outcome.envelope);
+            setDialogPhase("failure");
+          } else {
+            setUnknownCorrelation(null);
+            setDialogPhase("unknown");
+          }
+        });
+        return;
+      }
+
+      const correlationId = mintPluginCorrelationId(`plugin-${action}`);
+      if (action === "update") {
+        const target = updateTargetRef.trim();
+        if (target === "") {
+          setPendingAction(false);
+          setDialogPhase("confirming");
+          setUpdateTargetError(true);
+          return;
+        }
+        const idempotencyKey = mintPluginMutationKey("plugin-update");
+        void transport
+          .pluginUpdate(pluginId, {
+            idempotency_key: idempotencyKey,
+            correlation_id: correlationId,
+            target_version_ref: target,
+          })
+          .then((outcome) => {
+            finishPending();
+            if (!mountedRef.current) return;
+            if (outcome.kind === "data") {
+              setMutationResult(outcome.data);
+              setDialogPhase("confirmed");
+              silentRefresh();
+            } else if (outcome.kind === "rejection") {
+              setMutationFailure(outcome.envelope);
+              setDialogPhase("failure");
+            } else {
+              setUnknownCorrelation(correlationId);
+              setDialogPhase("unknown");
+            }
+          });
+        return;
+      }
+
+      const idempotencyKey = mintPluginMutationKey(`plugin-${action}`);
+      const call =
+        action === "remove"
+          ? transport.pluginRemove(pluginId, { idempotency_key: idempotencyKey, correlation_id: correlationId })
+          : transport.pluginRevokeGrants(pluginId, { idempotency_key: idempotencyKey, correlation_id: correlationId });
+      void call.then((outcome) => {
+        finishPending();
+        if (!mountedRef.current) return;
+        if (outcome.kind === "data") {
+          setMutationResult(outcome.data);
+          setDialogPhase("confirmed");
+          if (action !== "remove") silentRefresh();
+        } else if (outcome.kind === "rejection") {
+          setMutationFailure(outcome.envelope);
+          setDialogPhase("failure");
+        } else {
+          setUnknownCorrelation(correlationId);
+          setDialogPhase("unknown");
+        }
+      });
+    },
+    [pendingAction, pluginId, silentRefresh, transport, updateTargetRef],
+  );
+
+  // The OC-2/3/4/5 reconciliation: the authoritative state read (a pure
+  // query — never a retry) resolves the uncertain outcome by the
+  // plugin/package identity. A usable answer applies the Core's truth
+  // (the state chip renders; the page re-reads behind the dialog); a
+  // failed read keeps the explained state with the re-query affordance
+  // (OC-8) — never a blind resubmit of the original mutation.
+  const reconcileMutation = useCallback(() => {
+    setReconcileFailed(false);
+    void transport.pluginState(pluginId).then((outcome) => {
+      if (!mountedRef.current) return;
+      if (outcome.kind === "data") {
+        setState(outcome.data);
+        setStatePhase("data");
+        setStateFailure(null);
+        setReconciledState(outcome.data.lifecycle_state);
+        setDialogPhase("reconciled");
+        silentRefresh();
+      } else {
+        setReconcileFailed(true);
+      }
+    });
+  }, [pluginId, silentRefresh, transport]);
 
   // The tablist keyboard pattern (§8.8): Arrow keys move among the tabs;
   // every tab renders its honest served state (G1's missing-section law),
@@ -246,6 +473,12 @@ export function PluginDetailPage() {
 
   const lifecycleChip = pluginLifecycleChip(shownPlugin.lifecycle_state);
   const LifecycleIcon = lifecycleChip.icon;
+
+  // The toggle's intent resolves from the Core-reported state (the ONE
+  // M-29 member's two target states, rendered as explicit intents); the
+  // revoked states are not toggle-targetable (the distinctness law).
+  const toggleTargetable = pluginToggleTargetable(shownPlugin.lifecycle_state);
+  const toggleIntent: MutationAction = shownPlugin.lifecycle_state === "enabled" ? "disable" : "enable";
 
   const stateChip = state === null ? null : pluginLifecycleChip(state.lifecycle_state);
   const StateIcon = stateChip === null ? null : stateChip.icon;
@@ -400,60 +633,77 @@ export function PluginDetailPage() {
         ) : null}
       </section>
 
-      {/* The lifecycle controls at their recorded gate states (the B2
-          review-actions' honest-disabled pattern — never dead stubs). The
-          remove-vs-revoke distinctness is RECORDED OPEN: the copy asserts
-          neither. */}
+      {/* The lifecycle controls (B5-U2; LIVE per the UI-29 resolution,
+          each behind its §8.9 two-step confirmation — never dead stubs,
+          never enabled look-alikes): the toggle operates on the
+          installed/enabled/disabled class only (the Core refuses the
+          revoked states); the update's target reference is an explicit
+          user-supplied input with its honest no-served-source note; the
+          remove-vs-revoke distinctness is RECORDED OPEN — the copy
+          asserts neither. While a mutation is pending, every control
+          stays disabled (OC-7's duplicate-submit discipline). */}
       <section className={styles.factsPanel} aria-label={t("plugin.detail.actionsHeading")}>
         <h2 className={styles.subHeading}>{t("plugin.detail.actionsHeading")}</h2>
         <div className={styles.actions}>
           <button
             type="button"
             className={styles.control}
-            disabled
-            aria-describedby="plugin-toggle-disabled-reason"
+            disabled={!toggleTargetable || pendingAction}
+            aria-describedby={
+              toggleTargetable ? "plugin-toggle-shape-note" : "plugin-toggle-targetability-note"
+            }
+            onClick={() => openMutationDialog(toggleIntent)}
           >
-            {t("plugin.detail.toggleControl")}
+            {toggleTargetable
+              ? toggleIntent === "enable"
+                ? t("plugin.detail.enableConfirmAction")
+                : t("plugin.detail.disableConfirmAction")
+              : t("plugin.detail.toggleControl")}
           </button>
           <button
             type="button"
             className={styles.control}
-            disabled
-            aria-describedby="plugin-update-disabled-reason"
+            disabled={pendingAction}
+            aria-describedby="plugin-update-target-note"
+            onClick={() => openMutationDialog("update")}
           >
             {t("plugin.detail.updateControl")}
           </button>
           <button
             type="button"
             className={styles.control}
-            disabled
-            aria-describedby="plugin-remove-disabled-reason"
+            disabled={pendingAction}
+            onClick={() => openMutationDialog("remove")}
           >
             {t("plugin.detail.removeControl")}
           </button>
           <button
             type="button"
             className={styles.control}
-            disabled
-            aria-describedby="plugin-revoke-disabled-reason"
+            disabled={pendingAction}
+            onClick={() => openMutationDialog("revoke")}
           >
             {t("plugin.detail.revokeControl")}
           </button>
         </div>
-        <p id="plugin-toggle-disabled-reason" className={styles.actionReason}>
-          {t("plugin.detail.toggleDisabledReason")}
+        {pendingAction ? (
+          <p className={styles.actionReason} role="status">
+            {t("plugin.detail.actionsPendingNote")}
+          </p>
+        ) : null}
+        {toggleTargetable ? (
+          <p id="plugin-toggle-shape-note" className={styles.actionReason}>
+            {t("plugin.detail.toggleShapeNote")}
+          </p>
+        ) : (
+          <p id="plugin-toggle-targetability-note" className={styles.actionReason}>
+            {t("plugin.detail.toggleTargetableNote")}
+          </p>
+        )}
+        <p id="plugin-update-target-note" className={styles.actionReason}>
+          {t("plugin.detail.updateTargetNote")}
         </p>
-        <p className={styles.actionReason}>{t("plugin.detail.toggleShapeNote")}</p>
-        <p id="plugin-update-disabled-reason" className={styles.actionReason}>
-          {t("plugin.detail.updateDisabledReason")}
-        </p>
-        <p id="plugin-remove-disabled-reason" className={styles.actionReason}>
-          {t("plugin.detail.removeDisabledReason")}
-        </p>
-        <p className={styles.actionReason}>{t("plugin.detail.removeRevokeOpenNote")}</p>
-        <p id="plugin-revoke-disabled-reason" className={styles.actionReason}>
-          {t("plugin.detail.revokeDisabledReason")}
-        </p>
+        <p className={styles.actionReason}>{t("plugin.detail.removeConfirmOpenNote")}</p>
       </section>
 
       <div
@@ -657,6 +907,268 @@ export function PluginDetailPage() {
           <p className={styles.note}>{t("plugin.detail.auditSourceNote")}</p>
         </section>
       ) : null}
+
+      <MutationDialog
+        action={dialogAction}
+        phase={dialogPhase}
+        updateTargetRef={updateTargetRef}
+        updateTargetError={updateTargetError}
+        onUpdateTargetRefChange={(value) => {
+          setUpdateTargetRef(value);
+          setUpdateTargetError(false);
+        }}
+        result={mutationResult}
+        failure={mutationFailure}
+        unknownCorrelation={unknownCorrelation}
+        reconcileFailed={reconcileFailed}
+        reconciledState={reconciledState}
+        onClose={closeMutationDialog}
+        onConfirm={confirmMutation}
+        onReconcile={reconcileMutation}
+      />
     </PageLayout>
+  );
+}
+
+/** The lifecycle mutation confirmation dialog (the §8.9 two-step
+ *  confirmation for EACH lifecycle mutation; the B2 destructive-dialog
+ *  idiom): step one states the action's scope and laws exactly; step two
+ *  is the explicit confirm action. Escape and Close cancel with no
+ *  implied grant, no implied deny, and no implied mutation (the
+ *  review-flow escape law's class). The enable confirmation carries the
+ *  permission-review flow (G3, P4.10 §3.3): its laws render, and the
+ *  honest absence of served per-permission items is stated — never a
+ *  fabricated review item. The uncertain outcome renders the explained
+ *  state with the request reference and reconciles ONLY through the
+ *  authoritative state read (OC-2/3/4/5; OC-8's re-query affordance) —
+ *  never a blind retry, never an optimistic confirmation. */
+function MutationDialog(props: {
+  readonly action: MutationAction | null;
+  readonly phase: MutationPhase;
+  readonly updateTargetRef: string;
+  readonly updateTargetError: boolean;
+  readonly onUpdateTargetRefChange: (value: string) => void;
+  readonly result: PluginMutationResult | null;
+  readonly failure: CoreWireEnvelope | null;
+  readonly unknownCorrelation: string | null;
+  readonly reconcileFailed: boolean;
+  readonly reconciledState: string | null;
+  readonly onClose: () => void;
+  readonly onConfirm: (action: MutationAction) => void;
+  readonly onReconcile: () => void;
+}) {
+  const t = useT();
+  const labelId = useDialogLabelId();
+
+  // A local const of the action: the narrowing into the JSX branches and
+  // their click callbacks holds on a const where a property access would
+  // not.
+  const action = props.action;
+
+  const titleKey: TranslationKey | null =
+    props.action === null
+      ? null
+      : props.action === "enable"
+        ? "plugin.detail.enableConfirmTitle"
+        : props.action === "disable"
+          ? "plugin.detail.disableConfirmTitle"
+          : props.action === "update"
+            ? "plugin.detail.updateConfirmTitle"
+            : props.action === "remove"
+              ? "plugin.detail.removeConfirmTitle"
+              : "plugin.detail.revokeConfirmTitle";
+
+  const chip = props.reconciledState === null ? null : pluginLifecycleChip(props.reconciledState);
+  const ChipIcon = chip?.icon;
+
+  return (
+    <Dialog
+      labelId={labelId}
+      title={titleKey === null ? "" : t(titleKey)}
+      open={props.action !== null}
+      onClose={props.onClose}
+    >
+      {action !== null && props.phase === "confirming" ? (
+        <div>
+          {action === "enable" ? (
+            <section className={styles.confirmBlock}>
+              <p>{t("plugin.detail.enableConfirmScope")}</p>
+              <p className={styles.outcomeTitle}>{t("plugin.detail.enableConfirmReviewHeading")}</p>
+              <p>{t("plugin.detail.enableConfirmReviewLaws")}</p>
+              <p>{t("plugin.detail.enableConfirmReviewAbsent")}</p>
+            </section>
+          ) : null}
+          {action === "disable" ? (
+            <section className={styles.confirmBlock}>
+              <p>{t("plugin.detail.disableConfirmScope")}</p>
+            </section>
+          ) : null}
+          {action === "update" ? (
+            <section className={styles.confirmBlock}>
+              <label className={styles.fieldLabel} htmlFor="plugin-update-target-ref">
+                {t("plugin.detail.updateTargetLabel")}
+              </label>
+              <input
+                id="plugin-update-target-ref"
+                className={styles.fieldInput}
+                type="text"
+                value={props.updateTargetRef}
+                onChange={(event) => props.onUpdateTargetRefChange(event.target.value)}
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={props.updateTargetError}
+                aria-describedby={props.updateTargetError ? "plugin-update-target-error" : "plugin-update-target-note"}
+              />
+              <p id="plugin-update-target-note" className={styles.fieldNote}>
+                {t("plugin.detail.updateTargetNote")}
+              </p>
+              {props.updateTargetError ? (
+                <p id="plugin-update-target-error" className={styles.inputError} role="alert">
+                  {t("plugin.detail.emptyInput")}
+                </p>
+              ) : null}
+              <p>{t("plugin.detail.updateConfirmScope")}</p>
+              <p>{t("plugin.detail.updateConfirmFreshReview")}</p>
+            </section>
+          ) : null}
+          {action === "remove" ? (
+            <section className={styles.confirmBlock}>
+              <p>{t("plugin.detail.removeConfirmScope")}</p>
+              <p>{t("plugin.detail.removeConfirmOpenNote")}</p>
+            </section>
+          ) : null}
+          {action === "revoke" ? (
+            <section className={styles.confirmBlock}>
+              <p>{t("plugin.detail.revokeConfirmScope")}</p>
+              <p>{t("plugin.detail.revokeConfirmLaw")}</p>
+            </section>
+          ) : null}
+          <div className={styles.actions}>
+            <button type="button" className={styles.control} onClick={() => props.onConfirm(action)}>
+              {props.action === "enable"
+                ? t("plugin.detail.enableConfirmAction")
+                : props.action === "disable"
+                  ? t("plugin.detail.disableConfirmAction")
+                  : props.action === "update"
+                    ? t("plugin.detail.updateConfirmAction")
+                    : props.action === "remove"
+                      ? t("plugin.detail.removeConfirmAction")
+                      : t("plugin.detail.revokeConfirmAction")}
+            </button>
+            <button type="button" className={styles.control} onClick={props.onClose}>
+              {t("actions.cancel")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {action !== null && props.phase === "submitting" ? (
+        <p className={styles.fieldNote}>{t("plugin.detail.submitting")}</p>
+      ) : null}
+
+      {action !== null && props.phase === "confirmed" && props.result !== null ? (
+        <div>
+          {action === "remove" ? (
+            <section className={styles.outcomeBlock}>
+              <p className={styles.outcomeTitle}>{t("plugin.detail.removedTitle")}</p>
+              <p>{t("plugin.detail.removedBody")}</p>
+            </section>
+          ) : (
+            <section className={styles.outcomeBlock}>
+              <p className={styles.outcomeTitle}>{t("plugin.detail.confirmedTitle")}</p>
+              {props.result.replayed ? <p>{t("plugin.detail.replayedNote")}</p> : null}
+            </section>
+          )}
+          <dl className={styles.facts}>
+            <div>
+              <dt>{t("plugin.detail.confirmedRefLabel")}</dt>
+              <dd>
+                <code>{props.result.operation_ref}</code>
+              </dd>
+            </div>
+          </dl>
+          <div className={styles.actions}>
+            <button type="button" className={styles.control} onClick={props.onClose}>
+              {t("actions.close")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {action !== null && props.phase === "reconciled" && chip !== null && ChipIcon !== undefined ? (
+        <div>
+          <section className={styles.outcomeBlock}>
+            <p className={styles.outcomeTitle}>{t("plugin.detail.stateHeading")}</p>
+            <dl className={styles.facts}>
+              <div>
+                <dt>{t("plugin.detail.stateLifecycleState")}</dt>
+                <dd>
+                  <span className={`${styles.chip} ${styles[chip.tone]}`}>
+                    <ChipIcon aria-hidden="true" size={14} />
+                    {t(chip.labelKey)}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </section>
+          <div className={styles.actions}>
+            <button type="button" className={styles.control} onClick={props.onClose}>
+              {t("actions.close")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {action !== null && props.phase === "unknown" ? (
+        <div>
+          <RecoveryPanel
+            title={t("plugin.detail.unknownTitle")}
+            body={t("plugin.detail.unknownBody")}
+            referenceId={props.unknownCorrelation ?? ""}
+          />
+          <dl className={styles.facts}>
+            <div>
+              <dt>{t("plugin.detail.unknownRefLabel")}</dt>
+              <dd>
+                {props.unknownCorrelation === null ? (
+                  <span className={styles.muted}>{t("plugin.detail.unknownNoKeyNote")}</span>
+                ) : (
+                  <code>{props.unknownCorrelation}</code>
+                )}
+              </dd>
+            </div>
+          </dl>
+          {props.reconcileFailed ? <p className={styles.fieldNote}>{t("plugin.detail.reconcileFailed")}</p> : null}
+          <div className={styles.actions}>
+            <button type="button" className={styles.control} onClick={props.onReconcile}>
+              {t("plugin.detail.reconcile")}
+            </button>
+            <button type="button" className={styles.control} onClick={props.onClose}>
+              {t("actions.close")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {action !== null && props.phase === "failure" && props.failure !== null ? (
+        <div>
+          <RecoveryPanel
+            title={t("plugin.detail.failureTitle")}
+            body={t("plugin.detail.actionFailureBody")}
+            note={t("plugin.detail.connectionHint")}
+            referenceId={props.failure.correlationId}
+          />
+          <p className={styles.code}>
+            <span className="visually-hidden">Code: </span>
+            <code>{props.failure.code}</code>
+          </p>
+          <div className={styles.actions}>
+            <button type="button" className={styles.control} onClick={props.onClose}>
+              {t("actions.close")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </Dialog>
   );
 }
