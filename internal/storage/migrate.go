@@ -648,6 +648,49 @@ CREATE INDEX IF NOT EXISTS idx_workflow_run_history_definition
     ON workflow_run_history (definition_id, created_at, run_ref);
 `,
 	},
+	{
+		Version: 17,
+		Name:    "0017-plugin-lifecycle-family",
+		SQL: `
+CREATE TABLE IF NOT EXISTS plugins (
+    plugin_id          TEXT PRIMARY KEY,
+    lifecycle_state    TEXT NOT NULL,
+    package_ref        TEXT NOT NULL,
+    version_ref        TEXT NOT NULL,
+    install_record_ref TEXT NOT NULL,
+    package_json       TEXT NOT NULL DEFAULT '',
+    granted_capabilities_json TEXT NOT NULL DEFAULT '[]',
+    installed_at       TEXT NOT NULL DEFAULT '',
+    created_at         TEXT NOT NULL,
+    updated_at         TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_plugins_created
+    ON plugins (created_at, plugin_id);
+
+CREATE TABLE IF NOT EXISTS plugin_operations (
+    operation_id    TEXT PRIMARY KEY,
+    kind            TEXT NOT NULL,
+    state           TEXT NOT NULL,
+    correlation_id  TEXT NOT NULL,
+    plugin_id       TEXT NOT NULL DEFAULT '',
+    result_ref      TEXT NOT NULL DEFAULT '',
+    failure_code    TEXT NOT NULL DEFAULT '',
+    failure_reason  TEXT NOT NULL DEFAULT '',
+    idempotency_key TEXT NOT NULL DEFAULT '',
+    fingerprint     TEXT NOT NULL DEFAULT '',
+    terminal_at     TEXT NOT NULL DEFAULT '',
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_plugin_operations_key_unique
+    ON plugin_operations (idempotency_key) WHERE idempotency_key != '';
+
+CREATE INDEX IF NOT EXISTS idx_plugin_operations_plugin
+    ON plugin_operations (plugin_id, created_at);
+`,
+	},
 }
 
 // compatibility window (C2-11 §5): a binary of release N supports schema
@@ -660,11 +703,16 @@ CREATE INDEX IF NOT EXISTS idx_workflow_run_history_definition
 // Workflow authoring family's tables (the Core-minted definitions, the
 // immutable revision records — INSERT only, never updated or removed, the
 // keyed create/save operation records, and the run-history linkage
-// records); existing migrations are never modified (checksums
+// records); migration 0017 adds the B5 Plugin lifecycle family's tables
+// (the Core-minted installed-plugin records, and the keyed install/update/
+// remove/revoke + unkeyed toggle operation records — NO invocation or
+// quota table exists in this family's schema: the invocation/execution
+// rows are GATED [D-13/D-14 + the Core MB §10.2 runtime proof] and nothing
+// drafts one); existing migrations are never modified (checksums
 // authoritative).
 const (
 	schemaVersionMin = 1
-	schemaVersionMax = 16
+	schemaVersionMax = 17
 )
 
 // ensureMigrationAuthority bootstraps the schema_migrations table itself —

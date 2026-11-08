@@ -136,6 +136,22 @@ const (
 	// port (MB §12.3) decides every protected effect; no permission policy
 	// is invented and Local mode stays role-free.
 	ResourceWorkflow = "workflow"
+	// ResourcePlugin is the B5 Plugin lifecycle family's surface (the
+	// published /plugins route family — the lifecycle list/install, the
+	// inspect read, the M-29 state-toggle, the M-30 update, the M-31
+	// remove, the G7 grant revocation, and the family's authoritative
+	// state endpoint; DE-0 queue row 8). THE GATED EXECUTION ROWS: no
+	// invocation/execution operation exists on this surface — nothing here
+	// enables any execution (D-13/D-14 + the Core MB §10.2 runtime proof
+	// keep their recorded states). THE NEVER-GRANT LAW: no operation on
+	// this surface grants a permission — the user grants/denies; the Core
+	// mediates and enforces. It joins this register ADDITIVELY — the same
+	// deliberate, recorded register-extension class: the fail-closed
+	// default-deny machinery, its predicates, and every existing row are
+	// unchanged; unknown types deny exactly as before. The single decision
+	// port (MB §12.3) decides every protected effect; no permission policy
+	// is invented and Local mode stays role-free.
+	ResourcePlugin = "plugin"
 )
 
 var localResourceTypes = map[string]bool{
@@ -154,6 +170,7 @@ var localResourceTypes = map[string]bool{
 	ResourceMemory:       true,
 	ResourceContext:      true,
 	ResourceWorkflow:     true,
+	ResourcePlugin:       true,
 }
 
 func (r Resource) validate() error {

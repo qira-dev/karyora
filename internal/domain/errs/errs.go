@@ -150,6 +150,51 @@ const (
 	// is not a Core-confirmed saved revision (the no-silent-save law);
 	// retry class never.
 	CodeWorkflowNotSaved Code = "WORKFLOW_NOT_SAVED"
+
+	// The Plugin family's domain codes (the published PluginErrorCode
+	// register; the CF-5 publication act) — each riding the published
+	// ErrorEnvelope with its PUBLISHED retryable assignment (the
+	// publication act's assignments following the CF-5 draft §3(k)
+	// retryClass routing), each naming the admission/lifecycle check whose
+	// typed outcome it carries. THE SHAPE QUESTION RECORDED OPEN: whether
+	// the Core collapses the three typed INVALID outcomes into one typed
+	// `data` payload instead is still OPEN — the three codes stay DISTINCT
+	// here as the contract publishes them. The idempotency/state conflicts
+	// ride the PUBLISHED codes exactly (CONFLICT_IDEMPOTENCY_KEY /
+	// CONFLICT_STATE) — no Plugin-specific conflict code exists.
+	//
+	// CodePluginTrustUnknown — the UNKNOWN admission state's outcome:
+	// publisher/trust root unverified or not determinable by the Core; the
+	// state can change only Core-side — reconcile through the
+	// authoritative state read before any retry, never a blind resubmit;
+	// retry class reconcile.
+	CodePluginTrustUnknown Code = "PLUGIN_TRUST_UNKNOWN"
+	// CodePluginSignatureInvalid — the signature-verification failure; a
+	// DISTINCT typed INVALID outcome; a fact about the submitted bytes; a
+	// retry of the same bytes re-fails deterministically; retry class
+	// never.
+	CodePluginSignatureInvalid Code = "PLUGIN_SIGNATURE_INVALID"
+	// CodePluginDigestMismatch — the digest mismatch; a DISTINCT typed
+	// INVALID outcome; a fact about the submitted bytes; retry class
+	// never.
+	CodePluginDigestMismatch Code = "PLUGIN_DIGEST_MISMATCH"
+	// CodePluginManifestInvalid — the malformed-manifest outcome; a
+	// DISTINCT typed INVALID outcome; a fact about the submitted manifest;
+	// retry class never.
+	CodePluginManifestInvalid Code = "PLUGIN_MANIFEST_INVALID"
+	// CodePluginABIIncompatible — the INCOMPATIBLE state's outcome: the
+	// ABI/runtime mismatch; update availability is rendered where the Core
+	// reports it; retry class never.
+	CodePluginABIIncompatible Code = "PLUGIN_ABI_INCOMPATIBLE"
+	// CodePluginTrustRevoked — the REVOKED state's outcome: trust revoked;
+	// FUTURE invocations blocked and the current invocation's behavior
+	// Core-reported — never guessed; retry class never.
+	CodePluginTrustRevoked Code = "PLUGIN_TRUST_REVOKED"
+	// CodePluginCapabilityDenied — the DENIED state's outcome: policy
+	// denies a required capability, or the user denies it in the review; a
+	// retry never grants — the user's explicit act governs; retry class
+	// never.
+	CodePluginCapabilityDenied Code = "PLUGIN_CAPABILITY_DENIED"
 )
 
 // RetryClass is the operation-level retry classification. On the wire it
@@ -208,6 +253,20 @@ var register = map[Code]codeDefault{
 	CodeWorkflowUnknownNodeType:       {retryable: false, class: RetryNever},
 	CodeWorkflowNodePermissionDenied:  {retryable: false, class: RetryNever},
 	CodeWorkflowNotSaved:              {retryable: false, class: RetryNever},
+	// The Plugin family's domain codes (the published PluginErrorCode
+	// register; the CF-5 publication act) join additively at their
+	// implementation per the same recorded register-extension class —
+	// each with its PUBLISHED retryable value and coded retryClass
+	// (PLUGIN_TRUST_UNKNOWN rides reconcile — the state can change only
+	// Core-side; the remaining six ride never, per the publication act's
+	// assignments).
+	CodePluginTrustUnknown:     {retryable: true, class: RetryReconcile},
+	CodePluginSignatureInvalid: {retryable: false, class: RetryNever},
+	CodePluginDigestMismatch:   {retryable: false, class: RetryNever},
+	CodePluginManifestInvalid:  {retryable: false, class: RetryNever},
+	CodePluginABIIncompatible:  {retryable: false, class: RetryNever},
+	CodePluginTrustRevoked:     {retryable: false, class: RetryNever},
+	CodePluginCapabilityDenied: {retryable: false, class: RetryNever},
 }
 
 // RetryClassOf reports the registered default classification for a code and

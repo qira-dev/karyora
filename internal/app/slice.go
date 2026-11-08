@@ -124,6 +124,15 @@ type SliceDeps struct {
 	// every other surface is unchanged. THE D-40 GATE: the port carries NO
 	// run-execution member — nothing here enables any execution.
 	Workflow WorkflowStore
+	// Plugin is the B5 Plugin lifecycle family's durable surface port (the
+	// published /plugins route family; DE-0 queue row 8). Optional: nil
+	// disables the plugin surface (typed refusals, fail closed) — every
+	// other surface is unchanged. THE GATED EXECUTION ROWS: the port
+	// carries NO invocation member — nothing here enables any execution
+	// (D-13/D-14 + the Core MB §10.2 runtime proof keep their recorded
+	// states). THE NEVER-GRANT LAW: no member on this port grants a
+	// capability.
+	Plugin PluginStore
 	// Secrets is the D-37 SecretWriter face the connection operations use
 	// (the keyring store implements both faces). Nil disables credential
 	// persistence — the connection writes then refuse with the typed

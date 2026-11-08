@@ -60,6 +60,18 @@ func TestRegisterMatchesSpecification(t *testing.T) {
 		CodeWorkflowUnknownNodeType:       {retryable: false, class: RetryNever},
 		CodeWorkflowNodePermissionDenied:  {retryable: false, class: RetryNever},
 		CodeWorkflowNotSaved:              {retryable: false, class: RetryNever},
+		// The Plugin family's domain codes (the published PluginErrorCode
+		// register; the CF-5 publication act) join additively at their
+		// implementation per the same recorded register-extension class —
+		// each with its PUBLISHED retryable value (PLUGIN_TRUST_UNKNOWN
+		// rides reconcile; the remaining six ride never).
+		CodePluginTrustUnknown:     {retryable: true, class: RetryReconcile},
+		CodePluginSignatureInvalid: {retryable: false, class: RetryNever},
+		CodePluginDigestMismatch:   {retryable: false, class: RetryNever},
+		CodePluginManifestInvalid:  {retryable: false, class: RetryNever},
+		CodePluginABIIncompatible:  {retryable: false, class: RetryNever},
+		CodePluginTrustRevoked:     {retryable: false, class: RetryNever},
+		CodePluginCapabilityDenied: {retryable: false, class: RetryNever},
 	}
 	if len(register) != len(want) {
 		t.Fatalf("register holds %d codes, specification lists %d", len(register), len(want))

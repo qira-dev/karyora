@@ -242,6 +242,11 @@ func newTestEnvComposed(t *testing.T, configure func(*app.SliceDeps)) *testEnv {
 		// implements the workflow port (the D-40 gate: no run-execution
 		// member exists on the port).
 		Workflow: st,
+		// The B5 Plugin lifecycle family surface (DE-0 queue row 8): the
+		// test-side twin of the composition root's wiring — the same store
+		// implements the plugin port (the GATED execution rows: no
+		// invocation member exists on the port).
+		Plugin: st,
 		// The C-4 session-command surface (IMPL-23): the real composition
 		// wires the same session service the Guard and this transport hold.
 		Sessions: sessions,

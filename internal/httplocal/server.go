@@ -22,6 +22,7 @@ import (
 	"github.com/qira-dev/karyora/internal/domain/knowledge"
 	"github.com/qira-dev/karyora/internal/domain/memory"
 	"github.com/qira-dev/karyora/internal/domain/notification"
+	plugindomain "github.com/qira-dev/karyora/internal/domain/plugin"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	workflowdomain "github.com/qira-dev/karyora/internal/domain/workflow"
 	"github.com/qira-dev/karyora/internal/events"
@@ -395,6 +396,36 @@ func routes() []route {
 		{method: http.MethodGet, prefix: "/v1/workflows/", hasID: true, suffix: "/run-history", handler: (*Server).handleWorkflowRunHistory},
 		{method: http.MethodPost, prefix: "/v1/workflows/", hasID: true, suffix: "/revisions", mutates: true, handler: (*Server).handleWorkflowRevisionSave},
 		{method: http.MethodGet, prefix: "/v1/workflows/", hasID: true, handler: (*Server).handleWorkflowDefinitionGet},
+		// The B5 Plugin lifecycle family (DE-0 queue row 8): the published
+		// /plugins route family as this adapter serves it (the /v1
+		// adapter-prefix convention; the canonical members live verbatim in
+		// contracts/openapi.yaml — never restated). Every operation rides
+		// the slice's one decision port (the ResourcePlugin register
+		// extension; Local mode stays role-free). THE GATED EXECUTION ROWS
+		// (carried exactly): THE INVOCATION/EXECUTION OPERATION DOES NOT
+		// EXIST — no invocation route exists in this table, no
+		// invocation/in-flight state schema exists, no invocation-status
+		// read, no invocation events, no quota-value reporting, no
+		// steering/stop controls; every plausible invocation path resolves
+		// the router's NOT_FOUND (the register's stable vocabulary). THE
+		// NEVER-GRANT LAW: no route on this family grants a capability —
+		// the user grants/denies; the Core mediates and enforces. THE
+		// DISTINCTNESS LAWS: the M-29 toggle is ONE member covering both
+		// directions via the body's target state; the revoked states are
+		// never exitable through it. THE REMOVE-VS-REVOKE QUESTION STAYS
+		// OPEN (no text asserts they are the same or distinct). All five
+		// mutation routes are real mutations (the CSRF gate); the list,
+		// inspect, and state routes are pure reads. Literal suffix routes
+		// register before the generic {plugin_id} read so match() resolves
+		// them first.
+		{method: http.MethodGet, prefix: "/v1/plugins", handler: (*Server).handlePluginList},
+		{method: http.MethodPost, prefix: "/v1/plugins", mutates: true, handler: (*Server).handlePluginInstall},
+		{method: http.MethodGet, prefix: "/v1/plugins/", hasID: true, suffix: "/state", handler: (*Server).handlePluginState},
+		{method: http.MethodPost, prefix: "/v1/plugins/", hasID: true, suffix: "/enable", mutates: true, handler: (*Server).handlePluginEnable},
+		{method: http.MethodPost, prefix: "/v1/plugins/", hasID: true, suffix: "/update", mutates: true, handler: (*Server).handlePluginUpdate},
+		{method: http.MethodPost, prefix: "/v1/plugins/", hasID: true, suffix: "/remove", mutates: true, handler: (*Server).handlePluginRemove},
+		{method: http.MethodPost, prefix: "/v1/plugins/", hasID: true, suffix: "/grants/revoke", mutates: true, handler: (*Server).handlePluginRevokeGrants},
+		{method: http.MethodGet, prefix: "/v1/plugins/", hasID: true, handler: (*Server).handlePluginGet},
 		{method: http.MethodGet, prefix: "/v1/events/replay", handler: (*Server).handleReplay},
 	}
 }
@@ -2326,6 +2357,193 @@ func (s *Server) handleWorkflowDefinitionState(w http.ResponseWriter, r *http.Re
 	s.writeJSON(w, http.StatusOK, workflowStateResult{DefinitionState: res})
 }
 
+// The B5 Plugin lifecycle family handlers (DE-0 queue row 8): the published
+// /plugins operations over the slice's plugin surface. Every handler runs
+// the use case through the one decision port inside the slice — an
+// unauthenticated request reaches the typed AUTHZ_DENIED/SESSION_INVALID
+// envelope, never the data. THE GATED EXECUTION ROWS (carried exactly): NO
+// invocation/execution handler exists — no invocation operation, no
+// invocation/in-flight state schema, no invocation-status read, no
+// invocation events, no quota-value reporting, no steering/stop control;
+// every plausible invocation path resolves the router's NOT_FOUND (the
+// register's stable vocabulary). THE NEVER-GRANT LAW: no handler grants a
+// capability — the user grants/denies; the Core mediates and enforces.
+// THE DISTINCTNESS LAWS: the toggle is ONE member covering both directions
+// via the body's target state; the revoked states are never exitable
+// through it. REDACTION IS THE CORE'S DUTY — the handlers return
+// Core-returned content only, never a computed diagnostic.
+
+// handlePluginList exposes the keyset list read (the cursor's absence marks
+// the final page; the M-1 correlation class — safe to re-issue). The list
+// IS the user-installed list — USER-INSTALLED ≠ CATALOG-LISTED, always; a
+// catalog exists ONLY when the Core supplies one (none is published).
+func (s *Server) handlePluginList(w http.ResponseWriter, r *http.Request, token, _ string) {
+	q := r.URL.Query()
+	limit, lerr := parseListLimit(q.Get("limit"))
+	if lerr != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "limit"}))
+		return
+	}
+	cursor := q.Get("cursor")
+	if len(cursor) > maxListCursorLen {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "cursor"}))
+		return
+	}
+	res, err := s.deps.Slice.Plugins(s.callCtx(r, token), app.PluginListRequest{Limit: limit, Cursor: cursor})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, pluginListResult{Plugins: res.Plugins, NextCursor: res.Cursor})
+}
+
+// handlePluginInstall exposes the C1-07 install member: the Core mints the
+// plugin, package, install-record, and grant identities — the body never
+// carries one; a duplicate with the same key returns the SAME install-record
+// reference, never a second one; the install lands the plugin in its
+// installed NOT-yet-enabled state. THE ADMISSION-PIPELINE STRUCTURE, THE
+// VERDICT LAW, and THE AUDIT-RECEIPT LAW ride the published description and
+// are honored in the slice — the verdict is the CORE's output, the receipt
+// rides the Core's audit layer, never a UI-side journal.
+func (s *Server) handlePluginInstall(w http.ResponseWriter, r *http.Request, token, _ string) {
+	var req pluginInstallRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.InstallPlugin(s.callCtx(r, token), app.PluginInstallRequest{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+		PackageRef:     req.PackageRef,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, pluginInstallResult{InstallRecordRef: res.InstallRecordRef, Replayed: res.Replayed})
+}
+
+// handlePluginGet exposes the inspect member (a pure read; no state
+// change). THE DUTY SPLIT and THE MAY-NEVER LIST carried: the record
+// renders ONLY Core-returned verification states — never a computed one.
+// The unknown identity and the out-of-scope identity are the SAME typed 404
+// (the no-leak rule).
+func (s *Server) handlePluginGet(w http.ResponseWriter, r *http.Request, token, pluginID string) {
+	rec, err := s.deps.Slice.PluginInspect(s.callCtx(r, token), pluginID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, rec)
+}
+
+// handlePluginEnable exposes the M-29 state-toggle member — ONE member
+// covering both directions via the body's target state (the published pin
+// precedent's shape). A revoked state is never exitable through it (the
+// distinctness laws — the typed refusals ride the published register codes
+// the states carry).
+func (s *Server) handlePluginEnable(w http.ResponseWriter, r *http.Request, token, pluginID string) {
+	var req pluginEnableRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.SetPluginEnabled(s.callCtx(r, token), pluginID, app.PluginEnableRequestBody{Enabled: req.Enabled})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, pluginMutationResult{PluginID: res.PluginID, OperationRef: res.OperationRef, Replayed: res.Replayed})
+}
+
+// handlePluginUpdate exposes the M-30 update member: the fresh-review law
+// gates completion past an un-reviewed permission change (the typed
+// refusal stores nothing and consumes no key — a retry never grants); the
+// atomic upgrade is the Core-confirmed switch (the prior record intact
+// until it commits).
+func (s *Server) handlePluginUpdate(w http.ResponseWriter, r *http.Request, token, pluginID string) {
+	var req pluginUpdateRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.UpdatePlugin(s.callCtx(r, token), pluginID, app.PluginUpdateRequest{
+		IdempotencyKey:   req.IdempotencyKey,
+		CorrelationID:    req.CorrelationID,
+		TargetVersionRef: req.TargetVersionRef,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, pluginMutationResult{PluginID: res.PluginID, OperationRef: res.OperationRef, Replayed: res.Replayed})
+}
+
+// handlePluginRemove exposes the M-31 remove member: Core-confirmed
+// removal; disposal follows the Core's retention — no erasure claim beyond
+// the Core-confirmed scope. THE REMOVE-VS-REVOKE QUESTION STAYS RECORDED
+// OPEN (no text asserts removal and grant revocation are the same or
+// distinct — this member asserts neither).
+func (s *Server) handlePluginRemove(w http.ResponseWriter, r *http.Request, token, pluginID string) {
+	var req pluginMutationRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.RemovePlugin(s.callCtx(r, token), pluginID, app.PluginMutationRequestBody{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, pluginMutationResult{PluginID: res.PluginID, OperationRef: res.OperationRef, Replayed: res.Replayed})
+}
+
+// handlePluginRevokeGrants exposes the G7 revoke-grants member: revocation
+// blocks FUTURE invocations; the current invocation's behavior is
+// Core-reported — never guessed (on this Core no invocation path exists
+// while the execution rows are gated, so there is no current invocation to
+// report — the honest absence, never a fabricated one). A retry never
+// re-grants and a denial stands until the user's own explicit act.
+func (s *Server) handlePluginRevokeGrants(w http.ResponseWriter, r *http.Request, token, pluginID string) {
+	var req pluginMutationRequest
+	if err := decodeJSON(r, &req); err != nil {
+		s.writeEnvelope(w, http.StatusBadRequest, envelope(errs.CodeValidationFailed, errs.NewCorrelationID(),
+			map[string]any{"field": "body"}))
+		return
+	}
+	res, err := s.deps.Slice.RevokePluginGrants(s.callCtx(r, token), pluginID, app.PluginMutationRequestBody{
+		IdempotencyKey: req.IdempotencyKey,
+		CorrelationID:  req.CorrelationID,
+	})
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, pluginMutationResult{PluginID: res.PluginID, OperationRef: res.OperationRef, Replayed: res.Replayed})
+}
+
+// handlePluginState exposes the family's authoritative state endpoint (a
+// pure query — never a retry; the S0–S4 reconcile anchor after a lost write
+// response; the unknown identity is the SAME typed 404). Events are never
+// the source of truth; this endpoint is.
+func (s *Server) handlePluginState(w http.ResponseWriter, r *http.Request, token, pluginID string) {
+	st, err := s.deps.Slice.PluginState(s.callCtx(r, token), pluginID)
+	if err != nil {
+		s.writeError(w, err)
+		return
+	}
+	s.writeJSON(w, http.StatusOK, st)
+}
+
 // decodeOptionalJSON decodes a request body that the published operation
 // declares no schema for (the recorded delete/forget carrier gap): an
 // empty body decodes to the zero value; a present body must be one JSON
@@ -2551,6 +2769,21 @@ func statusFor(code errs.Code) int {
 	case errs.CodeWorkflowRevisionConflict, errs.CodeWorkflowWarningUnacknowledged, errs.CodeWorkflowNotSaved:
 		return http.StatusConflict
 	case errs.CodeWorkflowNodePermissionDenied:
+		return http.StatusForbidden
+	// The Plugin family's domain codes (the additive register extension):
+	// the three typed INVALID outcomes (a fact about the submitted bytes/
+	// manifest) ride 400 (the body's content is unacceptable); the
+	// UNKNOWN state's outcome (the state can change only Core-side;
+	// reconcile), the INCOMPATIBLE state's outcome, and the REVOKED
+	// state's outcome (the operation conflicts with the revoked state)
+	// ride 409 (state conflicts with the request); the DENIED state's
+	// outcome (the denied grant — an authorization-class boundary; a
+	// retry never grants) rides 403.
+	case errs.CodePluginSignatureInvalid, errs.CodePluginDigestMismatch, errs.CodePluginManifestInvalid:
+		return http.StatusBadRequest
+	case errs.CodePluginTrustUnknown, errs.CodePluginABIIncompatible, errs.CodePluginTrustRevoked:
+		return http.StatusConflict
+	case errs.CodePluginCapabilityDenied:
 		return http.StatusForbidden
 	default:
 		return http.StatusInternalServerError
@@ -3308,6 +3541,50 @@ type workflowRunHistoryResult struct {
 
 type workflowStateResult struct {
 	DefinitionState workflowdomain.DefinitionState `json:"definition_state"`
+}
+
+// The B5 Plugin family's wire shapes (the published /plugins members'
+// bodies as this adapter decodes and answers them; every key mirrors the
+// canonical contract member names verbatim — never a restatement). The
+// inspect and state reads answer the domain types directly — their JSON
+// tags ARE the contract member names (plugindomain.Plugin,
+// plugindomain.State).
+
+type pluginInstallRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+	PackageRef     string `json:"package_ref"`
+}
+
+type pluginInstallResult struct {
+	InstallRecordRef string `json:"install_record_ref"`
+	Replayed         bool   `json:"replayed"`
+}
+
+type pluginListResult struct {
+	Plugins    []plugindomain.Plugin `json:"plugins"`
+	NextCursor string                `json:"next_cursor,omitempty"`
+}
+
+type pluginEnableRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+type pluginUpdateRequest struct {
+	IdempotencyKey   string `json:"idempotency_key"`
+	CorrelationID    string `json:"correlation_id"`
+	TargetVersionRef string `json:"target_version_ref"`
+}
+
+type pluginMutationRequest struct {
+	IdempotencyKey string `json:"idempotency_key"`
+	CorrelationID  string `json:"correlation_id"`
+}
+
+type pluginMutationResult struct {
+	PluginID     string `json:"plugin_id"`
+	OperationRef string `json:"operation_ref"`
+	Replayed     bool   `json:"replayed"`
 }
 
 // compile-time interface check.

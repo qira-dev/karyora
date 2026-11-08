@@ -318,7 +318,17 @@ func wireJobSlice(lz *lazyStore, bundle *securityBundle) (*app.Slice, app.SliceD
 		// transactionally under the same single-writer gate; the immutable
 		// revision rows are INSERT-only). THE D-40 GATE: the port carries
 		// NO run-execution member — nothing here enables any execution.
-		Workflow:            store,
+		Workflow: store,
+		// The B5 Plugin lifecycle family surface (DE-0 queue row 8): the
+		// SAME store implements the plugin port (the plugin tables over
+		// migration 0017 — the C1-07 install and the short-window keyed
+		// rulings transactionally under the same single-writer gate; the
+		// M-29 toggle is the Core-recorded state-checked mutation). THE
+		// GATED EXECUTION ROWS: the port carries NO invocation member —
+		// nothing here enables any execution (D-13/D-14 + the Core MB
+		// §10.2 runtime proof keep their recorded states). THE NEVER-GRANT
+		// LAW: no member grants a capability.
+		Plugin:              store,
 		ConnectionExecutors: newCustomExecutorFactory(secrets, reg),
 		// The C-4 session-command surface (IMPL-23): the SAME session
 		// service the Guard's policy and the local transport already hold
