@@ -8,6 +8,16 @@
  * the Job/Attempt/Record structs, the D-35 error envelope, and the
  * session service's exchange result.
  *
+ * The knowledge section (B1-U1) is the ONE exception to the by-hand
+ * typing, and it is deliberate: the B1 Knowledge* shapes ride the
+ * GENERATED canonical types (the `components` members of
+ * `src/coreclient/generated-eval-surface/eval-surface.d.ts`, the
+ * drift-checked snapshot of `contracts/openapi.yaml`) — consumed
+ * verbatim, never hand-restyped. The adapter's knowledge JSON tags carry
+ * the published member names exactly (B1-A1 §2.5), so the generated
+ * types ARE the served shapes; only the adapter's wrapper keys and the
+ * `/v1` result shapes are typed here (the coded-name rule).
+ *
  * Honest boundary (recorded, never hidden):
  * - The `/v1/...` paths and the wrapper keys are the Core adapter's OWN
  *   paths — no published contract carries them, and no canonical
@@ -24,6 +34,10 @@
  * - No wire name, path, header, or field is invented beyond the coded
  *   shapes cited above.
  */
+
+/** The generated canonical contract types (see the header note): the
+ *  knowledge section consumes them verbatim. */
+import type { components } from "../generated-eval-surface/eval-surface";
 
 /** The coded Phase 2 error-code register (internal/domain/errs). This is
  *  the documented vocabulary, not a closed gate: an unlisted code is
@@ -1178,4 +1192,118 @@ export interface WireNotificationMutationRequest {
 export interface WireNotificationMutationResult {
   readonly updated: number;
   readonly unchanged: number;
+}
+
+// The knowledge surface (B1-U1; the DE-0 queue row 2). The typed shapes
+// are the GENERATED canonical contract types consumed verbatim (see the
+// header note) — the adapter's knowledge JSON tags carry the published
+// member names exactly (B1-A1 §2.5), so the generated types ARE the
+// served shapes. Honest boundary (the same class as every family above):
+// - The `/v1/knowledgepacks...` paths are the adapter's own serving of
+//   the published `/knowledgepacks` family (B1-A1 §2.1) — the published
+//   members verbatim under the adapter's `/v1` prefix.
+// - NO claims/evidence content is served (B1-A1 §2.6 item 1: counts ride
+//   the version as 0 and no claim/evidence member exists on the served
+//   version), NO source/entry content read exists, and NO artifact
+//   download route exists — none of it is invented anywhere downstream.
+
+/** The published KnowledgePack schema (generated, consumed verbatim). */
+export type KnowledgePack = components["schemas"]["KnowledgePack"];
+
+/** The published KnowledgePackVersion schema (generated, consumed
+ *  verbatim). */
+export type KnowledgePackVersion = components["schemas"]["KnowledgePackVersion"];
+
+/** The published KnowledgePackList schema (generated, consumed
+ *  verbatim). */
+export type KnowledgePackList = components["schemas"]["KnowledgePackList"];
+
+/** The published KnowledgePackVersionList schema (generated, consumed
+ *  verbatim). */
+export type KnowledgePackVersionList = components["schemas"]["KnowledgePackVersionList"];
+
+/** The served version read's `created_at` member. HONEST GAP NOTE (the
+ *  DE-0 §5 law, recorded in B1-U1 §6 — never a silent contract edit):
+ *  the published schema REQUIRES `created_at` on every
+ *  KnowledgePackVersion but does not DEFINE the property, so the
+ *  generated type structurally omits it. The adapter serves the member
+ *  (the coded JSON tag in internal/domain/knowledge), and the UI
+ *  consumes it through this narrow served-shape extension — never a
+ *  hand-restatement of the contract type itself. */
+export type KnowledgePackVersionServed = KnowledgePackVersion & { readonly created_at: string };
+
+/** The published KnowledgeImportSourceSpec schema (generated, consumed
+ *  verbatim): one served registry member — the Core's own supported
+ *  kinds and per-kind bounds; the served contents are the canonical
+ *  values, and the UI renders EXACTLY that list. */
+export type KnowledgeImportSourceSpec = components["schemas"]["KnowledgeImportSourceSpec"];
+
+/** The published KnowledgeImportRequest schema (generated, consumed
+ *  verbatim): the import submit body (the M-9 digest-keyed idempotency
+ *  class). */
+export type KnowledgeImportRequest = components["schemas"]["KnowledgeImportRequest"];
+
+/** The published KnowledgeExportRequest schema (generated, consumed
+ *  verbatim): the export submit body (the read-with-output class; the
+ *  scope/destination shown before generation). */
+export type KnowledgeExportRequest = components["schemas"]["KnowledgeExportRequest"];
+
+/** The published KnowledgeOperation schema (generated, consumed
+ *  verbatim): the state endpoint's authoritative record. No percentage
+ *  member exists anywhere on it (the no-fabricated-percentage law). */
+export type KnowledgeOperation = components["schemas"]["KnowledgeOperation"];
+
+/** The published KnowledgeOperationSubmitResult schema (generated,
+ *  consumed verbatim): `{operation, replayed}` — `replayed` is the honest
+ *  M-9 replay flag, and the 202 is accepted-for-processing, never
+ *  completion (the J-5 rule: the request is never the confirmation). */
+export type KnowledgeOperationSubmitResult = components["schemas"]["KnowledgeOperationSubmitResult"];
+
+/** `GET /v1/knowledgepacks?limit=&cursor=` success (200): the published
+ *  `KnowledgePackList` — the keyset page; `cursor` is OMITTED on the
+ *  final page: the cursorless page IS the end marker (no has_more/total
+ *  vocabulary exists). */
+export type WireKnowledgePackListResult = KnowledgePackList;
+
+/** `GET /v1/knowledgepacks/{id}` success (200): `{pack}` (the
+ *  coded-name rule: the operation's own name lowercased). */
+export interface WireKnowledgePackResult {
+  readonly pack: KnowledgePack;
+}
+
+/** `GET /v1/knowledgepacks/{id}/versions?limit=&cursor=` success (200):
+ *  the published `KnowledgePackVersionList`'s page shape with every
+ *  served version carrying its served `created_at` member (see
+ *  KnowledgePackVersionServed's honest gap note); the cursorless page
+ *  IS the final page. */
+export interface WireKnowledgeVersionListResult {
+  readonly versions: readonly KnowledgePackVersionServed[];
+  readonly cursor?: string;
+}
+
+/** `GET /v1/knowledgepacks/{id}/versions/{version_id}` success (200):
+ *  `{version}` — one immutable version's structural members (the
+ *  served shape with `created_at`; see the gap note). */
+export interface WireKnowledgeVersionResult {
+  readonly version: KnowledgePackVersionServed;
+}
+
+/** `GET /v1/knowledgepacks/import/registry` success (200): `{sources}` —
+ *  the Core's own served supported-source registry; the read creates
+ *  nothing and probes nothing. */
+export interface WireKnowledgeRegistryResult {
+  readonly sources: readonly KnowledgeImportSourceSpec[];
+}
+
+/** `POST /v1/knowledgepacks/import` and `POST /v1/knowledgepacks/export`
+ *  success (202): the published `KnowledgeOperationSubmitResult` —
+ *  `{operation, replayed}`. */
+export type WireKnowledgeSubmitResult = KnowledgeOperationSubmitResult;
+
+/** `GET /v1/knowledgepacks/operations/{id}` (the family's authoritative
+ *  state endpoint — a pure query, never a retry) and
+ *  `POST /v1/knowledgepacks/operations/{id}/cancel` (202 = accepted for
+ *  processing) success: `{operation}`. */
+export interface WireKnowledgeOperationResult {
+  readonly operation: KnowledgeOperation;
 }

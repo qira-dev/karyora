@@ -18,6 +18,9 @@ import { ShortcutsPage } from "../pages/settings/ShortcutsPage";
 import { AboutPage } from "../pages/settings/AboutPage";
 import { EntryStatePage } from "../pages/settings/EntryStatePage";
 import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
+import { KnowledgeLibraryPage } from "../pages/knowledge/KnowledgeLibraryPage";
+import { KnowledgePackDetailPage } from "../pages/knowledge/KnowledgePackDetailPage";
+import { KnowledgeVersionPage } from "../pages/knowledge/KnowledgeVersionPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
@@ -67,6 +70,18 @@ import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
  * delivery. The surface is READ-ONLY: no dismiss, no delete, and no
  * correction control exists anywhere on it.
  *
+ * B1-U1 (the DE-0 queue row 2) adds the Knowledge surface's routes
+ * exactly as the records name them (P1.1 #7/#8/#9; P4.1 §3.1/§3.2):
+ * `/knowledge` (the library list), `/knowledge/packs/:packId` (the ONE
+ * canonical pack detail route — every pack link opens it, X-2), and
+ * `/knowledge/packs/:packId/versions/:versionId` (the canonical
+ * immutable-version deep link). The surfaces consume the now-live B1
+ * `/knowledgepacks` adapter family only (B1-A1 §2.1) and render nothing
+ * the adapter does not serve (B1-A1 §2.6's honesty list). The remaining
+ * UIR-6/7 feature routes (Memory, Context, Workflows, Plugins) are still
+ * NOT surfaces — no route, no stub, and no placeholder screen exists for
+ * them (the no-dead-stub rule).
+ *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
  * by the J-8 dirty-form navigation guard's useBlocker); `AppRoutes`
@@ -79,6 +94,9 @@ export const appRouteElements: ReactElement = (
     <Route path="chat" element={<ChatPage />} />
     <Route path="chat/:conversationId" element={<ChatPage />} />
     <Route path="activity" element={<ActivityPage />} />
+    <Route path="knowledge" element={<KnowledgeLibraryPage />} />
+    <Route path="knowledge/packs/:packId" element={<KnowledgePackDetailPage />} />
+    <Route path="knowledge/packs/:packId/versions/:versionId" element={<KnowledgeVersionPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />

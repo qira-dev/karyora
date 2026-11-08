@@ -1,0 +1,294 @@
+/* The W-2 import wizard (B1-U1). Styles ride the same design tokens as
+   every other surface; logical properties throughout (P2.4 §4.5). */
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.stepCurrent {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.kindList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.kindRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.kindRow span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.kindMeta {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.fileInput {
+  margin-block-end: var(--space-3);
+  font: inherit;
+}
+
+.subHeading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queueItem {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.queueItemMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.queueName {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.queueMeta {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+/* The advisory early-check classes: clearly non-authoritative (T3's
+   law) — a quiet note normally, a warning-tone line only when the
+   advisory bound is exceeded, and never worded as a validation result. */
+.advisory {
+  font-size: var(--text-metadata-size);
+  color: var(--color-warning);
+}
+
+.advisoryQuiet {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.destinationFieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.destinationLegend {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+  padding: 0 var(--space-1);
+}
+
+.destinationOption {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.destinationOption span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.destinationPackLabel {
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.destinationPackSelect {
+  min-height: var(--size-button-secondary);
+  max-width: 100%;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-input);
+  background: var(--color-surface-1);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding-inline-start: var(--space-4);
+}
+
+.reviewItem {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.reviewItemHeading {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+
+.reviewFacts {
+  display: grid;
+  grid-template-columns: minmax(12ch, max-content) 1fr;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.reviewFacts dt {
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.reviewFacts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-block-start: var(--space-3);
+}
+
+.trackingPanel {
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.operationStateRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+/* The state chip: icon + text; the tone classes supplement with color
+   only — the text label always carries the state (§7.2). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  min-height: var(--size-button-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--text-metadata-size);
+}
+
+.chip.neutral {
+  color: var(--color-text-primary);
+}
+
+.chip.info {
+  color: var(--color-info);
+}
+
+.chip.success {
+  color: var(--color-success);
+}
+
+.chip.warning {
+  color: var(--color-warning);
+}
+
+.chip.danger {
+  color: var(--color-danger);
+}
+
+.confirmBlock {
+  padding: var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+}
+
+.confirmTitle {
+  margin: 0 0 var(--space-1);
+  font-weight: 700;
+}
+
+.outcomeBlock {
+  margin-block-start: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-2);
+}
+
+.outcomeTitle {
+  margin: 0 0 var(--space-1);
+  font-weight: 700;
+}
+
+.resultList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resultRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+  min-width: 0;
+}
+
+.resultFacts {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

@@ -12,6 +12,7 @@ import run from "./locales/en/run.json";
 import chat from "./locales/en/chat.json";
 import notifications from "./locales/en/notifications.json";
 import activity from "./locales/en/activity.json";
+import knowledge from "./locales/en/knowledge.json";
 
 /**
  * Localization (G-10; UI-18 LOCKED set; P1.9 §6.5 / P1.10 A-7 APPROVED
@@ -83,7 +84,7 @@ function deepMerge<T extends Record<string, unknown>>(target: T, ...sources: Rec
 }
 
 function englishResources(): Record<string, unknown> {
-  return deepMerge({}, common, nav, shell, settings, home, firstrun, jobs, run, chat, notifications, activity);
+  return deepMerge({}, common, nav, shell, settings, home, firstrun, jobs, run, chat, notifications, activity, knowledge);
 }
 
 export function createI18n(): I18n {

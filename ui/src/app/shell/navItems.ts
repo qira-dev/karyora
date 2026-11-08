@@ -65,7 +65,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       // and every Job link opens the ONE canonical detail route
       // `/jobs/:jobId` (R-1).
       { id: "jobs", labelKey: "items.jobs", icon: ListTodo, route: "/jobs" },
-      { id: "knowledge", labelKey: "items.knowledge", icon: BookOpen, disabled: true },
+      // The Knowledge surface ships at B1-U1 (the DE-0 queue row 2): the
+      // item activates its accepted §4.1 route target — the library list
+      // is `/knowledge`, every pack link opens the ONE canonical detail
+      // route `/knowledge/packs/:packId`, and every version link opens
+      // the canonical immutable-version route (P1.1 #7/#8/#9; X-2/R-2).
+      // The surface renders only what the live B1 adapter serves and
+      // carries the recorded gate states for everything it does not
+      // (B1-A1 §2.6's honesty list).
+      { id: "knowledge", labelKey: "items.knowledge", icon: BookOpen, route: "/knowledge" },
       { id: "memory", labelKey: "items.memory", icon: Bookmark, disabled: true },
       { id: "context", labelKey: "items.context", icon: Filter, disabled: true },
       { id: "workflows", labelKey: "items.workflows", icon: Workflow, disabled: true },

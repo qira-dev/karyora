@@ -103,6 +103,20 @@ import type {
   WireStatusResult,
   WireSubmitRequest,
   WireSubmitResult,
+  KnowledgeExportRequest,
+  KnowledgeImportRequest,
+  KnowledgeImportSourceSpec,
+  KnowledgeOperation,
+  KnowledgeOperationSubmitResult,
+  KnowledgePack,
+  KnowledgePackVersionServed,
+  WireKnowledgeOperationResult,
+  WireKnowledgePackListResult,
+  WireKnowledgePackResult,
+  WireKnowledgeRegistryResult,
+  WireKnowledgeSubmitResult,
+  WireKnowledgeVersionListResult,
+  WireKnowledgeVersionResult,
 } from "./wire";
 
 /** The outcome of one transport call: typed data, the verbatim D-35
@@ -381,6 +395,93 @@ function isWireNotificationMutationResult(value: unknown): value is WireNotifica
   if (value === null || typeof value !== "object") return false;
   const result = value as Record<string, unknown>;
   return typeof result.updated === "number" && typeof result.unchanged === "number";
+}
+
+/** The coded knowledge guards (B1-U1): each response must carry its
+ *  distinguishing published members to be presented as data; anything
+ *  else stays unknown — never reinterpreted, never fabricated. The
+ *  optional members are checked only where their presence distinguishes
+ *  the shape; the generated types carry the full member set. */
+function isWireKnowledgePack(value: unknown): value is KnowledgePack {
+  if (value === null || typeof value !== "object") return false;
+  const pack = value as Record<string, unknown>;
+  return (
+    typeof pack.pack_id === "string" &&
+    typeof pack.schema_version === "number" &&
+    typeof pack.title === "string" &&
+    typeof pack.created_at === "string" &&
+    typeof pack.updated_at === "string" &&
+    typeof pack.current_version_id === "string"
+  );
+}
+
+function isWireKnowledgePackList(value: unknown): value is WireKnowledgePackListResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (!Array.isArray(shaped.packs)) return false;
+  // The cursor key is absent on the final page: absence is data (the end
+  // marker), never an error.
+  return shaped.cursor === undefined || typeof shaped.cursor === "string";
+}
+
+function isWireKnowledgeVersion(value: unknown): value is KnowledgePackVersionServed {
+  if (value === null || typeof value !== "object") return false;
+  const version = value as Record<string, unknown>;
+  return (
+    typeof version.pack_id === "string" &&
+    typeof version.version_id === "string" &&
+    typeof version.schema_version === "number" &&
+    typeof version.pack_root_digest === "string" &&
+    // The served `created_at` member (see wire.ts's honest gap note).
+    typeof version.created_at === "string"
+  );
+}
+
+function isWireKnowledgeVersionList(value: unknown): value is WireKnowledgeVersionListResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (!Array.isArray(shaped.versions)) return false;
+  if (!shaped.versions.every((row) => isWireKnowledgeVersion(row))) return false;
+  return shaped.cursor === undefined || typeof shaped.cursor === "string";
+}
+
+function isWireKnowledgeImportSourceSpec(value: unknown): value is KnowledgeImportSourceSpec {
+  if (value === null || typeof value !== "object") return false;
+  const spec = value as Record<string, unknown>;
+  return (
+    typeof spec.source_kind === "string" && typeof spec.max_bytes === "number"
+  );
+}
+
+function isWireKnowledgeRegistry(value: unknown): value is WireKnowledgeRegistryResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return Array.isArray(shaped.sources) && shaped.sources.every((row) => isWireKnowledgeImportSourceSpec(row));
+}
+
+function isWireKnowledgeOperation(value: unknown): value is KnowledgeOperation {
+  if (value === null || typeof value !== "object") return false;
+  const op = value as Record<string, unknown>;
+  return (
+    typeof op.operation_id === "string" &&
+    typeof op.kind === "string" &&
+    typeof op.state === "string" &&
+    typeof op.correlation_id === "string" &&
+    typeof op.created_at === "string" &&
+    typeof op.updated_at === "string"
+  );
+}
+
+function isWireKnowledgeSubmitResult(value: unknown): value is KnowledgeOperationSubmitResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return typeof shaped.replayed === "boolean" && isWireKnowledgeOperation(shaped.operation);
+}
+
+function isWireKnowledgeOperationResult(value: unknown): value is WireKnowledgeOperationResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  return shaped.operation !== null && typeof shaped.operation === "object" && isWireKnowledgeOperation(shaped.operation);
 }
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
@@ -1372,6 +1473,140 @@ export function createHttpLocalTransport() {
         "/v1/notifications/clear",
         post(JSON.stringify(payload)),
         isWireNotificationMutationResult,
+      );
+    },
+
+    // The knowledge surface (B1-U1; the DE-0 queue row 2): the adapter's
+    // serving of the published `/knowledgepacks` family (B1-A1 §2.1) —
+    // nine operations, the M-9 digest-keyed idempotency class, and the
+    // family's authoritative state endpoint. The truthfulness rules above
+    // apply unchanged: a lost response is `unknown` and is NEVER proof of
+    // success, cancellation, or safe retry (the S0–S4 law) — an import or
+    // export outcome reconciles ONLY through `knowledgeOperationStatus`
+    // (a pure query — never a retry) before any resubmission.
+
+    /** `GET /v1/knowledgepacks?limit=&cursor=` — the workspace-scoped
+     *  keyset pack list. Omitted parameters are not sent (the Core's
+     *  default limit applies); the cursorless page IS the final page. */
+    knowledgePackList(
+      params: { limit?: number; cursor?: string } = {},
+    ): Promise<TransportOutcome<WireKnowledgePackListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireKnowledgePackListResult>(`/v1/knowledgepacks${suffix}`, get(), isWireKnowledgePackList);
+    },
+
+    /** `GET /v1/knowledgepacks/{id}` — one pack's authoritative state.
+     *  An unknown pack is the typed NOT_FOUND surfaced verbatim — the
+     *  no-leak envelope (one identical shape for every unknown target). */
+    knowledgePackGet(packID: string): Promise<TransportOutcome<WireKnowledgePackResult>> {
+      return call<WireKnowledgePackResult>(
+        `/v1/knowledgepacks/${encodeURIComponent(packID)}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return shaped.pack !== null && typeof shaped.pack === "object" && isWireKnowledgePack(shaped.pack);
+        },
+      );
+    },
+
+    /** `GET /v1/knowledgepacks/{id}/versions?limit=&cursor=` — one pack's
+     *  keyset version page. An unknown pack is the SAME typed NOT_FOUND. */
+    knowledgeVersionList(
+      packID: string,
+      params: { limit?: number; cursor?: string } = {},
+    ): Promise<TransportOutcome<WireKnowledgeVersionListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WireKnowledgeVersionListResult>(
+        `/v1/knowledgepacks/${encodeURIComponent(packID)}/versions${suffix}`,
+        get(),
+        isWireKnowledgeVersionList,
+      );
+    },
+
+    /** `GET /v1/knowledgepacks/{id}/versions/{version_id}` — one
+     *  immutable version's structural read (the canonical deep link's
+     *  data). Unknown pack/version: the SAME typed NOT_FOUND. */
+    knowledgeVersionGet(packID: string, versionID: string): Promise<TransportOutcome<WireKnowledgeVersionResult>> {
+      return call<WireKnowledgeVersionResult>(
+        `/v1/knowledgepacks/${encodeURIComponent(packID)}/versions/${encodeURIComponent(versionID)}`,
+        get(),
+        (body) => {
+          if (body === null || typeof body !== "object") return false;
+          const shaped = body as Record<string, unknown>;
+          return (
+            shaped.version !== null &&
+            typeof shaped.version === "object" &&
+            isWireKnowledgeVersion(shaped.version)
+          );
+        },
+      );
+    },
+
+    /** `GET /v1/knowledgepacks/import/registry` — the Core's own served
+     *  supported-source registry as queryable data; the read creates
+     *  nothing and probes nothing. The served contents ARE the canonical
+     *  values — no speculative format or connector is invented anywhere
+     *  downstream (UI §14.6). */
+    knowledgeImportRegistry(): Promise<TransportOutcome<WireKnowledgeRegistryResult>> {
+      return call<WireKnowledgeRegistryResult>("/v1/knowledgepacks/import/registry", get(), isWireKnowledgeRegistry);
+    },
+
+    /** `POST /v1/knowledgepacks/import` — the import submit (202 =
+     *  accepted for processing, never completion; the authoritative state
+     *  read confirms every outcome). The M-9 class rides the body's
+     *  caller-supplied idempotency key: same key + same source digest
+     *  replays (`replayed` true), same key + different bytes is the 409
+     *  CONFLICT_IDEMPOTENCY_KEY envelope surfaced verbatim. */
+    knowledgeImportSubmit(payload: KnowledgeImportRequest): Promise<TransportOutcome<WireKnowledgeSubmitResult>> {
+      return call<WireKnowledgeSubmitResult>(
+        "/v1/knowledgepacks/import",
+        post(JSON.stringify(payload)),
+        isWireKnowledgeSubmitResult,
+      );
+    },
+
+    /** `POST /v1/knowledgepacks/export` — the export submit (202 =
+     *  accepted for processing). The read-with-output class: no
+     *  idempotency key, safe to re-issue (each submit a new operation);
+     *  an uncertain outcome reconciles by the operation ID BEFORE another
+     *  copy (the S0–S4 law). */
+    knowledgeExportSubmit(payload: KnowledgeExportRequest): Promise<TransportOutcome<WireKnowledgeSubmitResult>> {
+      return call<WireKnowledgeSubmitResult>(
+        "/v1/knowledgepacks/export",
+        post(JSON.stringify(payload)),
+        isWireKnowledgeSubmitResult,
+      );
+    },
+
+    /** `GET /v1/knowledgepacks/operations/{id}` — the family's
+     *  authoritative state endpoint (a pure query — never a retry): the
+     *  lost/uncertain outcome lookup (the S0–S4 surface). Events are
+     *  never the source of truth; this endpoint is. */
+    knowledgeOperationStatus(operationID: string): Promise<TransportOutcome<WireKnowledgeOperationResult>> {
+      return call<WireKnowledgeOperationResult>(
+        `/v1/knowledgepacks/operations/${encodeURIComponent(operationID)}`,
+        get(),
+        isWireKnowledgeOperationResult,
+      );
+    },
+
+    /** `POST /v1/knowledgepacks/operations/{id}/cancel` — the
+     *  cancellation REQUEST (202 = accepted for processing; the J-5 rule:
+     *  the request is never displayed as the confirmation — the state
+     *  endpoint's terminal `cancelled` state is). A terminal operation is
+     *  the coded 409 CONFLICT_STATE refusal surfaced verbatim. */
+    knowledgeOperationCancel(operationID: string): Promise<TransportOutcome<WireKnowledgeOperationResult>> {
+      return call<WireKnowledgeOperationResult>(
+        `/v1/knowledgepacks/operations/${encodeURIComponent(operationID)}/cancel`,
+        post("{}"),
+        isWireKnowledgeOperationResult,
       );
     },
 

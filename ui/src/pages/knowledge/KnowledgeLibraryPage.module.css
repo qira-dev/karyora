@@ -1,0 +1,196 @@
+/* Knowledge library page (B1-U1). Layout uses CSS logical properties
+   (P2.4 §4.5); the table reflows to a single column at narrow widths —
+   no two-dimensional scrolling is required by this surface. */
+
+.description {
+  margin: 0 0 var(--space-4);
+  max-width: 72ch;
+  color: var(--color-text-secondary);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.primaryControl {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.primaryControl:hover {
+  background: var(--color-primary-hover);
+}
+
+.control {
+  min-height: var(--size-button-secondary);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+
+.control:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.control:disabled {
+  cursor: default;
+  color: var(--color-text-secondary);
+}
+
+/* The K2 unavailable-state note: the reason no search/facet/sort control
+   is offered, rendered as visible text (never a dead control). */
+.filterNote {
+  margin: 0;
+  max-width: 48ch;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.confirmed {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  color: var(--color-text-secondary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-metadata-size);
+}
+
+.table th {
+  text-align: start;
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.table td {
+  padding: var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.row {
+  background: var(--color-surface-1);
+}
+
+.cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cellPack {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.cellId {
+  min-width: 0;
+}
+
+.rowLink {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+.versionId {
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+.copyId button {
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.copyId span[role="status"] {
+  display: block;
+  font-size: var(--text-metadata-size);
+  color: var(--color-text-secondary);
+}
+
+.unavailable {
+  color: var(--color-text-secondary);
+}
+
+.moreRow {
+  margin: var(--space-4) 0;
+}
+
+.empty {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-1);
+}
+
+.emptyTitle {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+}
+
+.code {
+  margin: var(--space-2) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-metadata-size);
+  overflow-wrap: anywhere;
+}
+
+/* Narrow widths: the table collapses to stacked cards — no horizontal
+   scrolling is required by this surface (P2.4 §4.5). */
+@media (max-width: 640px) {
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .row {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    margin-block-end: var(--space-2);
+    padding: var(--space-2);
+  }
+}
