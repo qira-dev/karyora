@@ -1594,3 +1594,96 @@ export type WireWorkflowRunHistoryResult = WorkflowRunHistory;
 export interface WireWorkflowStateResult {
   readonly definition_state: WorkflowDefinitionState;
 }
+
+// The plugin surface (B5-U1; the DE-0 queue row 9). The typed shapes are
+// the GENERATED canonical contract types consumed verbatim (see the header
+// note) — the adapter's plugin JSON tags carry the published member names
+// exactly (B5-A1 §2), so the generated types ARE the served shapes. Honest
+// boundary (the same class as every family above):
+// - The `/v1/plugins...` paths are the adapter's own serving of the
+//   published `/plugins` family (B5-A1 §2.1) — the published members
+//   verbatim under the adapter's `/v1` prefix.
+// - THE UI-29 GATE (the stacking law, P4.10 §3.5/P4.11 §3.5): this
+//   milestone's transport carries the family's READ members only — the
+//   keyset list, the inspect member, and the family's authoritative state
+//   endpoint. The install/enable-disable/update/remove/revoke-grants
+//   members are served by the Core but have NO caller here: there is no
+//   package source to install from (a catalog exists ONLY when the Core
+//   supplies one — none is published; B5-A1 §2.2's no-catalog law), the
+//   UI-29 trust/package gate withholds the activation/removal controls
+//   (P4.1 §4's UI-29 gate row), no served surface supplies an update's
+//   target version reference, and this milestone wires no mutation act.
+//   None of the five mutation members is invented anywhere downstream;
+//   their wiring act rides the gates that govern each.
+// - THE EXECUTION GATE (carried exactly): NO invocation/execution method
+//   exists anywhere — the invocation/execution operation does not exist
+//   server-side (B5-A1 §2.3's scripted absence checks: no invocation
+//   route, no invocation port member, no invocation table, and the
+//   `InvocationSupported` gate constant `false`) and none is typed here.
+// - THE NO-CATALOG LAW (carried exactly): USER-INSTALLED ≠
+//   CATALOG-LISTED, always — the list IS the user-installed list; no
+//   catalog contract, no marketplace, no trust badge, and no one-click
+//   install exists anywhere.
+// - THE VERDICT LAW (binding): every verification state
+//   (signature/trust/rotation/revocation) is Core-RETURNED — the UI
+//   computes none; each optional member renders only where the Core
+//   returns it, and an absent verification state is never rendered as a
+//   verified one. THE MAY-NEVER LIST rides the consuming surfaces: no
+//   secret values (a named secret-handle's NAME only), no raw logs,
+//   runtime internals, stack traces, or memory contents; no raw plugin
+//   output or raw provider payloads as diagnostics; no diagnostic the
+//   Core did not return.
+
+/** The published PluginManifest schema (generated, consumed verbatim):
+ *  the manifest's declared fields. The manifest member is OPTIONAL on the
+ *  served `Plugin` record and is ABSENT on this Core (no
+ *  manifest-examination path exists — B5-A1 §2.4 gap 6); an absent
+ *  manifest renders its honest absence — never a fabricated one. Manifest
+ *  text is UNTRUSTED DATA — rendered, never executed. */
+export type PluginManifest = components["schemas"]["PluginManifest"];
+
+/** The published PluginPackage schema (generated, consumed verbatim): the
+ *  package record's Core-returned verification states. Each verification
+ *  member renders ONLY as the Core returns it; on this Core the served
+ *  package carries `package_ref` alone (no verification machinery exists
+ *  while the MB §10.2 gate stands — B5-A1 §2.4 gap 3), so the others
+ *  render their honest absence. */
+export type PluginPackage = components["schemas"]["PluginPackage"];
+
+/** The published Plugin schema (generated, consumed verbatim): one
+ *  installed plugin record. `lifecycle_state` is the Core-returned
+ *  authoritative state — the distinctness laws bind its rendering
+ *  (DISABLED ≠ GRANTS-REVOKED ≠ TRUST-REVOKED; INVOCATION TERMINATION ≠
+ *  PLUGIN DISABLE/REVOCATION). The Core's own served state values are
+ *  `installed | enabled | disabled | grants_revoked | trust_revoked`
+ *  (B5-A1 §2.4 gap 4 — the served-definition class); an unknown reported
+ *  value renders verbatim — never mapped onto a known one. */
+export type Plugin = components["schemas"]["Plugin"];
+
+/** The published PluginList schema (generated, consumed verbatim): the
+ *  keyset page; `next_cursor` is OMITTED on the final page — the absence
+ *  is the end marker. */
+export type PluginList = components["schemas"]["PluginList"];
+
+/** The published PluginState schema (generated, consumed verbatim): the
+ *  family's authoritative state endpoint's record. */
+export type PluginState = components["schemas"]["PluginState"];
+
+/** `GET /v1/plugins?limit=&cursor=` success (200): the published
+ *  `PluginList` — the keyset page; the cursorless page IS the final page
+ *  (no has_more/total vocabulary exists). */
+export type WirePluginListResult = PluginList;
+
+/** `GET /v1/plugins/{plugin_id}` success (200): the published `Plugin` —
+ *  the inspect member (a pure read). The unknown identity and the
+ *  out-of-scope identity are the SAME typed 404 riding the envelope
+ *  register's `NOT_FOUND` (no Plugin not-found domain code exists in the
+ *  published register — the no-leak rule). */
+export type WirePluginGetResult = Plugin;
+
+/** `GET /v1/plugins/{plugin_id}/state` success (200): the published
+ *  `PluginState` — the family's authoritative state endpoint (a pure
+ *  query — never a retry); the reconciliation anchor for every lost
+ *  lifecycle outcome (the S0–S4 law). The unknown identity is the SAME
+ *  typed 404 (the no-leak rule). */
+export type WirePluginStateResult = PluginState;

@@ -119,12 +119,24 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   },
   {
     // UI-35 LOCKED: Plugins only under the separate EXTENSIONS group. The
-    // route may be discoverable while UI-29 withholds catalog/install/
-    // enable actions; its screen ships at UIR-7, so the item is disabled
-    // with an explanation in this milestone.
+    // surface ships at B5-U1 (the DE-0 queue row 9): the item activates
+    // its accepted §4.1 route target — the user-installed list is
+    // `/plugins`, and every plugin link opens the ONE canonical detail
+    // route `/plugins/:pluginId` (P1.1 #18/#19; P4.1 §3.9/§3.10; X-2).
+    // THE DISCOVERABILITY-ONLY LAW (binding, P4.1 §3.11's N1): the route
+    // and icon communicate discoverability ONLY — never trust, never
+    // verification, never source approval, never a permission grant,
+    // never catalog availability. The surface renders only what the live
+    // B5 adapter's READ members serve and carries the recorded gate
+    // states for everything the gates withhold (B5-A1 §2.4's honest
+    // gaps): the UI-29 trust/package gate keeps catalog/install/
+    // import/activation/removal controls unavailable, no catalog exists
+    // (a catalog is supplied only by the Core — none is published), and
+    // NO invocation/execution surface exists (the D-13/D-14 gate and the
+    // Core MB §10.2 runtime proof).
     id: "extensions",
     labelKey: "groups.extensions",
-    items: [{ id: "plugins", labelKey: "items.plugins", icon: Puzzle, disabled: true }],
+    items: [{ id: "plugins", labelKey: "items.plugins", icon: Puzzle, route: "/plugins" }],
   },
   {
     id: "operate",

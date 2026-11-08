@@ -26,6 +26,8 @@ import { MemoryItemDetailPage } from "../pages/memory/MemoryItemDetailPage";
 import { ContextInspectorPage } from "../pages/context/ContextInspectorPage";
 import { WorkflowLibraryPage } from "../pages/workflow/WorkflowLibraryPage";
 import { WorkflowDetailPage } from "../pages/workflow/WorkflowDetailPage";
+import { PluginLibraryPage } from "../pages/plugin/PluginLibraryPage";
+import { PluginDetailPage } from "../pages/plugin/PluginDetailPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
@@ -122,8 +124,24 @@ import { WorkflowDetailPage } from "../pages/workflow/WorkflowDetailPage";
  * draft can exist while the builder is withheld), NO Run control exists
  * anywhere (the D-40 remainder), and NO If-Match/concurrency-protocol
  * control exists (the clause is prose-only). The remaining UIR-7 feature
- * route (Plugins) is still NOT a surface — no route, no stub, and no
- * placeholder screen exists for it (the no-dead-stub rule).
+ * route (Plugins) shipped at B5-U1 (the paragraph below).
+ *
+ * B5-U1 (the DE-0 queue row 9) adds the Plugin surface's routes exactly
+ * as the records name them (P1.1 #18/#19; P4.1 §3.9/§3.10): `/plugins`
+ * (the user-installed keyset list, P1–P6) and `/plugins/:pluginId` (the
+ * ONE canonical plugin detail route — every plugin link opens it,
+ * P5/X-2). The surfaces consume the now-live B5 `/plugins` adapter
+ * family's READ members only (B5-A1 §2.1) and render nothing the adapter
+ * does not serve (B5-A1 §2.4's honest gaps — the manifest absence, the
+ * verification members' absence, the no-producer register codes). THE
+ * GATE LAW (binding): UI-29 keeps its recorded OPEN state — the
+ * catalog/install/import/activation/removal controls stay unavailable
+ * (no catalog exists; the no-catalog law holds), the lifecycle controls
+ * render their honest disabled-with-reason states (the remove-vs-revoke
+ * distinctness stays recorded OPEN — asserted neither way), and NO
+ * invocation/execution surface exists anywhere (the D-13/D-14 gate and
+ * the Core MB §10.2 runtime proof). The route/icon stay
+ * discoverability-only (P4.1 §3.11's N1).
  *
  * The route ELEMENTS are exported so the app can build a data router
  * from them (createBrowserRouter + createRoutesFromElements — required
@@ -145,6 +163,8 @@ export const appRouteElements: ReactElement = (
     <Route path="context" element={<ContextInspectorPage />} />
     <Route path="workflows" element={<WorkflowLibraryPage />} />
     <Route path="workflows/:workflowId" element={<WorkflowDetailPage />} />
+    <Route path="plugins" element={<PluginLibraryPage />} />
+    <Route path="plugins/:pluginId" element={<PluginDetailPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />

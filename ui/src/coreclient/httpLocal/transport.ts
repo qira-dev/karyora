@@ -147,6 +147,13 @@ import type {
   WireWorkflowListResult,
   WireWorkflowRunHistoryResult,
   WireWorkflowStateResult,
+  Plugin,
+  PluginManifest,
+  PluginPackage,
+  PluginState,
+  WirePluginGetResult,
+  WirePluginListResult,
+  WirePluginStateResult,
 } from "./wire";
 
 /** The outcome of one transport call: typed data, the verbatim D-35
@@ -754,6 +761,79 @@ function isWireWorkflowStateResult(value: unknown): value is WireWorkflowStateRe
     typeof shaped.definition_state === "object" &&
     isWireWorkflowState(shaped.definition_state)
   );
+}
+
+/** The coded plugin guards (B5-U1): each response must carry its
+ *  distinguishing published members to be presented as data; anything
+ *  else stays unknown — never reinterpreted, never fabricated. The
+ *  optional members are checked only where their presence distinguishes
+ *  the shape; the generated types carry the full member set. The manifest
+ *  and package members are OPTIONAL on the served record and render their
+ *  honest absence where the Core serves none (B5-A1 §2.4 gaps 3 and 6) —
+ *  an absent member is never synthesized. */
+function isWirePluginManifest(value: unknown): value is PluginManifest {
+  if (value === null || typeof value !== "object") return false;
+  const manifest = value as Record<string, unknown>;
+  return (
+    typeof manifest.manifest_version === "string" &&
+    typeof manifest.plugin_id === "string" &&
+    typeof manifest.plugin_version === "string"
+  );
+}
+
+function isWirePluginPackage(value: unknown): value is PluginPackage {
+  if (value === null || typeof value !== "object") return false;
+  const pkg = value as Record<string, unknown>;
+  // `package_ref` is the required member (the Core-minted package
+  // identity); the verification members are optional and render only as
+  // the Core returns them (the verdict law — never computed UI-side).
+  return typeof pkg.package_ref === "string";
+}
+
+function isWirePlugin(value: unknown): value is Plugin {
+  if (value === null || typeof value !== "object") return false;
+  const plugin = value as Record<string, unknown>;
+  // `lifecycle_state` is the Core-returned authoritative state; the
+  // five served values are the Core's own selection (B5-A1 §2.4 gap 4) —
+  // an unknown reported value renders verbatim downstream, never mapped.
+  if (typeof plugin.plugin_id !== "string" || typeof plugin.lifecycle_state !== "string") return false;
+  if (
+    plugin.manifest !== undefined &&
+    plugin.manifest !== null &&
+    !isWirePluginManifest(plugin.manifest)
+  ) {
+    return false;
+  }
+  if (
+    plugin.package !== undefined &&
+    plugin.package !== null &&
+    !isWirePluginPackage(plugin.package)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isWirePluginList(value: unknown): value is WirePluginListResult {
+  if (value === null || typeof value !== "object") return false;
+  const shaped = value as Record<string, unknown>;
+  if (!Array.isArray(shaped.plugins)) return false;
+  if (!shaped.plugins.every((row) => isWirePlugin(row))) return false;
+  // The cursor key is absent on the final page: absence is data (the end
+  // marker), never an error.
+  return shaped.next_cursor === undefined || typeof shaped.next_cursor === "string";
+}
+
+function isWirePluginState(value: unknown): value is PluginState {
+  if (value === null || typeof value !== "object") return false;
+  const state = value as Record<string, unknown>;
+  return typeof state.plugin_id === "string" && typeof state.lifecycle_state === "string";
+}
+
+function isWirePluginStateResult(value: unknown): value is WirePluginStateResult {
+  // The state endpoint's payload IS the published `PluginState` record
+  // (no wrapper member — the family's authoritative state read).
+  return isWirePluginState(value);
 }
 
 /** One HTTP round trip: fetch, parse once, map honestly. Never retries. */
@@ -2194,6 +2274,68 @@ export function createHttpLocalTransport() {
         `/v1/workflows/${encodeURIComponent(definitionID)}/state${suffix}`,
         get(),
         isWireWorkflowStateResult,
+      );
+    },
+
+    // The plugin surface (B5-U1; the DE-0 queue row 9): the READ members
+    // of the adapter's serving of the published `/plugins` family
+    // (B5-A1 §2.1) — the keyset list, the inspect member, and the
+    // family's authoritative state endpoint. The truthfulness rules above
+    // apply unchanged: a lost response is `unknown` and is NEVER proof of
+    // success or safe retry (the S0–S4 law) — reconcile through the
+    // authoritative state endpoint (a pure query — never a retry) by the
+    // plugin/package identity BEFORE any retry. THE UI-29 GATE (rendered
+    // by the surfaces, not here): the install/enable-disable/remove
+    // members are served by the Core but carried by NO method in this
+    // transport — the UI-29 trust/package gate withholds the
+    // catalog/install/activation/removal controls (P4.1 §4's UI-29 gate
+    // row), no package source exists (a catalog exists ONLY when the Core
+    // supplies one — none is published; the no-catalog law), no served
+    // surface supplies an update's target version reference, and this
+    // milestone wires no mutation act; their wiring act rides the gates
+    // that govern each. THE EXECUTION GATE: NO invocation/execution
+    // method exists anywhere — the operation does not exist server-side
+    // (B5-A1 §2.3's scripted absence checks) and none is typed here.
+
+    /** `GET /v1/plugins?limit=&cursor=` — the user-installed keyset
+     *  plugin list (USER-INSTALLED ≠ CATALOG-LISTED, always — the list IS
+     *  the user-installed list; no catalog exists). Omitted parameters
+     *  are not sent (the Core's default limit applies); the cursorless
+     *  page IS the final page. */
+    pluginList(params: { limit?: number; cursor?: string } = {}): Promise<TransportOutcome<WirePluginListResult>> {
+      const query = new URLSearchParams();
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      if (params.cursor !== undefined && params.cursor !== "") query.set("cursor", params.cursor);
+      const suffix = query.size === 0 ? "" : `?${query.toString()}`;
+      return call<WirePluginListResult>(`/v1/plugins${suffix}`, get(), isWirePluginList);
+    },
+
+    /** `GET /v1/plugins/{plugin_id}` — the inspect member (a pure read):
+     *  the installed plugin record with its Core-returned manifest and
+     *  package verification states, each rendered only as the Core
+     *  returns it (the verdict law — never computed UI-side). Unknown and
+     *  out-of-scope plugins are the SAME typed 404 surfaced verbatim (the
+     *  no-leak rule). */
+    pluginGet(pluginID: string): Promise<TransportOutcome<WirePluginGetResult>> {
+      return call<WirePluginGetResult>(
+        `/v1/plugins/${encodeURIComponent(pluginID)}`,
+        get(),
+        isWirePlugin,
+      );
+    },
+
+    /** `GET /v1/plugins/{plugin_id}/state` — the family's authoritative
+     *  state endpoint (a pure query — never a retry): the lost/uncertain
+     *  lifecycle outcome's reconcile anchor (install and update by
+     *  package ID/version; remove by the package/plugin identity; enable
+     *  by the plugin state; revoke by the grant/operation reference).
+     *  Events are never the source of truth; this endpoint is. The
+     *  unknown identity is the SAME typed 404 (the no-leak rule). */
+    pluginState(pluginID: string): Promise<TransportOutcome<WirePluginStateResult>> {
+      return call<WirePluginStateResult>(
+        `/v1/plugins/${encodeURIComponent(pluginID)}/state`,
+        get(),
+        isWirePluginStateResult,
       );
     },
 
