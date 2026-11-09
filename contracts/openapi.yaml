@@ -1450,12 +1450,14 @@ paths:
         the M-16 retention-caveat rule). Memory deletion NEVER auto-deletes
         KnowledgePack claims (MB §7.5 — the promotion law's boundary; the
         promotion operation itself is the recorded sibling gap, P4.2 §5 —
-        NOT part of this family). THE FORGET/DELETE OPEN DISCIPLINE:
-        whether forget and delete name distinct Core semantics is
-        Core-defined and OPEN (carried per the CF-2 draft §3(d); UI §15.4
-        holds either way) — the member names are published per the approved
-        operation-group ask and no published text here asserts that two
-        distinct operations exist; the Core's actual semantics decide. The
+        NOT part of this family). THE FORGET/DELETE DISTINCTNESS (recorded
+        at the 2026-11-09 resolution act, binding on this family): forget
+        and delete are DISTINCT Core semantics at the register level — the
+        forgotten lifecycle state and the memory_item.forgotten event vs
+        the deleted state and the memory_item.deleted event — both riding
+        the SAME M-16 removal discipline (the content dropped; the identity
+        tombstone retains identity/scope/state; the retention caveat
+        identical; no immediate-total-erasure promise). The
         idempotency key (scoped user + item identity + scope; the
         fingerprint is the correlation ID + the item's current state
         reference) replays the recorded outcome within the selected window
@@ -1487,16 +1489,20 @@ paths:
   /memories/{memory_item_id}/forget:
     post:
       operationId: forgetMemoryItem
-      summary: Request one memory item's forget (the B2 family; the OPEN-distinctness member).
+      summary: Request one memory item's forget (the B2 family; the M-16 destructive class).
       description: >-
         The Memory operation group's forget member, published per the
-        approved operation-group ask with its distinctness carried OPEN:
-        whether forget and delete name distinct Core semantics is
-        Core-defined and OPEN (the CF-2 draft §3(d); UI §15.4 holds either
-        way) — no published text here asserts that two distinct operations
-        exist; the Core's actual semantics decide, and no label promises
-        more than the semantics deliver. The M-16 destructive discipline
-        governs regardless: the known destructive scope stated before the
+        approved operation-group ask. THE FORGET/DELETE DISTINCTNESS
+        (recorded at the 2026-11-09 resolution act, binding on this
+        family): forget and delete are DISTINCT Core semantics at the
+        register level — the forgotten lifecycle state and the
+        memory_item.forgotten event vs the deleted state and the
+        memory_item.deleted event — both riding the SAME M-16 removal
+        discipline (the content dropped; the identity tombstone retains
+        identity/scope/state; the retention caveat identical;
+        no immediate-total-erasure promise). The M-16 destructive
+        discipline governs regardless: the known destructive scope stated
+        before the
         action (the active store, derived references, sync state, and
         backup retention as policy defines), no immediate-total-erasure
         promise, only a confirmed 200 carries the outcome truth, and a lost
@@ -3746,11 +3752,15 @@ components:
         review is a lifecycle filter/state, NEVER a trust claim.
         `expired` is the retention/TTL outcome — expiry is DISTINCT from
         forgotten and deleted and never UI-computed. THE FORGET/DELETE
-        OPEN DISCIPLINE: the forgotten and deleted entries are carried per
-        the approved register draft — whether forget and delete name
-        distinct Core semantics is Core-defined and OPEN (the CF-2 draft
-        §3(d); UI §15.4 holds either way); no published text here asserts
-        that two distinct operations exist. `outcome_unknown` is the S0–S4
+        DISTINCTNESS (recorded at the 2026-11-09 resolution act, binding
+        on this family): forget and delete are DISTINCT Core semantics at
+        the register level — the forgotten and deleted entries are the two
+        DISTINCT lifecycle states (the forgotten state; the deleted
+        state), each confirmed by its own event (memory_item.forgotten;
+        memory_item.deleted) — both riding the SAME M-16 removal
+        discipline (the content dropped; the identity tombstone retains
+        identity/scope/state; the retention caveat identical;
+        no immediate-total-erasure promise). `outcome_unknown` is the S0–S4
         OUTCOME_UNKNOWN surface: a timeout or lost response is never proof
         of success, cancellation, or safe retry — reconcile by the
         item/operation ID through the authoritative reads.
@@ -4013,10 +4023,15 @@ components:
         memory_review.approved | memory_review.rejected |
         memory_item.updated | memory_item.pinned | memory_item.unpinned |
         memory_item.expired | memory_item.forgotten | memory_item.deleted.
-        `memory_item.forgotten` is recorded conditional on the OPEN
-        forget/delete distinctness — whether a forgotten event exists as
-        distinct from deleted is the Core's semantics (carried OPEN; no
-        published text asserts two distinct operations exist).
+        `memory_item.forgotten` is DISTINCT from `memory_item.deleted` —
+        THE FORGET/DELETE DISTINCTNESS (recorded at the 2026-11-09
+        resolution act, binding on this family): forget and delete are
+        DISTINCT Core semantics at the register level — the forgotten
+        lifecycle state and the memory_item.forgotten event vs the deleted
+        state and the memory_item.deleted event — both riding the SAME
+        M-16 removal discipline (the content dropped; the identity
+        tombstone retains identity/scope/state; the retention caveat
+        identical; no immediate-total-erasure promise).
         `memory_candidate.extracted` is the sensitivity check's routing
         event (auto-save low-risk vs approval-required). Events ride the
         frozen F10 EventRecord field set with the C1-08 cursor semantics

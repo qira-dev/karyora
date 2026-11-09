@@ -69,11 +69,12 @@ func ClientAddableOrigin(s string) bool {
 // act's register for MB §7.5's pipeline). Trust state is DISTINCT from
 // pending-review: pending review is a lifecycle state, NEVER a trust
 // claim. `expired` is the retention/TTL outcome — DISTINCT from forgotten
-// and deleted, never UI-computed. THE FORGET/DELETE OPEN DISCIPLINE: the
-// forgotten and deleted entries are carried per the published register
-// draft — whether forget and delete name distinct Core semantics is
-// Core-defined and OPEN; no text here asserts that two distinct
-// operations exist. `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN
+// and deleted, never UI-computed. THE FORGET/DELETE DISTINCTNESS
+// (recorded at the 2026-11-09 resolution act, binding on this family):
+// forget and delete are DISTINCT Core semantics at the register level —
+// the forgotten and deleted entries are the two DISTINCT lifecycle
+// states (the forgotten state; the deleted state), each confirmed by its
+// own event. `outcome_unknown` is the S0–S4 OUTCOME_UNKNOWN
 // surface.
 const (
 	StateCaptured       = "captured"
@@ -209,17 +210,17 @@ const (
 
 // The F10-shaped event_type vocabulary (the published register carried
 // verbatim; no type outside this list is ever emitted).
-// `memory_item.forgotten` is recorded conditional on the OPEN
-// forget/delete distinctness — whether a forgotten event exists as
-// distinct from deleted is the Core's semantics (carried OPEN; no
-// published text asserts two distinct operations exist). The published
-// conditional law carries verbatim: this Core emits the forgotten event
-// only from the forget member's confirmed outcome and the deleted event
-// only from the delete member's confirmed outcome — the recorded
-// mechanics are this Core's own; the published OPEN discipline is
-// untouched. `memory_candidate.extracted` is the sensitivity check's
-// routing event (auto-save low-risk vs approval-required) — no extraction
-// path exists on this surface, so it is never emitted.
+// `memory_item.forgotten` is DISTINCT from `memory_item.deleted` — THE
+// FORGET/DELETE DISTINCTNESS (recorded at the 2026-11-09 resolution act,
+// binding on this family): forget and delete are DISTINCT Core semantics
+// at the register level — the forgotten lifecycle state and the
+// memory_item.forgotten event vs the deleted state and the
+// memory_item.deleted event. This Core emits the forgotten event only
+// from the forget member's confirmed outcome and the deleted event only
+// from the delete member's confirmed outcome — the recorded mechanics
+// are this Core's own. `memory_candidate.extracted` is the sensitivity
+// check's routing event (auto-save low-risk vs approval-required) — no
+// extraction path exists on this surface, so it is never emitted.
 const (
 	EventCandidateExtracted = "memory_candidate.extracted"
 	EventItemAdded          = "memory_item.added"

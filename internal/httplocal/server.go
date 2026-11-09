@@ -1994,8 +1994,10 @@ func (s *Server) handleMemoryDelete(w http.ResponseWriter, r *http.Request, toke
 	})
 }
 
-// handleMemoryForget exposes the forget member (the OPEN-distinctness
-// member; the M-16 destructive discipline governs regardless).
+// handleMemoryForget exposes the forget member (THE FORGET/DELETE
+// DISTINCTNESS recorded at the 2026-11-09 resolution act, binding on
+// this family: forget and delete are DISTINCT Core semantics at the
+// register level; the M-16 destructive discipline governs regardless).
 func (s *Server) handleMemoryForget(w http.ResponseWriter, r *http.Request, token, itemID string) {
 	var req memoryDestructiveRequest
 	if err := decodeOptionalJSON(r, &req); err != nil {

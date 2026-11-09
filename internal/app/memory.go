@@ -503,8 +503,14 @@ func (s *Slice) SetMemoryItemPin(ctx context.Context, itemID string, req MemoryP
 	return memory.MutationResult{MemoryItem: outcome.Item, OperationID: outcome.OperationID}, nil
 }
 
-// ForgetMemoryItem requests one item's forget (the OPEN-distinctness
-// member; the M-16 destructive discipline governs regardless: only a
+// ForgetMemoryItem requests one item's forget (THE FORGET/DELETE
+// DISTINCTNESS recorded at the 2026-11-09 resolution act, binding on
+// this family: forget and delete are DISTINCT Core semantics at the
+// register level — the forgotten lifecycle state and the
+// memory_item.forgotten event vs the deleted state and the
+// memory_item.deleted event — both riding the SAME M-16 removal
+// discipline; the retention caveat identical, no immediate-total-erasure
+// promise. The M-16 destructive discipline governs regardless: only a
 // confirmed 200 carries the outcome truth, and a lost response is never
 // assumed to have forgotten — reconcile by the operation ID or the item's
 // authoritative state read BEFORE any retry). The removal drops the
