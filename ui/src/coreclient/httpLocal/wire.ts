@@ -898,6 +898,7 @@ export interface WireConversationCreateRequest {
 export interface WireConversationSendRequest {
   readonly content: string;
   readonly correlation_id: string;
+  readonly auto_answer?: boolean;
 }
 
 /** `POST /v1/conversations` and `GET /v1/conversations/{id}` success
@@ -948,6 +949,7 @@ export interface WireConversationMessagesResult {
 export interface WireConversationExchangeResult {
   readonly exchange: WireConversationExchange;
   readonly message: WireConversationMessage;
+  readonly answer?: WireConversationMessage;
 }
 
 // The conversation attachment surface (IMPL-25; the ADOPTED S12 supply,

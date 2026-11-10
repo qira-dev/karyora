@@ -213,6 +213,11 @@
   min-width: 0;
 }
 
+.messageAssistant {
+  border-color: var(--color-border-subtle, var(--color-border));
+  background: var(--color-surface-2);
+}
+
 .messageMeta {
   display: flex;
   flex-wrap: wrap;
@@ -228,6 +233,18 @@
   border-radius: var(--radius-badge);
   border: 1px solid var(--color-border);
   background: var(--color-surface-2);
+  font-size: var(--text-metadata-size);
+  font-weight: 600;
+}
+
+.roleChipAssistant {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-badge);
+  border: 1px solid var(--color-primary, #2563eb);
+  background: var(--color-primary-subtle, rgba(37, 99, 235, 0.1));
+  color: var(--color-primary, #2563eb);
   font-size: var(--text-metadata-size);
   font-weight: 600;
 }

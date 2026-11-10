@@ -22,7 +22,7 @@ func RunToSettlement(ctx context.Context, deps SliceDeps, workerID string, maxCo
 	handler := NewRelayHandler(deps)
 	worker := aijobrelay.WorkerCapability{
 		WorkerID:    workerID,
-		ProviderIDs: wiredProviders(deps),
+		ProviderIDs: WiredProviders(deps),
 		MaxMemoryMB: 1024,
 	}
 	sched := aijobrelay.NewScheduler(deps.Relay, worker, handler.Handle, maxConcurrent, 30*time.Second)
@@ -64,7 +64,8 @@ func RunToSettlement(ctx context.Context, deps SliceDeps, workerID string, maxCo
 	return last, nil
 }
 
-func wiredProviders(deps SliceDeps) []string {
+// WiredProviders returns the list of wired provider IDs for worker registration.
+func WiredProviders(deps SliceDeps) []string {
 	ids := make([]string, 0, len(deps.Providers))
 	for id := range deps.Providers {
 		ids = append(ids, id)

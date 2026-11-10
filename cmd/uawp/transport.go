@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/qira-dev/karyora/internal/aijobrelay"
+	"github.com/qira-dev/karyora/internal/app"
 	"github.com/qira-dev/karyora/internal/config"
 	"github.com/qira-dev/karyora/internal/httplocal"
 	"github.com/qira-dev/karyora/internal/platform"
@@ -32,7 +36,7 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 	// The same operation-surface wiring the CLI job path composes: one
 	// app.Slice over the opened store, the bundle's guard, and the
 	// wired provider set.
-	slice, _, err := wireJobSlice(l, bundle)
+	slice, runDeps, err := wireJobSlice(l, bundle)
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +64,32 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 	}
 	go func() { _ = http.Serve(ln, srv.Handler()) }()
 
+	workerCtx, cancelWorker := context.WithCancel(context.Background())
+	workerHandler := app.NewRelayHandler(runDeps)
+	workerCap := aijobrelay.WorkerCapability{
+		WorkerID:    "daemon-worker",
+		ProviderIDs: app.WiredProviders(runDeps),
+		MaxMemoryMB: 1024,
+	}
+	sched := aijobrelay.NewScheduler(runDeps.Relay, workerCap, workerHandler.Handle, 2, 30*time.Second)
+	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-workerCtx.Done():
+				sched.Stop()
+				return
+			case <-ticker.C:
+				_, _ = runDeps.Relay.ReleaseExpiredLeases(workerCtx, time.Now())
+				if runDeps.Backoff != nil {
+					_, _ = runDeps.Backoff.RequeueBackoff(workerCtx, time.Now())
+				}
+				_, _ = sched.Tick(workerCtx)
+			}
+		}
+	}()
+
 	if runner != nil {
 		runner.BootstrapToken = func(origin string) (string, error) {
 			cred, err := srv.IssueBootstrapCredential(origin)
@@ -73,6 +103,9 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 	// Issue trusted initial bootstrap credentials for standard local Web UI dev origins.
 	credLocalhost, _ := srv.IssueBootstrapCredential("http://localhost:5173")
 	_, _ = srv.IssueBootstrapCredential("http://127.0.0.1:5173")
+	if ds.Runtime != "" {
+		_ = os.WriteFile(filepath.Join(ds.Runtime, "http_address"), []byte(ln.Addr().String()), 0o600)
+	}
 	if credLocalhost.Secret != "" && ds.Runtime != "" {
 		_ = os.WriteFile(filepath.Join(ds.Runtime, "bootstrap_token"), []byte(credLocalhost.Secret), 0o600)
 		fmt.Printf("\n[karyora] Web UI bootstrap token (http://localhost:5173):\n          %s\n\n", credLocalhost.Secret)
@@ -87,5 +120,12 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 		CorrelationID: correlationID,
 		Fields:        map[string]string{"address": ln.Addr().String()},
 	})
-	return func() error { return ln.Close() }, nil
+	return func() error {
+		cancelWorker()
+		if ds.Runtime != "" {
+			_ = os.Remove(filepath.Join(ds.Runtime, "http_address"))
+			_ = os.Remove(filepath.Join(ds.Runtime, "bootstrap_token"))
+		}
+		return ln.Close()
+	}, nil
 }

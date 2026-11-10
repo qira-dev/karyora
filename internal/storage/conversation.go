@@ -183,6 +183,64 @@ func (s *Store) AppendConversationExchange(ctx context.Context, x conversation.E
 	return exchange, msg, nil
 }
 
+// AppendConversationReply persists an assistant answering message into the conversation
+// aggregate, advances the monotonic sequence, updates the exchange state to answered,
+// and refreshes updated_at.
+func (s *Store) AppendConversationReply(ctx context.Context, conversationID, correlationID, content string) (conversation.Message, error) {
+	if conversationID == "" {
+		return conversation.Message{}, errStoragef(errs.CodeValidationFailed, "conversation identity is required")
+	}
+	if err := conversation.ValidateMessageContent(content); err != nil {
+		return conversation.Message{}, errStoragef(errs.CodeValidationFailed, "%v", err)
+	}
+	if _, err := conversationRowByID(ctx, s, conversationID); err != nil {
+		return conversation.Message{}, err
+	}
+	tx, err := s.writers.BeginTx(ctx, nil)
+	if err != nil {
+		return conversation.Message{}, mapVendorError(err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+
+	var seq sql.NullInt64
+	if err := tx.QueryRowContext(ctx, `SELECT MAX(seq) FROM conversation_messages WHERE conversation_id = ?`, conversationID).Scan(&seq); err != nil {
+		return conversation.Message{}, mapVendorError(err)
+	}
+	nextSeq := seq.Int64 + 1
+	if nextSeq < 1 {
+		nextSeq = 1
+	}
+	messageID := randomMessageID()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO conversation_messages
+		(message_id, conversation_id, seq, role, content, correlation_id, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		messageID, conversationID, nextSeq, string(conversation.MessageRoleAssistant), content, correlationID, now); err != nil {
+		return conversation.Message{}, mapVendorError(err)
+	}
+	if correlationID != "" {
+		if _, err := tx.ExecContext(ctx, `UPDATE conversation_exchanges SET state = ? WHERE correlation_id = ?`,
+			string(conversation.ExchangeAnswered), correlationID); err != nil {
+			return conversation.Message{}, mapVendorError(err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE conversations SET updated_at = ? WHERE conversation_id = ?`, now, conversationID); err != nil {
+		return conversation.Message{}, mapVendorError(err)
+	}
+	if err := tx.Commit(); err != nil {
+		return conversation.Message{}, mapVendorError(err)
+	}
+	return conversation.Message{
+		MessageID:      messageID,
+		ConversationID: conversationID,
+		Seq:            nextSeq,
+		Role:           conversation.MessageRoleAssistant,
+		Content:        content,
+		CorrelationID:  correlationID,
+		CreatedAt:      now,
+	}, nil
+}
+
 const conversationMessageColumns = `message_id, conversation_id, seq, role, content, correlation_id, created_at`
 
 func scanMessage(row rowScanner) (conversation.Message, error) {

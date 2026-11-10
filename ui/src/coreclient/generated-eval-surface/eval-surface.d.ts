@@ -2085,7 +2085,7 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
-        /** @description The closed coded per-message role register — `user` (the only coded value; the answering/assistant role joins additively at its producer milestone, never before — the v1 Ask surface IS record-only per the O-a resolution of 2026-11-07, and a future answer binds as a `Message` row of this register per the B1 class-level resolution). */
+        /** @description The closed coded per-message role register — `user`, `assistant`, or `system`. */
         MessageRole: string;
         /** @description One authoritative conversation message (F4; P-S5-02) — a stable per-message identity, the intra-conversation ordering key, and the correlation-ID linkage to the send that produced it; safe metadata only. */
         Message: {
@@ -2099,7 +2099,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
-        /** @description The closed coded exchange-state register — `recorded` (the only coded value; the answering/stream states join additively with their producer — no value is invented for a producer that does not exist). */
+        /** @description The closed coded exchange-state register — `recorded`, `answered`, or `failed`. */
         ExchangeState: string;
         /** @description The send's durable linkage row (F4; P-S5-05) — the correlation ID is PRIMARY (the identity the S4 query-before-retry read resolves through); it is NOT an idempotency key — the coded Open class resolved canonical (the C1 resolution of 2026-11-07). */
         Exchange: {
@@ -2118,11 +2118,14 @@ export interface components {
         ConversationSendRequest: {
             content: string;
             correlation_id: string;
+            /** @description Whether to invoke the active provider to answer the message. */
+            auto_answer?: boolean;
         };
-        /** @description The send's (and the S4 read's) outcome — the durable exchange linkage and the persisted user message. */
+        /** @description The send's (and the S4 read's) outcome — the durable exchange linkage and the persisted user message, with optional answering reply. */
         ConversationExchangeResult: {
             exchange: components["schemas"]["Exchange"];
             message: components["schemas"]["Message"];
+            answer?: components["schemas"]["Message"];
         };
         /** @description One bounded conversations page (the keyset list semantics; an empty page IS the honest no-match answer). */
         ConversationList: {

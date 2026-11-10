@@ -563,7 +563,7 @@ func TestProviderSwitchSemantics(t *testing.T) {
 
 	doneA := make(chan aijobrelay.Job, 1)
 	go func() {
-		job, rerr := RunToSettlement(env.ctx(), env.deps, "worker-1", 2, subA.Job.JobID, 32)
+		job, rerr := RunToSettlement(env.ctx(), env.deps, "worker-1", 2, subA.Job.JobID, 64)
 		if rerr != nil {
 			job = aijobrelay.Job{JobID: subA.Job.JobID}
 		}
@@ -575,7 +575,7 @@ func TestProviderSwitchSemantics(t *testing.T) {
 	}
 	doneB := make(chan aijobrelay.Job, 1)
 	go func() {
-		job, rerr := RunToSettlement(env.ctx(), env.deps, "worker-2", 2, subB.Job.JobID, 32)
+		job, rerr := RunToSettlement(env.ctx(), env.deps, "worker-2", 2, subB.Job.JobID, 64)
 		if rerr != nil {
 			job = aijobrelay.Job{JobID: subB.Job.JobID}
 		}

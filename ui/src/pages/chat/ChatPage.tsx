@@ -532,7 +532,6 @@ function ConversationLanding() {
       <div className={styles.empty}>
         <p className={styles.emptyTitle}>{t("chat.history.emptyAllTitle")}</p>
         <p>{t("chat.history.emptyAllBody")}</p>
-        <p>{t("chat.timeline.noAnswerNote")}</p>
       </div>
       <ModeDisclosure />
     </section>
@@ -832,7 +831,7 @@ function ConversationView({
     setPendingCorrelationId(correlationId);
     setAnnounce(t("chat.announce.sending"));
     void transport
-      .conversationSend(conversationId, { content, correlation_id: correlationId })
+      .conversationSend(conversationId, { content, correlation_id: correlationId, auto_answer: true })
       .then((outcome) => {
         if (!mountedRef.current) return;
         if (outcome.kind === "data") {
@@ -1151,7 +1150,7 @@ function ConversationView({
           <div className={styles.empty}>
             <p className={styles.emptyTitle}>{t("chat.timeline.emptyTitle")}</p>
             <p>{t("chat.timeline.emptyBody")}</p>
-            <p>{t("chat.timeline.noAnswerNote")}</p>
+            <p className={styles.help}>{t("chat.timeline.noAnswerNote")}</p>
           </div>
         ) : (
           <>
@@ -1167,7 +1166,6 @@ function ConversationView({
                 </button>
               </p>
             ) : null}
-            <p className={styles.noAnswerNote}>{t("chat.timeline.noAnswerNote")}</p>
           </>
         )
       ) : null}
@@ -1263,6 +1261,10 @@ function ConversationView({
             <span>
               {resolvedExchange.state === "recorded"
                 ? `${t("chat.timeline.recordedState")}`
+                : resolvedExchange.state === "answered"
+                ? `${t("chat.timeline.answeredState")}`
+                : resolvedExchange.state === "failed"
+                ? `${t("chat.timeline.failedState")}`
                 : t("chat.timeline.exchangeStateUnknown", { state: resolvedExchange.state })}
             </span>
           </p>
@@ -1601,13 +1603,19 @@ function MessageRow({ message }: { message: WireConversationMessage }) {
   const t = useT();
   const { i18n } = useTranslation();
   const locale = i18n.resolvedLanguage ?? i18n.language;
-  const roleLabel = message.role === "user" ? t("chat.timeline.roleYou") : null;
+  const isUser = message.role === "user";
+  const isAssistant = message.role === "assistant";
+  const roleLabel = isUser
+    ? t("chat.timeline.roleYou")
+    : isAssistant
+    ? t("chat.timeline.roleAssistant")
+    : null;
 
   return (
-    <li className={styles.message}>
+    <li className={`${styles.message} ${isAssistant ? styles.messageAssistant : ""}`}>
       <div className={styles.messageMeta}>
         {roleLabel !== null ? (
-          <span className={styles.roleChip}>{roleLabel}</span>
+          <span className={isAssistant ? styles.roleChipAssistant : styles.roleChip}>{roleLabel}</span>
         ) : (
           <span className={styles.roleChipUnknown}>
             <code>{message.role}</code>
@@ -1619,7 +1627,7 @@ function MessageRow({ message }: { message: WireConversationMessage }) {
         </time>
       </div>
       <p className={styles.messageContent}>{message.content}</p>
-      {message.correlation_id !== undefined ? (
+      {message.correlation_id !== undefined && isUser ? (
         <p className={styles.noJobMarker}>{t("chat.timeline.noJobMarker")}</p>
       ) : null}
     </li>

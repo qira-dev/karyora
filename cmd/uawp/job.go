@@ -1,15 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/qira-dev/karyora/internal/app"
+	"github.com/qira-dev/karyora/internal/config"
 	"github.com/qira-dev/karyora/internal/domain/errs"
 	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
-	"os"
-
 	"github.com/qira-dev/karyora/internal/platform"
 	"github.com/qira-dev/karyora/internal/providers"
 	"github.com/qira-dev/karyora/internal/runtime"
@@ -151,6 +157,9 @@ func cmdJobSubmit(ctx context.Context, flags cliFlags, out *printer, args []stri
 	// Data-directory ownership: the foreground session IS the instance.
 	own, _, err := platform.AcquireOwnership(ds, ds.Data, version)
 	if err != nil {
+		if rec, token, ownerErr := platform.OwnerCredentials(ds.Runtime); ownerErr == nil {
+			return submitJobViaRunningDaemon(ctx, flags, out, cfg, ds, sf, corr, rec, token)
+		}
 		env, _ := errs.New(errs.CodeSingleInstanceConflict, corr, map[string]any{"reason": boundedDetail(err)})
 		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitAlreadyRunning})
 		return int(runtime.ExitAlreadyRunning)
@@ -396,4 +405,230 @@ func cmdJobEvents(ctx context.Context, flags cliFlags, out *printer, jobID strin
 	}
 	out.report(rec.Events)
 	return int(runtime.ExitOK)
+}
+
+func submitJobViaRunningDaemon(ctx context.Context, _ cliFlags, out *printer, cfg config.Config, ds platform.DirSet, sf jobSubmitFlags, corr string, rec platform.OwnerRecord, token string) int {
+	addr := ""
+	if b, err := os.ReadFile(filepath.Join(ds.Runtime, "http_address")); err == nil {
+		addr = strings.TrimSpace(string(b))
+	}
+	if addr == "" && cfg.TransportLocalHTTPPort > 0 {
+		addr = fmt.Sprintf("127.0.0.1:%d", cfg.TransportLocalHTTPPort)
+	}
+	if addr == "" {
+		addr = "127.0.0.1:27210"
+	}
+
+	origin := "http://localhost:5173"
+	bootstrapSecret := ""
+	if b, err := os.ReadFile(filepath.Join(ds.Runtime, "bootstrap_token")); err == nil {
+		bootstrapSecret = strings.TrimSpace(string(b))
+	}
+	if bootstrapSecret == "" {
+		resp, err := platform.CallIPCWithOrigin(ds.Runtime, platform.IPCOpBootstrapToken, rec.InstanceUUID, token, origin)
+		if err == nil && resp.OK {
+			var bresp struct {
+				Secret string `json:"secret"`
+			}
+			if err := json.Unmarshal(resp.Body, &bresp); err == nil && bresp.Secret != "" {
+				bootstrapSecret = bresp.Secret
+			} else {
+				bootstrapSecret = strings.Trim(string(resp.Body), "\" \n\r")
+			}
+		}
+	}
+	if bootstrapSecret == "" {
+		env, _ := errs.New(errs.CodeSingleInstanceConflict, corr, map[string]any{
+			"reason": fmt.Sprintf("daemon is active (pid %d) but bootstrap authentication token is unavailable", rec.PID),
+		})
+		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitAlreadyRunning})
+		return int(runtime.ExitAlreadyRunning)
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	baseURL := "http://" + addr
+
+	exReq, _ := json.Marshal(map[string]any{
+		"credential": bootstrapSecret,
+		"scopes":     []string{"data"},
+	})
+	exHTTPReq, _ := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/v1/session/exchange", bytes.NewReader(exReq))
+	exHTTPReq.Header.Set("Content-Type", "application/json")
+	exHTTPReq.Header.Set("Origin", origin)
+	httpResp, err := client.Do(exHTTPReq)
+	if err != nil {
+		env, _ := errs.New(errs.CodeSingleInstanceConflict, corr, map[string]any{
+			"reason": fmt.Sprintf("daemon is active (pid %d) but HTTP transport unreachable at %s: %v", rec.PID, addr, err),
+		})
+		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitAlreadyRunning})
+		return int(runtime.ExitAlreadyRunning)
+	}
+	defer httpResp.Body.Close()
+	if httpResp.StatusCode != http.StatusOK {
+		env, _ := errs.New(errs.CodeAuthzDenied, corr, map[string]any{
+			"reason": fmt.Sprintf("session exchange rejected with status %d", httpResp.StatusCode),
+		})
+		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitAuthority})
+		return int(runtime.ExitAuthority)
+	}
+
+	var exRes struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(httpResp.Body).Decode(&exRes); err != nil || exRes.Token == "" {
+		env, _ := errs.New(errs.CodeInternal, corr, map[string]any{"reason": "failed to decode session token"})
+		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitInternal})
+		return int(runtime.ExitInternal)
+	}
+	sessionSecret := exRes.Token
+
+	classification := sf.classification
+	if classification == "" && sf.provider == dprovider.ProviderMock {
+		classification = dprovider.ClassificationTestFixture
+	}
+
+	subPayload, _ := json.Marshal(map[string]any{
+		"idempotency_key": sf.idempotencyKey,
+		"task":            sf.task,
+		"provider":        sf.provider,
+		"model":           sf.model,
+		"classification":  classification,
+		"base_url":        sf.baseURL,
+	})
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/v1/jobs", bytes.NewReader(subPayload))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+sessionSecret)
+	subResp, err := client.Do(req)
+	if err != nil {
+		out.report(map[string]any{"error": err.Error()})
+		return int(runtime.ExitFailure)
+	}
+	defer subResp.Body.Close()
+	if subResp.StatusCode != http.StatusAccepted && subResp.StatusCode != http.StatusOK {
+		var errEnv struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		}
+		_ = json.NewDecoder(subResp.Body).Decode(&errEnv)
+		out.report(map[string]any{"error": fmt.Sprintf("job submission refused (status %d): %s", subResp.StatusCode, errEnv.Code)})
+		return int(runtime.ExitFailure)
+	}
+
+	var subResult struct {
+		Job struct {
+			JobID string `json:"job_id"`
+			State string `json:"state"`
+		} `json:"job"`
+	}
+	if err := json.NewDecoder(subResp.Body).Decode(&subResult); err != nil || subResult.Job.JobID == "" {
+		out.report(map[string]any{"error": "invalid submit response from daemon"})
+		return int(runtime.ExitFailure)
+	}
+	jobID := subResult.Job.JobID
+
+	pollTicker := time.NewTicker(100 * time.Millisecond)
+	defer pollTicker.Stop()
+	timeout := time.After(60 * time.Second)
+
+	var finalState struct {
+		Job struct {
+			JobID        string `json:"job_id"`
+			State        string `json:"state"`
+			AttemptCount int    `json:"attempt_count"`
+			ReceiptID    string `json:"receipt_id"`
+			ResultDigest string `json:"result_digest"`
+		} `json:"job"`
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			out.report(map[string]any{"error": ctx.Err().Error()})
+			return int(runtime.ExitFailure)
+		case <-timeout:
+			out.report(map[string]any{"error": "timed out waiting for job settlement"})
+			return int(runtime.ExitFailure)
+		case <-pollTicker.C:
+			getReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/jobs/"+jobID, nil)
+			getReq.Header.Set("Authorization", "Bearer "+sessionSecret)
+			getResp, err := client.Do(getReq)
+			if err != nil {
+				continue
+			}
+			if getResp.StatusCode == http.StatusOK {
+				var statusRes struct {
+					Job struct {
+						JobID        string `json:"job_id"`
+						State        string `json:"state"`
+						AttemptCount int    `json:"attempt_count"`
+						ReceiptID    string `json:"receipt_id"`
+						ResultDigest string `json:"result_digest"`
+					} `json:"job"`
+				}
+				if json.NewDecoder(getResp.Body).Decode(&statusRes) == nil {
+					getResp.Body.Close()
+					finalState = statusRes
+					if statusRes.Job.State == "succeeded" || statusRes.Job.State == "failed" || statusRes.Job.State == "cancelled" {
+						goto PollDone
+					}
+				} else {
+					getResp.Body.Close()
+				}
+			} else {
+				getResp.Body.Close()
+			}
+		}
+	}
+
+PollDone:
+	report := map[string]any{
+		"job_id":         finalState.Job.JobID,
+		"state":          finalState.Job.State,
+		"attempt_count":  finalState.Job.AttemptCount,
+		"receipt_id":     finalState.Job.ReceiptID,
+		"result_digest":  finalState.Job.ResultDigest,
+		"correlation_id": corr,
+	}
+
+	if finalState.Job.State == "succeeded" {
+		resReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/jobs/"+jobID+"/result", nil)
+		resReq.Header.Set("Authorization", "Bearer "+sessionSecret)
+		if resResp, err := client.Do(resReq); err == nil && resResp.StatusCode == http.StatusOK {
+			defer resResp.Body.Close()
+			if payloadBytes, err := io.ReadAll(resResp.Body); err == nil {
+				report["result"] = json.RawMessage(payloadBytes)
+			}
+		}
+	}
+
+	evReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/jobs/"+jobID+"/events", nil)
+	evReq.Header.Set("Authorization", "Bearer "+sessionSecret)
+	if evResp, err := client.Do(evReq); err == nil && evResp.StatusCode == http.StatusOK {
+		defer evResp.Body.Close()
+		var evList struct {
+			Events []struct {
+				EventType     string          `json:"event_type"`
+				InlinePayload json.RawMessage `json:"inline_payload,omitempty"`
+			} `json:"events"`
+		}
+		if json.NewDecoder(evResp.Body).Decode(&evList) == nil {
+			ids := make([]string, 0, len(evList.Events))
+			for _, r := range evList.Events {
+				ids = append(ids, r.EventType)
+			}
+			report["events"] = ids
+			if len(evList.Events) > 0 && len(evList.Events[len(evList.Events)-1].InlinePayload) > 0 {
+				var lastPayload map[string]any
+				if json.Unmarshal(evList.Events[len(evList.Events)-1].InlinePayload, &lastPayload) == nil {
+					report["last_event"] = lastPayload
+				}
+			}
+		}
+	}
+
+	out.report(report)
+	if finalState.Job.State == "succeeded" {
+		return int(runtime.ExitOK)
+	}
+	return int(runtime.ExitFailure)
 }

@@ -1320,16 +1320,18 @@ func (s *Server) handleConversationSend(w http.ResponseWriter, r *http.Request, 
 			map[string]any{"field": "body"}))
 		return
 	}
+	autoAnswer := req.AutoAnswer || r.URL.Query().Get("answer") == "true"
 	res, err := s.deps.Slice.Send(s.callCtx(r, token), app.ConversationSendRequest{
 		ConversationID: conversationID,
 		Content:        req.Content,
 		CorrelationID:  req.CorrelationID,
+		AutoAnswer:     autoAnswer,
 	})
 	if err != nil {
 		s.writeError(w, err)
 		return
 	}
-	s.writeJSON(w, http.StatusOK, conversationExchangeResult{Exchange: res.Exchange, Message: res.Message})
+	s.writeJSON(w, http.StatusOK, conversationExchangeResult{Exchange: res.Exchange, Message: res.Message, Answer: res.Answer})
 }
 
 // handleConversationExchange exposes the S4 query-by-correlation-ID read
@@ -3017,6 +3019,7 @@ type conversationSendRequest struct {
 	// never a duplicate exchange, never a replay claim.
 	Content       string `json:"content"`
 	CorrelationID string `json:"correlation_id"`
+	AutoAnswer    bool   `json:"auto_answer,omitempty"`
 }
 
 type conversationResult struct {
@@ -3048,8 +3051,9 @@ type conversationExchangeResult struct {
 	// (correlation_id, conversation_id, user_message_id, state, created_at)
 	// — the S4 query's authoritative exchange state (P-S5-05); message is
 	// the send's persisted user message.
-	Exchange conversation.Exchange `json:"exchange"`
-	Message  conversation.Message  `json:"message"`
+	Exchange conversation.Exchange       `json:"exchange"`
+	Message  conversation.Message        `json:"message"`
+	Answer   *conversation.Message       `json:"answer,omitempty"`
 }
 
 // The conversation attachment wire shapes (IMPL-25; the ADOPTED S12

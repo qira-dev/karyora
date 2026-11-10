@@ -285,3 +285,54 @@ func TestConversationWireRefusals(t *testing.T) {
 		t.Fatalf("the refused duplicate must leave the timeline untouched: %s", body)
 	}
 }
+
+func TestConversationHTTPAutoAnswer(t *testing.T) {
+	env := newTestEnv(t)
+
+	status, body := env.do(t, "POST", "/v1/conversations", `{"title":"http auto-answer"}`, env.token, nil)
+	if status != 200 {
+		t.Fatalf("create: %d %s", status, body)
+	}
+	var created struct {
+		Conversation struct {
+			ConversationID string `json:"conversation_id"`
+		} `json:"conversation"`
+	}
+	if err := json.Unmarshal(body, &created); err != nil {
+		t.Fatal(err)
+	}
+	convID := created.Conversation.ConversationID
+
+	sendBody := `{"content":"tell me a story","correlation_id":"corr-http-ans-1","auto_answer":true}`
+	status, body = env.do(t, "POST", "/v1/conversations/"+convID+"/send", sendBody, env.token, nil)
+	if status != 200 {
+		t.Fatalf("send with auto-answer: %d %s", status, body)
+	}
+	var sent struct {
+		Exchange struct {
+			State string `json:"state"`
+		} `json:"exchange"`
+		Answer struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"answer"`
+	}
+	if err := json.Unmarshal(body, &sent); err != nil {
+		t.Fatalf("unmarshal send response: %v", err)
+	}
+	if sent.Exchange.State != "answered" {
+		t.Fatalf("exchange state = %q, want answered", sent.Exchange.State)
+	}
+	if sent.Answer.Role != "assistant" || sent.Answer.Content == "" {
+		t.Fatalf("expected assistant answer, got: %+v", sent.Answer)
+	}
+
+	// Verify timeline has 2 messages.
+	status, body = env.do(t, "GET", "/v1/conversations/"+convID+"/messages", "", env.token, nil)
+	if status != 200 {
+		t.Fatalf("messages: %d %s", status, body)
+	}
+	if strings.Count(string(body), `"message_id"`) != 2 {
+		t.Fatalf("timeline must carry both user and assistant messages: %s", body)
+	}
+}

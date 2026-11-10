@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestJobSubmitVerticalSlice is the C3-31 CLI leg: the same app.SliceService
@@ -174,5 +176,61 @@ func TestJobSubmitZaiPersonalNeverEgresses(t *testing.T) {
 	}
 	if !strings.Contains(out, "egress") {
 		t.Fatalf("the failure must name the egress policy gate, got %s", out)
+	}
+}
+
+// TestJobSubmitWithRunningCore verifies that uawp job submit succeeds even when
+// a core daemon instance is already holding the platform data lock.
+func TestJobSubmitWithRunningCore(t *testing.T) {
+	h := newHarness(t)
+	t.Setenv("KARYORA_TRANSPORT_LOCAL_HTTP_ENABLED", "1")
+	t.Setenv("KARYORA_TRANSPORT_LOCAL_HTTP_PORT", "0")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	type result struct {
+		code int
+		out  string
+	}
+	done := make(chan result, 1)
+	go func() {
+		code, out := h.runCtx(ctx, "start", "--json")
+		done <- result{code, out}
+	}()
+
+	deadline := time.Now().Add(15 * time.Second)
+	live := false
+	for time.Now().Before(deadline) {
+		code, out := h.run("status", "--json")
+		if code == 0 && strings.Contains(out, `"live": true`) {
+			live = true
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	if !live {
+		cancel()
+		t.Fatal("start never became live")
+	}
+
+	code, out := h.run("job", "submit", "--task", "Explain the running daemon vertical slice.",
+		"--idempotency-key", "cli-daemon-1", "--provider", "mock", "--json")
+	if code != 0 {
+		t.Fatalf("job submit with running core exited %d: %s", code, out)
+	}
+	var report map[string]any
+	if err := json.Unmarshal([]byte(out), &report); err != nil {
+		t.Fatalf("report is not JSON: %v\n%s", err, out)
+	}
+	if report["state"] != "succeeded" {
+		t.Fatalf("job state = %v, want succeeded", report["state"])
+	}
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(15 * time.Second):
+		t.Fatal("start did not exit after cancel")
 	}
 }

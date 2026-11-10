@@ -11,6 +11,7 @@ import (
 
 	"github.com/qira-dev/karyora/internal/domain/conversation"
 	"github.com/qira-dev/karyora/internal/domain/errs"
+	dprovider "github.com/qira-dev/karyora/internal/domain/provider"
 	"github.com/qira-dev/karyora/internal/security"
 )
 
@@ -79,6 +80,9 @@ type ConversationStore interface {
 	// a DIFFERENT conversation is the SAME typed NOT_FOUND as unknown (the
 	// no-leak rule).
 	LoadConversationExchange(ctx context.Context, conversationID, correlationID string) (conversation.Exchange, conversation.Message, error)
+	// AppendConversationReply persists an assistant answering message into the conversation
+	// aggregate, advances the monotonic sequence, and updates the exchange state to answered.
+	AppendConversationReply(ctx context.Context, conversationID, correlationID, content string) (conversation.Message, error)
 }
 
 // Conversation bounds (Proposed, pending the recorded owner review — the
@@ -289,16 +293,17 @@ type ConversationSendRequest struct {
 	ConversationID string
 	Content        string
 	CorrelationID  string
+	AutoAnswer     bool
 }
 
 // ConversationSendResult reports the recorded exchange: the Core-issued
 // correlation ID (the identity the S4 query resolves through), the
-// persisted user message, and the exchange's honest state. The response
-// carries NO answer — no answering/assistant production path exists in this
-// milestone (the named owner gap).
+// persisted user message, and the exchange's state. When AutoAnswer is
+// requested, Answer carries the persisted assistant reply.
 type ConversationSendResult struct {
 	Exchange conversation.Exchange
 	Message  conversation.Message
+	Answer   *conversation.Message `json:"answer,omitempty"`
 }
 
 // Send persists one Ask send inside the conversation aggregate (P-S5-05):
@@ -342,6 +347,90 @@ func (s *Slice) Send(ctx context.Context, req ConversationSendRequest) (Conversa
 	if err != nil {
 		return ConversationSendResult{}, err
 	}
+
+	if req.AutoAnswer {
+		replyText := "Karyora Assistant is connected and ready. To enable AI-powered answers from Claude, GPT-4, Gemini, DeepSeek, or a local Ollama model, please configure an active connection in Settings > Connections."
+		var executor ProviderExecutor
+		var activeModel string
+		var providerName string
+
+		if s.deps.Connections != nil {
+			activeID, err := s.deps.Connections.ActiveConnectionID(ctx)
+			if err == nil && activeID != "" {
+				connRec, err := s.deps.Connections.LoadConnection(ctx, activeID)
+				if err == nil {
+					providerName = connRec.Provider
+					activeModel = connRec.ModelID
+					if exec, ok := s.connectionExecutorFor(connRec.Provider, connRec.BaseURL, connRec.ModelID); ok {
+						executor = exec
+					}
+				}
+			}
+		}
+		if executor == nil && s.deps.Providers != nil {
+			if mockExec, ok := s.deps.Providers[dprovider.ProviderMock]; ok {
+				executor = mockExec
+				providerName = "mock"
+			}
+		}
+
+		if executor != nil {
+			model := "default"
+			if activeModel != "" {
+				model = activeModel
+			}
+			var planMessages []dprovider.Message
+			if msgsPage, err := s.deps.Conversations.LoadMessagePage(ctx, conversation.MessagePageQuery{
+				ConversationID: req.ConversationID,
+				Limit:          20,
+			}); err == nil {
+				for _, m := range msgsPage.Messages {
+					role := dprovider.RoleUser
+					if m.Role == conversation.MessageRoleAssistant {
+						role = dprovider.RoleAssistant
+					}
+					planMessages = append(planMessages, dprovider.Message{
+						Role:  role,
+						Parts: []dprovider.Part{{Type: "text", Text: m.Content}},
+					})
+				}
+			}
+			if len(planMessages) == 0 {
+				planMessages = []dprovider.Message{
+					{Role: dprovider.RoleUser, Parts: []dprovider.Part{{Type: "text", Text: req.Content}}},
+				}
+			}
+			classification := dprovider.ClassificationNonPersonal
+			if providerName == "mock" {
+				classification = dprovider.ClassificationTestFixture
+			}
+			plan := &dprovider.RequestPlan{
+				Operation:  dprovider.OperationChat,
+				Profile:    executor.ProfileFor(model),
+				Connection: executor.Connection(),
+				System:     "You are Karyora Assistant, an AI pair programmer and desktop assistant.",
+				Messages:   planMessages,
+				Metadata: map[string]string{
+					dprovider.ClassificationKey: classification,
+					"conversation_id":           req.ConversationID,
+					"correlation_id":            req.CorrelationID,
+				},
+			}
+			execRes, err := executor.Execute(ctx, plan)
+			if err != nil {
+				replyText = fmt.Sprintf("Error from %s provider: %v. Please verify your connection settings in Settings > Connections.", providerName, err)
+			} else if execRes != nil && execRes.Text != "" {
+				replyText = execRes.Text
+			}
+		}
+
+		answerMsg, err := s.deps.Conversations.AppendConversationReply(ctx, req.ConversationID, req.CorrelationID, replyText)
+		if err == nil {
+			recorded.State = conversation.ExchangeAnswered
+			return ConversationSendResult{Exchange: recorded, Message: msg, Answer: &answerMsg}, nil
+		}
+	}
+
 	return ConversationSendResult{Exchange: recorded, Message: msg}, nil
 }
 

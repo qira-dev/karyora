@@ -162,6 +162,9 @@ func (f *failingAppendStore) LoadMessagePage(ctx context.Context, q conversation
 func (f *failingAppendStore) LoadConversationExchange(ctx context.Context, conversationID, correlationID string) (conversation.Exchange, conversation.Message, error) {
 	return f.inner.LoadConversationExchange(ctx, conversationID, correlationID)
 }
+func (f *failingAppendStore) AppendConversationReply(ctx context.Context, conversationID, correlationID, content string) (conversation.Message, error) {
+	return f.inner.AppendConversationReply(ctx, conversationID, correlationID, content)
+}
 
 // TestConversationSendNoAutoRetry pins the no-auto-retry law and the
 // duplicate-identity ruling (P-S5-05; P1.6 §4 rule 2 — conversation-send
@@ -542,5 +545,47 @@ func TestConversationValidation(t *testing.T) {
 		if c.ConversationID == "conv-nope" {
 			t.Fatal("an unknown conversation must not appear")
 		}
+	}
+}
+
+// TestConversationSendAutoAnswer tests that sending with AutoAnswer true generates
+// an assistant answering message, appends it to the timeline with role "assistant",
+// and updates the exchange state to "answered".
+func TestConversationSendAutoAnswer(t *testing.T) {
+	env := convEnv(t)
+	conv := createConv(t, env, "auto-answer test")
+	req := ConversationSendRequest{
+		ConversationID: conv.ConversationID,
+		Content:        "Can you help me build an app?",
+		CorrelationID:  "corr-answer-1",
+		AutoAnswer:     true,
+	}
+	res, err := env.slice.Send(env.ctx(), req)
+	if err != nil {
+		t.Fatalf("send with auto-answer: %v", err)
+	}
+	if res.Exchange.State != conversation.ExchangeAnswered {
+		t.Fatalf("exchange state = %q, want %q", res.Exchange.State, conversation.ExchangeAnswered)
+	}
+	if res.Answer == nil {
+		t.Fatalf("expected non-nil answer")
+	}
+	if res.Answer.Role != conversation.MessageRoleAssistant {
+		t.Fatalf("answer role = %q, want %q", res.Answer.Role, conversation.MessageRoleAssistant)
+	}
+	if res.Answer.Content == "" {
+		t.Fatalf("expected answer content to be non-empty")
+	}
+	// Verify that the timeline has both the user message and the assistant message.
+	timeline, err := env.slice.ConversationMessages(env.ctx(), conv.ConversationID, ConversationMessagePageRequest{Limit: 10})
+	if err != nil {
+		t.Fatalf("timeline read: %v", err)
+	}
+	if len(timeline.Messages) != 2 {
+		t.Fatalf("expected 2 messages in timeline, got %d", len(timeline.Messages))
+	}
+	if timeline.Messages[0].Role != conversation.MessageRoleUser || timeline.Messages[1].Role != conversation.MessageRoleAssistant {
+		t.Fatalf("expected user followed by assistant message, got roles: %s, %s",
+			timeline.Messages[0].Role, timeline.Messages[1].Role)
 	}
 }

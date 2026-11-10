@@ -207,6 +207,13 @@ func cmdStart(ctx context.Context, flags cliFlags, out *printer) int {
 	}
 	runner := runtime.NewRunner(ds, runnerPorts(l, journal, version, bundle), sink)
 	runner.Guard = bundle.guardFunc(corr)
+	runner.BootstrapToken = func(origin string) (string, error) {
+		cred, err := bundle.sessions.IssueBootstrapCredential(origin)
+		if err != nil {
+			return "", err
+		}
+		return cred.Secret, nil
+	}
 	if f := runner.Start(ctx, corr, version); f != nil {
 		out.failure(f)
 		return int(f.Exit)

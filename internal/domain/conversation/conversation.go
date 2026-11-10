@@ -59,19 +59,22 @@ type Conversation struct {
 	UpdatedAt string `json:"updated_at"`
 }
 
-// MessageRole is the closed per-message role register (P-S5-02). The
-// register carries `user` ONLY: the answering/assistant production path is
-// a named owner gap (S5 §4 P-S5-03 gap (a)) — its role value joins this
-// register additively when its producer milestone implements it, never
-// before (the recorded register-extension class). No revisions, no edit
-// history: the UI-28 gate holds.
+// MessageRole is the closed per-message role register (P-S5-02).
 type MessageRole string
 
 // MessageRoleUser is the user's own message (the send's persisted half).
 const MessageRoleUser MessageRole = "user"
 
+// MessageRoleAssistant is the assistant's answering message.
+const MessageRoleAssistant MessageRole = "assistant"
+
+// MessageRoleSystem is a system message.
+const MessageRoleSystem MessageRole = "system"
+
 // ValidMessageRole reports membership in the closed role register.
-func ValidMessageRole(r MessageRole) bool { return r == MessageRoleUser }
+func ValidMessageRole(r MessageRole) bool {
+	return r == MessageRoleUser || r == MessageRoleAssistant || r == MessageRoleSystem
+}
 
 // Message is one authoritative conversation message (P-S5-02): a stable
 // per-message identity; the intra-conversation ordering key (Seq — the
@@ -89,23 +92,22 @@ type Message struct {
 	CreatedAt     string      `json:"created_at"`
 }
 
-// ExchangeState is the closed exchange-state register. The register carries
-// `recorded` ONLY in this milestone: the send was durably recorded inside
-// the aggregate. No answered/failed/streamed state exists — the
-// answering/stream production path is the named owner gap, and no state
-// value is invented for a producer that does not exist (the IMPL-7
-// "no producer exists" pattern).
+// ExchangeState is the exchange-state register.
 type ExchangeState string
 
-// ExchangeRecorded is the one state this milestone can honestly carry: the
-// user's message and the exchange linkage are durable inside the
-// conversation aggregate. The S4 query returns exactly this state — the
-// authoritative exchange state for a lost send response.
+// ExchangeRecorded marks the send durably recorded inside the aggregate.
 const ExchangeRecorded ExchangeState = "recorded"
 
-// ValidExchangeState reports membership in the closed exchange-state
-// register.
-func ValidExchangeState(s ExchangeState) bool { return s == ExchangeRecorded }
+// ExchangeAnswered marks the exchange completed with an answering reply.
+const ExchangeAnswered ExchangeState = "answered"
+
+// ExchangeFailed marks an exchange where answering failed.
+const ExchangeFailed ExchangeState = "failed"
+
+// ValidExchangeState reports membership in the exchange-state register.
+func ValidExchangeState(s ExchangeState) bool {
+	return s == ExchangeRecorded || s == ExchangeAnswered || s == ExchangeFailed
+}
 
 // Exchange is the send's durable linkage row (P-S5-05): the exchange state
 // bound to (conversation identity, correlation ID). The correlation ID is
