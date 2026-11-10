@@ -16,21 +16,6 @@ import (
 	"time"
 )
 
-// runFullUpdate drives one complete successful cycle so a test starts from a
-// stable updated state (S10: lkg advanced, journal cleared).
-func runFullUpdate(t *testing.T, h *hHarness) Outcome {
-	t.Helper()
-	h.serve(bundleOpts{})
-	out, err := h.engine.RunUpdate(t.Context())
-	if err != nil {
-		t.Fatalf("seed update: %v", err)
-	}
-	if out.State != StateUpdatedStable {
-		t.Fatalf("seed update: outcome = %+v, want S10", out)
-	}
-	return out
-}
-
 // L1 (CLM-UA-034): interrupted download — the staging residue of a crash is
 // discarded UNCONDITIONALLY at startup and the machine returns to S0; a
 // half-downloaded artifact can never be a candidate (T4's disposable rule).

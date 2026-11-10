@@ -468,6 +468,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/session/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consume one-time bootstrap credential and mint a session token (C-1).
+         * @description Consumes the bootstrap credential exactly once and returns the session token carrying the requested operation-class scopes (lifecycle, data).
+         */
+        post: operations["sessionExchange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/session/logout": {
         parameters: {
             query?: never;
@@ -1935,6 +1955,27 @@ export interface components {
             max_output_tokens?: number;
             token_estimator_ref?: string;
             notes?: string;
+        };
+        /** @description The one-time bootstrap credential exchange request (C-1). */
+        SessionExchangeRequest: {
+            /** @description The one-time bootstrap secret issued through the trusted local channel. */
+            credential: string;
+            /** @description Requested operation-class scopes (lifecycle, data). */
+            scopes?: string[];
+        };
+        /** @description The session token result. */
+        SessionExchangeResult: {
+            /** @description The bearer token string (kry1-...). Held in memory only. */
+            token: string;
+            /** @description The session identifier. */
+            id: string;
+            /** @description Granted operation-class scopes. */
+            scopes: string[];
+            /**
+             * Format: date-time
+             * @description Absolute expiration time of the session.
+             */
+            expires: string;
         };
         /** @description The per-token logout's confirmed outcome. */
         SessionLogoutResult: {
@@ -3609,6 +3650,30 @@ export interface operations {
                     "application/json": {
                         capability_descriptor: components["schemas"]["CapabilityDescriptor"];
                     };
+                };
+            };
+        };
+    };
+    sessionExchange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionExchangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Session token minted successfully. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionExchangeResult"];
                 };
             };
         };

@@ -58,6 +58,8 @@ func run(ctx context.Context, args []string, stdout *os.File) int {
 		return cmdJob(ctx, flags, out, ordered)
 	case "credential":
 		return cmdCredential(ctx, flags, out, ordered)
+	case "session":
+		return cmdSession(ctx, flags, out, ordered)
 	case "version":
 		out.text("karyora core " + version + " (" + commit + " " + buildDate + ")")
 		return int(runtime.ExitOK)
@@ -228,7 +230,7 @@ func cmdStart(ctx context.Context, flags cliFlags, out *printer) int {
 	// IPC surface. A construction failure is a startup failure (the Core
 	// never runs half-wired); the transport itself is disabled by default.
 	if cfg.TransportLocalHTTPEnabled == 1 {
-		closeHTTP, err := startLocalHTTPTransport(cfg, l, bundle, corr)
+		closeHTTP, err := startLocalHTTPTransport(cfg, l, bundle, runner, ds, corr)
 		if err != nil {
 			env, _ := errs.New(errs.CodeInternal, corr, map[string]any{"reason": boundedDetail(err)})
 			out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitInternal})

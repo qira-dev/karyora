@@ -667,6 +667,26 @@ paths:
                   capability_descriptor: { $ref: '#/components/schemas/CapabilityDescriptor' }
     parameters:
       - $ref: '#/components/parameters/ProviderId'
+  /session/exchange:
+    post:
+      operationId: sessionExchange
+      summary: Consume one-time bootstrap credential and mint a session token (C-1).
+      description: >-
+        Consumes the bootstrap credential exactly once and returns the session token
+        carrying the requested operation-class scopes (lifecycle, data).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionExchangeRequest'
+      responses:
+        '200':
+          description: Session token minted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionExchangeResult'
   /session/logout:
     post:
       operationId: sessionLogout
@@ -3179,6 +3199,39 @@ components:
         max_output_tokens: { type: integer, description: 0 = unknown (omitted when zero). }
         token_estimator_ref: { type: string }
         notes: { type: string }
+    SessionExchangeRequest:
+      type: object
+      description: The one-time bootstrap credential exchange request (C-1).
+      required: [credential]
+      properties:
+        credential:
+          type: string
+          description: The one-time bootstrap secret issued through the trusted local channel.
+        scopes:
+          type: array
+          items:
+            type: string
+          description: Requested operation-class scopes (lifecycle, data).
+    SessionExchangeResult:
+      type: object
+      description: The session token result.
+      required: [token, id, scopes, expires]
+      properties:
+        token:
+          type: string
+          description: The bearer token string (kry1-...). Held in memory only.
+        id:
+          type: string
+          description: The session identifier.
+        scopes:
+          type: array
+          items:
+            type: string
+          description: Granted operation-class scopes.
+        expires:
+          type: string
+          format: date-time
+          description: Absolute expiration time of the session.
     SessionLogoutResult:
       type: object
       description: The per-token logout's confirmed outcome.

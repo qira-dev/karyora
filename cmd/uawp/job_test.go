@@ -78,6 +78,21 @@ func TestJobSubmitVerticalSlice(t *testing.T) {
 	if len(probe.Events) != len(events) {
 		t.Fatalf("status probe sees %d events, submit reported %d", len(probe.Events), len(events))
 	}
+
+	// Job events probe reads only the journal events array.
+	code4, out4 := h.run("job", "events", report["job_id"].(string), "--json")
+	if code4 != 0 {
+		t.Fatalf("events exited %d: %s", code4, out4)
+	}
+	var eventsOnly []struct {
+		EventType string `json:"event_type"`
+	}
+	if err := json.Unmarshal([]byte(out4), &eventsOnly); err != nil {
+		t.Fatalf("events report is not JSON array: %v\n%s", err, out4)
+	}
+	if len(eventsOnly) != len(events) {
+		t.Fatalf("events command returned %d events, expected %d", len(eventsOnly), len(events))
+	}
 }
 
 // TestJobSubmitConflictIsTyped proves the idempotency conflict through the

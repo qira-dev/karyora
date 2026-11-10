@@ -21,10 +21,6 @@ type openAIOptions struct {
 	MaxTokensField string // "max_completion_tokens" (OpenAI direct) or "max_tokens" (compatible families)
 }
 
-func defaultOpenAIOptions() openAIOptions {
-	return openAIOptions{MaxTokensField: "max_completion_tokens"}
-}
-
 type openAIMessage struct {
 	Role       string           `json:"role"`
 	Content    any              `json:"content"`

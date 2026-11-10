@@ -69,7 +69,13 @@ export function ConnectionCredentialDialog({
 
   return (
     <Dialog labelId={labelId} title={t(titleKey)} open={open} onClose={onClose} returnFocusRef={returnFocusRef}>
-      <div className={styles.dialogBody}>
+      <form
+        className={styles.dialogBody}
+        onSubmit={(event) => {
+          event.preventDefault();
+          confirm();
+        }}
+      >
         <p className={styles.dialogBodyText}>{t(bodyKey, { connectionId: connection?.record.connection_id ?? "" })}</p>
         <p className={styles.dialogEffects}>
           {kind === "rotate"
@@ -94,11 +100,10 @@ export function ConnectionCredentialDialog({
         </div>
         <div className={styles.dialogActions}>
           <button
-            type="button"
+            type="submit"
             className={styles.primaryButton}
             disabled={secret.length === 0 || pending}
             aria-disabled={secret.length === 0 || pending ? "true" : undefined}
-            onClick={confirm}
           >
             {kind === "rotate" ? t("connections.rotateConfirm") : t("connections.reauthConfirm")}
           </button>
@@ -107,7 +112,7 @@ export function ConnectionCredentialDialog({
           </button>
         </div>
         <p className={styles.dialogHint}>{t("connections.dialogDurableNote")}</p>
-      </div>
+      </form>
     </Dialog>
   );
 }

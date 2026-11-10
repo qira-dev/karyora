@@ -51,17 +51,6 @@ func uleb(v uint32) []byte {
 	}
 }
 
-func sleb(v int64) []byte {
-	var out []byte
-	for {
-		b := byte(v & 0x7F)
-		v >>= 7
-		if (v == 0 && b&0x40 == 0) || (v == -1 && b&0x40 != 0) {
-			return append(out, b)
-		}
-		out = append(out, b|0x80)
-	}
-}
 
 func section(id byte, body []byte) []byte {
 	return append([]byte{id}, append(uleb(uint32(len(body))), body...)...)

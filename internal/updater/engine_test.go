@@ -121,7 +121,7 @@ func (a *hArtSig) Verify(_ context.Context, artifactPath string, sig *Signature,
 	if err != nil {
 		return err
 	}
-	var pub ed25519.PublicKey = a.platformKey
+	pub := a.platformKey
 	if len(pub) != ed25519.PublicKeySize {
 		return fail(ReasonArtifactSignature, "platform identity key unavailable")
 	}

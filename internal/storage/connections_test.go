@@ -115,10 +115,8 @@ func TestConnectionListKeysetPagination(t *testing.T) {
 	// distinct model ids — the storage stamps the wall clock; within the
 	// same nanosecond resolution the connection_id tiebreak keeps the walk
 	// deterministic).
-	ids := []string{}
 	for i := 0; i < 5; i++ {
-		rec := fakeRecord(t, st, ctx, "idem-"+string(rune('a'+i)), fakeSaveBody{Provider: "mock", ModelID: "m"})
-		ids = append(ids, rec.ConnectionID)
+		fakeRecord(t, st, ctx, "idem-"+string(rune('a'+i)), fakeSaveBody{Provider: "mock", ModelID: "m"})
 	}
 	seen := map[string]bool{}
 	total := 0

@@ -83,6 +83,10 @@ type Runner struct {
 	// may leave it nil (documented test-only path).
 	Guard func(ctx context.Context, action string) error
 
+	// BootstrapToken mints a one-time bootstrap credential for the given origin
+	// through the trusted local IPC channel.
+	BootstrapToken func(origin string) (string, error)
+
 	mu         sync.Mutex
 	generation uint64
 	tookOver   bool
@@ -194,6 +198,7 @@ func (r *Runner) Start(ctx context.Context, correlationID, coreVersion string) *
 		// A stale takeover is a recovery event, not a silent restart
 		// (C2-08 §4): the kernel-lock handoff plus the generation bump in
 		// step 5 gate the start behind recovery, and status reports it.
+		_ = tookOver
 	}
 
 	if err := r.machine.Transition(StateValidating, "authority acquired"); err != nil {
@@ -339,7 +344,7 @@ func (r *Runner) ServeIPC() (func() error, error) {
 	token := r.own.Capability()
 	verify := func(req platform.IPCRequest) (bool, string) {
 		switch req.Op {
-		case platform.IPCOpStatus, platform.IPCOpStop:
+		case platform.IPCOpStatus, platform.IPCOpStop, platform.IPCOpBootstrapToken:
 			return true, ""
 		default:
 			return false, "NOT_FOUND"
@@ -381,6 +386,26 @@ func (r *Runner) ServeIPC() (func() error, error) {
 			case <-time.After(drainBudget + 5*time.Second):
 				return platform.IPCResponse{OK: false, Code: "INTERNAL"}
 			}
+		case platform.IPCOpBootstrapToken:
+			if denied := authorizeHandler("status.read"); denied.Code != "" {
+				return denied
+			}
+			if r.BootstrapToken == nil {
+				return platform.IPCResponse{OK: false, Code: "NOT_SUPPORTED"}
+			}
+			origin := req.Origin
+			if origin == "" {
+				origin = "http://localhost:5173"
+			}
+			cred, err := r.BootstrapToken(origin)
+			if err != nil {
+				return platform.IPCResponse{OK: false, Code: "INTERNAL"}
+			}
+			body, _ := json.Marshal(map[string]string{
+				"credential": cred,
+				"origin":     origin,
+			})
+			return platform.IPCResponse{OK: true, Body: body}
 		default:
 			return platform.IPCResponse{OK: false, Code: "NOT_FOUND"}
 		}

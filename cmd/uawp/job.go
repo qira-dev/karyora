@@ -373,5 +373,27 @@ func cmdJobStatus(ctx context.Context, flags cliFlags, out *printer, jobID strin
 
 // cmdJobEvents prints one job's journal events in sequence order.
 func cmdJobEvents(ctx context.Context, flags cliFlags, out *printer, jobID string) int {
-	return cmdJobStatus(ctx, flags, out, jobID)
+	ds, f := resolvePaths(flags)
+	if f != nil {
+		out.failure(f)
+		return int(f.Exit)
+	}
+	cfg, f := runtime.LoadEffectiveConfig(errs.NewCorrelationID(), ds.Config, flags.overrides, os.Getenv)
+	if f != nil {
+		out.failure(f)
+		return int(f.Exit)
+	}
+	opts := buildOptions(cfg, ds.Data)
+	rec, err := storage.JobRecordReadonly(ctx, opts.Path, jobID)
+	if err != nil {
+		out.report(map[string]any{"error": bounded(err)})
+		return int(runtime.ExitStorage)
+	}
+	if rec == nil {
+		env, _ := errs.New(errs.CodeNotFound, errs.NewCorrelationID(), map[string]any{"job_id": jobID})
+		out.failure(&runtime.Failure{Envelope: env, Exit: runtime.ExitFailure})
+		return int(runtime.ExitFailure)
+	}
+	out.report(rec.Events)
+	return int(runtime.ExitOK)
 }

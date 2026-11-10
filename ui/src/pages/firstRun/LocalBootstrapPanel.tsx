@@ -133,7 +133,13 @@ export function LocalBootstrapPanel() {
           <p className={styles.panelHelp} id={helpId}>
             {t("step1.bootstrap.credentialHelp")}
           </p>
-          <div className={styles.credentialRow}>
+          <form
+            className={styles.credentialRow}
+            onSubmit={(event) => {
+              event.preventDefault();
+              void runExchange();
+            }}
+          >
             <input
               id={inputId}
               type="password"
@@ -145,22 +151,15 @@ export function LocalBootstrapPanel() {
               disabled={pending}
               placeholder={t("step1.bootstrap.credentialPlaceholder")}
               onChange={(event) => setCredential(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void runExchange();
-                }
-              }}
             />
             <button
-              type="button"
+              type="submit"
               className={styles.exchangeButton}
               disabled={pending || credential.trim() === ""}
-              onClick={() => void runExchange()}
             >
               {pending ? t("step1.bootstrap.exchanging") : t("step1.bootstrap.exchangeButton")}
             </button>
-          </div>
+          </form>
         </>
       ) : null}
       {connected && session !== null ? (

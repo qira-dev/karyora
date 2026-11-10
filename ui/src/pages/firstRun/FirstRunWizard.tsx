@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useFirstRun } from "../../app/firstRun/firstRunState";
 import { useDirtyNavigationGuard } from "../../app/useDirtyNavigationGuard";
-import { createUnavailableCoreClient } from "../../coreclient";
 import { RecoveryPanel } from "../../components/RecoveryPanel";
 import { useT } from "../../i18n/useT";
 import { PageHeading, PageLayout } from "../PageLayout";
@@ -48,7 +47,7 @@ const STEP_COUNT = 3;
 
 export function FirstRunWizard() {
   const t = useT();
-  const { connectionChoice, setConnectionChoice, skipSetup, providerDraft } = useFirstRun();
+  const { connectionChoice, setConnectionChoice, skipSetup, completeSetup, providerDraft } = useFirstRun();
   const [step, setStep] = useState(0);
   const [completionUnavailable, setCompletionUnavailable] = useState(false);
   const [completionPending, setCompletionPending] = useState(false);
@@ -80,17 +79,15 @@ export function FirstRunWizard() {
   }, [guard, skipSetup]);
 
   const attemptCompletion = useCallback(async () => {
-    // No duplicate submit (§8.1); no fabricated pending period: the
-    // unavailable instance resolves immediately and truthfully.
     setCompletionPending(true);
     try {
-      const client = createUnavailableCoreClient();
-      await client.command("first-run-complete");
+      completeSetup();
+    } catch {
       setCompletionUnavailable(true);
     } finally {
       setCompletionPending(false);
     }
-  }, []);
+  }, [completeSetup]);
 
   const isResume =
     connectionChoice !== null ||

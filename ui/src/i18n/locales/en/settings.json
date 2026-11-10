@@ -84,7 +84,7 @@
     "confirmedBody": "The Core confirmed the revocation and the token was discarded from this browser's memory.",
     "confirmedReestablish": "Re-establish a session through the connection bootstrap when you return.",
     "refusedTitle": "The Core refused the sign-out",
-    "refusedBody": "The sign-out was refused by the Core (typed refusal {code}). The session was NOT ended and the held token stays in this browser's memory.",
+    "refusedBody": "The sign-out was refused by the Core (typed refusal {{code}}). The session was NOT ended and the held token stays in this browser's memory.",
     "refusedNote": "Nothing was signed out. The typed code above is stable and language-neutral; resolve the stated cause and retry explicitly.",
     "unknownTitle": "The response was lost",
     "unknownBody": "The Core never confirmed the sign-out, so the session is NOT assumed ended and the held token stays in memory.",

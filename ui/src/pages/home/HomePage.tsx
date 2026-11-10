@@ -33,7 +33,7 @@ export function HomePage() {
       <PageHeading>{t("title")}</PageHeading>
       <PageSection>
         <h2 className={styles.sectionTitle}>{t("home.heading")}</h2>
-        <p>{t("wizard.skipDone")}</p>
+        <p>{status === "completed" ? t("wizard.completedDone") : t("wizard.skipDone")}</p>
         <button type="button" className={styles.resumeButton} onClick={resumeSetup}>
           {t("wizard.resume")}
         </button>

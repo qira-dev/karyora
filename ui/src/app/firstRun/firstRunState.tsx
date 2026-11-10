@@ -27,7 +27,7 @@ import type { ReactNode } from "react";
 
 const STORAGE_KEY = "karyora.ui.firstrun.v1";
 
-export type FirstRunStatus = "pending" | "skipped";
+export type FirstRunStatus = "pending" | "skipped" | "completed";
 export type ConnectionChoice = "local" | "remote";
 
 /** Non-secret provider-step draft (C-07 UI-12 fields minus the secret).
@@ -69,7 +69,7 @@ function loadStored(): StoredFirstRun {
     if (parsed === null || typeof parsed !== "object") return DEFAULTS;
     const candidate = parsed as Partial<StoredFirstRun>;
     return {
-      status: candidate.status === "skipped" ? "skipped" : DEFAULTS.status,
+      status: candidate.status === "skipped" || candidate.status === "completed" ? candidate.status : DEFAULTS.status,
       connectionChoice:
         candidate.connectionChoice === "local" || candidate.connectionChoice === "remote"
           ? candidate.connectionChoice
@@ -87,6 +87,7 @@ interface FirstRunContextValue {
   readonly providerDraft: ProviderDraft;
   setConnectionChoice: (choice: ConnectionChoice) => void;
   skipSetup: () => void;
+  completeSetup: () => void;
   resumeSetup: () => void;
   setProviderDraft: (draft: ProviderDraft) => void;
   discardProviderDraft: () => void;
@@ -113,6 +114,9 @@ export function FirstRunProvider({ children }: { children: ReactNode }) {
   const skipSetup = useCallback(() => {
     setStored((prev) => ({ ...prev, status: "skipped" }));
   }, []);
+  const completeSetup = useCallback(() => {
+    setStored((prev) => ({ ...prev, status: "completed" }));
+  }, []);
   const resumeSetup = useCallback(() => {
     setStored((prev) => ({ ...prev, status: "pending" }));
   }, []);
@@ -130,6 +134,7 @@ export function FirstRunProvider({ children }: { children: ReactNode }) {
       providerDraft,
       setConnectionChoice,
       skipSetup,
+      completeSetup,
       resumeSetup,
       setProviderDraft,
       discardProviderDraft,
@@ -140,6 +145,7 @@ export function FirstRunProvider({ children }: { children: ReactNode }) {
       providerDraft,
       setConnectionChoice,
       skipSetup,
+      completeSetup,
       resumeSetup,
       setProviderDraft,
       discardProviderDraft,

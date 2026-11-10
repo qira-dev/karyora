@@ -167,15 +167,15 @@ func (r *Registry) Upsert(p DataHandlingProfile) {
 	defer r.mu.Unlock()
 	key := p.Profile.Key() + "|" + string(p.FeatureScope)
 	list := r.byID[key]
-	for i, existing := range list {
-		if !p.ReviewDate.After(existing.ReviewDate) {
+	if len(list) > 0 {
+		if !p.ReviewDate.After(list[0].ReviewDate) {
 			// keep the existing (newer or equal) record
 			return
 		}
-		list = append(list[:i], list[i+1:]...)
-		break
+		list[0] = &p
+		return
 	}
-	r.byID[key] = append(list, &p)
+	r.byID[key] = []*DataHandlingProfile{&p}
 }
 
 // Lookup returns the governing record for a profile and feature scope

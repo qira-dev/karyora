@@ -169,12 +169,11 @@ func BenchmarkW3InterruptedAttemptRecovery(b *testing.B) {
 // only), Go heap/sys and GC counters from runtime, and process CPU from
 // /proc/self/stat (linux only; utime+stime in clock ticks at 100 Hz).
 type resourceSample struct {
-	rssMiB    float64
-	heapMiB   float64
-	sysMiB    float64
-	gcCycles  uint32
-	cpuTicks  float64
-	procTicks float64
+	rssMiB   float64
+	heapMiB  float64
+	sysMiB   float64
+	gcCycles uint32
+	cpuTicks float64
 }
 
 func readResourceSample() resourceSample {

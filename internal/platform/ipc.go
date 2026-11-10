@@ -23,8 +23,9 @@ import (
 
 // IPC request/response schema: stable English keys, bounded sizes.
 const (
-	IPCOpStatus = "status"
-	IPCOpStop   = "stop"
+	IPCOpStatus         = "status"
+	IPCOpStop           = "stop"
+	IPCOpBootstrapToken = "bootstrap-token"
 
 	// ipcDeadline is the bounded per-request budget (Proposed, C2-05
 	// finite-bounds rule); a request that exceeds it fails closed.
@@ -43,6 +44,7 @@ type IPCRequest struct {
 	Op           string `json:"op"`
 	InstanceUUID string `json:"instanceUUID"`
 	Token        string `json:"token"`
+	Origin       string `json:"origin,omitempty"`
 }
 
 // IPCResponse carries one bounded machine result. Body is pre-encoded JSON
@@ -167,6 +169,11 @@ func writeIPCResponse(c net.Conn, resp IPCResponse) {
 // CallIPC sends one authenticated request to the live owner and returns the
 // bounded response. No live endpoint answers with ErrIPCUnreachable.
 func CallIPC(runtimeDir, op, instanceUUID, token string) (IPCResponse, error) {
+	return CallIPCWithOrigin(runtimeDir, op, instanceUUID, token, "")
+}
+
+// CallIPCWithOrigin sends an authenticated request with an optional origin binding.
+func CallIPCWithOrigin(runtimeDir, op, instanceUUID, token, origin string) (IPCResponse, error) {
 	if instanceUUID == "" || token == "" {
 		return IPCResponse{}, ErrIPCUnreachable
 	}
@@ -176,7 +183,7 @@ func CallIPC(runtimeDir, op, instanceUUID, token string) (IPCResponse, error) {
 	}
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(ipcDeadline))
-	req, err := json.Marshal(IPCRequest{Op: op, InstanceUUID: instanceUUID, Token: token})
+	req, err := json.Marshal(IPCRequest{Op: op, InstanceUUID: instanceUUID, Token: token, Origin: origin})
 	if err != nil {
 		return IPCResponse{}, err
 	}

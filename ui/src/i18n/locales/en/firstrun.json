@@ -17,6 +17,7 @@
     "next": "Next",
     "skip": "Skip setup for now",
     "skipDone": "Setup skipped. You can resume it any time from this page or from Settings, Connections.",
+    "completedDone": "Setup completed. Your local workspace is ready. You can review connections or adjust settings at any time.",
     "resume": "Resume setup",
     "preservationPolicy": "Going back keeps what you entered in this session. Nothing you enter here is kept after you close the app, and your API key is never kept at all — not in browser storage, not in links, not in logs.",
     "completion": {
