@@ -25,14 +25,17 @@ export function SearchEntry({
   const [query, setQuery] = useState("");
 
   const destinations = [
+    { path: "/", title: t("items.overview"), category: "Main" },
     { path: "/chat", title: t("items.chat"), category: "Main" },
     { path: "/jobs", title: t("items.jobs"), category: "Main" },
     { path: "/knowledge", title: t("items.knowledge"), category: "Main" },
     { path: "/memory", title: t("items.memory"), category: "Main" },
     { path: "/context", title: t("items.context"), category: "Main" },
     { path: "/workflows", title: t("items.workflows"), category: "Main" },
+    { path: "/providers", title: t("items.providersAndModels"), category: "Build & connect" },
     { path: "/plugins", title: t("items.plugins"), category: "Extensions" },
     { path: "/activity", title: t("items.activityAndAudit"), category: "Operate" },
+    { path: "/help", title: t("items.helpAndDocumentation"), category: "More" },
     { path: "/settings", title: t("items.settings"), category: "Operate" },
   ];
 

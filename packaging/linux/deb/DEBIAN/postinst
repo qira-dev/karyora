@@ -11,5 +11,8 @@ fi
 if [ -f /opt/karyora/share/icons/karyora.svg ] && [ -d /usr/share/icons/hicolor/scalable/apps ]; then
     install -m 644 /opt/karyora/share/icons/karyora.svg /usr/share/icons/hicolor/scalable/apps/karyora.svg || true
 fi
+if [ -f /opt/karyora/share/systemd/karyora.service ] && [ -d /etc/systemd/system ]; then
+    install -m 644 /opt/karyora/share/systemd/karyora.service /etc/systemd/system/karyora.service || true
+fi
 echo "Karyora Core installed at /opt/karyora/bin/uawp (uninstall removes only the package's files — user data is untouched)."
 exit 0

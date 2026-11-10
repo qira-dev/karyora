@@ -1,0 +1,16 @@
+[Unit]
+Description=Karyora AI Work Platform Daemon
+Documentation=https://github.com/qira-dev/karyora
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/karyora/bin/uawp start
+Restart=on-failure
+RestartSec=5s
+KillMode=process
+LimitNOFILE=65536
+Environment=UAWP_PORT=27210
+
+[Install]
+WantedBy=default.target

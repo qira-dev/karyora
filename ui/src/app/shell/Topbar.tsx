@@ -28,7 +28,18 @@ interface TopbarProps {
 
 /** Route → title resource key. */
 function routeTitleKey(pathname: string): TranslationKey {
-  if (pathname === "/" || pathname === "") return "title";
+  if (pathname === "/" || pathname === "") return "items.overview";
+  if (pathname.startsWith("/chat")) return "items.chat";
+  if (pathname.startsWith("/jobs")) return "items.jobs";
+  if (pathname.startsWith("/knowledge")) return "items.knowledge";
+  if (pathname.startsWith("/memory")) return "items.memory";
+  if (pathname.startsWith("/context")) return "items.context";
+  if (pathname.startsWith("/workflows")) return "items.workflows";
+  if (pathname.startsWith("/plugins")) return "items.plugins";
+  if (pathname.startsWith("/activity")) return "items.activityAndAudit";
+  if (pathname.startsWith("/providers")) return "items.providersAndModels";
+  if (pathname.startsWith("/help")) return "items.helpAndDocumentation";
+
   const settingsGroup = pathname.match(/^\/settings\/([a-z-]+)$/);
   if (settingsGroup) {
     const group = settingsGroup[1];
@@ -47,7 +58,7 @@ function routeTitleKey(pathname: string): TranslationKey {
     if (key) return key;
   }
   if (pathname.startsWith("/settings")) return "hub.title";
-  return "title";
+  return "appName";
 }
 
 export function Topbar({

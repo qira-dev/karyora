@@ -36,14 +36,17 @@ and is NEVER touched by install, upgrade or uninstall (C5-15 §5.0).
 mkdir -p %{buildroot}/opt/karyora/bin
 mkdir -p %{buildroot}/opt/karyora/share/applications
 mkdir -p %{buildroot}/opt/karyora/share/icons
+mkdir -p %{buildroot}/opt/karyora/share/systemd
 install -m 755 "%{_sourcedir}/uawp-%{_uawp_arch_go}" %{buildroot}/opt/karyora/bin/uawp
 install -m 644 packaging/linux/karyora.desktop %{buildroot}/opt/karyora/share/applications/karyora.desktop
 install -m 644 packaging/linux/karyora.svg %{buildroot}/opt/karyora/share/icons/karyora.svg
+install -m 644 packaging/linux/systemd/karyora.service %{buildroot}/opt/karyora/share/systemd/karyora.service
 
 %files
 /opt/karyora/bin/uawp
 /opt/karyora/share/applications/karyora.desktop
 /opt/karyora/share/icons/karyora.svg
+/opt/karyora/share/systemd/karyora.service
 
 %post
 # C5-15 §5.0: no user-data operation; the binary's mode is fixed at
@@ -54,10 +57,14 @@ fi
 if [ -d /usr/share/icons/hicolor/scalable/apps ]; then
     install -m 644 /opt/karyora/share/icons/karyora.svg /usr/share/icons/hicolor/scalable/apps/karyora.svg || true
 fi
+if [ -d /etc/systemd/system ]; then
+    install -m 644 /opt/karyora/share/systemd/karyora.service /etc/systemd/system/karyora.service || true
+fi
 exit 0
 
 %postun
 # C5-15 §5.0: uninstall preserves user data structurally.
 rm -f /usr/share/applications/karyora.desktop || true
 rm -f /usr/share/icons/hicolor/scalable/apps/karyora.svg || true
+rm -f /etc/systemd/system/karyora.service || true
 exit 0

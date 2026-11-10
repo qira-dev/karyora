@@ -16,7 +16,6 @@ import { SettingsHub } from "../pages/settings/SettingsHub";
 import { AppearancePage } from "../pages/settings/AppearancePage";
 import { ShortcutsPage } from "../pages/settings/ShortcutsPage";
 import { AboutPage } from "../pages/settings/AboutPage";
-import { EntryStatePage } from "../pages/settings/EntryStatePage";
 import { ConnectionsPage } from "../pages/settings/ConnectionsPage";
 import { KnowledgeLibraryPage } from "../pages/knowledge/KnowledgeLibraryPage";
 import { KnowledgePackDetailPage } from "../pages/knowledge/KnowledgePackDetailPage";
@@ -28,6 +27,11 @@ import { WorkflowLibraryPage } from "../pages/workflow/WorkflowLibraryPage";
 import { WorkflowDetailPage } from "../pages/workflow/WorkflowDetailPage";
 import { PluginLibraryPage } from "../pages/plugin/PluginLibraryPage";
 import { PluginDetailPage } from "../pages/plugin/PluginDetailPage";
+import { ProvidersPage } from "../pages/providers/ProvidersPage";
+import { HelpPage } from "../pages/help/HelpPage";
+import { PrivacyPage } from "../pages/settings/PrivacyPage";
+import { DiagnosticsPage } from "../pages/settings/DiagnosticsPage";
+import { UpdatesPage } from "../pages/settings/UpdatesPage";
 
 /**
  * The frozen Phase 2 route set (P2.1 §2.0; Blueprint §31.5): `/` plus the
@@ -165,6 +169,8 @@ export const appRouteElements: ReactElement = (
     <Route path="workflows/:workflowId" element={<WorkflowDetailPage />} />
     <Route path="plugins" element={<PluginLibraryPage />} />
     <Route path="plugins/:pluginId" element={<PluginDetailPage />} />
+    <Route path="providers" element={<ProvidersPage />} />
+    <Route path="help" element={<HelpPage />} />
     <Route path="jobs" element={<JobsListPage />} />
     <Route path="jobs/new" element={<RunTaskPage />} />
     <Route path="jobs/:jobId" element={<JobDetailPage />} />
@@ -172,10 +178,7 @@ export const appRouteElements: ReactElement = (
       <Route index element={<SettingsHub />} />
       <Route path="appearance" element={<AppearancePage />} />
       <Route path="connections" element={<ConnectionsPage />} />
-      <Route
-        path="privacy"
-        element={<EntryStatePage titleKey="groups.privacy.title" bodyKeys={[]} />}
-      />
+      <Route path="privacy" element={<PrivacyPage />} />
       <Route
         path="security"
         element={
@@ -194,19 +197,8 @@ export const appRouteElements: ReactElement = (
         element={<NotificationsPage />}
       />
       <Route path="shortcuts" element={<ShortcutsPage />} />
-      <Route
-        path="diagnostics"
-        element={<EntryStatePage titleKey="groups.diagnostics.title" bodyKeys={[]} />}
-      />
-      <Route
-        path="updates"
-        element={
-          <EntryStatePage
-            titleKey="groups.updates.title"
-            bodyKeys={["updates.body"]}
-          />
-        }
-      />
+      <Route path="diagnostics" element={<DiagnosticsPage />} />
+      <Route path="updates" element={<UpdatesPage />} />
       <Route path="about" element={<AboutPage />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />

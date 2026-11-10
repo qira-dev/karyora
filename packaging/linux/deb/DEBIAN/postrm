@@ -7,4 +7,5 @@
 set -euo pipefail
 rm -f /usr/share/applications/karyora.desktop || true
 rm -f /usr/share/icons/hicolor/scalable/apps/karyora.svg || true
+rm -f /etc/systemd/system/karyora.service || true
 exit 0

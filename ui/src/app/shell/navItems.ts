@@ -53,7 +53,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "main",
     labelKey: "groups.main",
     items: [
-      { id: "overview", labelKey: "items.overview", icon: LayoutDashboard, disabled: true },
+      { id: "overview", labelKey: "items.overview", icon: LayoutDashboard, route: "/" },
       // The Chat surface ships in this milestone (IMPL-11): the item
       // activates its accepted §4.1 route target — `/chat` (the landing)
       // and `/chat/:conversationId` (the selected conversation). The
@@ -113,7 +113,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         id: "providers-and-models",
         labelKey: "items.providersAndModels",
         icon: Network,
-        disabled: true,
+        route: "/providers",
       },
     ],
   },
@@ -158,10 +158,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 ];
 
 export const BOTTOM_ITEMS: readonly NavItem[] = [
-  // Help & Documentation: the target is deferred (P2.1 §5 row 1); the
-  // item renders disabled with its reason. Keyboard-shortcut discovery
-  // is reachable via `?` and Settings → Shortcuts.
-  { id: "help", labelKey: "items.helpAndDocumentation", icon: CircleHelp, disabled: true },
+  { id: "help", labelKey: "items.helpAndDocumentation", icon: CircleHelp, route: "/help" },
   { id: "settings", labelKey: "items.settings", icon: SlidersHorizontal, route: "/settings" },
 ];
 
