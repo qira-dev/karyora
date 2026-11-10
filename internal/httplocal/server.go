@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,6 +81,9 @@ type Deps struct {
 	// Log receives safe metadata only (reason codes — never credential
 	// material); nil disables it.
 	Log func(ev security.Event)
+	// StaticFS is the optional filesystem serving the Web UI SPA static files.
+	// When non-nil, non-API GET/HEAD requests serve static assets or index.html.
+	StaticFS fs.FS
 }
 
 // Server is the local HTTP transport adapter.
@@ -530,6 +535,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 3. Route resolution.
 	rt, id1, id2, ok := match(r.Method, r.URL.Path)
 	if !ok {
+		if s.deps.StaticFS != nil && (r.Method == http.MethodGet || r.Method == http.MethodHead) && !strings.HasPrefix(r.URL.Path, "/v1/") {
+			s.serveStatic(w, r)
+			return
+		}
 		s.writeEnvelope(w, http.StatusNotFound, envelope(errs.CodeNotFound, errs.NewCorrelationID(),
 			map[string]any{"reason": "no such local endpoint"}))
 		return
@@ -553,6 +562,40 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rt.handler(s, w, r, token, id1)
+}
+
+// serveStatic serves embedded SPA static assets or falls back to index.html for client routing.
+func (s *Server) serveStatic(w http.ResponseWriter, r *http.Request) {
+	cleanPath := path.Clean(strings.TrimPrefix(r.URL.Path, "/"))
+	if cleanPath == "." || cleanPath == "" {
+		cleanPath = "index.html"
+	}
+	f, err := s.deps.StaticFS.Open(cleanPath)
+	if err != nil {
+		if !strings.HasPrefix(cleanPath, "assets/") {
+			cleanPath = "index.html"
+			f, err = s.deps.StaticFS.Open(cleanPath)
+		}
+	}
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+	stat, err := f.Stat()
+	if err != nil || stat.IsDir() {
+		cleanPath = "index.html"
+		if f2, err2 := s.deps.StaticFS.Open(cleanPath); err2 == nil {
+			defer f2.Close()
+			if stat2, err3 := f2.Stat(); err3 == nil && !stat2.IsDir() {
+				http.ServeFileFS(w, r, s.deps.StaticFS, cleanPath)
+				return
+			}
+		}
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFileFS(w, r, s.deps.StaticFS, cleanPath)
 }
 
 // handleExchange consumes a one-time bootstrap credential exactly once and

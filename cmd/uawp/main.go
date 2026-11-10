@@ -44,6 +44,8 @@ func run(ctx context.Context, args []string, stdout *os.File) int {
 	out := newPrinter(stdout, flags.json, loc)
 
 	switch cmd {
+	case "ui", "app":
+		return cmdUI(ctx, flags, out)
 	case "start":
 		return cmdStart(ctx, flags, out)
 	case "stop":

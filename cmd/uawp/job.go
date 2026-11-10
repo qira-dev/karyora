@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -419,21 +420,26 @@ func submitJobViaRunningDaemon(ctx context.Context, _ cliFlags, out *printer, cf
 		addr = "127.0.0.1:27210"
 	}
 
-	origin := "http://localhost:5173"
+	// The CLI is its own client: it asks the daemon (over the authenticated
+	// IPC channel) for a one-time credential bound to this client's own
+	// loopback origin, so it never consumes the browser's one-time token.
+	origin := "http://" + addr
 	bootstrapSecret := ""
-	if b, err := os.ReadFile(filepath.Join(ds.Runtime, "bootstrap_token")); err == nil {
-		bootstrapSecret = strings.TrimSpace(string(b))
+	if resp, err := platform.CallIPCWithOrigin(ds.Runtime, platform.IPCOpBootstrapToken, rec.InstanceUUID, token, origin); err == nil && resp.OK {
+		var bresp struct {
+			Credential string `json:"credential"`
+		}
+		if err := json.Unmarshal(resp.Body, &bresp); err == nil {
+			bootstrapSecret = bresp.Credential
+		}
 	}
 	if bootstrapSecret == "" {
-		resp, err := platform.CallIPCWithOrigin(ds.Runtime, platform.IPCOpBootstrapToken, rec.InstanceUUID, token, origin)
-		if err == nil && resp.OK {
-			var bresp struct {
-				Secret string `json:"secret"`
-			}
-			if err := json.Unmarshal(resp.Body, &bresp); err == nil && bresp.Secret != "" {
-				bootstrapSecret = bresp.Secret
-			} else {
-				bootstrapSecret = strings.Trim(string(resp.Body), "\" \n\r")
+		// Fallback: the published credential file is bound to the
+		// localhost:<port> origin the daemon issued it for.
+		if _, port, err := net.SplitHostPort(addr); err == nil {
+			if b, err := os.ReadFile(filepath.Join(ds.Runtime, "bootstrap_token")); err == nil {
+				bootstrapSecret = strings.TrimSpace(string(b))
+				origin = "http://localhost:" + port
 			}
 		}
 	}

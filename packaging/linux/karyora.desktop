@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Karyora
+GenericName=AI Work Platform
+Comment=Unified AI Work Platform — local-first AI assistant and automation core
+Exec=/opt/karyora/bin/uawp ui
+Icon=karyora
+Terminal=false
+Categories=Development;Utility;
+StartupNotify=true
+StartupWMClass=karyora
+Keywords=AI;Assistant;Code;LLM;Local;Automation;

@@ -6,7 +6,10 @@
 
 # Node / UI (ui/)
 node_modules/
-dist/
+# Built UI assets are embedded into the Go binary; keep only a placeholder
+# so a fresh clone still compiles (go:embed needs the directory to exist).
+ui/dist/*
+!ui/dist/.gitkeep
 
 # Local environment
 .env

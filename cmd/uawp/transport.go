@@ -16,6 +16,7 @@ import (
 	"github.com/qira-dev/karyora/internal/platform"
 	"github.com/qira-dev/karyora/internal/runtime"
 	"github.com/qira-dev/karyora/internal/security"
+	"github.com/qira-dev/karyora/ui"
 )
 
 // Local HTTP transport wiring (IMPL-1): the composition root builds the
@@ -40,6 +41,7 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 	if err != nil {
 		return nil, err
 	}
+	staticFS, _ := ui.Dist()
 	srv, err := httplocal.New(httplocal.Deps{
 		Slice:    slice,
 		Sessions: bundle.sessions,
@@ -48,6 +50,7 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 		Log: func(ev security.Event) {
 			bundle.logger.Emit(ev)
 		},
+		StaticFS: staticFS,
 	})
 	if err != nil {
 		return nil, err
@@ -100,15 +103,26 @@ func startLocalHTTPTransport(cfg config.Config, l *lazyStore, bundle *securityBu
 		}
 	}
 
-	// Issue trusted initial bootstrap credentials for standard local Web UI dev origins.
+	// Issue trusted initial bootstrap credentials for standard local Web UI dev and direct origins.
+	tcpPort := ln.Addr().(*net.TCPAddr).Port
+	originDirect := fmt.Sprintf("http://localhost:%d", tcpPort)
+	originDirectIP := fmt.Sprintf("http://127.0.0.1:%d", tcpPort)
+
 	credLocalhost, _ := srv.IssueBootstrapCredential("http://localhost:5173")
 	_, _ = srv.IssueBootstrapCredential("http://127.0.0.1:5173")
+	credDirect, _ := srv.IssueBootstrapCredential(originDirect)
+	_, _ = srv.IssueBootstrapCredential(originDirectIP)
+
 	if ds.Runtime != "" {
 		_ = os.WriteFile(filepath.Join(ds.Runtime, "http_address"), []byte(ln.Addr().String()), 0o600)
 	}
-	if credLocalhost.Secret != "" && ds.Runtime != "" {
-		_ = os.WriteFile(filepath.Join(ds.Runtime, "bootstrap_token"), []byte(credLocalhost.Secret), 0o600)
-		fmt.Printf("\n[karyora] Web UI bootstrap token (http://localhost:5173):\n          %s\n\n", credLocalhost.Secret)
+	if credDirect.Secret != "" && ds.Runtime != "" {
+		_ = os.WriteFile(filepath.Join(ds.Runtime, "bootstrap_token"), []byte(credDirect.Secret), 0o600)
+		fmt.Printf("\n[karyora] Web UI: %s\n", originDirect)
+		fmt.Printf("[karyora] Bootstrap token: %s\n", credDirect.Secret)
+		if credLocalhost.Secret != "" {
+			fmt.Printf("[karyora] Dev server token (http://localhost:5173): %s\n\n", credLocalhost.Secret)
+		}
 	}
 
 	// Safe metadata only: the loopback address and port, never any token

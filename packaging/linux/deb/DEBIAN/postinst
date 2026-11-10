@@ -5,5 +5,11 @@
 # closed on any error. UNSIGNED on purpose (C5-13 §9.2).
 set -euo pipefail
 chmod 755 /opt/karyora/bin/uawp
+if [ -f /opt/karyora/share/applications/karyora.desktop ] && [ -d /usr/share/applications ]; then
+    install -m 644 /opt/karyora/share/applications/karyora.desktop /usr/share/applications/karyora.desktop || true
+fi
+if [ -f /opt/karyora/share/icons/karyora.svg ] && [ -d /usr/share/icons/hicolor/scalable/apps ]; then
+    install -m 644 /opt/karyora/share/icons/karyora.svg /usr/share/icons/hicolor/scalable/apps/karyora.svg || true
+fi
 echo "Karyora Core installed at /opt/karyora/bin/uawp (uninstall removes only the package's files — user data is untouched)."
 exit 0
