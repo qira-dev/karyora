@@ -485,10 +485,12 @@ func (s *Store) resolvePluginUpdateReplay(prior *pluginOperationRecord, priorFin
 // removal within the 1 h post-terminal window; the same key with a
 // different correlation is the typed CONFLICT_IDEMPOTENCY_KEY
 // (fingerprintMatch:false); a replay past the window is the typed
-// CONFLICT_STATE. THE REMOVE-VS-REVOKE QUESTION STAYS OPEN (recorded, not
-// decided here): this ruling implements the remove member's own published
-// behavior — no text asserts removal and grant revocation are the same or
-// distinct.
+// CONFLICT_STATE. THE REMOVE-VS-REVOKE DISTINCTNESS (recorded at the
+// 2026-11-09 resolution act, binding on this family): removal and grant
+// revocation are DISTINCT Core semantics — removing a plugin does not
+// revoke its grants; revoking grants does not remove the artifact; each
+// acts only on its own named object. This ruling implements the remove
+// member's own published behavior under that law.
 func (s *Store) SubmitPluginRemove(ctx stdcontext.Context, intent plugindomain.MutationIntent) (plugindomain.MutationOutcome, error) {
 	return s.submitPluginKeyedMutation(ctx, intent, pluginKindRemove, plugindomain.EventRemoved, removePluginEffect)
 }

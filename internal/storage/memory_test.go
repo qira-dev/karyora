@@ -279,7 +279,7 @@ func TestMemoryMutationM16Outcomes(t *testing.T) {
 // delete each drop the content and tombstone the identity row at their own
 // confirmed register state; the removed item is the SAME typed
 // MEMORY_ITEM_NOT_FOUND afterwards; the keyed destructive replay replays
-// within the 1 h window; the unkeyed record (the recorded carrier gap) is
+// within the 1 h window; the unkeyed record (the empty-body record) is
 // non-replayable; the register events ride the member's own type.
 func TestMemoryDestructiveMembers(t *testing.T) {
 	s := openTestStore(t)
@@ -329,7 +329,7 @@ func TestMemoryDestructiveMembers(t *testing.T) {
 	if len(fgEvents) == 0 || fgEvents[len(fgEvents)-1].EventType != memory.EventItemForgotten {
 		t.Fatalf("the forget emits its member's register event: %+v", fgEvents)
 	}
-	// The unkeyed destructive record (the recorded carrier gap): recorded
+	// The unkeyed destructive record (the empty-body record): recorded
 	// with no key row; non-replayable by construction.
 	_, err = s.SubmitMemoryAdd(ctx, memoryAddIntent("mem-unkeyed", "memop-uk-a", "key-uk", "corr-uk", memory.ScopeUser))
 	if err != nil {

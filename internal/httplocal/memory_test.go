@@ -50,7 +50,7 @@ func memoryField(item map[string]any, field string) string {
 // M-17 replay → list (+cursor) → edit → M-16 replay → state endpoint →
 // pin/unpin → inclusion (+replay +new decision) → export (+re-issue) →
 // keyed delete (+replay) → the same typed 404 after removal → unkeyed
-// forget (the recorded carrier gap).
+// forget (the empty body is the unkeyed record).
 func TestMemoryWireFamily(t *testing.T) {
 	env := newTestEnv(t)
 
@@ -266,7 +266,7 @@ func TestMemoryWireFamily(t *testing.T) {
 		t.Fatalf("the replay returns the recorded outcome: %s", body)
 	}
 
-	// The unkeyed forget (the recorded carrier gap — an empty body): the
+	// The unkeyed forget (the empty body — the unkeyed record): the
 	// confirmed tombstone post-state; the state endpoint confirms.
 	status, body = env.do(t, "POST", "/v1/memories", memoryAddBody("wire-fg-1", "corr-fg-1", "session", "the forgotten candidate"), env.token, nil)
 	if status != 200 {

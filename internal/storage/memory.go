@@ -167,8 +167,9 @@ func (s *Store) ApplyMemoryMutation(ctx context.Context, intent memory.MutationI
 		return memory.MutationOutcome{}, errStoragef(errs.CodeValidationFailed, "memory mutation intent lacks its identity members")
 	}
 	// The state-checked members require their published key; the
-	// destructive members may ride the recorded carrier gap (an unkeyed
-	// call records a non-replayable operation).
+	// destructive members may ride the published OPTIONAL keying carrier
+	// (the B2-CA amendment): an unkeyed call records a non-replayable
+	// operation.
 	keyed := intent.ClientKey != ""
 	if !keyed && intent.Kind != memory.KindForget && intent.Kind != memory.KindDelete {
 		return memory.MutationOutcome{}, errStoragef(errs.CodeValidationFailed, "memory mutation kind %q requires its M-16 idempotency key", intent.Kind)
@@ -191,7 +192,8 @@ func (s *Store) ApplyMemoryMutation(ctx context.Context, intent memory.MutationI
 		}
 		// The M-16 state-checked ruling: resolve the prior operation under
 		// the effective key first (skipped for the unkeyed destructive
-		// records — the recorded carrier gap; no key row exists to match).
+		// records — no key row exists to match; the empty body is the
+		// unkeyed record).
 		// The replay precedes the removed-item refusal so a lost
 		// destructive response's retry reconciles (the S0–S4 law) instead
 		// of surfacing the removed-item 404.

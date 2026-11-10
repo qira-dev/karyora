@@ -412,8 +412,12 @@ func routes() []route {
 		// the user grants/denies; the Core mediates and enforces. THE
 		// DISTINCTNESS LAWS: the M-29 toggle is ONE member covering both
 		// directions via the body's target state; the revoked states are
-		// never exitable through it. THE REMOVE-VS-REVOKE QUESTION STAYS
-		// OPEN (no text asserts they are the same or distinct). All five
+		// never exitable through it. THE REMOVE-VS-REVOKE DISTINCTNESS
+		// (recorded at the 2026-11-09 resolution act, binding on this
+		// family): removal and grant revocation are DISTINCT Core
+		// semantics — removing a plugin does not revoke its grants;
+		// revoking grants does not remove the artifact; each acts only on
+		// its own named object. All five
 		// mutation routes are real mutations (the CSRF gate); the list,
 		// inspect, and state routes are pure reads. Literal suffix routes
 		// register before the generic {plugin_id} read so match() resolves
@@ -1966,10 +1970,11 @@ func (s *Server) handleMemoryPin(w http.ResponseWriter, r *http.Request, token, 
 	s.writeJSON(w, http.StatusOK, memoryMutationResult{MemoryItem: res.MemoryItem, OperationID: res.OperationID})
 }
 
-// handleMemoryDelete exposes the destructive delete member. THE RECORDED
-// CARRIER GAP: the published operation declares no requestBody while its
-// description names the M-16 keying members — the keying members ride an
-// OPTIONAL body here (empty body → the unkeyed record). Only a confirmed
+// handleMemoryDelete exposes the destructive delete member. THE PUBLISHED
+// KEYING CARRIER (the B2-CA amendment): the published operation declares
+// the OPTIONAL MemoryDestructiveRequest keying body carrying the M-16
+// keying members — the keying members ride an OPTIONAL body here
+// (empty body → the unkeyed record). Only a confirmed
 // 200 carries the deletion truth (the F11 law).
 func (s *Server) handleMemoryDelete(w http.ResponseWriter, r *http.Request, token, itemID string) {
 	var req memoryDestructiveRequest
@@ -2488,9 +2493,12 @@ func (s *Server) handlePluginUpdate(w http.ResponseWriter, r *http.Request, toke
 
 // handlePluginRemove exposes the M-31 remove member: Core-confirmed
 // removal; disposal follows the Core's retention — no erasure claim beyond
-// the Core-confirmed scope. THE REMOVE-VS-REVOKE QUESTION STAYS RECORDED
-// OPEN (no text asserts removal and grant revocation are the same or
-// distinct — this member asserts neither).
+// the Core-confirmed scope. THE REMOVE-VS-REVOKE DISTINCTNESS (recorded at
+// the 2026-11-09 resolution act, binding on this family): removal and
+// grant revocation are DISTINCT Core semantics — removing a plugin does
+// not revoke its grants; revoking grants does not remove the artifact;
+// each acts only on its own named object. This member implements its own
+// published behavior under that law.
 func (s *Server) handlePluginRemove(w http.ResponseWriter, r *http.Request, token, pluginID string) {
 	var req pluginMutationRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -2546,8 +2554,9 @@ func (s *Server) handlePluginState(w http.ResponseWriter, r *http.Request, token
 	s.writeJSON(w, http.StatusOK, st)
 }
 
-// decodeOptionalJSON decodes a request body that the published operation
-// declares no schema for (the recorded delete/forget carrier gap): an
+// decodeOptionalJSON decodes a request body against the published OPTIONAL
+// MemoryDestructiveRequest keying carrier (the B2-CA amendment — the
+// published delete/forget operations declare this OPTIONAL body): an
 // empty body decodes to the zero value; a present body must be one JSON
 // object.
 func decodeOptionalJSON(r *http.Request, v any) error {
@@ -3368,8 +3377,8 @@ type memoryReviewRequest struct {
 }
 
 // memoryDestructiveRequest is the delete/forget members' OPTIONAL keying
-// body (the recorded carrier gap — the published operations declare no
-// requestBody; an empty body is the unkeyed record).
+// body (the published MemoryDestructiveRequest carrier — the B2-CA
+// amendment; an empty body is the unkeyed record).
 type memoryDestructiveRequest struct {
 	IdempotencyKey string `json:"idempotency_key,omitempty"`
 	CorrelationID  string `json:"correlation_id,omitempty"`

@@ -144,15 +144,13 @@ type MemoryExportRequest struct {
 }
 
 // MemoryReviewCommand is one destructive member's command body (the
-// PUBLISHED CARRIER GAP, recorded honestly: the published delete and
-// forget operations carry NO requestBody and no header parameter while
-// their descriptions name the M-16 keying members — the keying members'
-// published carrier is missing. This implementation accepts the keying
-// members through an OPTIONAL request body (the adapter's /v1 convention)
-// and serves the full M-16 ruling when keyed; an unkeyed call records a
-// non-replayable destructive operation (no key consumed — the M-16 replay
-// is unreachable for it). The gap is a recorded contract finding, never a
-// silent edit; changing the canonical contract is a LIVE-gate class).
+// PUBLISHED KEYING CARRIER, recorded at the B2-CA amendment: the published
+// delete and forget operations declare the OPTIONAL MemoryDestructiveRequest
+// keying body carrying the M-16 keying members. This implementation accepts
+// the keying members through an OPTIONAL request body (the adapter's /v1
+// convention) and serves the full M-16 ruling when keyed; an unkeyed call
+// records a non-replayable destructive operation (no key consumed — the
+// M-16 replay is unreachable for it; an empty body is the unkeyed record)).
 type MemoryReviewCommand struct {
 	IdempotencyKey string
 	CorrelationID  string

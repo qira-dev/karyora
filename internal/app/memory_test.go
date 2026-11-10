@@ -426,8 +426,9 @@ func TestMemoryDestructiveService(t *testing.T) {
 	if err != nil || replay.OperationID != del.OperationID || replay.OutcomeState != memory.StateDeleted {
 		t.Fatalf("the destructive replay: %+v err=%v", replay, err)
 	}
-	// The unkeyed destructive record (the recorded carrier gap) still
-	// confirms its outcome and reconciles through the state endpoint.
+	// The unkeyed destructive record (the empty body is the unkeyed
+	// record) still confirms its outcome and reconciles through the state
+	// endpoint.
 	res2 := addFixtureItem(t, slice, ctx, "destruct-uk", memory.ScopeUser)
 	fg, err := slice.ForgetMemoryItem(ctx, res2.MemoryItem.MemoryItemID, MemoryReviewCommand{})
 	if err != nil || fg.MemoryItem.LifecycleState != memory.StateForgotten || fg.MemoryItem.Content != "" {
