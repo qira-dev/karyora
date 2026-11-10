@@ -15,19 +15,43 @@ import (
 	"github.com/qira-dev/karyora/internal/runtime"
 )
 
-func openBrowser(targetURL string) error {
-	var cmd *exec.Cmd
+func openAppWindow(targetURL string) error {
 	switch goruntime.GOOS {
 	case "linux":
-		cmd = exec.Command("xdg-open", targetURL)
+		// Prefer standalone desktop application window (--app mode) without browser tabs/address bar.
+		candidates := []string{"brave-browser", "google-chrome", "chromium", "chromium-browser", "microsoft-edge"}
+		for _, name := range candidates {
+			if path, err := exec.LookPath(name); err == nil {
+				cmd := exec.Command(path, fmt.Sprintf("--app=%s", targetURL), "--class=karyora", "--name=karyora")
+				if err := cmd.Start(); err == nil {
+					return nil
+				}
+			}
+		}
+		cmd := exec.Command("xdg-open", targetURL)
+		return cmd.Start()
 	case "darwin":
-		cmd = exec.Command("open", targetURL)
+		cmd := exec.Command("open", targetURL)
+		return cmd.Start()
 	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", targetURL)
+		candidates := []string{"msedge.exe", "chrome.exe"}
+		for _, name := range candidates {
+			if path, err := exec.LookPath(name); err == nil {
+				cmd := exec.Command(path, fmt.Sprintf("--app=%s", targetURL))
+				if err := cmd.Start(); err == nil {
+					return nil
+				}
+			}
+		}
+		cmd := exec.Command("rundll32", "url.dll,FileProtocolHandler", targetURL)
+		return cmd.Start()
 	default:
 		return fmt.Errorf("unsupported platform: %s", goruntime.GOOS)
 	}
-	return cmd.Start()
+}
+
+func openBrowser(targetURL string) error {
+	return openAppWindow(targetURL)
 }
 
 // listenerAlive reports whether a TCP listener answers at addr.
@@ -70,9 +94,9 @@ func cmdUI(ctx context.Context, flags cliFlags, out *printer) int {
 				if token != "" {
 					fmt.Printf("[karyora] Bootstrap token: %s\n", token)
 				}
-				fmt.Println("[karyora] Opening browser...")
+				fmt.Println("[karyora] Opening application window...")
 			}
-			_ = openBrowser(targetURL)
+			_ = openAppWindow(targetURL)
 			return int(runtime.ExitOK)
 		}
 	}
@@ -93,7 +117,7 @@ func cmdUI(ctx context.Context, flags cliFlags, out *printer) int {
 			if err == nil && len(addrBytes) > 0 {
 				addr := strings.TrimSpace(string(addrBytes))
 				targetURL := "http://" + addr + "/"
-				_ = openBrowser(targetURL)
+				_ = openAppWindow(targetURL)
 				return
 			}
 		}

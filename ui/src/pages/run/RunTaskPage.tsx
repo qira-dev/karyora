@@ -593,7 +593,7 @@ export function RunTaskPage() {
         ) : null}
         {submitPhase === "unknown" && pendingKey !== null ? (
           <p className={styles.code}>
-            <span className={styles.keyLabel}>{t("run.submit.idempotencyKeyLabel")}: </span>
+            <span className={styles.metaPropertyLabel}>{t("run.submit.idempotencyKeyLabel")}: </span>
             <code>{pendingKey}</code>
           </p>
         ) : null}

@@ -633,7 +633,7 @@ export const ProviderSetupForm = forwardRef<ProviderSetupFormHandle>(
           <span className={styles.label} id="provider-api-key-label">
             {t("provider.apiKeyLabel")}
           </span>
-          <div className={styles.secretRow}>
+          <div className={styles.credentialInputRow}>
             <input
               ref={apiKeyRef}
               id="provider-api-key"

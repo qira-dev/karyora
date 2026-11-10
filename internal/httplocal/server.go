@@ -566,8 +566,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // serveStatic serves embedded SPA static assets or falls back to index.html for client routing.
 func (s *Server) serveStatic(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(strings.TrimPrefix(r.URL.Path, "/"))
-	if cleanPath == "." || cleanPath == "" {
+	relPath := strings.TrimPrefix(path.Clean("/"+strings.Trim(r.URL.Path, "/")), "/")
+	cleanPath := relPath
+	if !fs.ValidPath(cleanPath) || cleanPath == "." || cleanPath == "" {
 		cleanPath = "index.html"
 	}
 	f, err := s.deps.StaticFS.Open(cleanPath)

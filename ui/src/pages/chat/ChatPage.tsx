@@ -1300,7 +1300,7 @@ function ConversationView({
           {statusCheckLost ? <p className={styles.help}>{t("chat.send.statusCheckLost")}</p> : null}
           {pendingCorrelationId !== null ? (
             <p className={styles.code}>
-              <span className={styles.keyLabel}>{t("chat.send.correlationLabel")}: </span>
+              <span className={styles.metaPropertyLabel}>{t("chat.send.correlationLabel")}: </span>
               <code>{pendingCorrelationId}</code>
             </p>
           ) : null}

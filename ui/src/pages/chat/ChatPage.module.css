@@ -415,7 +415,7 @@
   overflow-wrap: anywhere;
 }
 
-.keyLabel {
+.metaPropertyLabel {
   color: var(--color-text-secondary);
 }
 
