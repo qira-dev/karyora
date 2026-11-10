@@ -3095,9 +3095,9 @@ type conversationExchangeResult struct {
 	// (correlation_id, conversation_id, user_message_id, state, created_at)
 	// — the S4 query's authoritative exchange state (P-S5-05); message is
 	// the send's persisted user message.
-	Exchange conversation.Exchange       `json:"exchange"`
-	Message  conversation.Message        `json:"message"`
-	Answer   *conversation.Message       `json:"answer,omitempty"`
+	Exchange conversation.Exchange `json:"exchange"`
+	Message  conversation.Message  `json:"message"`
+	Answer   *conversation.Message `json:"answer,omitempty"`
 }
 
 // The conversation attachment wire shapes (IMPL-25; the ADOPTED S12

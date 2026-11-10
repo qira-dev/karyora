@@ -51,7 +51,6 @@ func uleb(v uint32) []byte {
 	}
 }
 
-
 func section(id byte, body []byte) []byte {
 	return append([]byte{id}, append(uleb(uint32(len(body))), body...)...)
 }
