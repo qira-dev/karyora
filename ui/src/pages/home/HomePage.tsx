@@ -46,7 +46,9 @@ export function HomePage() {
         <h2 className={styles.sectionTitle}>{t("nextActions")}</h2>
         <p>
           {t("nextActionsBody")}{" "}
-          <Link to="/settings">{t("items.settings")}</Link>
+          <Link to="/chat">{t("items.chat")}</Link>,{" "}
+          <Link to="/jobs">{t("items.jobs")}</Link>, or{" "}
+          <Link to="/settings">{t("items.settings")}</Link>.
         </p>
       </PageSection>
     </PageLayout>

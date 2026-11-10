@@ -23,20 +23,14 @@ import styles from "./shellControls.module.css";
 export function NewMenu() {
   const t = useT();
   const navigate = useNavigate();
-  const reason = t("newMenu.unavailableReason");
 
   return (
     <Menu
       label={t("topbar.openNewMenu")}
       items={[
-        { id: "start-chat", label: t("newMenu.startChat"), disabled: true, disabledReason: reason },
+        { id: "start-chat", label: t("newMenu.startChat"), onSelect: () => navigate("/chat") },
         { id: "run-task", label: t("newMenu.runTask"), onSelect: () => navigate("/jobs/new") },
-        {
-          id: "import-knowledge",
-          label: t("newMenu.importKnowledge"),
-          disabled: true,
-          disabledReason: reason,
-        },
+        { id: "import-knowledge", label: t("newMenu.importKnowledge"), onSelect: () => navigate("/knowledge") },
       ]}
       trigger={({ toggle, ariaExpanded, ariaControls }) => (
         <button

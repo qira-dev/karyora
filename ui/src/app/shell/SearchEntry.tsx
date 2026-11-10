@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Dialog, useDialogLabelId } from "../../components/Dialog";
 import { useT } from "../../i18n/useT";
@@ -7,14 +8,6 @@ import styles from "./SearchEntry.module.css";
 
 /**
  * Global command-palette / search ENTRY (C-03; Blueprint §4.3/§22).
- *
- * The Phase 2 freeze is the shell search entry: a top-bar control plus
- * `Ctrl/Cmd+K` when not typing in an editable field. The full six-group
- * palette is a later package (UIR-8) and needs the permission-filtered
- * Core search contract, which is not wired in this milestone — so the
- * opened entry renders its honest unavailable state. No results are ever
- * fabricated; query text is not persisted anywhere (no URLs, storage, or
- * telemetry).
  */
 export function SearchEntry({
   open,
@@ -28,17 +21,42 @@ export function SearchEntry({
   const t = useT();
   const labelId = useDialogLabelId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const destinations = [
+    { path: "/chat", title: t("items.chat"), category: "Main" },
+    { path: "/jobs", title: t("items.jobs"), category: "Main" },
+    { path: "/knowledge", title: t("items.knowledge"), category: "Main" },
+    { path: "/memory", title: t("items.memory"), category: "Main" },
+    { path: "/context", title: t("items.context"), category: "Main" },
+    { path: "/workflows", title: t("items.workflows"), category: "Main" },
+    { path: "/plugins", title: t("items.plugins"), category: "Extensions" },
+    { path: "/activity", title: t("items.activityAndAudit"), category: "Operate" },
+    { path: "/settings", title: t("items.settings"), category: "Operate" },
+  ];
+
+  const filtered = destinations.filter((d) =>
+    query === ""
+      ? true
+      : d.title.toLowerCase().includes(query.toLowerCase()) ||
+        d.path.toLowerCase().includes(query.toLowerCase())
+  );
 
   // Focus the input on open (C-03: open the entry, focus the input).
   useEffect(() => {
     if (open) {
-      // The dialog moves focus to its first focusable; that is the close
-      // button, so re-focus the input right after mount.
+      setQuery("");
       const timer = window.setTimeout(() => inputRef.current?.focus(), 0);
       return () => window.clearTimeout(timer);
     }
     return undefined;
   }, [open]);
+
+  const selectDestination = (path: string) => {
+    onOpenChange(false);
+    navigate(path);
+  };
 
   return (
     <>
@@ -73,9 +91,28 @@ export function SearchEntry({
             ref={inputRef}
             type="text"
             className={styles.input}
-            disabled
+            placeholder="Jump to destination..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filtered.length > 0) {
+                selectDestination(filtered[0].path);
+              }
+            }}
           />
-          <p className={styles.unavailable}>{t("search.unavailable")}</p>
+          <div className={styles.results} role="listbox">
+            {filtered.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                className={styles.resultItem}
+                onClick={() => selectDestination(item.path)}
+              >
+                <span>{item.title}</span>
+                <span className={styles.categoryTag}>{item.category} ({item.path})</span>
+              </button>
+            ))}
+          </div>
           <p className={styles.hint}>{t("search.shortcutHint")}</p>
         </div>
       </Dialog>

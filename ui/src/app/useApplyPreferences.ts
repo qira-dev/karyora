@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import i18next from "i18next";
 
 import { usePreferences } from "./preferences";
 
@@ -23,6 +24,7 @@ export function useApplyPreferences(): void {
     root.dataset.theme = renderedTheme;
     root.dataset.motion = motion;
     root.lang = locale;
+    void i18next.changeLanguage(locale);
   }, [renderedTheme, motion, locale]);
 }
 

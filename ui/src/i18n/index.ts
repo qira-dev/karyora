@@ -18,21 +18,35 @@ import context from "./locales/en/context.json";
 import workflow from "./locales/en/workflow.json";
 import plugin from "./locales/en/plugin.json";
 
+import commonBn from "./locales/bn/common.json";
+import navBn from "./locales/bn/nav.json";
+import shellBn from "./locales/bn/shell.json";
+import settingsBn from "./locales/bn/settings.json";
+import homeBn from "./locales/bn/home.json";
+import firstrunBn from "./locales/bn/firstrun.json";
+import jobsBn from "./locales/bn/jobs.json";
+import runBn from "./locales/bn/run.json";
+import chatBn from "./locales/bn/chat.json";
+import notificationsBn from "./locales/bn/notifications.json";
+import activityBn from "./locales/bn/activity.json";
+import knowledgeBn from "./locales/bn/knowledge.json";
+import memoryBn from "./locales/bn/memory.json";
+import contextBn from "./locales/bn/context.json";
+import workflowBn from "./locales/bn/workflow.json";
+import pluginBn from "./locales/bn/plugin.json";
+
 /**
  * Localization (G-10; UI-18 LOCKED set; P1.9 §6.5 / P1.10 A-7 APPROVED
  * stack: i18next + react-i18next with per-locale JSON resources).
  *
  * - English (`en`) is the source and default locale.
+ * - Bengali (`bn`) is fully supported with complete parity across all 16 namespaces.
  * - `fallbackLng: "en"` is configured EXPLICITLY: i18next's default
  *   fallback is `dev`, so this line is a mandatory setup item.
  * - `returnEmptyString: false` keeps the English fallback a correctness
  *   property for every locale file added later.
- * - The accepted 12-locale set is en, zh-CN, es, pt-BR, ja, ru, ko, de,
- *   fr, id, tr, vi. Only the English source resources exist today: no
- *   translation content exists (the human linguistic review is the
- *   owner's standing item), so no stub file is fabricated. Adding a
- *   locale later means adding `locales/<locale>/*.json` files and
- *   NOTHING else (no code or CSS branch — P2.4 §4.6).
+ * - The accepted locale set includes en, bn, zh-CN, es, pt-BR, ja, ru, ko, de,
+ *   fr, id, tr, vi.
  * - Namespaces are merged into ONE translation tree at load time and
  *   `nsSeparator` is disabled: keys are unique dotted paths across the
  *   merged tree (leaf collisions were checked; none exist), and the
@@ -44,6 +58,7 @@ import plugin from "./locales/en/plugin.json";
 
 export const ACCEPTED_LOCALES = [
   "en",
+  "bn",
   "zh-CN",
   "es",
   "pt-BR",
@@ -109,6 +124,28 @@ function englishResources(): Record<string, unknown> {
   );
 }
 
+function bengaliResources(): Record<string, unknown> {
+  return deepMerge(
+    {},
+    commonBn,
+    navBn,
+    shellBn,
+    settingsBn,
+    homeBn,
+    firstrunBn,
+    jobsBn,
+    runBn,
+    chatBn,
+    notificationsBn,
+    activityBn,
+    knowledgeBn,
+    memoryBn,
+    contextBn,
+    workflowBn,
+    pluginBn,
+  );
+}
+
 export function createI18n(): I18n {
   void i18next.use(initReactI18next).init({
     lng: DEFAULT_LOCALE,
@@ -118,6 +155,7 @@ export function createI18n(): I18n {
     nsSeparator: false,
     resources: {
       en: { translation: englishResources() },
+      bn: { translation: bengaliResources() },
     },
     interpolation: {
       // React already escapes rendered strings; keep values raw here.

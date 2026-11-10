@@ -465,6 +465,8 @@ export function RunTaskPage() {
             className={styles.input}
             type="number"
             min={1}
+            max={128000}
+            step={1}
             value={draft.maxOutputTokens}
             onChange={(event) => updateDraft({ maxOutputTokens: event.target.value })}
           />

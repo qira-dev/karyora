@@ -106,6 +106,7 @@ export function AppearancePage() {
  */
 const LOCALE_LABELS: Record<string, string> = {
   en: "English",
+  bn: "বাংলা (Bengali)",
   "zh-CN": "中文（简体）",
   es: "Español",
   "pt-BR": "Português (Brasil)",

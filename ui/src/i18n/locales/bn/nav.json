@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "প্রধান",
+    "buildAndConnect": "নির্মাণ ও সংযোগ",
+    "extensions": "এক্সটেনশন",
+    "operate": "পরিচালনা",
+    "bottom": "আরও"
+  },
+  "items": {
+    "overview": "সারসংক্ষেপ",
+    "chat": "চ্যাট",
+    "jobs": "জবস",
+    "knowledge": "নলেজ",
+    "memory": "মেমোরি",
+    "context": "কনটেক্সট",
+    "workflows": "ওয়ার্কফ্লো",
+    "providersAndModels": "প্রোভাইডার ও মডেল",
+    "plugins": "প্লাগইন",
+    "activityAndAudit": "অ্যাক্টিভিটি ও অডিট",
+    "helpAndDocumentation": "সাহায্য ও ডকুমেন্টেশন",
+    "settings": "সেটিংস",
+    "session": "সেশন"
+  },
+  "unavailableSuffix": "(এখনও উপলব্ধ নয়)",
+  "unavailableReason": "এখনও উপলব্ধ নয়: এই গন্তব্যটি পরবর্তী রিলিজ প্যাকেজে সরবরাহ করা হবে।",
+  "collapse": "নেভিগেশন সংকুচিত করুন",
+  "expand": "নেভিগেশন প্রসারিত করুন",
+  "openNavigation": "নেভিগেশন খুলুন",
+  "closeNavigation": "নেভিগেশন বন্ধ করুন"
+}
