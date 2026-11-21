@@ -1,22 +1,266 @@
 /**
- * 10 Light & 10 Dark Syntax Code Themes (Screenshots #5–#9, Blueprint §5.2).
+ * 10 Light & 10 Dark Syntax Code Themes (Screenshots #5–#9, Blueprint §5.2, UI-08).
  */
 
-:root {
-  --code-bg: #f8fafc;
-  --code-fg: #0f172a;
+:root,
+[data-code-theme="GitHub"] {
+  --code-bg: #ffffff;
+  --code-fg: #24292f;
+  --code-gutter: #8c959f;
+  --code-line-highlight: #f6f8fa;
   --code-keyword: #cf222e;
   --code-string: #0a3069;
   --code-comment: #6e7781;
   --code-function: #8250df;
+  --code-type: #953800;
+  --code-number: #0550ae;
+}
+
+[data-code-theme="One Light"] {
+  --code-bg: #fafafa;
+  --code-fg: #383a42;
+  --code-gutter: #9d9d9f;
+  --code-line-highlight: #f0f0f0;
+  --code-keyword: #a626a4;
+  --code-string: #50a14f;
+  --code-comment: #a0a1a7;
+  --code-function: #4078f2;
+  --code-type: #c18401;
+  --code-number: #986801;
+}
+
+[data-code-theme="Solarized Light"] {
+  --code-bg: #fdf6e3;
+  --code-fg: #586e75;
+  --code-gutter: #93a1a1;
+  --code-line-highlight: #eee8d5;
+  --code-keyword: #859900;
+  --code-string: #2aa198;
+  --code-comment: #93a1a1;
+  --code-function: #268bd2;
+  --code-type: #b58900;
+  --code-number: #d33682;
+}
+
+[data-code-theme="Catppuccin Latte"] {
+  --code-bg: #eff1f5;
+  --code-fg: #4c4f69;
+  --code-gutter: #8c8fa1;
+  --code-line-highlight: #e6e9ef;
+  --code-keyword: #8839ef;
+  --code-string: #40a02b;
+  --code-comment: #9ca0b0;
+  --code-function: #1e66f5;
+  --code-type: #df8e1d;
+  --code-number: #fe640b;
+}
+
+[data-code-theme="Gruvbox Light"] {
+  --code-bg: #fbf1c7;
+  --code-fg: #3c3836;
+  --code-gutter: #928374;
+  --code-line-highlight: #ebdbb2;
+  --code-keyword: #9d0006;
+  --code-string: #79740e;
+  --code-comment: #928374;
+  --code-function: #b57614;
+  --code-type: #076678;
+  --code-number: #8f3f71;
+}
+
+[data-code-theme="Atom One Light"] {
+  --code-bg: #f9f9f9;
+  --code-fg: #383a42;
+  --code-gutter: #a0a1a7;
+  --code-line-highlight: #f0f0f0;
+  --code-keyword: #a626a4;
+  --code-string: #50a14f;
+  --code-comment: #a0a1a7;
+  --code-function: #4078f2;
+  --code-type: #c18401;
+  --code-number: #986801;
+}
+
+[data-code-theme="Quiet Light"] {
+  --code-bg: #f5f5f5;
+  --code-fg: #333333;
+  --code-gutter: #aaaaaa;
+  --code-line-highlight: #e4f6d4;
+  --code-keyword: #4b69c6;
+  --code-string: #448c27;
+  --code-comment: #aaaaaa;
+  --code-function: #aa3731;
+  --code-type: #7a3e9d;
+  --code-number: #ab6526;
+}
+
+[data-code-theme="Night Owl Light"] {
+  --code-bg: #fbfbfb;
+  --code-fg: #403f53;
+  --code-gutter: #90a7b2;
+  --code-line-highlight: #f0f0f0;
+  --code-keyword: #994cc3;
+  --code-string: #c96765;
+  --code-comment: #989fb1;
+  --code-function: #4876d6;
+  --code-type: #111111;
+  --code-number: #aa0982;
+}
+
+[data-code-theme="Vitesse Light"] {
+  --code-bg: #ffffff;
+  --code-fg: #393a34;
+  --code-gutter: #999999;
+  --code-line-highlight: #f7f7f7;
+  --code-keyword: #1e754f;
+  --code-string: #b56959;
+  --code-comment: #a0ada0;
+  --code-function: #59873a;
+  --code-type: #2e8f82;
+  --code-number: #2f798a;
+}
+
+[data-code-theme="Min Light"] {
+  --code-bg: #ffffff;
+  --code-fg: #24292e;
+  --code-gutter: #c2c3c5;
+  --code-line-highlight: #f6f8fa;
+  --code-keyword: #d32f2f;
+  --code-string: #22863a;
+  --code-comment: #959da5;
+  --code-function: #6f42c1;
+  --code-type: #1976d2;
+  --code-number: #005cc5;
 }
 
 .dark,
-[data-theme="dark"] {
+[data-theme="dark"],
+[data-code-theme="GitHub Dark"] {
   --code-bg: #0d1117;
   --code-fg: #e6edf3;
+  --code-gutter: #6e7681;
+  --code-line-highlight: #161b22;
   --code-keyword: #ff7b72;
   --code-string: #a5d6ff;
   --code-comment: #8b949e;
   --code-function: #d2a8ff;
+  --code-type: #ffa657;
+  --code-number: #79c0ff;
+}
+
+[data-code-theme="One Dark Pro"] {
+  --code-bg: #282c34;
+  --code-fg: #abb2bf;
+  --code-gutter: #636d83;
+  --code-line-highlight: #2c313c;
+  --code-keyword: #c678dd;
+  --code-string: #98c379;
+  --code-comment: #5c6370;
+  --code-function: #61afef;
+  --code-type: #e5c07b;
+  --code-number: #d19a66;
+}
+
+[data-code-theme="Dracula"] {
+  --code-bg: #282a36;
+  --code-fg: #f8f8f2;
+  --code-gutter: #6272a4;
+  --code-line-highlight: #44475a;
+  --code-keyword: #ff79c6;
+  --code-string: #f1fa8c;
+  --code-comment: #6272a4;
+  --code-function: #50fa7b;
+  --code-type: #8be9fd;
+  --code-number: #bd93f9;
+}
+
+[data-code-theme="Catppuccin Mocha"] {
+  --code-bg: #1e1e2e;
+  --code-fg: #cdd6f4;
+  --code-gutter: #6c7086;
+  --code-line-highlight: #313244;
+  --code-keyword: #cba6f7;
+  --code-string: #a6e3a1;
+  --code-comment: #6c7086;
+  --code-function: #89b4fa;
+  --code-type: #f9e2af;
+  --code-number: #fab387;
+}
+
+[data-code-theme="Gruvbox Dark"] {
+  --code-bg: #282828;
+  --code-fg: #ebdbb2;
+  --code-gutter: #928374;
+  --code-line-highlight: #3c3836;
+  --code-keyword: #fb4934;
+  --code-string: #b8bb26;
+  --code-comment: #928374;
+  --code-function: #fabd2f;
+  --code-type: #83a598;
+  --code-number: #d3869b;
+}
+
+[data-code-theme="Tokyo Night"] {
+  --code-bg: #1a1b26;
+  --code-fg: #c0caf5;
+  --code-gutter: #565f89;
+  --code-line-highlight: #24283b;
+  --code-keyword: #bb9af7;
+  --code-string: #9ece6a;
+  --code-comment: #565f89;
+  --code-function: #7aa2f7;
+  --code-type: #2ac3de;
+  --code-number: #ff9e64;
+}
+
+[data-code-theme="Nord"] {
+  --code-bg: #2e3440;
+  --code-fg: #d8dee9;
+  --code-gutter: #4c566a;
+  --code-line-highlight: #3b4252;
+  --code-keyword: #81a1c1;
+  --code-string: #a3be8c;
+  --code-comment: #616e88;
+  --code-function: #88c0d0;
+  --code-type: #8fbcbb;
+  --code-number: #b48ead;
+}
+
+[data-code-theme="Monokai Pro"] {
+  --code-bg: #2d2a2e;
+  --code-fg: #fcfcfa;
+  --code-gutter: #727072;
+  --code-line-highlight: #403e41;
+  --code-keyword: #ff6188;
+  --code-string: #ffd866;
+  --code-comment: #727072;
+  --code-function: #a9dc76;
+  --code-type: #78dce8;
+  --code-number: #ab9df2;
+}
+
+[data-code-theme="Night Owl"] {
+  --code-bg: #011627;
+  --code-fg: #d6deeb;
+  --code-gutter: #4b6479;
+  --code-line-highlight: #0b2942;
+  --code-keyword: #c792ea;
+  --code-string: #ecc48d;
+  --code-comment: #637777;
+  --code-function: #82aaff;
+  --code-type: #addb67;
+  --code-number: #f78c6c;
+}
+
+[data-code-theme="Vitesse Dark"] {
+  --code-bg: #121212;
+  --code-fg: #dbd7ca;
+  --code-gutter: #666666;
+  --code-line-highlight: #1e1e1e;
+  --code-keyword: #4d9375;
+  --code-string: #c98a7d;
+  --code-comment: #758575;
+  --code-function: #80a665;
+  --code-type: #5da994;
+  --code-number: #4c9a91;
 }

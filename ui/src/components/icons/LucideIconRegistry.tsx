@@ -1,0 +1,183 @@
+/**
+ * Lucide Application Chrome Icon Registry (UIR-2.2, UI-36, Blueprint §5.3).
+ *
+ * Provides deterministic 2px-stroke geometric chrome icons for navigation,
+ * top bar actions, composer triggers, timeline state badges, and all 21 Settings sections.
+ */
+
+import {
+  Activity,
+  AlertTriangle,
+  Anchor,
+  Archive,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  BarChart3,
+  BookOpen,
+  Bot,
+  Box,
+  Brain,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Code2,
+  Command,
+  Copy,
+  Cpu,
+  Database,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  FileCode,
+  FileText,
+  Filter,
+  Folder,
+  FolderOpen,
+  FolderPlus,
+  GitBranch,
+  Globe,
+  HelpCircle,
+  Keyboard,
+  Layers,
+  LayoutGrid,
+  Maximize2,
+  Minimize2,
+  Monitor,
+  Moon,
+  MoreHorizontal,
+  Palette,
+  PanelLeft,
+  PanelRight,
+  Paperclip,
+  Pencil,
+  Pin,
+  Play,
+  Plug,
+  Plus,
+  Puzzle,
+  RefreshCw,
+  Search,
+  Send,
+  Server,
+  Settings,
+  Share2,
+  Shield,
+  Sliders,
+  Sparkles,
+  Square,
+  Sun,
+  Terminal,
+  Trash2,
+  User,
+  Wand2,
+  Workflow,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import type { ReactElement } from "react";
+
+export const LUCIDE_CHROME_ICONS = {
+  "new-task": Plus,
+  "automations": Clock,
+  "plugin-marketplace": Puzzle,
+  "projects": Folder,
+  "project-open": FolderOpen,
+  "add-project": FolderPlus,
+  "tasks": Layers,
+  "settings": Settings,
+  "profile": User,
+  "search": Search,
+  "filter": Filter,
+  "group-by": LayoutGrid,
+  "sidebar-left": PanelLeft,
+  "side-pane-right": PanelRight,
+  "share": Share2,
+  "terminal": Terminal,
+  "help": HelpCircle,
+  "send": ArrowUp,
+  "send-plane": Send,
+  "stop": Square,
+  "run": Play,
+  "plus": Plus,
+  "attachment": Paperclip,
+  "brain-thinking": Brain,
+  "subagent": Bot,
+  "mcp-plug": Plug,
+  "skills": Wand2,
+  "commands": Command,
+  "hooks": Anchor,
+  "workflow": Workflow,
+  "code": Code2,
+  "file-code": FileCode,
+  "file-text": FileText,
+  "git-branch": GitBranch,
+  "check": Check,
+  "alert-triangle": AlertTriangle,
+  "close": X,
+  "more": MoreHorizontal,
+  "edit": Pencil,
+  "pin": Pin,
+  "archive": Archive,
+  "trash": Trash2,
+  "copy": Copy,
+  "refresh": RefreshCw,
+  "external-link": ExternalLink,
+  "maximize": Maximize2,
+  "minimize": Minimize2,
+  "eye": Eye,
+  "eye-off": EyeOff,
+  "theme-dark": Moon,
+  "theme-light": Sun,
+  "appearance": Palette,
+  "model-cube": Box,
+  "browser-globe": Globe,
+  "remote-server": Server,
+  "computer-monitor": Monitor,
+  "keyboard": Keyboard,
+  "sliders": Sliders,
+  "database": Database,
+  "usage-chart": BarChart3,
+  "shield-security": Shield,
+  "activity": Activity,
+  "sparkles": Sparkles,
+  "cpu": Cpu,
+  "docs": BookOpen,
+  "chevron-right": ChevronRight,
+  "chevron-left": ChevronLeft,
+  "chevron-down": ChevronDown,
+  "chevron-up": ChevronUp,
+  "arrow-left": ArrowLeft,
+  "arrow-right": ArrowRight,
+} as const satisfies Readonly<Record<string, LucideIcon>>;
+
+export type ChromeIconName = keyof typeof LUCIDE_CHROME_ICONS;
+
+export interface ChromeIconProps {
+  readonly name: ChromeIconName;
+  readonly size?: 14 | 16 | 18 | 20 | 24;
+  readonly className?: string;
+  readonly title?: string;
+  readonly decorative?: boolean;
+}
+
+export function ChromeIcon({
+  name,
+  size = 16,
+  className,
+  title,
+  decorative = true,
+}: ChromeIconProps): ReactElement {
+  const IconComponent = LUCIDE_CHROME_ICONS[name];
+  return (
+    <IconComponent
+      size={size}
+      className={className}
+      aria-hidden={decorative ? "true" : undefined}
+      aria-label={decorative ? undefined : title ?? name}
+    />
+  );
+}

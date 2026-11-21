@@ -1,5 +1,6 @@
 /**
- * Base Application Reset & 3-Region Workspace Shell Layout (Blueprint §4.2, §22.2).
+ * Base Application Reset, 3-Region Workspace Shell, Responsive Reflow & 9-State Primitives
+ * (UIR-2.1, UIR-2.3, Blueprint §4.2, §6.1, §20.1, §22.2).
  */
 
 *,
@@ -35,4 +36,254 @@ body,
   overflow: hidden;
   background-color: var(--bg-canvas);
   color: var(--text-primary);
+}
+
+/* 9-State Button Primitive (Blueprint §6.1, §20.3 A) */
+.ky-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 24px;
+  min-height: 32px;
+  padding-inline: var(--space-3);
+  padding-block: var(--space-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.14s ease, border-color 0.14s ease,
+    color 0.14s ease, opacity 0.14s ease;
+}
+
+.ky-btn--sm {
+  min-height: 28px;
+  padding-inline: var(--space-2);
+  font-size: 0.8125rem;
+}
+
+.ky-btn--md {
+  min-height: 34px;
+  padding-inline: var(--space-3);
+}
+
+.ky-btn--lg {
+  min-height: 40px;
+  padding-inline: var(--space-4);
+  font-size: 0.9375rem;
+}
+
+.ky-btn--primary {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+.ky-btn--secondary {
+  background-color: var(--bg-surface-2);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.ky-btn--ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.ky-btn--ghost:hover:not(:disabled) {
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.ky-btn--danger {
+  background-color: var(--danger-bg);
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+}
+
+.ky-btn:disabled,
+.ky-btn[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ky-btn--selected {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-surface-3);
+}
+
+.ky-btn--invalid {
+  border-color: var(--danger-text);
+}
+
+/* 9-State Input & Textarea Primitives (Blueprint §6.1, §8.2) */
+.ky-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.ky-input,
+.ky-textarea,
+.ky-select {
+  width: 100%;
+  min-height: 34px;
+  padding-inline: var(--space-3);
+  padding-block: var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.ky-input[aria-invalid="true"],
+.ky-textarea[aria-invalid="true"],
+.ky-select[aria-invalid="true"] {
+  border-color: var(--danger-text);
+}
+
+.ky-input:disabled,
+.ky-textarea:disabled,
+.ky-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--bg-surface-2);
+}
+
+/* Toggle Switch (role="switch") */
+.ky-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-3);
+  cursor: pointer;
+  transition: background-color 0.16s ease;
+}
+
+.ky-toggle[aria-checked="true"] {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.ky-toggle__thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background-color: #ffffff;
+  transition: transform 0.16s ease;
+}
+
+.ky-toggle[aria-checked="true"] .ky-toggle__thumb {
+  transform: translateX(16px);
+}
+
+/* Badges & Diff Counters (+A -R) */
+.ky-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+  padding-block: 2px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.ky-diff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-inline: var(--space-2);
+  padding-block: 2px;
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ky-diff-pill__added {
+  color: var(--diff-added);
+}
+
+.ky-diff-pill__removed {
+  color: var(--diff-removed);
+}
+
+/* Standardized 5-Element RecoveryPanel (Blueprint §21.2) */
+.ky-recovery-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-recovery-panel--error,
+.ky-recovery-panel--permission-denied {
+  border-color: var(--danger-text);
+  background-color: var(--danger-bg);
+}
+
+.ky-recovery-panel--warning,
+.ky-recovery-panel--unknown-outcome-s4,
+.ky-recovery-panel--conflict,
+.ky-recovery-panel--rate-limited {
+  border-color: var(--warning-text);
+  background-color: var(--warning-bg);
+}
+
+/* Modal / Overlay Backdrop */
+.ky-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background-color: var(--bg-overlay);
+}
+
+.ky-modal-dialog {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+  color: var(--text-primary);
+}
+
+/* Responsive Breakpoints & 320 CSS px Reflow (Blueprint §22.2, WCAG 1.4.10) */
+@media (max-width: 767px) {
+  .karyora-shell-root {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  .ky-modal-dialog {
+    padding: var(--space-3);
+    max-width: 100%;
+  }
+
+  .ky-btn {
+    min-height: 40px;
+  }
 }
