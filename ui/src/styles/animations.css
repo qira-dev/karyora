@@ -1,0 +1,81 @@
+/**
+ * ZCode v3.18.2 Micro-Interaction & Shimmer Mechanics (Blueprint §5.4, §20.2).
+ */
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient-text {
+  background-image: linear-gradient(
+    90deg,
+    var(--gradient-text-from),
+    var(--gradient-text-via),
+    var(--gradient-text-to)
+  );
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: gradient-flow 4s ease infinite;
+}
+
+@keyframes tool-call-progress-sweep {
+  0% {
+    transform: translateX(-33%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.tool-call-progress-indeterminate {
+  animation: tool-call-progress-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes draft-card-waterfall {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.draft-prompt-card-waterfall {
+  animation: draft-card-waterfall 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--card-index, 0) * 60ms);
+}
+
+.digit-flip-counter {
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-gradient-text {
+    animation: none;
+    background-image: none;
+    color: var(--accent-text);
+  }
+
+  .tool-call-progress-indeterminate,
+  .draft-prompt-card-waterfall {
+    animation: none;
+  }
+
+  .digit-flip-counter {
+    transition: none;
+  }
+}

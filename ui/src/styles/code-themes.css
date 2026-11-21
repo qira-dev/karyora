@@ -1,0 +1,22 @@
+/**
+ * 10 Light & 10 Dark Syntax Code Themes (Screenshots #5–#9, Blueprint §5.2).
+ */
+
+:root {
+  --code-bg: #f8fafc;
+  --code-fg: #0f172a;
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-comment: #6e7781;
+  --code-function: #8250df;
+}
+
+.dark,
+[data-theme="dark"] {
+  --code-bg: #0d1117;
+  --code-fg: #e6edf3;
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-comment: #8b949e;
+  --code-function: #d2a8ff;
+}

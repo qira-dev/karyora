@@ -130,8 +130,12 @@ jobs:
         run: npm ci --no-fund --no-audit
       - name: locale key parity (G-10)
         run: npm run i18n:parity
+      - name: material SVG icon manifest integrity (G-04)
+        run: npm run assets:verify
       - name: generated-types drift check (P1.5 §5)
         run: npm run types:check
+      - name: UI unit and baseline tests
+        run: npm test
       - name: production build (tsc + vite)
         run: npm run build
 

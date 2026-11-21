@@ -1,13 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { App } from "./app/App";
+import { App } from "./App";
 import { createI18n } from "./i18n";
 import "./styles/tokens.css";
-import "./styles/global.css";
+import "./styles/animations.css";
+import "./styles/code-themes.css";
+import "./styles/layout.css";
 
-// Localization first: every user-facing string resolves through the
-// locale resources (G-10); English is the source and default.
 createI18n();
 
 const container = document.getElementById("root");
