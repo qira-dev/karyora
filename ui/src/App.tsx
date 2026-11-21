@@ -7,6 +7,13 @@
  */
 
 import { useMemo, useState, type ReactElement } from "react";
+import {
+  AutomationsAndWorkflowsPage,
+  INITIAL_SCHEDULED_TASKS,
+  INITIAL_WORKFLOWS,
+  type ScheduledTaskRecord,
+  type WorkflowDefinitionRecord,
+} from "./automations";
 import { EmptyStateCard } from "./components/feedback";
 import { Button, ModalDialog, type ToastMessage } from "./components/primitives";
 import {
@@ -16,6 +23,11 @@ import {
   type WorkspaceProjectSummary,
 } from "./coreclient";
 import { JobsPage } from "./domains/jobs";
+import {
+  INITIAL_MARKETPLACE_PLUGINS,
+  PluginMarketplacePage,
+  type MarketplacePluginRecord,
+} from "./marketplace";
 import { createPlatformBridge } from "./platform-bridge";
 import {
   ApplicationShell,
@@ -442,6 +454,17 @@ export function App(): ReactElement {
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
     "internal/plan/planstore_test.go",
   );
+
+  // Automations, Workflows & Plugin Marketplace state (UIR-6)
+  const [scheduledTasks, setScheduledTasks] = useState<readonly ScheduledTaskRecord[]>(
+    INITIAL_SCHEDULED_TASKS,
+  );
+  const [workflows, setWorkflows] = useState<readonly WorkflowDefinitionRecord[]>(
+    INITIAL_WORKFLOWS,
+  );
+  const [marketplacePlugins, setMarketplacePlugins] = useState<
+    readonly MarketplacePluginRecord[]
+  >(INITIAL_MARKETPLACE_PLUGINS);
 
   // Shell overlay & panel toggles
   const [commandCenterOpen, setCommandCenterOpen] = useState(false);
@@ -962,11 +985,190 @@ export function App(): ReactElement {
                 pushToast("Reconciled S4 Job state", jobId);
               }}
             />
+          ) : activeSurface === "automations" ? (
+            <AutomationsAndWorkflowsPage
+              scheduledTasks={scheduledTasks}
+              workflows={workflows}
+              availableModels={["configured-default", "claude-sonnet", "gpt-5", "gemini-pro"]}
+              onSaveScheduledTask={(task) => {
+                setScheduledTasks((prev) => {
+                  const exists = prev.some((t) => t.taskId === task.taskId);
+                  return exists
+                    ? prev.map((t) => (t.taskId === task.taskId ? task : t))
+                    : [task, ...prev];
+                });
+                pushToast("Scheduled task saved", task.name);
+              }}
+              onToggleScheduledTaskActive={(taskId, active) =>
+                setScheduledTasks((prev) =>
+                  prev.map((t) => (t.taskId === taskId ? { ...t, active } : t)),
+                )
+              }
+              onDeleteScheduledTask={(taskId) => {
+                setScheduledTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+                pushToast("Scheduled task deleted", taskId);
+              }}
+              onRunScheduledTaskNow={(task) => {
+                const newJobId = `job-auto-${Date.now().toString().slice(-4)}`;
+                setJobs((prev) => [
+                  {
+                    jobId: newJobId,
+                    title: `Automation: ${task.name}`,
+                    jobType: "automation",
+                    projectName: projects[0]?.name ?? "karyora_Platform",
+                    status: "running",
+                    attemptCount: 1,
+                    checkpointLabel: "ckpt-automation-dispatched",
+                    updatedAt: "Just now",
+                    idempotencyKey: createIdempotencyKey("auto"),
+                    correlationId: `corr-${newJobId}`,
+                    events: [
+                      {
+                        seq: 1,
+                        timestamp: new Date().toISOString(),
+                        kind: "job.created",
+                        summary: `Triggered scheduled task "${task.name}"`,
+                      },
+                    ],
+                  },
+                  ...prev,
+                ]);
+                pushToast("Automation dispatched", `Created durable Job ${newJobId}`);
+              }}
+              onSaveWorkflowRevision={(updated) => {
+                setWorkflows((prev) =>
+                  prev.map((w) => (w.workflowId === updated.workflowId ? updated : w)),
+                );
+                pushToast("Workflow revision saved", `${updated.name} (${updated.currentRevision})`);
+              }}
+              onCreateWorkflow={() => {
+                const nextId = `wf-${Date.now()}`;
+                const fresh: WorkflowDefinitionRecord = {
+                  workflowId: nextId,
+                  name: `Workflow ${workflows.length + 1}`,
+                  description: "New Core-validated workflow DAG",
+                  currentRevision: "rev-001",
+                  versionNumber: 1,
+                  nodes: [
+                    {
+                      nodeId: `n-trig-${Date.now()}`,
+                      title: "Manual Trigger",
+                      kind: "trigger",
+                      description: "Starts workflow execution",
+                      configSummary: "Manual",
+                      x: 36,
+                      y: 80,
+                    },
+                  ],
+                  edges: [],
+                  revisions: [
+                    {
+                      revisionId: "rev-001",
+                      versionNumber: 1,
+                      savedAt: "Just now",
+                      summary: "Initial workflow draft",
+                      nodes: [
+                        {
+                          nodeId: `n-trig-${Date.now()}`,
+                          title: "Manual Trigger",
+                          kind: "trigger",
+                          description: "Starts workflow execution",
+                          configSummary: "Manual",
+                          x: 36,
+                          y: 80,
+                        },
+                      ],
+                      edges: [],
+                    },
+                  ],
+                };
+                setWorkflows((prev) => [...prev, fresh]);
+                pushToast("Created workflow", fresh.name);
+              }}
+              onLaunchWorkflowJob={(wf) => {
+                const newJobId = `job-wf-${Date.now().toString().slice(-4)}`;
+                setJobs((prev) => [
+                  {
+                    jobId: newJobId,
+                    title: `Workflow: ${wf.name} (v${wf.versionNumber})`,
+                    jobType: "workflow-run",
+                    projectName: projects[0]?.name ?? "karyora_Platform",
+                    status: "running",
+                    attemptCount: 1,
+                    checkpointLabel: `ckpt-${wf.currentRevision}`,
+                    updatedAt: "Just now",
+                    idempotencyKey: createIdempotencyKey("wf"),
+                    correlationId: `corr-${newJobId}`,
+                    events: [
+                      {
+                        seq: 1,
+                        timestamp: new Date().toISOString(),
+                        kind: "workflow.dispatched",
+                        summary: `Launched ${wf.nodes.length}-step validated DAG (${wf.currentRevision})`,
+                      },
+                    ],
+                  },
+                  ...prev,
+                ]);
+                pushToast("Workflow launched", `Durable Job ${newJobId} started`);
+              }}
+              onPickProjectFolder={() => {
+                void platformBridge.pickFolderOrFile({ mode: "folder" });
+                pushToast("Select project folder", "Workspace folder picker triggered.");
+              }}
+              onOpenJobHistory={() => setActiveSurface("jobs")}
+            />
+          ) : activeSurface === "marketplace" ? (
+            <PluginMarketplacePage
+              plugins={marketplacePlugins}
+              onInstallPlugin={(pluginId) => {
+                setMarketplacePlugins((prev) =>
+                  prev.map((p) =>
+                    p.pluginId === pluginId
+                      ? { ...p, lifecycleState: "installed-enabled" }
+                      : p,
+                  ),
+                );
+                pushToast("Plugin installed", pluginId);
+              }}
+              onTogglePluginEnabled={(pluginId, enabled) => {
+                setMarketplacePlugins((prev) =>
+                  prev.map((p) =>
+                    p.pluginId === pluginId
+                      ? {
+                          ...p,
+                          lifecycleState: enabled
+                            ? "installed-enabled"
+                            : "installed-disabled",
+                        }
+                      : p,
+                  ),
+                );
+                pushToast(enabled ? "Plugin enabled" : "Plugin disabled", pluginId);
+              }}
+              onRemovePlugin={(pluginId) => {
+                setMarketplacePlugins((prev) =>
+                  prev.map((p) =>
+                    p.pluginId === pluginId ? { ...p, lifecycleState: "available" } : p,
+                  ),
+                );
+                pushToast("Plugin removed", pluginId);
+              }}
+              onRevokePlugin={(pluginId) => {
+                setMarketplacePlugins((prev) =>
+                  prev.map((p) =>
+                    p.pluginId === pluginId ? { ...p, lifecycleState: "revoked" } : p,
+                  ),
+                );
+                pushToast("Plugin trust revoked", pluginId);
+              }}
+              onOpenPluginsSettings={() => openSettingsOverlay("plugins")}
+            />
           ) : (
             <div style={{ maxWidth: "820px", margin: "0 auto" }}>
               <EmptyStateCard
                 title={`Surface: ${activeSurface}`}
-                description="This enterprise surface mounts in its assigned Roadmap milestone (UIR-6 / UIR-7)."
+                description="This enterprise surface mounts in its assigned Roadmap milestone (UIR-7)."
                 primaryActionLabel="Return to Agentic Workspace"
                 onPrimaryAction={() => setActiveSurface("workspace")}
               />

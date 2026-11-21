@@ -1,0 +1,376 @@
+/**
+ * Automations | Workflows Dual Surface, DAG Builder, Step-List Inspector,
+ * and Plugin Marketplace + WASM Governance Styles (UIR-6, Screenshots #34–#36, #66–#67).
+ */
+
+.ky-domain-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.ky-domain-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-3);
+}
+
+.ky-domain-page__title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ky-domain-page__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.ky-domain-page__subtitle {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.ky-segmented-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+}
+
+.ky-segmented-tabs__btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ky-segmented-tabs__btn[data-active="true"] {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* Automations List & 4 Starter Templates (#66) */
+.ky-auto-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ky-auto-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-auto-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 240px;
+  flex: 1;
+}
+
+.ky-auto-card__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.ky-auto-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ky-template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.ky-template-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  color: var(--text-primary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.ky-template-card:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-surface-2);
+}
+
+.ky-template-card__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ky-template-card__desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Scheduled Task Modal (#67) */
+.ky-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ky-modal-form__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.ky-modal-form__textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  resize: vertical;
+}
+
+.ky-modal-form__pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ky-modal-form__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Workflow DAG Graph Builder + Keyboard Step List (§10.2, §20.5) */
+.ky-workflow-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-workflow-canvas-wrap {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+  overflow-x: auto;
+  padding: var(--space-3);
+}
+
+.ky-workflow-svg {
+  min-width: 780px;
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.ky-workflow-conflict-banner,
+.ky-workflow-validation-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  font-size: 0.82rem;
+}
+
+.ky-workflow-conflict-banner {
+  background-color: rgba(245, 158, 11, 0.14);
+  border-color: var(--status-warning);
+}
+
+.ky-workflow-validation-banner[data-valid="false"] {
+  background-color: rgba(239, 68, 68, 0.14);
+  border-color: var(--status-danger);
+}
+
+.ky-workflow-validation-banner[data-valid="true"] {
+  background-color: rgba(34, 197, 94, 0.12);
+  border-color: var(--status-success);
+}
+
+.ky-step-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.ky-step-table th,
+.ky-step-table td {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-2);
+  text-align: start;
+}
+
+.ky-step-table tr[data-selected="true"] {
+  background-color: var(--bg-surface-2);
+}
+
+/* Plugin Marketplace (#36) & WASM Governance Drawer (#34–#35) */
+.ky-marketplace-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.ky-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ky-category-pill {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ky-category-pill[data-active="true"] {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.ky-plugin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.ky-plugin-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-plugin-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.ky-plugin-card__title {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.ky-plugin-card__publisher {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.ky-plugin-card__summary {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.ky-plugin-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ky-gov-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-gov-digest {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  word-break: break-all;
+  color: var(--text-secondary);
+}
+
+.ky-gov-perm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ky-gov-perm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+}

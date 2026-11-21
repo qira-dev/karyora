@@ -10,6 +10,7 @@ import "./styles/layout.css";
 import "./shell/shell.css";
 import "./workspace/workspace.css";
 import "./side-pane/side-pane.css";
+import "./automations/automations-marketplace.css";
 
 createI18n();
 
