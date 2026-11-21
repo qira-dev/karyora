@@ -14,7 +14,6 @@ import {
   type ScheduledTaskRecord,
   type WorkflowDefinitionRecord,
 } from "./automations";
-import { EmptyStateCard } from "./components/feedback";
 import { Button, ModalDialog, type ToastMessage } from "./components/primitives";
 import {
   createIdempotencyKey,
@@ -22,7 +21,30 @@ import {
   type TaskSessionSummary,
   type WorkspaceProjectSummary,
 } from "./coreclient";
+import {
+  ActivityAuditPage,
+  INITIAL_AUDIT_EVENTS,
+  createAppendOnlyCorrectionEvent,
+  type AuditEventRecord,
+} from "./domains/activity";
+import {
+  ContextInspectorView,
+  INITIAL_CONTEXT_SNAPSHOTS,
+} from "./domains/context";
 import { JobsPage } from "./domains/jobs";
+import {
+  INITIAL_KNOWLEDGE_PACKS,
+  KnowledgePackPage,
+  type KnowledgePackRecord,
+} from "./domains/knowledge";
+import {
+  INITIAL_MEMORY_ITEMS,
+  ScopedMemorySurface,
+  forgetMemoryItem,
+  permanentlyDeleteMemoryItem,
+  restoreMemoryItem,
+  type ScopedMemoryItem,
+} from "./domains/memory";
 import {
   INITIAL_MARKETPLACE_PLUGINS,
   PluginMarketplacePage,
@@ -465,6 +487,18 @@ export function App(): ReactElement {
   const [marketplacePlugins, setMarketplacePlugins] = useState<
     readonly MarketplacePluginRecord[]
   >(INITIAL_MARKETPLACE_PLUGINS);
+
+  // KnowledgePack, Scoped Memory, Context Inspector & Activity Audit state (UIR-7)
+  const [knowledgePacks, setKnowledgePacks] = useState<readonly KnowledgePackRecord[]>(
+    INITIAL_KNOWLEDGE_PACKS,
+  );
+  const [memoryItems, setMemoryItems] = useState<readonly ScopedMemoryItem[]>(
+    INITIAL_MEMORY_ITEMS,
+  );
+  const [workspaceMemoryEnabled, setWorkspaceMemoryEnabled] = useState(true);
+  const [auditEvents, setAuditEvents] = useState<readonly AuditEventRecord[]>(
+    INITIAL_AUDIT_EVENTS,
+  );
 
   // Shell overlay & panel toggles
   const [commandCenterOpen, setCommandCenterOpen] = useState(false);
@@ -1164,15 +1198,198 @@ export function App(): ReactElement {
               }}
               onOpenPluginsSettings={() => openSettingsOverlay("plugins")}
             />
+          ) : activeSurface === "knowledge" ? (
+            <KnowledgePackPage
+              packs={knowledgePacks}
+              onCreatePackAndIngest={(name, sourceUri) => {
+                const newJobId = `job-kp-${Date.now().toString().slice(-4)}`;
+                const packId = `kp-${Date.now()}`;
+                setKnowledgePacks((prev) => [
+                  {
+                    packId,
+                    name,
+                    description: `Ingested from ${sourceUri}`,
+                    versionNumber: 1,
+                    profile: "uawp-kp-internal-digest-v1",
+                    integrityState: "pending-ingest",
+                    manifestSha256:
+                      "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                    signatureStatus: "signed-local-key",
+                    lastIngestionJobId: newJobId,
+                    updatedAt: "Just now",
+                    sources: [
+                      {
+                        sourceId: `src-${Date.now()}`,
+                        title: sourceUri.split("/").pop() || name,
+                        originUri: sourceUri,
+                        sha256:
+                          "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                        byteSize: 4096,
+                        importedAt: "Just now",
+                        rawPreviewExcerpt: `Queued ingestion source from ${sourceUri}`,
+                      },
+                    ],
+                    versions: [
+                      {
+                        versionNumber: 1,
+                        createdAt: "Just now",
+                        manifestSha256:
+                          "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                        sourceCount: 1,
+                        summary: "Initial ingestion queued",
+                      },
+                    ],
+                  },
+                  ...prev,
+                ]);
+                setJobs((prev) => [
+                  {
+                    jobId: newJobId,
+                    title: `KnowledgePack Ingest: ${name}`,
+                    jobType: "knowledge-ingest",
+                    projectName: projects[0]?.name ?? "karyora_Platform",
+                    status: "running",
+                    attemptCount: 1,
+                    checkpointLabel: "ckpt-sha256-verifying",
+                    updatedAt: "Just now",
+                    idempotencyKey: createIdempotencyKey("kp"),
+                    correlationId: `corr-${newJobId}`,
+                    events: [
+                      {
+                        seq: 1,
+                        timestamp: new Date().toISOString(),
+                        kind: "knowledge.ingest.started",
+                        summary: `Verifying ${sourceUri}`,
+                      },
+                    ],
+                  },
+                  ...prev,
+                ]);
+                pushToast("KnowledgePack ingestion started", `Job ${newJobId}`);
+              }}
+              onExportManifest={(pack) => {
+                pushToast("Exported KnowledgePack manifest", `${pack.name} (v${pack.versionNumber})`);
+              }}
+              onInspectIngestionJob={() => setActiveSurface("jobs")}
+            />
+          ) : activeSurface === "memory" ? (
+            <ScopedMemorySurface
+              items={memoryItems}
+              workspaceMemoryEnabled={workspaceMemoryEnabled}
+              availableProjects={projects.map((p) => p.name)}
+              activeCodeTheme={activeCodeTheme}
+              onToggleWorkspaceMemory={setWorkspaceMemoryEnabled}
+              onApproveItem={(memoryId) => {
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId ? { ...m, state: "active", updatedAt: "Just now" } : m,
+                  ),
+                );
+                pushToast("Memory item approved", memoryId);
+              }}
+              onRejectItem={(memoryId) => {
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId ? forgetMemoryItem(m).item : m,
+                  ),
+                );
+                pushToast("Pending memory rejected (soft-excluded)", memoryId);
+              }}
+              onEditItemContent={(memoryId, nextContent) => {
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId
+                      ? { ...m, content: nextContent, updatedAt: "Just now" }
+                      : m,
+                  ),
+                );
+                pushToast("Memory updated", memoryId);
+              }}
+              onTogglePinItem={(memoryId) =>
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId ? { ...m, pinned: !m.pinned } : m,
+                  ),
+                )
+              }
+              onForgetItem={(memoryId) => {
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId ? forgetMemoryItem(m).item : m,
+                  ),
+                );
+                setAuditEvents((prev) => [
+                  {
+                    eventId: `aud-mem-${Date.now()}`,
+                    seq: (prev[0]?.seq ?? 100_000) + 1,
+                    timestamp: new Date().toISOString(),
+                    actor: "owner@local",
+                    action: "memory_item.forgotten",
+                    resource: memoryId,
+                    outcome: "allowed",
+                    correlationId: `corr-mem-${Date.now().toString().slice(-4)}`,
+                    chainHash: "sha256:forgotten-soft-exclude",
+                    payloadSummary: `Soft-excluded memory ${memoryId} (restorable)`,
+                    payloadJson: JSON.stringify({ memoryId, restorable: true }, null, 2),
+                  },
+                  ...prev,
+                ]);
+                pushToast("Memory forgotten (soft-excluded)", memoryId);
+              }}
+              onRestoreItem={(memoryId) => {
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId ? restoreMemoryItem(m).item : m,
+                  ),
+                );
+                pushToast("Memory restored", memoryId);
+              }}
+              onPermanentDeleteItem={(memoryId) => {
+                const auditId = `aud-del-${Date.now()}`;
+                setMemoryItems((prev) =>
+                  prev.map((m) =>
+                    m.memoryId === memoryId
+                      ? permanentlyDeleteMemoryItem(m, auditId).item
+                      : m,
+                  ),
+                );
+                setAuditEvents((prev) => [
+                  {
+                    eventId: auditId,
+                    seq: (prev[0]?.seq ?? 100_000) + 1,
+                    timestamp: new Date().toISOString(),
+                    actor: "owner@local",
+                    action: "memory_item.deleted",
+                    resource: memoryId,
+                    outcome: "allowed",
+                    correlationId: `corr-del-${Date.now().toString().slice(-4)}`,
+                    chainHash: "sha256:permanent-erasure-tombstone",
+                    payloadSummary: `Permanently erased memory ${memoryId} (tombstone retained)`,
+                    payloadJson: JSON.stringify({ memoryId, irreversible: true }, null, 2),
+                  },
+                  ...prev,
+                ]);
+                pushToast("Memory permanently deleted", `Audit ${auditId}`);
+              }}
+            />
+          ) : activeSurface === "context" ? (
+            <ContextInspectorView snapshots={INITIAL_CONTEXT_SNAPSHOTS} />
           ) : (
-            <div style={{ maxWidth: "820px", margin: "0 auto" }}>
-              <EmptyStateCard
-                title={`Surface: ${activeSurface}`}
-                description="This enterprise surface mounts in its assigned Roadmap milestone (UIR-7)."
-                primaryActionLabel="Return to Agentic Workspace"
-                onPrimaryAction={() => setActiveSurface("workspace")}
-              />
-            </div>
+            <ActivityAuditPage
+              events={auditEvents}
+              onAppendCorrectionNote={(targetEventId, note) => {
+                const corr = createAppendOnlyCorrectionEvent(
+                  auditEvents,
+                  targetEventId,
+                  note,
+                );
+                setAuditEvents((prev) => [corr, ...prev]);
+                pushToast("Correction appended", `${corr.eventId} -> ${targetEventId}`);
+              }}
+              onExportRedactedAudit={(_json, count) => {
+                pushToast("Redacted audit exported", `${count} sanitized event(s)`);
+              }}
+            />
           )}
         </ApplicationShell>
       )}

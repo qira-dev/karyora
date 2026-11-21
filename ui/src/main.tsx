@@ -11,6 +11,7 @@ import "./shell/shell.css";
 import "./workspace/workspace.css";
 import "./side-pane/side-pane.css";
 import "./automations/automations-marketplace.css";
+import "./domains/enterprise-domains.css";
 
 createI18n();
 

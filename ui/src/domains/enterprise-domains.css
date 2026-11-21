@@ -1,0 +1,213 @@
+/**
+ * Karyora Enterprise Domain Surfaces Styles:
+ * KnowledgePack (§12.2), Scoped Memory (#26–#28, §12.3), Context Inspector (§12.4),
+ * and 100k+ Virtualized Activity & Audit Timeline (§12.5) (UIR-7).
+ */
+
+/* KnowledgePack Library & Provenance */
+.ky-kp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-3);
+}
+
+.ky-kp-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-kp-card[data-integrity="quarantined"] {
+  border-color: var(--status-danger);
+}
+
+.ky-kp-digest {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+/* Scoped Memory Surface (#26–#28, §12.3) */
+.ky-memory-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-memory-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: var(--space-3);
+  min-height: 420px;
+}
+
+@media (max-width: 720px) {
+  .ky-memory-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ky-memory-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-memory-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--text-primary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.ky-memory-row:hover {
+  background-color: var(--bg-surface-2);
+}
+
+.ky-memory-row[data-selected="true"] {
+  background-color: var(--bg-surface-2);
+  border-color: var(--accent-primary);
+}
+
+.ky-memory-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-memory-pending-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: rgba(245, 158, 11, 0.14);
+  border: 1px solid var(--status-warning);
+  font-size: 0.82rem;
+}
+
+.ky-memory-tombstone {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-default);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+/* Context Inspector Token Budget Bar (§12.4) */
+.ky-token-bar {
+  display: flex;
+  height: 18px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background-color: var(--bg-surface-2);
+  border: 1px solid var(--border-subtle);
+}
+
+.ky-token-bar__seg[data-cat="system"] { background-color: #6366f1; }
+.ky-token-bar__seg[data-cat="knowledge"] { background-color: #10b981; }
+.ky-token-bar__seg[data-cat="memory"] { background-color: #f59e0b; }
+.ky-token-bar__seg[data-cat="workspace-file"] { background-color: #3b82f6; }
+.ky-token-bar__seg[data-cat="history"] { background-color: #ec4899; }
+.ky-token-bar__seg[data-cat="headroom"] { background-color: transparent; }
+
+.ky-token-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.ky-context-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-3);
+}
+
+/* Activity & Audit 100k+ Virtualized Table (§12.5) */
+.ky-audit-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-audit-viewport {
+  height: 440px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+}
+
+.ky-audit-row {
+  display: grid;
+  grid-template-columns: 110px 145px 120px 175px 1fr 96px;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ky-audit-row:hover {
+  background-color: var(--bg-surface-2);
+}
+
+.ky-audit-row[data-selected="true"] {
+  background-color: var(--bg-surface-3);
+}
+
+.ky-audit-detail {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ky-audit-json {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-canvas);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  overflow-x: auto;
+}

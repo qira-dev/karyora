@@ -11,7 +11,11 @@
 
 import type { ReactElement } from "react";
 import { ChromeIcon, MaterialFileIcon } from "../components/icons";
-import { Badge, Button } from "../components/primitives";
+import { Button } from "../components/primitives";
+import {
+  ContextInspectorView,
+  INITIAL_CONTEXT_SNAPSHOTS,
+} from "../domains/context";
 import { SandboxedDocumentPreviewHost } from "../previewers";
 import { DockedTerminalPanel } from "../terminal";
 import type { DarkCodeTheme, LightCodeTheme, TargetPlatform } from "../types/decisions";
@@ -252,19 +256,13 @@ export function MultiTabSidePane({
           />
         ) : (
           <section className="ky-context-side-summary" data-testid="side-context-inspector-tab">
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <ChromeIcon name="cpu" size={16} />
-              <strong>Context Snapshot Inspector</strong>
-              <Badge tone="info" label="Exact-Only Boundary" />
-            </div>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>
-              Inspects the authoritative assembled ContextSnapshot, token budget allocation, and
-              omission ledger from Core. Full dedicated Context Inspector mounts in Phase 4 (`UIR-7`).
-            </p>
+            <ContextInspectorView snapshots={INITIAL_CONTEXT_SNAPSHOTS} compact={true} />
             {onOpenContextInspectorPage && (
-              <Button size="sm" variant="secondary" onClick={onOpenContextInspectorPage}>
-                Open full Context Inspector surface
-              </Button>
+              <div>
+                <Button size="sm" variant="secondary" onClick={onOpenContextInspectorPage}>
+                  Open full Context Inspector surface
+                </Button>
+              </div>
             )}
           </section>
         )}
