@@ -1,6 +1,6 @@
 /**
  * Karyora Unified AI Work Platform — Clean-Slate v3.0 Root Application Entry
- * (Phase 1 UIR-0/UIR-1 & Phase 2 UIR-2/UIR-3 Complete).
+ * (Phase 1 UIR-0/UIR-1, Phase 2 UIR-2/UIR-3 & Phase 3 UIR-4 Active).
  *
  * One Shared React 19 + TypeScript + Vite SPA Serving Four Target Platforms:
  * Web Browser, Windows (amd64/arm64), macOS (arm64/amd64), and Linux (amd64/arm64).
@@ -8,16 +8,14 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 import { EmptyStateCard } from "./components/feedback";
+import { Button, ModalDialog, type ToastMessage } from "./components/primitives";
 import {
-  MATERIAL_ICON_TOTAL_COUNT,
-  MaterialFileIcon,
-} from "./components/icons";
-import { Badge, Button, ModalDialog, type ToastMessage } from "./components/primitives";
-import {
+  createIdempotencyKey,
   createV3CoreClient,
   type TaskSessionSummary,
   type WorkspaceProjectSummary,
 } from "./coreclient";
+import { JobsPage } from "./domains/jobs";
 import { createPlatformBridge } from "./platform-bridge";
 import {
   ApplicationShell,
@@ -34,9 +32,23 @@ import {
   type SupportedLocale,
 } from "./types/decisions";
 import {
+  AgenticComposer,
+  ConversationTimeline,
+  GreetingEmptyState,
+  type ComposerSessionMode,
+  type ComposerThoughtLevel,
+  type ConversationTurnRecord,
+  type DurableJobRecord,
+  type TimelineProgressStep,
+  type TimelineSubagentBadge,
+  type TriggerSuggestionItem,
+} from "./workspace";
+import {
   DEFAULT_LOCAL_UI_PREFERENCES,
   EphemeralUiStore,
   LocalPreferencesStore,
+  SubmissionQueueStore,
+  type ComposerContextChip,
 } from "./workspace/state";
 
 const INITIAL_PROJECTS: readonly WorkspaceProjectSummary[] = [
@@ -57,7 +69,7 @@ const INITIAL_TASKS: readonly TaskSessionSummary[] = [
   {
     taskId: "task-v3-shell",
     projectId: "proj-karyora",
-    title: "Rebuild v3.0 Agentic Frontend Shell",
+    title: "Rebuild v3.0 Agentic Frontend Workspace",
     status: "idle",
     isPinned: true,
     isUnread: false,
@@ -72,11 +84,159 @@ const INITIAL_TASKS: readonly TaskSessionSummary[] = [
   },
 ];
 
+const INITIAL_TURNS: readonly ConversationTurnRecord[] = [
+  {
+    turnId: "turn-1",
+    role: "user",
+    timestamp: "Just now",
+    text: "Inspect planstore_test.go and verify the UIR-4 timeline and MCP tool rows.",
+  },
+  {
+    turnId: "turn-2",
+    role: "assistant",
+    timestamp: "Just now",
+    thinkingText:
+      "Checking workspace files, resolving Material SVG language icons, and preparing tool execution summary.",
+    toolRows: [
+      {
+        toolCallId: "tc-1",
+        toolName: "edit_file",
+        actionVerb: "Edited",
+        state: "success",
+        targetFilePath: "internal/plan/planstore_test.go",
+        diffAdditions: 57,
+        diffDeletions: 3,
+        startedAt: "23:50:01",
+        completedAt: "23:50:02",
+        outputPreview: "Updated planstore_test.go (+57 -3)",
+      },
+      {
+        toolCallId: "tc-2",
+        toolName: "scan_secrets",
+        actionVerb: "MCP Tool",
+        mcpServerName: "Security",
+        state: "success",
+        startedAt: "23:50:03",
+        completedAt: "23:50:04",
+        outputPreview: "1.gitleaks: PASS",
+      },
+    ],
+    text: "Verified `planstore_test.go` and ran the Security MCP check cleanly.",
+  },
+];
+
+const INITIAL_PROGRESS_STEPS: readonly TimelineProgressStep[] = [
+  { stepId: "s1", label: "Wire Multi-State Composer (@ / # $ +)", completed: true },
+  { stepId: "s2", label: "Render 6-State Tool & MCP Rows", completed: true },
+  { stepId: "s3", label: "Verify 10k+ Durable Jobs Virtualization", completed: false },
+];
+
+const INITIAL_SUBAGENTS: readonly TimelineSubagentBadge[] = [
+  {
+    subagentId: "sub-1",
+    name: "Codebase Researcher",
+    status: "ended",
+    elapsedLabel: "Ran for 42s",
+  },
+  {
+    subagentId: "sub-2",
+    name: "Security Verifier",
+    status: "running",
+    elapsedLabel: "Running 18s",
+  },
+];
+
+const INITIAL_DURABLE_JOBS: readonly DurableJobRecord[] = [
+  {
+    jobId: "job-0001",
+    title: "Rebuild v3.0 UI Asset & Contract Verification",
+    jobType: "agent-task",
+    projectName: "karyora_Platform",
+    status: "running",
+    attemptCount: 1,
+    checkpointLabel: "ckpt-step-3-verified",
+    updatedAt: "1m ago",
+    idempotencyKey: "idem-job-0001",
+    correlationId: "corr-job-0001",
+    events: [
+      { seq: 1, timestamp: "23:50:00Z", kind: "job.created", summary: "Submitted to Core AIJobRelay" },
+      { seq: 2, timestamp: "23:50:05Z", kind: "checkpoint.saved", summary: "Saved ckpt-step-3-verified" },
+    ],
+  },
+  {
+    jobId: "job-0002",
+    title: "KnowledgePack SHA-256 Provenance Ingestion",
+    jobType: "knowledge-ingest",
+    projectName: "karyora_Platform",
+    status: "waiting_approval",
+    attemptCount: 1,
+    checkpointLabel: "ckpt-awaiting-human-approval",
+    updatedAt: "4m ago",
+    idempotencyKey: "idem-job-0002",
+    correlationId: "corr-job-0002",
+    events: [
+      { seq: 1, timestamp: "23:46:00Z", kind: "approval.requested", summary: "Waiting for human scope approval" },
+    ],
+  },
+  {
+    jobId: "job-0003",
+    title: "Scheduled Dependency & Security Audit",
+    jobType: "automation",
+    projectName: "karyora_Platform",
+    status: "succeeded",
+    attemptCount: 1,
+    checkpointLabel: "ckpt-terminal-receipt",
+    updatedAt: "15m ago",
+    idempotencyKey: "idem-job-0003",
+    correlationId: "corr-job-0003",
+    receiptDigest: "sha256:9f86d081884c7d659a2feaa0c55ad015",
+    events: [
+      { seq: 1, timestamp: "23:35:00Z", kind: "job.completed", summary: "Verified receipt committed" },
+    ],
+  },
+];
+
+const COMPOSER_SUGGESTIONS: readonly TriggerSuggestionItem[] = [
+  {
+    id: "file-planstore",
+    trigger: "@",
+    label: "planstore_test.go",
+    subtitle: "internal/plan/planstore_test.go",
+    filePathForIcon: "internal/plan/planstore_test.go",
+  },
+  {
+    id: "file-composer",
+    trigger: "@",
+    label: "AgenticComposer.tsx",
+    subtitle: "ui/src/workspace/composer/AgenticComposer.tsx",
+    filePathForIcon: "ui/src/workspace/composer/AgenticComposer.tsx",
+  },
+  {
+    id: "cmd-plan",
+    trigger: "/",
+    label: "plan",
+    subtitle: "Generate an implementation plan before editing",
+  },
+  {
+    id: "sess-shell",
+    trigger: "#",
+    label: "task-v3-shell",
+    subtitle: "Rebuild v3.0 Agentic Frontend Workspace",
+  },
+  {
+    id: "skill-security",
+    trigger: "$",
+    label: "security-review",
+    subtitle: "Run security checklist & OWASP validation",
+  },
+];
+
 export function App(): ReactElement {
   const coreClient = useMemo(() => createV3CoreClient(), []);
   const platformBridge = useMemo(() => createPlatformBridge(), []);
   const preferencesStore = useMemo(() => new LocalPreferencesStore(), []);
   const overlayStore = useMemo(() => new EphemeralUiStore(), []);
+  const queueStore = useMemo(() => new SubmissionQueueStore(), []);
 
   const [prefs, setPrefs] = useState(DEFAULT_LOCAL_UI_PREFERENCES);
   const [activeSurface, setActiveSurface] = useState<ActiveMainSurface>("workspace");
@@ -85,6 +245,22 @@ export function App(): ReactElement {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(
     INITIAL_TASKS[0]?.taskId ?? null,
   );
+  const [turns, setTurns] = useState<readonly ConversationTurnRecord[]>(INITIAL_TURNS);
+  const [jobs, setJobs] = useState<readonly DurableJobRecord[]>(INITIAL_DURABLE_JOBS);
+
+  // Multi-State Composer state
+  const [promptText, setPromptText] = useState("");
+  const [chips, setChips] = useState<readonly ComposerContextChip[]>([]);
+  const [composerMode, setComposerMode] = useState<ComposerSessionMode>("default");
+  const [composerModel, setComposerModel] = useState("configured-default");
+  const [composerThought, setComposerThought] = useState<ComposerThoughtLevel>("high");
+  const [goalModeEnabled, setGoalModeEnabled] = useState(false);
+  const [enabledPluginIds, setEnabledPluginIds] = useState<ReadonlySet<string>>(
+    () => new Set(["plugin-pdf", "plugin-documents"]),
+  );
+  const [, setQueueTick] = useState(0);
+
+  // Shell overlay & panel toggles
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [sidePaneOpen, setSidePaneOpen] = useState(false);
   const [commandCenterOpen, setCommandCenterOpen] = useState(false);
@@ -101,15 +277,15 @@ export function App(): ReactElement {
   >(() =>
     deduplicateNotifications([], [
       {
-        eventId: "evt-shell-ready",
-        category: "core-health",
-        title: "Phase 2 Application Shell Ready",
+        eventId: "evt-uir4-ready",
+        category: "job",
+        title: "Phase 3 Agentic Workspace & Durable Jobs Ready",
         privacySafeSummary:
-          "Left Sidebar, Top Bar, Command Center (Ctrl+K), and 6-step Migration Guide are active.",
+          "Multi-State Composer, Live Conversation Stream, and AIJobRelay Jobs view are active.",
         occurredAt: "Just now",
         read: false,
         dismissed: false,
-        targetSurface: "workspace",
+        targetSurface: "jobs",
       },
     ]),
   );
@@ -120,8 +296,10 @@ export function App(): ReactElement {
     setToasts((prev) => [...prev, { id, title, description }]);
   };
 
-  const activeTask =
-    tasks.find((t) => t.taskId === activeTaskId) ?? null;
+  const activeTask = tasks.find((t) => t.taskId === activeTaskId) ?? null;
+  const activeSessionKey = activeTask?.taskId ?? "draft-new-task";
+  const queueSnapshot = queueStore.getSnapshot(activeSessionKey);
+  const isTurnRunning = queueSnapshot.turnStatus === "running";
 
   const updatePref = <K extends keyof typeof prefs>(
     key: K,
@@ -150,6 +328,43 @@ export function App(): ReactElement {
 
   const activeCodeTheme =
     prefs.appTheme === "light" ? prefs.lightCodeTheme : prefs.darkCodeTheme;
+
+  const handleSubmitPrompt = () => {
+    const trimmed = promptText.trim();
+    if (!trimmed && chips.length === 0) return;
+
+    const result = queueStore.submitOrEnqueue({
+      queueItemId: `q-${Date.now()}`,
+      sessionId: activeSessionKey,
+      promptText: trimmed || chips.map((c) => c.label).join(" "),
+      chips,
+      mode: composerMode,
+      modelId: composerModel,
+      thoughtLevel: composerThought,
+      idempotencyKey: createIdempotencyKey("turn"),
+      enqueuedAtMs: Date.now(),
+    });
+    setQueueTick((n) => n + 1);
+
+    if (result.dispatchedImmediately) {
+      setTurns((prev) => [
+        ...prev,
+        {
+          turnId: `turn-${Date.now()}`,
+          role: "user",
+          timestamp: "Just now",
+          text: trimmed || chips.map((c) => c.label).join(" "),
+        },
+      ]);
+      if (!activeTaskId) {
+        setActiveTaskId(INITIAL_TASKS[0]?.taskId ?? null);
+      }
+    } else {
+      pushToast("Queued prompt", `Position #${result.snapshot.queuedItems.length}`);
+    }
+    setPromptText("");
+    setChips([]);
+  };
 
   return (
     <StartupHandshakeGate
@@ -196,12 +411,7 @@ export function App(): ReactElement {
           }}
           onAddProject={() => {
             void platformBridge.pickFolderOrFile({ mode: "folder" });
-            pushToast(
-              "Add project folder",
-              platformBridge.capabilities.nativeFolderPicker
-                ? "Native OS folder picker invoked."
-                : "Web mode: select or enter a Core-authorized workspace directory.",
-            );
+            pushToast("Add project folder", "Workspace folder picker triggered.");
           }}
           onTaskContextAction={(actionId, task) => {
             if (actionId === "pin") {
@@ -222,7 +432,7 @@ export function App(): ReactElement {
                   t.taskId === task.taskId ? { ...t, status: "archived" } : t,
                 ),
               );
-              pushToast("Task archived", `${task.title} moved to Archive management.`);
+              pushToast("Task archived", task.title);
             } else if (actionId === "delete") {
               setTasks((prev) => prev.filter((t) => t.taskId !== task.taskId));
               if (activeTaskId === task.taskId) {
@@ -303,69 +513,132 @@ export function App(): ReactElement {
             </ModalDialog>
           }
         >
-          <div
-            style={{
-              maxWidth: "820px",
-              margin: "0 auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-4)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <Badge
-                tone="success"
-                dot
-                label={`Phase 2 Shell Active (${platformBridge.runtimeTarget})`}
-              />
-              <Badge
-                tone="accent"
-                label={`${MATERIAL_ICON_TOTAL_COUNT} Material SVG Icons`}
+          {activeSurface === "workspace" ? (
+            <div className="ky-workspace-stage">
+              {activeTask === null ? (
+                <GreetingEmptyState
+                  onSelectQuickChip={(chip) => setPromptText(chip.promptTemplate)}
+                />
+              ) : (
+                <ConversationTimeline
+                  turns={turns}
+                  progressSteps={INITIAL_PROGRESS_STEPS}
+                  subagents={INITIAL_SUBAGENTS}
+                  codeTheme={activeCodeTheme}
+                  onInspectFile={(filePath) => {
+                    setSidePaneOpen(true);
+                    pushToast("Inspecting file in Side Pane", filePath);
+                  }}
+                  onApprovalDecision={(approvalId, decision) => {
+                    pushToast("Approval recorded", `${approvalId}: ${decision}`);
+                  }}
+                  onOpenSubagentsSideTab={() => {
+                    setSidePaneOpen(true);
+                    pushToast("Side Pane", "Opened Subagents directory");
+                  }}
+                />
+              )}
+
+              <AgenticComposer
+                promptText={promptText}
+                chips={chips}
+                mode={composerMode}
+                modelId={composerModel}
+                availableModels={["configured-default", "claude-sonnet", "gpt-5", "gemini-pro"]}
+                thoughtLevel={composerThought}
+                goalModeEnabled={goalModeEnabled}
+                enabledPluginIds={enabledPluginIds}
+                isRunning={isTurnRunning}
+                isCoreOffline={false}
+                codeTheme={activeCodeTheme}
+                queueSnapshot={queueSnapshot}
+                triggerSuggestions={COMPOSER_SUGGESTIONS}
+                onPromptChange={setPromptText}
+                onAddChip={(chip) => setChips((prev) => [...prev, chip])}
+                onRemoveChip={(chipId) =>
+                  setChips((prev) => prev.filter((c) => c.chipId !== chipId))
+                }
+                onChangeMode={setComposerMode}
+                onChangeModel={setComposerModel}
+                onChangeThoughtLevel={setComposerThought}
+                onToggleGoalMode={setGoalModeEnabled}
+                onTogglePlugin={(pluginId) =>
+                  setEnabledPluginIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(pluginId)) next.delete(pluginId);
+                    else next.add(pluginId);
+                    return next;
+                  })
+                }
+                onPickAttachment={() => {
+                  void platformBridge.pickFolderOrFile({ mode: "multiple-files" });
+                  pushToast("Attach files", "Select workspace files or documents.");
+                }}
+                onOpenWorkflowPicker={() => setActiveSurface("automations")}
+                onSubmitPrompt={handleSubmitPrompt}
+                onStopTurn={() => {
+                  queueStore.onTurnCompletedS2(activeSessionKey);
+                  setQueueTick((n) => n + 1);
+                  pushToast("Turn stopped", "Stop requested cleanly.");
+                }}
+                onQueueReorder={(from, to) => {
+                  queueStore.reorder(activeSessionKey, from, to);
+                  setQueueTick((n) => n + 1);
+                }}
+                onQueueEdit={(id, text) => {
+                  queueStore.editItem(activeSessionKey, id, { promptText: text });
+                  setQueueTick((n) => n + 1);
+                }}
+                onQueueSendNow={(id) => {
+                  queueStore.promoteToSendNow(activeSessionKey, id);
+                  setQueueTick((n) => n + 1);
+                }}
+                onQueueRemove={(id) => {
+                  queueStore.removeItem(activeSessionKey, id);
+                  setQueueTick((n) => n + 1);
+                }}
               />
             </div>
-
-            <EmptyStateCard
-              title={
-                activeSurface === "workspace"
-                  ? activeTask
-                    ? activeTask.title
-                    : "Ready for a new task"
-                  : `Surface: ${activeSurface}`
-              }
-              description="Phase 2 Application Shell (Left Sidebar, Top Bar, Command Center Ctrl+K, Notifications, Onboarding & 6-Step Migration Guide) is live. Phase 3 mounts the Multi-State Composer, Live Stream, Side Pane, Previewers, and PTY Terminal into this shell."
-              primaryActionLabel="Open First-Run Setup"
-              onPrimaryAction={() => setOnboardingMode("onboarding")}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: "var(--space-3)",
-                padding: "var(--space-3)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border-subtle)",
-                backgroundColor: "var(--bg-surface-1)",
+          ) : activeSurface === "jobs" ? (
+            <JobsPage
+              jobs={jobs}
+              onCancelJob={(jobId) => {
+                setJobs((prev) =>
+                  prev.map((j) =>
+                    j.jobId === jobId ? { ...j, status: "cancelled" } : j,
+                  ),
+                );
+                pushToast("Safe cancel dispatched", jobId);
               }}
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <MaterialFileIcon filename="planstore_test.go" codeTheme={activeCodeTheme} />
-                <code>planstore_test.go</code>
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <MaterialFileIcon filename="ApplicationShell.tsx" codeTheme={activeCodeTheme} />
-                <code>ApplicationShell.tsx</code>
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setOnboardingMode("migration")}
-              >
-                Open 6-Step Migration Guide (#55)
-              </Button>
+              onRetryOrResumeJob={(jobId) => {
+                setJobs((prev) =>
+                  prev.map((j) =>
+                    j.jobId === jobId
+                      ? { ...j, status: "running", attemptCount: j.attemptCount + 1 }
+                      : j,
+                  ),
+                );
+                pushToast("Job resumed", jobId);
+              }}
+              onReconcileS4Job={(jobId) => {
+                setJobs((prev) =>
+                  prev.map((j) =>
+                    j.jobId === jobId ? { ...j, status: "running" } : j,
+                  ),
+                );
+                pushToast("Reconciled S4 Job state", jobId);
+              }}
+            />
+          ) : (
+            <div style={{ maxWidth: "820px", margin: "0 auto" }}>
+              <EmptyStateCard
+                title={`Surface: ${activeSurface}`}
+                description="This enterprise surface mounts in its assigned Roadmap milestone (UIR-6 / UIR-7)."
+                primaryActionLabel="Return to Agentic Workspace"
+                onPrimaryAction={() => setActiveSurface("workspace")}
+              />
             </div>
-          </div>
+          )}
         </ApplicationShell>
       )}
     </StartupHandshakeGate>

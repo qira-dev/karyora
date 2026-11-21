@@ -8,6 +8,7 @@ import "./styles/animations.css";
 import "./styles/code-themes.css";
 import "./styles/layout.css";
 import "./shell/shell.css";
+import "./workspace/workspace.css";
 
 createI18n();
 
