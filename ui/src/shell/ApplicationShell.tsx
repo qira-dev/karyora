@@ -49,7 +49,9 @@ export interface ApplicationShellProps {
   readonly activeZoomPercent: number;
   readonly sidebarCollapsed: boolean;
   readonly terminalOpen: boolean;
+  readonly terminalMaximized?: boolean;
   readonly sidePaneOpen: boolean;
+  readonly sidePaneFullView?: boolean;
   readonly activeSurface: ActiveMainSurface;
   readonly projects: readonly WorkspaceProjectSummary[];
   readonly tasks: readonly TaskSessionSummary[];
@@ -65,6 +67,8 @@ export interface ApplicationShellProps {
   readonly onToggleSidebar: () => void;
   readonly onToggleTerminal: () => void;
   readonly onToggleSidePane: () => void;
+  readonly onToggleSidePaneFullView?: () => void;
+  readonly onOpenReviewDiffTab?: () => void;
   readonly onNewTask: () => void;
   readonly onSelectSurface: (surface: ActiveMainSurface) => void;
   readonly onSelectTask: (task: TaskSessionSummary) => void;
@@ -89,6 +93,7 @@ export interface ApplicationShellProps {
   readonly onDismissToast: (toastId: string) => void;
   readonly sidePaneContent?: ReactNode;
   readonly terminalContent?: ReactNode;
+  readonly floatingWorkingBar?: ReactNode;
   readonly settingsOverlayContent?: ReactNode;
   readonly children: ReactNode;
 }
@@ -114,7 +119,9 @@ export function ApplicationShell({
   activeZoomPercent,
   sidebarCollapsed,
   terminalOpen,
+  terminalMaximized = false,
   sidePaneOpen,
+  sidePaneFullView = false,
   activeSurface,
   projects,
   tasks,
@@ -130,6 +137,8 @@ export function ApplicationShell({
   onToggleSidebar,
   onToggleTerminal,
   onToggleSidePane,
+  onToggleSidePaneFullView,
+  onOpenReviewDiffTab,
   onNewTask,
   onSelectSurface,
   onSelectTask,
@@ -151,6 +160,7 @@ export function ApplicationShell({
   onDismissToast,
   sidePaneContent,
   terminalContent,
+  floatingWorkingBar,
   settingsOverlayContent,
   children,
 }: ApplicationShellProps): ReactElement {
@@ -170,6 +180,9 @@ export function ApplicationShell({
       if (lower === "k" || (e.shiftKey && lower === "p")) {
         e.preventDefault();
         onOpenCommandCenter();
+      } else if (e.shiftKey && lower === "f" && onToggleSidePaneFullView) {
+        e.preventDefault();
+        onToggleSidePaneFullView();
       } else if (lower === "b" && e.altKey) {
         e.preventDefault();
         onToggleSidePane();
@@ -215,6 +228,7 @@ export function ApplicationShell({
     onOpenCommandCenter,
     onOpenSettings,
     onToggleSidePane,
+    onToggleSidePaneFullView,
     onToggleSidebar,
     onToggleTerminal,
   ]);
@@ -275,7 +289,9 @@ export function ApplicationShell({
             unreadNotificationsCount={unreadNotificationsCount}
             onExpandSidebar={onToggleSidebar}
             onOpenReviewDiffTab={() => {
-              if (!sidePaneOpen) {
+              if (onOpenReviewDiffTab) {
+                onOpenReviewDiffTab();
+              } else if (!sidePaneOpen) {
                 onToggleSidePane();
               }
             }}
@@ -288,12 +304,18 @@ export function ApplicationShell({
           />
 
           <div className="ky-workspace-body">
-            <div className="ky-center-pane">
+            <div
+              className="ky-center-pane"
+              data-hidden-for-full-view={
+                sidePaneOpen && sidePaneFullView ? "true" : "false"
+              }
+            >
               <main className="ky-center-scroll">{children}</main>
               {terminalOpen && (
                 <section
                   aria-label="Docked PTY Terminal"
                   data-testid="bottom-terminal-slot"
+                  data-maximized={terminalMaximized ? "true" : "false"}
                   className="ky-bottom-terminal-slot"
                 >
                   {terminalContent ?? (
@@ -304,7 +326,7 @@ export function ApplicationShell({
                         fontSize: "0.75rem",
                       }}
                     >
-                      Terminal zsh — PTY runtime attaches in Phase 3 (UIR-5).
+                      Terminal zsh — ready.
                     </div>
                   )}
                 </section>
@@ -315,6 +337,7 @@ export function ApplicationShell({
               <aside
                 aria-label="Multi-Tab Side Pane"
                 data-testid="multi-tab-side-pane-slot"
+                data-full-view={sidePaneFullView ? "true" : "false"}
                 className="ky-side-pane-slot"
               >
                 {sidePaneContent ?? (
@@ -325,13 +348,13 @@ export function ApplicationShell({
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Multi-Tab Side Pane (`Files`, `Review`, `Subagents`, `Browser`,
-                    `Terminal`, `Sites`, `App plugins`) mounts in Phase 3 (UIR-5).
+                    Multi-Tab Side Pane ready.
                   </div>
                 )}
               </aside>
             )}
           </div>
+          {floatingWorkingBar}
         </div>
       </div>
 

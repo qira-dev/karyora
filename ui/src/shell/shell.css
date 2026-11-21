@@ -148,6 +148,10 @@
   flex-shrink: 0;
 }
 
+.ky-bottom-terminal-slot[data-maximized="true"] {
+  height: 55%;
+}
+
 /* Floating Popover Surfaces (Elevation 3 — Project Hover Card #84, Profile #61–#65, Share #79, Help #80) */
 .ky-popover-surface {
   position: absolute;

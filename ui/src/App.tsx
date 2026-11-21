@@ -1,6 +1,6 @@
 /**
  * Karyora Unified AI Work Platform — Clean-Slate v3.0 Root Application Entry
- * (Phase 1 UIR-0/UIR-1, Phase 2 UIR-2/UIR-3 & Phase 3 UIR-4 Active).
+ * (Phase 1 UIR-0/UIR-1, Phase 2 UIR-2/UIR-3 & Phase 3 UIR-4/UIR-5 Complete).
  *
  * One Shared React 19 + TypeScript + Vite SPA Serving Four Target Platforms:
  * Web Browser, Windows (amd64/arm64), macOS (arm64/amd64), and Linux (amd64/arm64).
@@ -24,6 +24,18 @@ import {
   type ActiveMainSurface,
   type CoreNotificationItem,
 } from "./shell";
+import {
+  FloatingMinimizedWorkingBar,
+  MultiTabSidePane,
+  closeSideTab,
+  openOrFocusSideTab,
+  type NewTabLauncherItem,
+  type ReviewDiffFileRecord,
+  type SidePaneTab,
+  type SubagentRunRecord,
+  type WorkspaceFileNode,
+} from "./side-pane";
+import { DockedTerminalPanel } from "./terminal";
 import {
   SETTINGS_SECTIONS,
   type AppTheme,
@@ -89,7 +101,7 @@ const INITIAL_TURNS: readonly ConversationTurnRecord[] = [
     turnId: "turn-1",
     role: "user",
     timestamp: "Just now",
-    text: "Inspect planstore_test.go and verify the UIR-4 timeline and MCP tool rows.",
+    text: "Inspect planstore_test.go and verify the UIR-4 timeline, Side Pane diff viewer, and sandboxed previewers.",
   },
   {
     turnId: "turn-2",
@@ -128,22 +140,182 @@ const INITIAL_TURNS: readonly ConversationTurnRecord[] = [
 const INITIAL_PROGRESS_STEPS: readonly TimelineProgressStep[] = [
   { stepId: "s1", label: "Wire Multi-State Composer (@ / # $ +)", completed: true },
   { stepId: "s2", label: "Render 6-State Tool & MCP Rows", completed: true },
-  { stepId: "s3", label: "Verify 10k+ Durable Jobs Virtualization", completed: false },
+  { stepId: "s3", label: "Mount Multi-Tab Side Pane, Previewers & PTY Terminal", completed: true },
 ];
 
-const INITIAL_SUBAGENTS: readonly TimelineSubagentBadge[] = [
+const INITIAL_SUBAGENT_RECORDS: readonly SubagentRunRecord[] = [
   {
     subagentId: "sub-1",
     name: "Codebase Researcher",
+    role: "Architecture & Contract Auditor",
     status: "ended",
-    elapsedLabel: "Ran for 42s",
+    elapsedLabel: "Ran for 2m 13s",
+    toolCallsCount: 14,
+    summaryMarkdown:
+      "Audited OpenAPI contract surface, verified 1,147 Material SVG assets, and confirmed zero drift.",
+    trajectorySteps: [
+      {
+        stepId: "st-1",
+        action: "Searched",
+        detail: "contracts/openapi.yaml (76 routes verified)",
+        status: "success",
+      },
+      {
+        stepId: "st-2",
+        action: "Viewed",
+        detail: "ui/src/components/icons/materialIconManifest.ts",
+        status: "success",
+      },
+    ],
   },
   {
     subagentId: "sub-2",
     name: "Security Verifier",
+    role: "G-12 Sandbox & Secret Gate",
     status: "running",
     elapsedLabel: "Running 18s",
+    toolCallsCount: 4,
+    summaryMarkdown:
+      "Verifying zero-script enforcement across PDF, DOCX, XLSX, and PPTX previewers and checking Gitleaks/Semgrep/Trivy gates.",
+    trajectorySteps: [
+      {
+        stepId: "st-3",
+        action: "Checked",
+        detail: "ui/src/previewers/previewerSanitizer.ts (G-12 pass)",
+        status: "success",
+      },
+      {
+        stepId: "st-4",
+        action: "Scanning",
+        detail: "Running static dependency & code checks...",
+        status: "running",
+      },
+    ],
   },
+];
+
+const INITIAL_SUBAGENT_BADGES: readonly TimelineSubagentBadge[] =
+  INITIAL_SUBAGENT_RECORDS.map((s) => ({
+    subagentId: s.subagentId,
+    name: s.name,
+    status: s.status,
+    elapsedLabel: s.elapsedLabel,
+  }));
+
+const INITIAL_WORKSPACE_FILES: readonly WorkspaceFileNode[] = [
+  { path: "internal", name: "internal", isDirectory: true, depth: 0, parentPath: null },
+  { path: "internal/plan", name: "plan", isDirectory: true, depth: 1, parentPath: "internal" },
+  {
+    path: "internal/plan/planstore_test.go",
+    name: "planstore_test.go",
+    isDirectory: false,
+    depth: 2,
+    parentPath: "internal/plan",
+    gitStatus: "M",
+    content: [
+      "package plan",
+      "",
+      'import "testing"',
+      "",
+      "func TestPlanStoreDurability(t *testing.T) {",
+      '  t.Log("verified deterministic WAL checkpoint and recovery fence")',
+      "}",
+    ].join("\n"),
+  },
+  { path: "ui", name: "ui", isDirectory: true, depth: 0, parentPath: null },
+  { path: "ui/src", name: "src", isDirectory: true, depth: 1, parentPath: "ui" },
+  {
+    path: "ui/src/side-pane/MultiTabSidePane.tsx",
+    name: "MultiTabSidePane.tsx",
+    isDirectory: false,
+    depth: 2,
+    parentPath: "ui/src",
+    gitStatus: "A",
+    content: [
+      "// Multi-Tab Side Pane (UIR-5.1)",
+      "export const SIDE_PANE_SHORTCUT = 'Ctrl+Alt+B';",
+      "export const FULL_VIEW_SHORTCUT = 'Ctrl+Shift+F';",
+    ].join("\n"),
+  },
+  { path: "docs", name: "docs", isDirectory: true, depth: 0, parentPath: null },
+  {
+    path: "docs/release/Karyora-Security-Brief.pdf",
+    name: "Karyora-Security-Brief.pdf",
+    isDirectory: false,
+    depth: 1,
+    parentPath: "docs",
+    gitStatus: null,
+  },
+  {
+    path: "docs/architecture/Karyora-Platform-Spec.docx",
+    name: "Karyora-Platform-Spec.docx",
+    isDirectory: false,
+    depth: 1,
+    parentPath: "docs",
+    gitStatus: null,
+  },
+  {
+    path: "docs/benchmarks/Karyora-Latency-Matrix.xlsx",
+    name: "Karyora-Latency-Matrix.xlsx",
+    isDirectory: false,
+    depth: 1,
+    parentPath: "docs",
+    gitStatus: null,
+  },
+  {
+    path: "docs/decks/Karyora-v3-Architecture.pptx",
+    name: "Karyora-v3-Architecture.pptx",
+    isDirectory: false,
+    depth: 1,
+    parentPath: "docs",
+    gitStatus: null,
+  },
+];
+
+const INITIAL_REVIEW_DIFFS: readonly ReviewDiffFileRecord[] = [
+  {
+    filePath: "internal/plan/planstore_test.go",
+    gitStatus: "M",
+    oldText: [
+      "package plan",
+      "",
+      'import "testing"',
+      "",
+      "func TestPlanStoreDurability(t *testing.T) {",
+      '  t.Log("basic planstore test")',
+      "}",
+    ].join("\n"),
+    newText: [
+      "package plan",
+      "",
+      'import "testing"',
+      "",
+      "func TestPlanStoreDurability(t *testing.T) {",
+      '  t.Log("verified deterministic WAL checkpoint and recovery fence")',
+      "}",
+    ].join("\n"),
+  },
+  {
+    filePath: "ui/src/side-pane/MultiTabSidePane.tsx",
+    gitStatus: "A",
+    oldText: "",
+    newText: [
+      "// Multi-Tab Side Pane (UIR-5.1)",
+      "export const SIDE_PANE_SHORTCUT = 'Ctrl+Alt+B';",
+      "export const FULL_VIEW_SHORTCUT = 'Ctrl+Shift+F';",
+    ].join("\n"),
+  },
+];
+
+const INITIAL_SIDE_TABS: readonly SidePaneTab[] = [
+  {
+    tabId: "tab-files",
+    kind: "files",
+    title: "Files",
+    filePath: "internal/plan/planstore_test.go",
+  },
+  { tabId: "tab-review", kind: "review", title: "Review" },
+  { tabId: "tab-subagents", kind: "subagents", title: "Subagents" },
 ];
 
 const INITIAL_DURABLE_JOBS: readonly DurableJobRecord[] = [
@@ -260,9 +432,18 @@ export function App(): ReactElement {
   );
   const [, setQueueTick] = useState(0);
 
-  // Shell overlay & panel toggles
+  // Multi-Tab Side Pane, Full-View Mode & Docked Terminal state (UIR-5)
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const [terminalMaximized, setTerminalMaximized] = useState(false);
   const [sidePaneOpen, setSidePaneOpen] = useState(false);
+  const [sidePaneFullView, setSidePaneFullView] = useState(false);
+  const [sideTabs, setSideTabs] = useState<readonly SidePaneTab[]>(INITIAL_SIDE_TABS);
+  const [activeSideTabId, setActiveSideTabId] = useState<string | null>("tab-files");
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
+    "internal/plan/planstore_test.go",
+  );
+
+  // Shell overlay & panel toggles
   const [commandCenterOpen, setCommandCenterOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [osNotificationsEnabled, setOsNotificationsEnabled] = useState(false);
@@ -277,15 +458,15 @@ export function App(): ReactElement {
   >(() =>
     deduplicateNotifications([], [
       {
-        eventId: "evt-uir4-ready",
+        eventId: "evt-uir5-ready",
         category: "job",
-        title: "Phase 3 Agentic Workspace & Durable Jobs Ready",
+        title: "Phase 3 Complete — Side Pane, Sandboxed Previewers & PTY Terminal Active",
         privacySafeSummary:
-          "Multi-State Composer, Live Conversation Stream, and AIJobRelay Jobs view are active.",
+          "Multi-Tab Side Pane, Full-View Mode, G-12 Document Previewers, and Docked Terminal are ready.",
         occurredAt: "Just now",
         read: false,
         dismissed: false,
-        targetSurface: "jobs",
+        targetSurface: "workspace",
       },
     ]),
   );
@@ -324,6 +505,47 @@ export function App(): ReactElement {
     if (restoreFocusTo && typeof document !== "undefined") {
       document.getElementById(restoreFocusTo)?.focus();
     }
+  };
+
+  const openSideTab = (nextTab: SidePaneTab) => {
+    const res = openOrFocusSideTab(sideTabs, nextTab);
+    setSideTabs(res.tabs);
+    setActiveSideTabId(res.activeTabId);
+    setSidePaneOpen(true);
+  };
+
+  const handleLaunchToolOrPlugin = (item: NewTabLauncherItem) => {
+    if (item.kind === "document-preview" && item.sampleDocumentPath) {
+      openSideTab({
+        tabId: `doc-${item.id}`,
+        kind: "document-preview",
+        title: item.label,
+        filePath: item.sampleDocumentPath,
+      });
+      return;
+    }
+    openSideTab({
+      tabId: `tab-${item.kind}`,
+      kind: item.kind,
+      title: item.label,
+    });
+  };
+
+  const handleSendSelectionToChat = (excerpt: string, sourceFile: string) => {
+    setChips((prev) => [
+      ...prev,
+      {
+        chipId: `sel-${Date.now()}`,
+        trigger: "@",
+        label: sourceFile.split("/").pop() ?? sourceFile,
+        targetIdOrPath: sourceFile,
+      },
+    ]);
+    setPromptText((prev) => (prev ? `${prev}\n${excerpt}` : excerpt));
+    if (sidePaneFullView) {
+      setSidePaneFullView(false);
+    }
+    pushToast("Sent selection to chat", sourceFile);
   };
 
   const activeCodeTheme =
@@ -382,7 +604,9 @@ export function App(): ReactElement {
           activeZoomPercent={prefs.interfaceZoomPercent}
           sidebarCollapsed={prefs.sidebarCollapsed}
           terminalOpen={terminalOpen}
+          terminalMaximized={terminalMaximized}
           sidePaneOpen={sidePaneOpen}
+          sidePaneFullView={sidePaneFullView}
           activeSurface={activeSurface}
           projects={projects}
           tasks={tasks}
@@ -399,15 +623,36 @@ export function App(): ReactElement {
             updatePref("sidebarCollapsed", !prefs.sidebarCollapsed)
           }
           onToggleTerminal={() => setTerminalOpen((prev) => !prev)}
-          onToggleSidePane={() => setSidePaneOpen((prev) => !prev)}
+          onToggleSidePane={() =>
+            setSidePaneOpen((prev) => {
+              if (prev) setSidePaneFullView(false);
+              return !prev;
+            })
+          }
+          onToggleSidePaneFullView={() => {
+            if (!sidePaneOpen) {
+              setSidePaneOpen(true);
+              setSidePaneFullView(true);
+            } else {
+              setSidePaneFullView((prev) => !prev);
+            }
+          }}
+          onOpenReviewDiffTab={() =>
+            openSideTab({ tabId: "tab-review", kind: "review", title: "Review" })
+          }
           onNewTask={() => {
             setActiveSurface("workspace");
             setActiveTaskId(null);
+            setSidePaneFullView(false);
           }}
-          onSelectSurface={setActiveSurface}
+          onSelectSurface={(surface) => {
+            setActiveSurface(surface);
+            setSidePaneFullView(false);
+          }}
           onSelectTask={(task) => {
             setActiveSurface("workspace");
             setActiveTaskId(task.taskId);
+            setSidePaneFullView(false);
           }}
           onAddProject={() => {
             void platformBridge.pickFolderOrFile({ mode: "folder" });
@@ -486,6 +731,86 @@ export function App(): ReactElement {
           onDismissToast={(id) =>
             setToasts((prev) => prev.filter((t) => t.id !== id))
           }
+          terminalContent={
+            <DockedTerminalPanel
+              runtimeTarget={platformBridge.runtimeTarget}
+              remoteShellEnabledByCore={platformBridge.isDesktop}
+              activeCodeTheme={activeCodeTheme}
+              placement="bottom-dock"
+              isMaximized={terminalMaximized}
+              onToggleMaximize={() => setTerminalMaximized((m) => !m)}
+              onClose={() => {
+                setTerminalMaximized(false);
+                setTerminalOpen(false);
+              }}
+            />
+          }
+          sidePaneContent={
+            <MultiTabSidePane
+              tabs={sideTabs}
+              activeTabId={activeSideTabId}
+              isFullView={sidePaneFullView}
+              runtimeTarget={platformBridge.runtimeTarget}
+              remoteShellEnabledByCore={platformBridge.isDesktop}
+              browserUseEnabled={false}
+              activeCodeTheme={activeCodeTheme}
+              workspaceName={projects[0]?.name ?? "karyora_Platform"}
+              workspaceFiles={INITIAL_WORKSPACE_FILES}
+              selectedFilePath={selectedFilePath}
+              reviewDiffFiles={INITIAL_REVIEW_DIFFS}
+              subagents={INITIAL_SUBAGENT_RECORDS}
+              onSelectTab={setActiveSideTabId}
+              onCloseTab={(tabId) => {
+                const res = closeSideTab(sideTabs, activeSideTabId, tabId);
+                setSideTabs(res.tabs);
+                setActiveSideTabId(res.activeTabId);
+                if (res.tabs.length === 0) {
+                  setSidePaneFullView(false);
+                  setSidePaneOpen(false);
+                }
+              }}
+              onOpenNewTabLauncher={() =>
+                openSideTab({
+                  tabId: "tab-new-launcher",
+                  kind: "new-tab",
+                  title: "New tab",
+                })
+              }
+              onLaunchToolOrPlugin={handleLaunchToolOrPlugin}
+              onSelectFile={(fp) => setSelectedFilePath(fp)}
+              onInspectSubagent={(sub) =>
+                openSideTab({
+                  tabId: `subagent-report-${sub.subagentId}`,
+                  kind: "subagent-report",
+                  title: sub.name,
+                  subagentId: sub.subagentId,
+                })
+              }
+              onToggleFullView={() => setSidePaneFullView((prev) => !prev)}
+              onClosePane={() => {
+                setSidePaneFullView(false);
+                setSidePaneOpen(false);
+              }}
+              onSendSelectionToChat={handleSendSelectionToChat}
+              onOpenBrowserUseSettings={() => openSettingsOverlay("browser-use")}
+              onOpenExternalUrl={(url, domain) =>
+                pushToast(`External URL validated (${domain})`, url)
+              }
+              onOpenContextInspectorPage={() => {
+                setSidePaneFullView(false);
+                setActiveSurface("context");
+              }}
+            />
+          }
+          floatingWorkingBar={
+            <FloatingMinimizedWorkingBar
+              isVisible={sidePaneOpen && sidePaneFullView}
+              isWorking={isTurnRunning || INITIAL_SUBAGENT_RECORDS.some((s) => s.status === "running")}
+              elapsedSeconds={1597}
+              activeTaskTitle={activeTask?.title ?? "Workspace"}
+              onRestoreSplitView={() => setSidePaneFullView(false)}
+            />
+          }
           settingsOverlayContent={
             <ModalDialog
               isOpen={settingsOverlayOpen}
@@ -523,19 +848,27 @@ export function App(): ReactElement {
                 <ConversationTimeline
                   turns={turns}
                   progressSteps={INITIAL_PROGRESS_STEPS}
-                  subagents={INITIAL_SUBAGENTS}
+                  subagents={INITIAL_SUBAGENT_BADGES}
                   codeTheme={activeCodeTheme}
                   onInspectFile={(filePath) => {
-                    setSidePaneOpen(true);
-                    pushToast("Inspecting file in Side Pane", filePath);
+                    setSelectedFilePath(filePath);
+                    openSideTab({
+                      tabId: "tab-files",
+                      kind: "files",
+                      title: "Files",
+                      filePath,
+                    });
                   }}
                   onApprovalDecision={(approvalId, decision) => {
                     pushToast("Approval recorded", `${approvalId}: ${decision}`);
                   }}
-                  onOpenSubagentsSideTab={() => {
-                    setSidePaneOpen(true);
-                    pushToast("Side Pane", "Opened Subagents directory");
-                  }}
+                  onOpenSubagentsSideTab={() =>
+                    openSideTab({
+                      tabId: "tab-subagents",
+                      kind: "subagents",
+                      title: "Subagents",
+                    })
+                  }
                 />
               )}
 
