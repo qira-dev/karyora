@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Mở",
+    "close": "Đóng",
+    "cancel": "Hủy",
+    "reset": "Đặt lại",
+    "retry": "Thử lại"
+  },
+  "states": {
+    "unknown": "Không xác định",
+    "unavailable": "Không khả dụng",
+    "notConnected": "Chưa kết nối"
+  },
+  "entryNotice": {
+    "title": "Điểm truy cập",
+    "body": "Các màn hình và điều khiển kết nối với Core của nhóm này sẽ ra mắt trong gói tiếp theo. Chưa có giao ước Core nào được kết nối ở cột mốc này, nên không hiển thị nội dung nào vượt quá điểm truy cập này.",
+    "localOnlyBody": "Các điều khiển tùy chọn cục bộ trên trang này đã hoạt động; các màn hình còn lại của nhóm này sẽ ra mắt trong gói tiếp theo."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Dữ liệu nhập chưa lưu và bản nháp cục bộ của bạn đã được bảo toàn an toàn.",
+      "correlationIdLabel": "ID tương quan: {{correlationId}}",
+      "errorCodeLabel": "Mã lỗi máy: {{code}}"
+    },
+    "actions": {
+      "retry": "Thử lại thao tác",
+      "reconcileS4": "Đọc lại trạng thái chính thức từ Core",
+      "resolveConflict": "Xem xét và giải quyết xung đột",
+      "reauthenticate": "Xác thực lại phiên",
+      "switchCoreConnection": "Chuyển đổi kết nối Core",
+      "dismiss": "Đóng",
+      "openModelSettings": "Mở cài đặt mô hình"
+    },
+    "validationFailed": {
+      "title": "Xác thực dữ liệu thất bại",
+      "explanation": "Một hoặc nhiều trường đã gửi không đáp ứng lược đồ xác thực của Core. Hãy kiểm tra các mục được đánh dấu và thử lại."
+    },
+    "configConflict": {
+      "title": "Xung đột cấu hình",
+      "explanation": "Cấu hình đã thay đổi kể từ lúc bạn tải lên. Hãy làm mới phiên bản chính thức trước khi áp dụng chỉnh sửa của bạn."
+    },
+    "authzDenied": {
+      "title": "Từ chối quyền truy cập",
+      "explanation": "Phiên Core hiện tại của bạn không có quyền thực hiện thao tác này, hoặc phiên cần được xác thực lại."
+    },
+    "notFound": {
+      "title": "Không tìm thấy tài nguyên",
+      "explanation": "Mục được yêu cầu không còn tồn tại hoặc nằm ngoài phạm vi không gian làm việc Core đang hoạt động của bạn."
+    },
+    "conflictState": {
+      "title": "Phát hiện xung đột trạng thái",
+      "explanation": "Bản ghi này đã chuyển sang một phiên bản mới hơn trên Core. Hãy đối chiếu trạng thái chính thức mới nhất trước khi thử lại."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Trùng lặp khóa thao tác",
+      "explanation": "Core đã ghi nhận một yêu cầu khác sử dụng khóa idempotency này. Hãy đọc lại trạng thái chính thức để xác minh xem thao tác của bạn đã thành công hay chưa."
+    },
+    "singleInstanceConflict": {
+      "title": "Một tiến trình Core khác đang hoạt động",
+      "explanation": "Một tiến trình Karyora Core khác hiện đang giữ khóa không gian làm việc này. Hãy chuyển sang kết nối Core đang chạy thay vì khởi động một tiến trình xung đột."
+    },
+    "storageUnavailable": {
+      "title": "Bộ lưu trữ tạm thời không khả dụng",
+      "explanation": "Core không thể kết nối tới hệ thống lưu trữ cục bộ hoặc từ xa. Hãy kiểm tra tính sẵn sàng của bộ lưu trữ và thử lại."
+    },
+    "migrationFailed": {
+      "title": "Di trú dữ liệu thất bại",
+      "explanation": "Core đã dừng an toàn quá trình di trú lược đồ hoặc dữ liệu trước khi ghi nhận các thay đổi dang dở. Hãy kiểm tra thông tin chẩn đoán trước khi thử lại."
+    },
+    "stateCorrupt": {
+      "title": "Lỗi toàn vẹn trạng thái lưu trữ",
+      "explanation": "Core phát hiện lỗi kiểm tra tính toàn vẹn trên trạng thái đã lưu và đã dừng lại để bảo vệ dữ liệu của bạn. Hãy khôi phục từ bản sao lưu đã xác minh hoặc mở phần chẩn đoán."
+    },
+    "recoveryRequired": {
+      "title": "Cần kiểm tra khôi phục",
+      "explanation": "Thao tác trước đó không kết thúc hoàn chỉnh. Hãy đọc lại trạng thái chính thức từ Core để xác nhận tình trạng hiện tại trước khi tiếp tục."
+    },
+    "rateLimited": {
+      "title": "Đã đạt giới hạn tốc độ",
+      "explanation": "Quá nhiều yêu cầu được gửi trong khoảng thời gian ngắn. Hãy đợi một lát rồi thử lại một cách chủ động."
+    },
+    "internal": {
+      "title": "Lỗi nội bộ của Core",
+      "explanation": "Core báo cáo một lỗi nội bộ ngoài dự kiến. Bản nháp cục bộ của bạn không bị hủy bỏ; hãy sao chép ID tương quan nếu bạn xuất dữ liệu chẩn đoán."
+    },
+    "unknownCode": {
+      "title": "Core đã từ chối yêu cầu",
+      "explanation": "Core trả về một mã lỗi máy không nhận diện được. Không có văn bản thô từ backend nào được hiển thị; hãy kiểm tra tình trạng Core hoặc xuất dữ liệu chẩn đoán đã ẩn thông tin nhạy cảm."
+    },
+    "unknownOutcomeS4": {
+      "title": "Kết quả thao tác chưa xác định",
+      "explanation": "Kết nối bị ngắt trước khi Core xác nhận xem thao tác thay đổi này có thành công hay không. Đừng vội giả định thất bại hay thành công — hãy đọc lại trạng thái chính thức từ Core trước."
+    }
+  }
+}

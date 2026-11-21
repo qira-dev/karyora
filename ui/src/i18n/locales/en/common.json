@@ -16,5 +16,81 @@
     "title": "Entry point",
     "body": "This group's screens and Core-backed controls ship in a later package. No Core contract is wired in this milestone, so nothing beyond this entry is shown.",
     "localOnlyBody": "The local-preference controls on this page work now; the remaining screens for this group ship in a later package."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Your unsaved input and local draft have been preserved safely.",
+      "correlationIdLabel": "Correlation ID: {{correlationId}}",
+      "errorCodeLabel": "Machine error code: {{code}}"
+    },
+    "actions": {
+      "retry": "Retry action",
+      "reconcileS4": "Re-read authoritative Core state",
+      "resolveConflict": "Review and resolve conflict",
+      "reauthenticate": "Re-authenticate session",
+      "switchCoreConnection": "Switch Core connection",
+      "dismiss": "Dismiss",
+      "openModelSettings": "Open model settings"
+    },
+    "validationFailed": {
+      "title": "Validation failed",
+      "explanation": "One or more submitted fields did not meet the Core validation schema. Review the highlighted inputs and try again."
+    },
+    "configConflict": {
+      "title": "Configuration conflict",
+      "explanation": "The configuration changed since you loaded it. Refresh the authoritative revision before applying your edits."
+    },
+    "authzDenied": {
+      "title": "Permission denied",
+      "explanation": "Your current Core session does not have permission for this action, or your session needs re-authentication."
+    },
+    "notFound": {
+      "title": "Resource not found",
+      "explanation": "The requested item no longer exists or is outside your active Core workspace scope."
+    },
+    "conflictState": {
+      "title": "State conflict detected",
+      "explanation": "This record moved to a newer revision on the Core. Compare the latest authoritative state before retrying."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Duplicate operation key",
+      "explanation": "The Core already recorded a different request with this idempotency key. Re-read authoritative state to verify whether your action succeeded."
+    },
+    "singleInstanceConflict": {
+      "title": "Another Core instance is active",
+      "explanation": "Another Karyora Core process currently owns this workspace lock. Switch to the running Core connection instead of starting a conflicting instance."
+    },
+    "storageUnavailable": {
+      "title": "Storage temporarily unavailable",
+      "explanation": "The Core could not reach its local or remote storage backend. Check storage availability and retry."
+    },
+    "migrationFailed": {
+      "title": "Data migration failed",
+      "explanation": "The Core halted a schema or data migration safely before committing partial changes. Inspect diagnostics before retrying."
+    },
+    "stateCorrupt": {
+      "title": "Stored state integrity error",
+      "explanation": "The Core detected an integrity check failure on persisted state and stopped to protect your data. Restore from a verified backup or open diagnostics."
+    },
+    "recoveryRequired": {
+      "title": "Recovery check required",
+      "explanation": "The previous operation did not finish cleanly. Re-read authoritative Core state to confirm the current status before continuing."
+    },
+    "rateLimited": {
+      "title": "Rate limit reached",
+      "explanation": "Too many requests were sent in a short window. Wait briefly and retry explicitly."
+    },
+    "internal": {
+      "title": "Internal Core error",
+      "explanation": "The Core reported an unexpected internal failure. Your local draft was not discarded; copy the correlation ID if you export diagnostics."
+    },
+    "unknownCode": {
+      "title": "Core rejected the request",
+      "explanation": "The Core returned an unrecognized machine error code. No raw backend text is rendered; verify Core health or export redacted diagnostics."
+    },
+    "unknownOutcomeS4": {
+      "title": "Operation outcome unknown",
+      "explanation": "The connection dropped before the Core confirmed whether this mutation succeeded. Do not assume failure or success—re-read authoritative Core state first."
+    }
   }
 }

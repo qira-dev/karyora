@@ -1,0 +1,212 @@
+/**
+ * Responsive 320 CSS px Reflow & 200% Text Zoom Hardening (UIR-9.2, G-07, WCAG 1.4.4, WCAG 1.4.10).
+ *
+ * Ensures zero horizontal page scroll and zero clipped controls across all 13 locales
+ * (including long Bengali `bn`, German `de`, and Russian `ru` strings) at:
+ *   - 320 CSS px viewport width (WCAG 1.4.10 Reflow)
+ *   - 200% browser text zoom / 32px root font size (WCAG 1.4.4 Resize Text)
+ */
+
+html,
+body,
+#root,
+.karyora-shell-root,
+.ky-app-shell {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Allow every flex/grid column and interactive label to shrink and wrap safely */
+.ky-main-column,
+.ky-workspace-body,
+.ky-center-pane,
+.ky-center-scroll,
+.ky-side-pane-slot,
+.ky-side-pane,
+.ky-side-pane__body,
+.ky-workspace-stage,
+.ky-timeline-stream,
+.ky-domain-page,
+.ky-settings-main,
+.ky-settings-content,
+.ky-settings-card,
+.ky-auto-card,
+.ky-auto-card__info,
+.ky-plugin-card,
+.ky-kp-card,
+.ky-memory-detail,
+.ky-audit-detail {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Safe word wrapping for long localized labels (de, ru, bn, vi, tr) */
+.ky-btn,
+.ky-badge,
+.ky-domain-page__title,
+.ky-domain-page__subtitle,
+.ky-settings-card__title,
+.ky-settings-nav__btn,
+.ky-template-card__title,
+.ky-template-card__desc,
+.ky-plugin-card__title,
+.ky-plugin-card__summary,
+.ky-new-tab-launcher__title,
+.ky-new-tab-launcher__desc,
+.ky-recovery-panel,
+.ky-approval-banner {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Ensure headers, toolbars, and action rows wrap instead of overflowing on 200% text zoom */
+.ky-topbar,
+.ky-composer-toolbar,
+.ky-quick-chips-row,
+.ky-domain-page__header,
+.ky-segmented-tabs,
+.ky-workflow-toolbar,
+.ky-marketplace-filters,
+.ky-category-pills,
+.ky-memory-controls,
+.ky-audit-filters,
+.ky-modal-form__pills,
+.ky-modal-form__footer,
+.ky-review-diff__header,
+.ky-review-diff__file-pills,
+.ky-review-diff__mode-bar,
+.ky-side-pane__header,
+.ky-files-split__viewer-header,
+.ky-token-legend,
+.ky-swatch-row {
+  flex-wrap: wrap;
+}
+
+/* Constrain horizontal tables/code/SVGs to their own scroll box instead of pushing the page */
+.ky-workflow-canvas-wrap,
+.ky-code-viewer,
+.ky-review-diff__viewport,
+.ky-audit-json,
+.ky-theme-preview-card__code,
+.ky-step-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Tablet & Narrow Desktop (<= 640px) */
+@media (max-width: 640px) {
+  .ky-settings-overlay {
+    flex-direction: column;
+    overflow-x: clip;
+  }
+
+  .ky-settings-nav {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    max-height: 220px;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .ky-settings-grid-2,
+  .ky-template-grid,
+  .ky-plugin-grid,
+  .ky-kp-grid,
+  .ky-new-tab-launcher__grid,
+  .ky-context-columns,
+  .ky-files-split,
+  .ky-memory-split,
+  .ky-usage-summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ky-files-split__tree-col {
+    width: 100%;
+    max-width: 100%;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .ky-drawer-right,
+  .ky-popover-surface,
+  .ky-project-hover-card {
+    max-width: calc(100vw - 16px);
+    width: 100%;
+  }
+}
+
+/* WCAG 1.4.10 Strict 320 CSS px Reflow Breakpoint (<= 400px) */
+@media (max-width: 400px) {
+  .ky-sidebar {
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .ky-topbar {
+    height: auto;
+    min-height: 44px;
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .ky-domain-page,
+  .ky-settings-content,
+  .ky-workspace-stage {
+    padding: var(--space-3);
+  }
+
+  .ky-btn {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+    min-height: 44px;
+  }
+
+  .ky-segmented-tabs__btn,
+  .ky-category-pill,
+  .ky-settings-nav__btn {
+    max-width: 100%;
+    white-space: normal;
+    min-height: 36px;
+  }
+
+  .ky-turn-rail {
+    display: none;
+  }
+
+  .ky-modal-backdrop {
+    padding: var(--space-2);
+  }
+
+  .ky-modal-dialog {
+    width: 100%;
+    max-width: calc(100vw - 16px);
+    padding: var(--space-3);
+  }
+
+  .ky-floating-progress-card {
+    right: 8px;
+    left: 8px;
+    max-width: calc(100vw - 16px);
+  }
+
+  .ky-diff-split-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ky-auto-card,
+  .ky-plugin-card__top,
+  .ky-plugin-card__footer,
+  .ky-gov-perm-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ky-input,
+  .ky-textarea,
+  .ky-select {
+    font-size: 1rem;
+  }
+}

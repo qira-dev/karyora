@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Buscar",
+    "openSearch": "Abrir búsqueda",
+    "newMenu": "Nuevo",
+    "openNewMenu": "Abrir el menú de creación",
+    "notifications": "Notificaciones",
+    "openNotifications": "Abrir notificaciones"
+  },
+  "search": {
+    "title": "Buscar",
+    "inputLabel": "Buscar",
+    "unavailable": "La búsqueda aún no está disponible: la paleta de comandos se entrega en un paquete posterior y necesita el contrato de búsqueda del Core, que no está conectado en este hito.",
+    "shortcutHint": "Usa Ctrl+K o Cmd+K para abrir la búsqueda cuando no estés escribiendo en un campo editable."
+  },
+  "newMenu": {
+    "startChat": "Iniciar chat",
+    "runTask": "Ejecutar una tarea",
+    "importKnowledge": "Importar conocimiento",
+    "unavailableReason": "Aún no disponible: este flujo se entrega en un paquete de lanzamiento posterior."
+  },
+  "connection": {
+    "label": "Estado de la conexión",
+    "popoverTitle": "Conexión",
+    "stateUnknown": "Desconocido",
+    "stateConnecting": "Conectando",
+    "stateConnected": "Conectado",
+    "stateDisconnected": "Desconectado",
+    "stateReconnecting": "Reconectando",
+    "stateSessionExpired": "Sesión caducada",
+    "unknownExplanation": "El estado de la conexión es Desconocido: ningún transporte del Core respondió en este origen de la aplicación, por lo que no existe ningún estado informado por el Core para mostrar. El transporte local del Core es opcional y está desactivado por defecto. Desconocido nunca se muestra como conectado.",
+    "connectingExplanation": "Se está comprobando el estado de la conexión: hay una lectura real en curso contra el transporte del Core en este origen de la aplicación.",
+    "connectedExplanation": "El Core local respondió a una lectura autorizada, por lo que la conexión está activa. Este estado proviene únicamente de respuestas reales del transporte — nunca de una suposición.",
+    "disconnectedExplanation": "Un transporte del Core respondió en este origen de la aplicación, pero aún no se ha establecido ninguna sesión, por lo que no puede ejecutarse ninguna operación autorizada. Conéctate desde la configuración inicial con una credencial de arranque de un solo uso.",
+    "reconnectingExplanation": "Se está volviendo a comprobar el último estado de conexión conocido contra el transporte del Core mediante una lectura real.",
+    "sessionExpiredExplanation": "La sesión que mantenía esta página ya no está autorizada por el Core (caducó, fue revocada o no es válida). El token se ha descartado de la memoria de esta página. Vuelve a conectarte desde la configuración inicial con una credencial nueva de un solo uso.",
+    "listUnavailable": "La lista de conexiones no está disponible: los contratos de conexión del Core no están conectados en este hito.",
+    "switchUnavailable": "Cambiar de conexión aún no está disponible: necesita los contratos de conexión del Core.",
+    "switch": {
+      "title": "Cambiar conexión",
+      "warningHeading": "Antes de cambiar",
+      "warningBody": "Cambiar modifica con qué Core, espacio de trabajo, datos y permisos trabajas. Nunca mueve ni copia trabajos ni datos entre Cores, y cada conexión conserva sus propias cachés, cursores, credenciales y eventos — nunca se mezclan.",
+      "selectorLabel": "Conexión",
+      "selectorUnavailable": "La lista de conexiones no está disponible: los contratos de conexión del Core no están conectados en este hito, por lo que aún no hay ninguna conexión a la que cambiar.",
+      "confirm": "Cambiar conexión",
+      "confirmUnavailableReason": "Cambiar requiere una conexión seleccionable de la lista de conexiones del Core, que no está disponible.",
+      "setupHint": "Puedes configurar una conexión desde Configuración, Conexiones o desde la configuración inicial."
+    }
+  },
+  "session": {
+    "label": "Sesión",
+    "popoverTitle": "Sesión",
+    "stateUnavailable": "El estado de la sesión no está disponible: ningún transporte del Core respondió en este origen de la aplicación, por lo que no hay ningún estado de sesión que mostrar.",
+    "stateRule": "Esta vista muestra únicamente lo que informa el Core. Autenticación requerida y Permisos limitados aparecen solo cuando el Core los informa — nunca se muestran como conectados.",
+    "stateActiveBody": "La sesión del Core está activa: autorizó una lectura real contra el Core local. El token de sesión se mantiene solo en la memoria de esta página — nunca se escribe en el almacenamiento del navegador, enlaces ni registros.",
+    "stateExpiredBody": "La sesión que mantenía esta página ya no está autorizada por el Core (caducó, fue revocada o no es válida). El token se ha descartado de la memoria de esta página.",
+    "sessionIdLabel": "Identificador de sesión",
+    "sessionScopesLabel": "Ámbitos",
+    "sessionExpiresLabel": "Caduca",
+    "reauthLabel": "Volver a autenticar",
+    "reauthUnavailable": "La reautenticación aún no se ofrece: el mecanismo del flujo dedicado de reautenticación es un elemento abierto registrado, por lo que aquí no hay ninguna ruta de reautenticación que ofrecer.",
+    "reauthNote": "Cuando el Core informa Autenticación requerida o Permisos limitados, esta vista lo muestra y ofrece la ruta de reautenticación como un flujo dedicado. Las operaciones protegidas permanecen deshabilitadas con una explicación mientras dure ese estado, y nunca se almacenan credenciales para evitarlo. La recuperación ante una sesión caducada se realiza mediante el paso provisional de arranque de la configuración inicial."
+  },
+  "shortcutHelp": {
+    "trigger": "Atajos de teclado",
+    "openHelp": "Abrir atajos de teclado",
+    "title": "Atajos de teclado",
+    "shortcutColumn": "Atajo",
+    "actionColumn": "Acción",
+    "implemented": "Estos atajos están implementados en la carcasa actual.",
+    "remapNote": "Deshabilitar y reasignar atajos de una sola tecla está especificado para un paquete posterior; actualmente el atajo de ayuda de una sola tecla está acotado para que nunca se dispare mientras escribes en un campo editable o redactas texto con un método de entrada.",
+    "escNote": "Escape cierra paneles emergentes y diálogos. Nunca cancela un trabajo persistente; la cancelación es siempre una acción explícita."
+  },
+  "shortcuts": {
+    "openSearch": "Abrir búsqueda",
+    "openSettings": "Abrir configuración",
+    "openShortcutHelp": "Abrir esta ayuda de atajos",
+    "closeSurface": "Cerrar panel emergente o diálogo"
+  },
+  "skipToContent": "Saltar al contenido principal"
+}

@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Principal",
+    "buildAndConnect": "Construire et connecter",
+    "extensions": "Extensions",
+    "operate": "Exploiter",
+    "bottom": "Plus"
+  },
+  "items": {
+    "overview": "Vue d'ensemble",
+    "chat": "Chat",
+    "jobs": "Jobs",
+    "knowledge": "Connaissances",
+    "memory": "Mémoire",
+    "context": "Contexte",
+    "workflows": "Workflows",
+    "providersAndModels": "Fournisseurs et modèles",
+    "plugins": "Plugins",
+    "activityAndAudit": "Activité et audit",
+    "helpAndDocumentation": "Aide et documentation",
+    "settings": "Paramètres",
+    "session": "Session"
+  },
+  "unavailableSuffix": "(pas encore disponible)",
+  "unavailableReason": "Pas encore disponible : cette destination sera livrée dans un lot ultérieur.",
+  "collapse": "Réduire la navigation",
+  "expand": "Développer la navigation",
+  "openNavigation": "Ouvrir la navigation",
+  "closeNavigation": "Fermer la navigation"
+}

@@ -201,6 +201,81 @@ export function evaluateWindowCloseGuard(
   return { action: "allow-close" };
 }
 
+export interface PlatformParityProfile {
+  readonly target: TargetPlatform;
+  readonly architectures: readonly ("amd64" | "arm64")[];
+  readonly shellHost: string;
+  readonly keyringBackend: string;
+  readonly defaultPtyProfile: string;
+  readonly primaryModifierKey: "Cmd" | "Ctrl";
+  readonly supportsTrayHideOnClose: boolean;
+}
+
+/**
+ * Authoritative 4-Platform Single-SPA Runtime Parity Matrix (UIR-9.3, UI-03, UI-16, G-15).
+ * One `karyora/ui/dist` bundle embedded via `//go:embed all:dist` serves all 4 targets.
+ */
+export const PLATFORM_PARITY_PROFILES: Readonly<
+  Record<TargetPlatform, PlatformParityProfile>
+> = {
+  web: {
+    target: "web",
+    architectures: ["amd64", "arm64"],
+    shellHost: "Chromium / Firefox / Safari over Go Core HTTP + SSE",
+    keyringBackend: "Core D-37 OS Keyring (server-mediated)",
+    defaultPtyProfile: "Core Policy PTY",
+    primaryModifierKey: "Ctrl",
+    supportsTrayHideOnClose: false,
+  },
+  linux: {
+    target: "linux",
+    architectures: ["amd64", "arm64"],
+    shellHost: "Wails / WebKitGTK or native --app window",
+    keyringBackend: "Linux Secret Service (D-37)",
+    defaultPtyProfile: "bash / zsh",
+    primaryModifierKey: "Ctrl",
+    supportsTrayHideOnClose: true,
+  },
+  macos: {
+    target: "macos",
+    architectures: ["arm64", "amd64"],
+    shellHost: "Wails / WKWebView",
+    keyringBackend: "macOS Keychain (D-37)",
+    defaultPtyProfile: "zsh",
+    primaryModifierKey: "Cmd",
+    supportsTrayHideOnClose: true,
+  },
+  windows: {
+    target: "windows",
+    architectures: ["amd64", "arm64"],
+    shellHost: "Wails / WebView2",
+    keyringBackend: "Windows Credential Manager (D-37)",
+    defaultPtyProfile: "PowerShell",
+    primaryModifierKey: "Ctrl",
+    supportsTrayHideOnClose: true,
+  },
+};
+
+export function getPlatformParityProfile(
+  target: TargetPlatform,
+): PlatformParityProfile {
+  return PLATFORM_PARITY_PROFILES[target];
+}
+
+/**
+ * Adapts canonical keyboard shortcuts (`Ctrl+K`, `Ctrl+,`, `Ctrl+Shift+F`, etc.)
+ * to `Cmd+...` on macOS while keeping `Ctrl+...` on Web, Linux, and Windows.
+ */
+export function formatPlatformShortcut(
+  canonicalShortcut: string,
+  target: TargetPlatform,
+): string {
+  if (target === "macos") {
+    return canonicalShortcut.replace(/\bCtrl\+/g, "Cmd+");
+  }
+  return canonicalShortcut.replace(/\bCmd\+/g, "Ctrl+");
+}
+
 export function createPlatformBridge(
   hint?: RuntimeEnvironmentHint,
 ): PlatformBridge {

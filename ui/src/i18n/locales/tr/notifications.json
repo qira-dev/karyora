@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Bildirimler",
+    "noOsDelivery": "Bu panel yalnızca uygulama içi durumu gösterir. Masaüstü teslimi kendi işletim sistemi iznini gerektirir ve burada istenmez.",
+    "preferencesAbsent": "Bildirim tercihleri henüz kullanılamıyor: sunulan Core sözleşmesinde bildirim tercihi deposu bulunmadığından burada değiştirilecek veya kaydedilecek bir şey yoktur. Aşağıdaki liste sunulan uygulama içi ekrandır; masaüstü teslimi bunun parçası değildir.",
+    "blocked": {
+      "noCore": "Bildirimler kullanılamıyor: bu uygulama kaynağında hiçbir Core aktarımı yanıt vermediğinden okunacak bir bildirim kaynağı yoktur. Core'un yerel aktarımı isteğe bağlıdır ve varsayılan olarak devre dışıdır; bu durum asla boş liste olarak gösterilmez.",
+      "noSession": "Bildirimler kullanılamıyor: bu uygulama kaynağında kurulmuş bir Core oturumu olmadığından yetkili bir bildirim okuması çalıştırılamaz. İlk kurulumdan tek kullanımlık bir bootstrap kimlik bilgisiyle bağlanın.",
+      "sessionExpired": "Bildirimler kullanılamıyor: bu sayfanın tuttuğu oturum artık Core tarafından yetkilendirilmiyor (süresi dolmuş, iptal edilmiş veya başka bir nedenle geçersiz). Belirteç bu sayfanın belleğinden atıldı; ilk kurulumdan yeni bir tek kullanımlık kimlik bilgisiyle yeniden bağlanın.",
+      "connecting": "Core bağlantısı kontrol ediliyor: bir Core oturumu yetkili bir okumaya yanıt verdiğinde bildirim okumaları başlayacaktır."
+    },
+    "loading": "Bildirimler yükleniyor…",
+    "refresh": "Yenile",
+    "refreshing": "Yenileniyor…",
+    "lastConfirmed": "Core ile son doğrulama: {{time}}",
+    "countsLine": "{{total}} okunmamış",
+    "countsUnavailable": "Okunmamış sayıları kullanılamıyor",
+    "announceData": "Bu sayfada gösterilen bildirim grupları: {{count}}",
+    "filterCategory": "Kategori",
+    "filterReadState": "Okunma durumu",
+    "filterAll": "Tümü",
+    "clearFilter": "Filtreyi temizle",
+    "loadMore": "Daha fazla yükle",
+    "loadingMore": "Daha fazla yükleniyor…",
+    "emptyAll": "Bildirim yok",
+    "emptyAllBody": "Henüz hiçbir bildirim oluşmadı. İş sonuçları, hatalar, onay beklemeleri ve Core tarafından kaydedilen diğer geçişler Core bunları ürettiğinde burada görünür.",
+    "emptyFiltered": "Etkin filtreyle eşleşen bildirim yok",
+    "emptyFilteredBody": "Bildirimler mevcut ancak hiçbiri kategori ve okunma durumu filtreleriyle eşleşmiyor. Filtreleri temizlemek tüm listeyi gösterir.",
+    "failureTitle": "Bildirimler okunamadı",
+    "failureBody": "Core bildirim okumasını reddetti. Aşağıdaki tipli kod Core'un kendi reddidir — listeyi doldurmak için hiçbir şey uydurulmadı; yenilemek sizin açık eyleminizdir.",
+    "unknownTitle": "Bildirim okumasının sonucu bilinmiyor",
+    "unknownBody": "Bildirim okuması için doğrulanmış bir yanıt gelmedi. Bir okuma doğrulanana kadar liste hakkında hiçbir şey bilinemez — bu durum asla boş liste olarak gösterilmez. Yenilemek, geçerli durumu Core'dan okur.",
+    "presentation": {
+      "unread": "Okunmadı",
+      "read": "Okundu",
+      "stale": "Güncel değil",
+      "permissionRevoked": "Erişim iptal edildi",
+      "unknown": "Bilinmeyen durum"
+    },
+    "stateClass": {
+      "result": "Sonuç",
+      "failure": "Hata",
+      "approvalNeeded": "Onay gerekiyor",
+      "unknown": "Bilinmeyen sınıf"
+    },
+    "category": {
+      "job": "İşler",
+      "unknown": "Bilinmeyen kategori"
+    },
+    "entry": {
+      "objectJob": "İlgili iş",
+      "objectUnknownType": "İlgili nesne",
+      "stateUnavailable": "Durum: Kullanılamıyor",
+      "updatesCount": "Bu grupta {{count}} bildirim",
+      "unreadInGroup": "Bu grupta {{count}} okunmamış",
+      "blockNewest": "en yeni {{time}}",
+      "blockUnread": "{{count}} okunmamış",
+      "noDestination": "Bu bildirimin hedef yolu henüz sunulan ekranların parçası olmadığından buradan açılamıyor.",
+      "copyId": "Bildirim"
+    },
+    "actions": {
+      "markRead": "Okundu olarak işaretle",
+      "markUnread": "Okunmadı olarak işaretle",
+      "clear": "Temizle",
+      "pending": "İşleniyor…",
+      "scopeNote": "Eylemler girdinin en yeni bildirimine uygulanır: Core tam olarak belirtilen bildirim kimliğini değiştirir — başka hiçbir şeyi değil.",
+      "refusedTitle": "Core eylemi reddetti",
+      "refusedBody": "Aşağıdaki tipli kod Core'un kendi reddidir; Core aksini belirtmedikçe hiçbir şey uygulanmadı. Yeniden denemek sizin açık eyleminizdir.",
+      "tryAgain": "Yeniden dene",
+      "unknownTitle": "Eylemin sonucu bilinmiyor",
+      "unknownBody": "Yanıt kayboldu, bu nedenle eylemin kaydedildiğinin veya kaydedilmediğinin kanıtı değildir. Kurtarma yolu yeniden göndermek değil sorgulamaktır: yenilemek, geçerli durumu Core'dan okur.",
+      "checkByRefresh": "Kontrol etmek için yenile"
+    },
+    "lawNote": "Bir bildirimi okundu olarak işaretlemek veya temizlemek alttaki İşi, onayı ya da başka herhangi bir kaydı asla değiştirmez — okunmuş bir onay bildirimi onaylanmış bir onay değildir. Onay yalnızca İş ayrıntısı ekranındaki açık kabul et veya reddet komutuyla gerçekleşir."
+  }
+}

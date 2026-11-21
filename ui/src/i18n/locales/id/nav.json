@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Utama",
+    "buildAndConnect": "Bangun & hubungkan",
+    "extensions": "Ekstensi",
+    "operate": "Operasi",
+    "bottom": "Lainnya"
+  },
+  "items": {
+    "overview": "Ringkasan",
+    "chat": "Obrolan",
+    "jobs": "Job",
+    "knowledge": "Pengetahuan",
+    "memory": "Memori",
+    "context": "Konteks",
+    "workflows": "Alur Kerja",
+    "providersAndModels": "Penyedia & Model",
+    "plugins": "Plugin",
+    "activityAndAudit": "Aktivitas & Audit",
+    "helpAndDocumentation": "Bantuan & Dokumentasi",
+    "settings": "Pengaturan",
+    "session": "Sesi"
+  },
+  "unavailableSuffix": "(belum tersedia)",
+  "unavailableReason": "Belum tersedia: tujuan ini akan hadir pada paket rilis berikutnya.",
+  "collapse": "Ciutkan navigasi",
+  "expand": "Luaskan navigasi",
+  "openNavigation": "Buka navigasi",
+  "closeNavigation": "Tutup navigasi"
+}

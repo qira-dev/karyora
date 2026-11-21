@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Notificaciones",
+    "noOsDelivery": "Este panel muestra únicamente el estado dentro de la aplicación. La entrega en el escritorio requiere su propio permiso del sistema operativo y no se solicita aquí.",
+    "preferencesAbsent": "Las preferencias de notificación aún no están disponibles: el contrato del Core entregado no tiene almacén de preferencias de notificación, por lo que no hay nada que cambiar ni guardar aquí. La lista de abajo es la superficie integrada entregada; la entrega en el escritorio no forma parte de ella.",
+    "blocked": {
+      "noCore": "Las notificaciones no están disponibles: ningún transporte del Core respondió en este origen de la aplicación, por lo que no hay ninguna fuente de notificaciones que leer. El transporte local del Core es opcional y está desactivado por defecto; esto nunca se muestra como una lista vacía.",
+      "noSession": "Las notificaciones no están disponibles: no hay ninguna sesión del Core establecida en este origen de la aplicación, por lo que no puede ejecutarse ninguna lectura autorizada de notificaciones. Conéctate desde la configuración inicial con una credencial de arranque de un solo uso.",
+      "sessionExpired": "Las notificaciones no están disponibles: la sesión que mantenía esta página ya no está autorizada por el Core (caducó, fue revocada o no es válida). El token se ha descartado de la memoria de esta página; vuelve a conectarte desde la configuración inicial con una credencial nueva de un solo uso.",
+      "connecting": "Comprobando la conexión con el Core: las lecturas de notificaciones comenzarán en cuanto una sesión del Core responda a una lectura autorizada."
+    },
+    "loading": "Cargando notificaciones…",
+    "refresh": "Actualizar",
+    "refreshing": "Actualizando…",
+    "lastConfirmed": "Última confirmación con el Core: {{time}}",
+    "countsLine": "{{total}} sin leer",
+    "countsUnavailable": "Recuentos sin leer no disponibles",
+    "announceData": "Grupos de notificaciones mostrados en esta página: {{count}}",
+    "filterCategory": "Categoría",
+    "filterReadState": "Estado de lectura",
+    "filterAll": "Todas",
+    "clearFilter": "Borrar filtro",
+    "loadMore": "Cargar más",
+    "loadingMore": "Cargando más…",
+    "emptyAll": "No hay notificaciones",
+    "emptyAllBody": "Todavía no se ha notificado nada. Los resultados de trabajos, fallos, esperas de aprobación y otras transiciones registradas por el Core aparecen aquí cuando el Core las emite.",
+    "emptyFiltered": "Ninguna notificación coincide con el filtro activo",
+    "emptyFilteredBody": "Existen notificaciones, pero ninguna coincide con los filtros de categoría y estado de lectura. Borrar los filtros muestra la lista completa.",
+    "failureTitle": "No se pudieron leer las notificaciones",
+    "failureBody": "El Core rechazó la lectura de notificaciones. El código tipado de abajo es el rechazo propio del Core — no se fabricó nada para rellenar la lista; actualizar es tu acción explícita.",
+    "unknownTitle": "El resultado de la lectura de notificaciones es desconocido",
+    "unknownBody": "No llegó ninguna respuesta confirmada para la lectura de notificaciones. No se sabe nada sobre la lista hasta confirmar una lectura — nunca se muestra como una lista vacía. Actualizar lee el estado actual desde el Core.",
+    "presentation": {
+      "unread": "Sin leer",
+      "read": "Leída",
+      "stale": "Obsoleta",
+      "permissionRevoked": "Acceso revocado",
+      "unknown": "Estado desconocido"
+    },
+    "stateClass": {
+      "result": "Resultado",
+      "failure": "Fallo",
+      "approvalNeeded": "Aprobación necesaria",
+      "unknown": "Clase desconocida"
+    },
+    "category": {
+      "job": "Trabajos",
+      "unknown": "Categoría desconocida"
+    },
+    "entry": {
+      "objectJob": "Trabajo relacionado",
+      "objectUnknownType": "Objeto relacionado",
+      "stateUnavailable": "Estado: No disponible",
+      "updatesCount": "{{count}} notificaciones en este grupo",
+      "unreadInGroup": "{{count}} sin leer en este grupo",
+      "blockNewest": "más reciente {{time}}",
+      "blockUnread": "{{count}} sin leer",
+      "noDestination": "La ruta de destino de esta notificación todavía no forma parte de las superficies entregadas, por lo que no puede abrirse desde aquí.",
+      "copyId": "Notificación"
+    },
+    "actions": {
+      "markRead": "Marcar como leída",
+      "markUnread": "Marcar como no leída",
+      "clear": "Limpiar",
+      "pending": "Procesando…",
+      "scopeNote": "Las acciones aplican a la notificación más reciente de la entrada: el Core modifica exactamente la identidad de notificación indicada — nada más.",
+      "refusedTitle": "El Core rechazó la acción",
+      "refusedBody": "El código tipado de abajo es el rechazo propio del Core; no se aplicó nada salvo que el Core indique lo contrario. Volver a intentarlo es tu acción explícita.",
+      "tryAgain": "Intentar de nuevo",
+      "unknownTitle": "El resultado de la acción es desconocido",
+      "unknownBody": "La respuesta se perdió, por lo que nunca prueba si la acción se registró o no. La recuperación es una consulta, nunca un reenvío: actualizar lee el estado actual desde el Core.",
+      "checkByRefresh": "Actualizar para comprobar"
+    },
+    "lawNote": "Marcar como leída o limpiar una notificación nunca modifica el trabajo subyacente, la aprobación ni ningún otro registro — una notificación de aprobación leída no equivale a una aprobación aceptada. La aprobación solo ocurre mediante el comando explícito de aceptar o rechazar en el detalle del trabajo."
+  }
+}

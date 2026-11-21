@@ -6,7 +6,9 @@
  * Web Browser, Windows (amd64/arm64), macOS (arm64/amd64), and Linux (amd64/arm64).
  */
 
-import { Suspense, lazy, useMemo, useState, type ReactElement } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactElement } from "react";
+import i18next from "i18next";
+import { activateLocale } from "./i18n";
 import {
   AutomationsAndWorkflowsPage,
   INITIAL_SCHEDULED_TASKS,
@@ -548,6 +550,16 @@ export function App(): ReactElement {
     const updated = preferencesStore.updatePreferences({ [key]: value });
     setPrefs(updated);
   };
+
+  useEffect(() => {
+    void activateLocale(i18next, prefs.locale);
+  }, [prefs.locale]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.dataset.platform = platformBridge.runtimeTarget;
+    }
+  }, [platformBridge.runtimeTarget]);
 
   const openSettingsOverlay = (
     section: SettingsSectionId = "general",

@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Notifikasi",
+    "noOsDelivery": "Panel ini hanya menampilkan status dalam aplikasi. Pengiriman notifikasi desktop memerlukan izin OS tersendiri dan tidak diminta di sini.",
+    "preferencesAbsent": "Preferensi notifikasi belum tersedia: kontrak Core yang tersedia belum memiliki penyimpanan preferensi notifikasi, sehingga belum ada yang dapat diubah atau disimpan di sini. Daftar di bawah adalah tampilan dalam aplikasi yang tersedia; pengiriman desktop bukan bagian darinya.",
+    "blocked": {
+      "noCore": "Notifikasi tidak tersedia: tidak ada transport Core yang merespons pada origin aplikasi ini, sehingga tidak ada sumber notifikasi untuk dibaca. Transport lokal Core bersifat opt-in dan nonaktif secara default; kondisi ini tidak pernah ditampilkan sebagai daftar kosong.",
+      "noSession": "Notifikasi tidak tersedia: belum ada sesi Core yang terbentuk pada origin aplikasi ini, sehingga pembacaan notifikasi terotorisasi tidak dapat berjalan. Hubungkan dari penyiapan awal menggunakan kredensial bootstrap sekali pakai.",
+      "sessionExpired": "Notifikasi tidak tersedia: sesi yang dipegang halaman ini tidak lagi diotorisasi oleh Core (kedaluwarsa, dicabut, atau tidak valid). Token telah dibuang dari memori halaman ini; hubungkan ulang dari penyiapan awal dengan kredensial sekali pakai baru.",
+      "connecting": "Memeriksa koneksi Core: pembacaan notifikasi dimulai setelah sesi Core merespons pembacaan yang terotorisasi."
+    },
+    "loading": "Memuat notifikasi…",
+    "refresh": "Muat ulang",
+    "refreshing": "Memuat ulang…",
+    "lastConfirmed": "Terakhir dikonfirmasi dengan Core: {{time}}",
+    "countsLine": "{{total}} belum dibaca",
+    "countsUnavailable": "Jumlah belum dibaca tidak tersedia",
+    "announceData": "Grup notifikasi yang ditampilkan di halaman ini: {{count}}",
+    "filterCategory": "Kategori",
+    "filterReadState": "Status baca",
+    "filterAll": "Semua",
+    "clearFilter": "Hapus filter",
+    "loadMore": "Muat lebih banyak",
+    "loadingMore": "Memuat lebih banyak…",
+    "emptyAll": "Tidak ada notifikasi",
+    "emptyAllBody": "Belum ada notifikasi. Hasil job, kegagalan, penantian persetujuan, dan transisi lain yang dicatat Core akan muncul di sini saat Core menerbitkannya.",
+    "emptyFiltered": "Tidak ada notifikasi yang cocok dengan filter aktif",
+    "emptyFilteredBody": "Ada notifikasi, tetapi tidak ada yang cocok dengan filter kategori dan status baca. Menghapus filter akan menampilkan daftar lengkap.",
+    "failureTitle": "Notifikasi tidak dapat dibaca",
+    "failureBody": "Core menolak pembacaan notifikasi. Kode bertipe di bawah adalah penolakan resmi Core — tidak ada yang direkayasa untuk mengisi daftar; memuat ulang adalah tindakan eksplisit Anda.",
+    "unknownTitle": "Hasil pembacaan notifikasi tidak diketahui",
+    "unknownBody": "Tidak ada respons terkonfirmasi yang diterima untuk pembacaan notifikasi. Kondisi daftar tidak diketahui sampai pembacaan dikonfirmasi — ini tidak pernah ditampilkan sebagai daftar kosong. Muat ulang akan membaca status terkini dari Core.",
+    "presentation": {
+      "unread": "Belum dibaca",
+      "read": "Sudah dibaca",
+      "stale": "Usang",
+      "permissionRevoked": "Akses dicabut",
+      "unknown": "Status tidak diketahui"
+    },
+    "stateClass": {
+      "result": "Hasil",
+      "failure": "Kegagalan",
+      "approvalNeeded": "Perlu persetujuan",
+      "unknown": "Kelas tidak diketahui"
+    },
+    "category": {
+      "job": "Job",
+      "unknown": "Kategori tidak diketahui"
+    },
+    "entry": {
+      "objectJob": "Job terkait",
+      "objectUnknownType": "Objek terkait",
+      "stateUnavailable": "Status: Tidak tersedia",
+      "updatesCount": "{{count}} notifikasi dalam grup ini",
+      "unreadInGroup": "{{count}} belum dibaca dalam grup ini",
+      "blockNewest": "terbaru {{time}}",
+      "blockUnread": "{{count}} belum dibaca",
+      "noDestination": "Rute tujuan notifikasi ini belum menjadi bagian dari halaman yang tersedia, sehingga tidak dapat dibuka dari sini.",
+      "copyId": "Notifikasi"
+    },
+    "actions": {
+      "markRead": "Tandai dibaca",
+      "markUnread": "Tandai belum dibaca",
+      "clear": "Bersihkan",
+      "pending": "Memproses…",
+      "scopeNote": "Tindakan berlaku pada notifikasi terbaru di entri ini: Core hanya mengubah tepat identitas notifikasi yang disebutkan — tidak ada yang lain.",
+      "refusedTitle": "Core menolak tindakan",
+      "refusedBody": "Kode bertipe di bawah adalah penolakan resmi Core; tidak ada yang diterapkan kecuali Core menyatakan sebaliknya. Mencoba lagi adalah tindakan eksplisit Anda.",
+      "tryAgain": "Coba lagi",
+      "unknownTitle": "Hasil tindakan tidak diketahui",
+      "unknownBody": "Respons hilang, sehingga tidak membuktikan apakah tindakan tercatat atau tidak. Pemulihannya adalah kueri, bukan pengiriman ulang: memuat ulang akan membaca status terkini dari Core.",
+      "checkByRefresh": "Muat ulang untuk memeriksa"
+    },
+    "lawNote": "Menandai dibaca atau membersihkan notifikasi tidak pernah mengubah Job, persetujuan, atau catatan lain di baliknya — notifikasi persetujuan yang sudah dibaca bukanlah persetujuan yang disetujui. Persetujuan hanya terjadi melalui perintah terima atau tolak eksplisit pada detail Job."
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Tìm kiếm",
+    "openSearch": "Mở tìm kiếm",
+    "newMenu": "Tạo mới",
+    "openNewMenu": "Mở menu tạo mới",
+    "notifications": "Thông báo",
+    "openNotifications": "Mở thông báo"
+  },
+  "search": {
+    "title": "Tìm kiếm",
+    "inputLabel": "Tìm kiếm",
+    "unavailable": "Tìm kiếm chưa khả dụng: bảng lệnh sẽ ra mắt trong gói sau và cần giao ước tìm kiếm của Core, vốn chưa được gắn kết ở cột mốc này.",
+    "shortcutHint": "Dùng Ctrl+K hoặc Cmd+K để mở tìm kiếm khi không đang nhập liệu trong trường văn bản."
+  },
+  "newMenu": {
+    "startChat": "Bắt đầu trò chuyện",
+    "runTask": "Chạy tác vụ",
+    "importKnowledge": "Nhập tri thức",
+    "unavailableReason": "Chưa khả dụng: luồng này sẽ ra mắt trong gói phát hành sau."
+  },
+  "connection": {
+    "label": "Trạng thái kết nối",
+    "popoverTitle": "Kết nối",
+    "stateUnknown": "Không xác định",
+    "stateConnecting": "Đang kết nối",
+    "stateConnected": "Đã kết nối",
+    "stateDisconnected": "Đã ngắt kết nối",
+    "stateReconnecting": "Đang kết nối lại",
+    "stateSessionExpired": "Phiên đã hết hạn",
+    "unknownExplanation": "Trạng thái kết nối là Không xác định: không có kênh truyền tải Core nào phản hồi tại nguồn gốc ứng dụng này, nên không có trạng thái từ Core để hiển thị. Kênh truyền tải cục bộ của Core là tính năng cần chủ động bật và mặc định bị tắt. Không xác định không bao giờ được hiển thị là đã kết nối.",
+    "connectingExplanation": "Đang kiểm tra trạng thái kết nối: một phép đọc thực đang được gửi tới kênh truyền tải Core tại nguồn gốc ứng dụng này.",
+    "connectedExplanation": "Core cục bộ đã phản hồi một phép đọc có cấp quyền, nên kết nối đang hoạt động. Trạng thái này chỉ đến từ các phản hồi truyền tải thực — không bao giờ từ suy đoán.",
+    "disconnectedExplanation": "Một kênh truyền tải Core đã phản hồi tại nguồn gốc ứng dụng này, nhưng chưa có phiên nào được thiết lập, nên chưa thể chạy thao tác cần cấp quyền. Hãy kết nối từ trình thiết lập lần đầu bằng thông tin xác thực khởi tạo dùng một lần.",
+    "reconnectingExplanation": "Trạng thái kết nối gần nhất đang được kiểm tra lại với kênh truyền tải Core bằng một phép đọc thực.",
+    "sessionExpiredExplanation": "Phiên mà trang này đang giữ không còn được Core cấp phép nữa (đã hết hạn, bị thu hồi hoặc không hợp lệ). Token đã bị xóa khỏi bộ nhớ của trang này. Hãy kết nối lại từ trình thiết lập lần đầu bằng thông tin xác thực dùng một lần mới.",
+    "listUnavailable": "Danh sách kết nối không khả dụng: các giao ước kết nối Core chưa được gắn kết ở cột mốc này.",
+    "switchUnavailable": "Chưa hỗ trợ chuyển kết nối: tính năng này cần các giao ước kết nối Core.",
+    "switch": {
+      "title": "Chuyển kết nối",
+      "warningHeading": "Trước khi bạn chuyển",
+      "warningBody": "Việc chuyển đổi sẽ thay đổi Core, không gian làm việc, dữ liệu và quyền hạn mà bạn đang làm việc cùng. Nó không bao giờ di chuyển hay sao chép Job hoặc dữ liệu giữa các Core, và mỗi kết nối giữ bộ nhớ đệm, con trỏ, thông tin xác thực và sự kiện riêng — không bao giờ trộn lẫn.",
+      "selectorLabel": "Kết nối",
+      "selectorUnavailable": "Danh sách kết nối không khả dụng: các giao ước kết nối Core chưa được gắn kết ở cột mốc này, nên chưa có kết nối nào để chuyển sang.",
+      "confirm": "Chuyển kết nối",
+      "confirmUnavailableReason": "Việc chuyển đổi cần một kết nối có thể chọn từ danh sách kết nối của Core, hiện chưa khả dụng.",
+      "setupHint": "Bạn có thể thiết lập kết nối từ Cài đặt, mục Kết nối, hoặc từ trình thiết lập lần đầu."
+    }
+  },
+  "session": {
+    "label": "Phiên",
+    "popoverTitle": "Phiên",
+    "stateUnavailable": "Trạng thái phiên không khả dụng: không có kênh truyền tải Core nào phản hồi tại nguồn gốc ứng dụng này, nên không có trạng thái phiên để hiển thị.",
+    "stateRule": "Phần hiển thị này chỉ trình bày những gì Core báo cáo. Cần xác thực và Quyền bị giới hạn chỉ xuất hiện khi Core báo cáo — không bao giờ hiển thị như đã kết nối.",
+    "stateActiveBody": "Phiên Core đang hoạt động: phiên đã cấp quyền cho một phép đọc thực tới Core cục bộ. Token phiên chỉ được giữ trong bộ nhớ của trang này — không bao giờ ghi vào bộ nhớ trình duyệt, liên kết hay nhật ký.",
+    "stateExpiredBody": "Phiên mà trang này đang giữ không còn được Core cấp phép nữa (đã hết hạn, bị thu hồi hoặc không hợp lệ). Token đã bị xóa khỏi bộ nhớ của trang này.",
+    "sessionIdLabel": "Mã định danh phiên",
+    "sessionScopesLabel": "Phạm vi",
+    "sessionExpiresLabel": "Hết hạn",
+    "reauthLabel": "Xác thực lại",
+    "reauthUnavailable": "Chưa hỗ trợ xác thực lại: cơ chế cho luồng xác thực lại chuyên biệt vẫn là hạng mục đang mở, nên chưa có lối xác thực lại tại đây.",
+    "reauthNote": "Khi Core báo cáo Cần xác thực hoặc Quyền bị giới hạn, phần này sẽ hiển thị thông báo và mở lối xác thực lại như một luồng chuyên biệt. Các thao tác được bảo vệ sẽ bị vô hiệu hóa kèm giải thích trong suốt trạng thái đó, và thông tin xác thực không bao giờ bị lưu trữ để né tránh bước này. Việc khôi phục từ phiên hết hạn diễn ra qua bước khởi tạo tạm thời của trình thiết lập lần đầu."
+  },
+  "shortcutHelp": {
+    "trigger": "Phím tắt bàn phím",
+    "openHelp": "Mở hướng dẫn phím tắt bàn phím",
+    "title": "Phím tắt bàn phím",
+    "shortcutColumn": "Phím tắt",
+    "actionColumn": "Hành động",
+    "implemented": "Các phím tắt này đã được triển khai trong khung ứng dụng hiện tại.",
+    "remapNote": "Tính năng tắt và gán lại phím tắt đơn phím được lên kế hoạch cho gói sau; phím tắt trợ giúp đơn phím hiện được giới hạn phạm vi để không bao giờ kích hoạt khi bạn đang gõ trong ô nhập liệu hoặc gõ văn bản bằng bộ gõ.",
+    "escNote": "Phím Escape đóng các cửa sổ bật lên và hộp thoại. Nó không bao giờ hủy một Job bền vững; việc hủy luôn là một hành động chủ động."
+  },
+  "shortcuts": {
+    "openSearch": "Mở tìm kiếm",
+    "openSettings": "Mở cài đặt",
+    "openShortcutHelp": "Mở bảng hướng dẫn phím tắt này",
+    "closeSurface": "Đóng cửa sổ bật lên hoặc hộp thoại"
+  },
+  "skipToContent": "Bỏ qua đến nội dung chính"
+}

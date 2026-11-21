@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "搜索",
+    "openSearch": "打开搜索",
+    "newMenu": "新建",
+    "openNewMenu": "打开新建菜单",
+    "notifications": "通知",
+    "openNotifications": "打开通知"
+  },
+  "search": {
+    "title": "搜索",
+    "inputLabel": "搜索",
+    "unavailable": "搜索暂不可用：命令面板将在后续版本包中交付，且需要本里程碑尚未接入的 Core 搜索契约。",
+    "shortcutHint": "当光标不在可编辑输入框内时，按 Ctrl+K 或 Cmd+K 可打开搜索。"
+  },
+  "newMenu": {
+    "startChat": "开始对话",
+    "runTask": "运行任务",
+    "importKnowledge": "导入知识",
+    "unavailableReason": "暂不可用：此流程将在后续版本包中交付。"
+  },
+  "connection": {
+    "label": "连接状态",
+    "popoverTitle": "连接",
+    "stateUnknown": "未知",
+    "stateConnecting": "正在连接",
+    "stateConnected": "已连接",
+    "stateDisconnected": "已断开",
+    "stateReconnecting": "正在重连",
+    "stateSessionExpired": "会话已过期",
+    "unknownExplanation": "连接状态为“未知”：此应用来源未收到 Core 传输通道响应，因此没有可显示的 Core 上报状态。Core 的本地传输默认关闭且需主动启用。“未知”绝不会显示为“已连接”。",
+    "connectingExplanation": "正在检查连接状态：正在向此应用来源的 Core 传输通道发起一次真实读取。",
+    "connectedExplanation": "本地 Core 已响应受权读取，因此连接处于活动状态。该状态仅来源于真实的传输响应——绝非猜测。",
+    "disconnectedExplanation": "此应用来源检测到 Core 传输通道响应，但尚未建立会话，因此无法执行任何受权操作。请在首次运行设置中使用一次性引导凭据进行连接。",
+    "reconnectingExplanation": "正在通过一次真实读取向 Core 传输通道重新核查上次已知的连接状态。",
+    "sessionExpiredExplanation": "本页面持有的会话已不再受 Core 授权（已过期、被吊销或其他无效原因）。令牌已从本页面内存中清除。请在首次运行设置中使用新的一次性凭据重新连接。",
+    "listUnavailable": "连接列表不可用：本里程碑尚未接入 Core 连接契约。",
+    "switchUnavailable": "暂不提供切换连接功能：需要 Core 连接契约。",
+    "switch": {
+      "title": "切换连接",
+      "warningHeading": "切换前请注意",
+      "warningBody": "切换连接会改变你当前操作的 Core、工作区、数据与权限。它绝不会在不同 Core 之间移动或复制作业与数据，且每个连接各自维护独立的缓存、游标、凭据与事件——绝不混用。",
+      "selectorLabel": "连接",
+      "selectorUnavailable": "连接列表不可用：本里程碑尚未接入 Core 连接契约，因此暂无可切换的连接。",
+      "confirm": "切换连接",
+      "confirmUnavailableReason": "切换需要从 Core 连接列表中选择一个连接，而当前列表不可用。",
+      "setupHint": "你可以在“设置 > 连接”或首次运行设置中配置连接。"
+    }
+  },
+  "session": {
+    "label": "会话",
+    "popoverTitle": "会话",
+    "stateUnavailable": "会话状态不可用：此应用来源未收到 Core 传输通道响应，因此没有可显示的会话状态。",
+    "stateRule": "此处仅展示 Core 上报的状态。“需要认证”与“权限受限”仅在 Core 上报时出现——绝不会显示为“已连接”。",
+    "stateActiveBody": "Core 会话处于活动状态：已通过本地 Core 的真实受权读取验证。会话令牌仅保存在当前页面内存中——绝不写入浏览器存储、链接或日志。",
+    "stateExpiredBody": "本页面持有的会话已不再受 Core 授权（已过期、被吊销或其他无效原因）。令牌已从本页面内存中清除。",
+    "sessionIdLabel": "会话标识符",
+    "sessionScopesLabel": "作用域",
+    "sessionExpiresLabel": "过期时间",
+    "reauthLabel": "重新认证",
+    "reauthUnavailable": "暂不提供重新认证：专用重新认证流程的机制属于已记录的待决项，因此此处暂无可用的重新认证路径。",
+    "reauthNote": "当 Core 上报“需要认证”或“权限受限”时，此处会如实展示并以专用流程提供重新认证路径。在该状态持续期间，受保护操作保持禁用并附带说明，且绝不通过存储凭据来规避认证。从已过期会话恢复可通过首次运行设置的过渡期引导步骤完成。"
+  },
+  "shortcutHelp": {
+    "trigger": "键盘快捷键",
+    "openHelp": "打开键盘快捷键",
+    "title": "键盘快捷键",
+    "shortcutColumn": "快捷键",
+    "actionColumn": "操作",
+    "implemented": "以下快捷键已在当前外壳中实现。",
+    "remapNote": "单键快捷键的禁用与改键将在后续版本包中提供；当前的单键帮助快捷键已限定作用域，绝不会在你在可编辑输入框中打字或使用输入法组字时误触发。",
+    "escNote": "按 Esc 仅关闭浮层与对话框，绝不会取消持久化作业；取消作业只能通过显式操作触发。"
+  },
+  "shortcuts": {
+    "openSearch": "打开搜索",
+    "openSettings": "打开设置",
+    "openShortcutHelp": "打开此快捷键帮助",
+    "closeSurface": "关闭浮层或对话框"
+  },
+  "skipToContent": "跳转到主要内容"
+}

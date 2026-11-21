@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "主要",
+    "buildAndConnect": "构建与连接",
+    "extensions": "扩展",
+    "operate": "运维与治理",
+    "bottom": "更多"
+  },
+  "items": {
+    "overview": "概览",
+    "chat": "对话",
+    "jobs": "作业",
+    "knowledge": "知识库",
+    "memory": "记忆",
+    "context": "上下文",
+    "workflows": "工作流",
+    "providersAndModels": "提供方与模型",
+    "plugins": "插件",
+    "activityAndAudit": "活动与审计",
+    "helpAndDocumentation": "帮助与文档",
+    "settings": "设置",
+    "session": "会话"
+  },
+  "unavailableSuffix": "（暂不可用）",
+  "unavailableReason": "暂不可用：此功能入口将在后续版本包中交付。",
+  "collapse": "收起导航",
+  "expand": "展开导航",
+  "openNavigation": "打开导航",
+  "closeNavigation": "关闭导航"
+}

@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Öffnen",
+    "close": "Schließen",
+    "cancel": "Abbrechen",
+    "reset": "Zurücksetzen",
+    "retry": "Erneut versuchen"
+  },
+  "states": {
+    "unknown": "Unbekannt",
+    "unavailable": "Nicht verfügbar",
+    "notConnected": "Nicht verbunden"
+  },
+  "entryNotice": {
+    "title": "Einstiegspunkt",
+    "body": "Die Ansichten und Core-gestützten Steuerelemente dieser Gruppe erscheinen in einem späteren Paket. In diesem Meilenstein ist kein Core-Vertrag angebunden, daher wird über diesen Einstieg hinaus nichts angezeigt.",
+    "localOnlyBody": "Die Steuerelemente für lokale Einstellungen auf dieser Seite funktionieren bereits; die übrigen Ansichten dieser Gruppe erscheinen in einem späteren Paket."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Ihre ungespeicherten Eingaben und Ihr lokaler Entwurf wurden sicher erhalten.",
+      "correlationIdLabel": "Korrelations-ID: {{correlationId}}",
+      "errorCodeLabel": "Maschinenfehlercode: {{code}}"
+    },
+    "actions": {
+      "retry": "Aktion erneut versuchen",
+      "reconcileS4": "Maßgeblichen Core-Zustand erneut lesen",
+      "resolveConflict": "Konflikt prüfen und lösen",
+      "reauthenticate": "Sitzung erneut authentifizieren",
+      "switchCoreConnection": "Core-Verbindung wechseln",
+      "dismiss": "Schließen",
+      "openModelSettings": "Modelleinstellungen öffnen"
+    },
+    "validationFailed": {
+      "title": "Validierung fehlgeschlagen",
+      "explanation": "Ein oder mehrere übermittelte Felder entsprachen nicht dem Validierungsschema des Cores. Prüfen Sie die markierten Eingaben und versuchen Sie es erneut."
+    },
+    "configConflict": {
+      "title": "Konfigurationskonflikt",
+      "explanation": "Die Konfiguration hat sich geändert, seit Sie sie geladen haben. Aktualisieren Sie auf die maßgebliche Revision, bevor Sie Ihre Änderungen anwenden."
+    },
+    "authzDenied": {
+      "title": "Berechtigung verweigert",
+      "explanation": "Ihre aktuelle Core-Sitzung besitzt keine Berechtigung für diese Aktion, oder Ihre Sitzung muss erneut authentifiziert werden."
+    },
+    "notFound": {
+      "title": "Ressource nicht gefunden",
+      "explanation": "Das angeforderte Element existiert nicht mehr oder liegt außerhalb des Geltungsbereichs Ihres aktiven Core-Arbeitsbereichs."
+    },
+    "conflictState": {
+      "title": "Zustandskonflikt erkannt",
+      "explanation": "Dieser Datensatz wurde auf dem Core auf eine neuere Revision fortgeschrieben. Vergleichen Sie vor einem erneuten Versuch den aktuellen maßgeblichen Zustand."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Doppelter Operationsschlüssel",
+      "explanation": "Der Core hat mit diesem Idempotenzschlüssel bereits eine andere Anfrage protokolliert. Lesen Sie den maßgeblichen Zustand erneut, um zu prüfen, ob Ihre Aktion erfolgreich war."
+    },
+    "singleInstanceConflict": {
+      "title": "Eine andere Core-Instanz ist aktiv",
+      "explanation": "Ein anderer Karyora-Core-Prozess hält derzeit die Sperre dieses Arbeitsbereichs. Wechseln Sie zur laufenden Core-Verbindung, anstatt eine konkurrierende Instanz zu starten."
+    },
+    "storageUnavailable": {
+      "title": "Speicher vorübergehend nicht verfügbar",
+      "explanation": "Der Core konnte sein lokales oder entferntes Speicher-Backend nicht erreichen. Prüfen Sie die Speicherverfügbarkeit und versuchen Sie es erneut."
+    },
+    "migrationFailed": {
+      "title": "Datenmigration fehlgeschlagen",
+      "explanation": "Der Core hat eine Schema- oder Datenmigration sicher angehalten, bevor Teiländerungen übernommen wurden. Prüfen Sie die Diagnose, bevor Sie es erneut versuchen."
+    },
+    "stateCorrupt": {
+      "title": "Integritätsfehler im gespeicherten Zustand",
+      "explanation": "Der Core hat eine fehlgeschlagene Integritätsprüfung im dauerhaft gespeicherten Zustand erkannt und zum Schutz Ihrer Daten angehalten. Stellen Sie aus einem verifizierten Backup wieder her oder öffnen Sie die Diagnose."
+    },
+    "recoveryRequired": {
+      "title": "Wiederherstellungsprüfung erforderlich",
+      "explanation": "Die vorherige Operation wurde nicht sauber abgeschlossen. Lesen Sie den maßgeblichen Core-Zustand erneut, um den aktuellen Status vor dem Fortfahren zu bestätigen."
+    },
+    "rateLimited": {
+      "title": "Ratenlimit erreicht",
+      "explanation": "In kurzer Zeit wurden zu viele Anfragen gesendet. Warten Sie kurz und versuchen Sie es explizit erneut."
+    },
+    "internal": {
+      "title": "Interner Core-Fehler",
+      "explanation": "Der Core hat einen unerwarteten internen Fehler gemeldet. Ihr lokaler Entwurf wurde nicht verworfen; kopieren Sie die Korrelations-ID, falls Sie Diagnosedaten exportieren."
+    },
+    "unknownCode": {
+      "title": "Core hat die Anfrage abgelehnt",
+      "explanation": "Der Core hat einen unbekannten Maschinenfehlercode zurückgegeben. Es wird kein roher Backend-Text angezeigt; prüfen Sie den Core-Zustand oder exportieren Sie bereinigte Diagnosedaten."
+    },
+    "unknownOutcomeS4": {
+      "title": "Operationsergebnis unbekannt",
+      "explanation": "Die Verbindung wurde unterbrochen, bevor der Core bestätigen konnte, ob diese Änderung erfolgreich war. Gehen Sie weder von Erfolg noch von Fehlschlag aus – lesen Sie zuerst den maßgeblichen Core-Zustand erneut."
+    }
+  }
+}

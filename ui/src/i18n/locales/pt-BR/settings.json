@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "Configurações",
+    "subtitle": "Grupos de configurações. Grupos cujas telas integradas ao Core ainda não estão conectadas exibem seu estado real de entrada.",
+    "groupsNavLabel": "Grupos de configurações"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Aparência",
+      "description": "Preferências de tema, movimento e idioma.",
+      "title": "Aparência"
+    },
+    "connections": {
+      "label": "Conexões",
+      "description": "Gerenciamento de conexões do Core (adicionar, testar, alternar, reautenticar).",
+      "title": "Conexões"
+    },
+    "privacy": {
+      "label": "Privacidade",
+      "description": "Controles de privacidade e dados.",
+      "title": "Privacidade"
+    },
+    "security": {
+      "label": "Segurança",
+      "description": "Controles de segurança de sessão e credenciais.",
+      "title": "Segurança"
+    },
+    "notifications": {
+      "label": "Notificações",
+      "description": "Preferências de notificação.",
+      "title": "Notificações"
+    },
+    "shortcuts": {
+      "label": "Atalhos",
+      "description": "Atalhos de teclado.",
+      "title": "Atalhos de teclado"
+    },
+    "diagnostics": {
+      "label": "Diagnósticos",
+      "description": "Integridade do Core e exportação de diagnósticos com dados sensíveis ocultados.",
+      "title": "Diagnósticos"
+    },
+    "updates": {
+      "label": "Atualizações",
+      "description": "Status de atualizações e manutenção.",
+      "title": "Atualizações"
+    },
+    "about": {
+      "label": "Sobre",
+      "description": "Versão, licença e metadados do produto.",
+      "title": "Sobre"
+    }
+  },
+  "appearance": {
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro",
+    "themeSystem": "Sistema",
+    "themeHelp": "Claro é o padrão da primeira execução. Sistema segue a aparência do sistema operacional e alterna em tempo real quando a aparência do sistema muda.",
+    "reducedMotion": "Movimento",
+    "reducedMotionSystem": "Seguir o sistema",
+    "reducedMotionReduce": "Reduzir movimento",
+    "reducedMotionFull": "Sem redução",
+    "reducedMotionHelp": "Seguir o sistema respeita a configuração de redução de movimento do sistema operacional. Você também pode forçar a redução ligada ou desligada.",
+    "language": "Idioma",
+    "languageHelp": "O inglês é o idioma de origem autoritativo e de reserva (fallback). Todos os 13 idiomas aceitos (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) são empacotados com carregamento sob demanda por idioma e alternam em tempo real.",
+    "densityWithheld": "Uma opção de densidade compacta não é oferecida: ela só aparece se as verificações de tamanho de alvo e acessibilidade passarem, e essas verificações ainda não foram executadas.",
+    "applied": "As alterações são aplicadas imediatamente. Redefinir restaura os padrões documentados: tema Claro, movimento seguindo o sistema e inglês.",
+    "resetConfirm": "Redefinir aparência para os padrões"
+  },
+  "security": {
+    "logoutSectionTitle": "Encerrar esta sessão",
+    "logoutSectionBody": "Sair encerra esta sessão no Core imediatamente. O token mantido é descartado da memória deste navegador, toda visualização com escopo volta a consultar o Core no próximo uso e nada permanece disponível até que uma sessão seja restabelecida.",
+    "logoutAction": "Sair",
+    "postureNoSession": "Nenhuma sessão está ativa no momento, portanto não há nada para encerrar.",
+    "postureNoSessionReason": "Restabeleça primeiro uma sessão pelo bootstrap de conexão; este controle atua apenas sobre uma sessão ativa.",
+    "postureRechecking": "O estado da conexão está sendo verificado novamente diante de uma resposta real do Core.",
+    "postureUnknown": "Nenhum transporte do Core respondeu a esta origem, portanto o estado da conexão está legitimamente indisponível.",
+    "dialogTitle": "Encerrar esta sessão?",
+    "dialogScope": "Isto encerra imediatamente a sessão atual no Core. O token mantido por este navegador é descartado e toda visualização com escopo permanece indisponível até que uma sessão seja restabelecida.",
+    "dialogKeep": "Preferências locais e rascunhos não salvos e não sensíveis neste dispositivo são preservados.",
+    "dialogConfirm": "Sair",
+    "confirmedTitle": "Você saiu da sessão",
+    "confirmedBody": "O Core confirmou a revogação e o token foi descartado da memória deste navegador.",
+    "confirmedReestablish": "Restabeleça uma sessão pelo bootstrap de conexão quando retornar.",
+    "refusedTitle": "O Core recusou o encerramento da sessão",
+    "refusedBody": "O encerramento foi recusado pelo Core (recusa tipada {{code}}). A sessão NÃO foi encerrada e o token mantido permanece na memória deste navegador.",
+    "refusedNote": "Nenhuma sessão foi encerrada. O código tipado acima é estável e independente de idioma; resolva a causa indicada e tente novamente de forma explícita.",
+    "unknownTitle": "A resposta foi perdida",
+    "unknownBody": "O Core nunca confirmou o encerramento da sessão, portanto NÃO se presume que ela foi encerrada e o token mantido permanece em memória.",
+    "unknownNote": "Nenhuma nova tentativa automática é executada. Verifique o estado da sessão e encerre-a novamente de forma explícita se ainda estiver ativa.",
+    "revokeAllAbsent": "Revogar todas as sessões desta instância (uma alteração de credenciais) é uma classe de ação do lado do Core; não existe controle para ela aqui."
+  },
+  "shortcuts": {
+    "body": "Os atalhos abaixo estão implementados no shell atual. O registro completo de atalhos e os controles para remapear e desativar serão entregues em um pacote posterior.",
+    "localNote": "As preferências de atalhos são uma preferência local por dispositivo."
+  },
+  "connections": {
+    "body": "O gerenciamento de conexões — adicionar, renomear, testar, reautenticar e alternar — precisa dos contratos de conexão do Core, que não estão integrados neste marco, portanto nenhuma lista de conexões é exibida. Nenhum estado de conexão é inventado aqui.",
+    "listTitle": "Conexões",
+    "listIntro": "Conexões são registros do Core exibidos com nomes seguros. Esta página nunca exibe tokens nem endpoints com credenciais embutidas.",
+    "listUnavailable": "A lista de conexões está indisponível: os contratos de conexão do Core não estão integrados neste marco, portanto nenhum registro de conexão pode ser listado. Nenhum estado de conexão é inventado aqui.",
+    "providerSectionTitle": "Configuração de conexão de provedor",
+    "providerIntro": "Esta é a mesma etapa de configuração de provedor usada pelo assistente inicial. Você também pode acessá-la pela configuração inicial na página inicial. Executar a configuração novamente nunca redefine o estado existente.",
+    "operationsTitle": "Operações de conexão",
+    "operationsIntro": "O fluxo dedicado de conexões oferece adicionar e alternar aqui; cada linha de conexão salva traz seus próprios comandos (renomear, editar, testar, substituir chave, reinserir chave, definir como ativa, remover), todos executados exclusivamente pelos contratos de conexão do Core.",
+    "opAdd": "Adicionar conexão",
+    "opAddNote": "Abre a configuração de conexão de provedor abaixo — o único tipo de conexão cujos campos de configuração estão especificados nesta fase. A configuração de outros tipos de conexão exige os contratos de bootstrap do Core, que ainda não estão integrados.",
+    "opAddGo": "Adicionar uma conexão de provedor",
+    "opRename": "Renomear conexão",
+    "opRemove": "Remover conexão",
+    "opRemoveUnavailable": "Remover aplica-se a uma conexão da lista. A lista de conexões está indisponível, portanto ainda não há nada para remover. A remoção é destrutiva e sempre exige uma confirmação explícita declarando escopo e efeitos antes de ser executada.",
+    "opTest": "Testar conexão",
+    "opTestUnavailable": "Testar aplica-se a uma conexão salva, e nenhuma pode ser listada ainda. O formulário de provedor abaixo oferece Testar conexão para os dados que você está preenchendo agora.",
+    "opReauth": "Reautenticar",
+    "opReauthUnavailable": "A reautenticação passa pelos contratos de sessão do Core, que não estão integrados neste marco. Quando o Core informar que a autenticação é necessária, o caminho de reautenticação aparecerá aqui e no menu de sessão.",
+    "switchTitle": "Alternar conexão",
+    "switchIntro": "Alternar é uma mudança de contexto mediada pelo Core: ela altera quais dados e permissões ficam disponíveis. Nunca move nem copia Jobs ou dados entre Cores.",
+    "firstRunTitle": "Configuração inicial",
+    "firstRunBody": "Você pode executar ou retomar a configuração inicial a qualquer momento. Executar a configuração novamente preserva suas escolhas existentes.",
+    "resumeSetup": "Retomar configuração inicial",
+    "loadMore": "Carregar mais",
+    "checkStatus": "Verificar status",
+    "dismiss": "Dispensar",
+    "cancel": "Cancelar",
+    "activeBadge": "Ativa",
+    "secretStatusLabel": "Chave de API",
+    "secretStatus": {
+      "present": "Armazenada com segurança (nunca exibida)",
+      "missing": "Não armazenada — insira a chave novamente",
+      "revoked": "Revogada — insira a chave novamente",
+      "corrupt": "Indisponível (corrompida) — insira a chave novamente",
+      "inaccessible": "Armazenamento de credenciais indisponível"
+    },
+    "testedLabel": "Teste de conexão",
+    "testedCurrent": "Testada (verificada em {{time}})",
+    "testedChanged": "Testada, mas a conexão mudou desde então — execute o teste novamente",
+    "testedNever": "Salva, não testada",
+    "opRotate": "Substituir chave",
+    "opSwitch": "Definir como ativa",
+    "rotateTitle": "Substituir chave",
+    "rotateBody": "Isto substitui a chave de API armazenada da conexão {{connectionId}} pela nova chave que você informar abaixo.",
+    "rotateEffects": "O Core armazena a nova chave sob o mesmo identificador de credencial; a próxima chamada passará a usá-la. Solicitações já em andamento não são relidas — o Core informa o destino delas conforme ocorre. O resultado de teste verificado da conexão fica desatualizado até o próximo teste bem-sucedido.",
+    "rotateConfirm": "Substituir chave",
+    "reauthTitle": "Reinserir chave",
+    "reauthBody": "Isto reinsere a credencial para a conexão {{connectionId}}. O valor armazenado nunca é exibido; você informa uma nova chave.",
+    "reauthEffects": "O Core armazena a nova chave sob o mesmo identificador de credencial; a próxima chamada passará a usá-la. O resultado de teste verificado da conexão fica desatualizado até o próximo teste bem-sucedido.",
+    "reauthConfirm": "Armazenar nova chave",
+    "credentialLabel": "Nova chave ou token de API",
+    "credentialHint": "A chave permanece em memória somente até você confirmar; ela nunca mais será exibida após ser armazenada.",
+    "deleteTitle": "Remover conexão",
+    "deleteBody": "Isto remove permanentemente a conexão {{connectionId}} do Core.",
+    "deleteEffects": "O Core também revoga a credencial armazenada. Tudo o que dependia desta conexão passará a informar a credencial como indisponível e recusará chamadas protegidas — não existe fallback. Esta ação não pode ser desfeita a partir desta página.",
+    "deleteConfirm": "Remover conexão",
+    "switchConnTitle": "Definir conexão ativa",
+    "switchConnBody": "Isto registra a conexão {{connectionId}} como a conexão ativa.",
+    "switchConnEffects": "Nenhum job migra e nenhum dado é movido — o Core registra apenas a referência da conexão ativa; as visualizações com escopo são redefinidas a partir dos dados autoritativos.",
+    "switchConnConfirm": "Definir como ativa",
+    "dialogDurableNote": "O comando é durável assim que o Core o confirma; os botões desta caixa de diálogo declaram o ato. Fechar esta caixa de diálogo não altera nada.",
+    "listRefusedTitle": "A lista de conexões foi recusada",
+    "listRefusedBody": "O Core recusou a leitura da lista ({{code}}). Nenhuma linha é exibida — nenhuma é inventada.",
+    "listRefusedNote": "Referência do Core: {{correlationId}}",
+    "outcomeConfirmedTitle": "Concluído",
+    "outcomeConfirmedBody": "{{action}} concluída na conexão {{connectionId}}; a lista abaixo reflete o que o Core informa agora.",
+    "outcomeConfirmedNote": "O estado confirmado vem sempre da leitura autoritativa do Core — nunca apenas da resposta do comando.",
+    "outcomeRefusedTitle": "Não aplicada",
+    "outcomeRefusedBody": "{{action}} foi recusada pelo Core ({{code}}). Nada foi alterado.",
+    "outcomeRefusedNote": "Referência do Core: {{correlationId}}",
+    "outcomeUnknownTitle": "Resultado desconhecido",
+    "outcomeUnknownBody": "{{action}} na conexão {{connectionId}} perdeu a resposta antes que pudesse ser lida. Uma resposta perdida nunca é prova de que o comando foi aplicado ou não.",
+    "outcomeUnknownNote": "Verifique o status para reler a lista autoritativa — o comando nunca é reenviado automaticamente.",
+    "action": {
+      "test": "Testar conexão",
+      "rotate": "Substituir chave",
+      "reauth": "Reinserir chave",
+      "delete": "Remover conexão",
+      "switch": "Definir como ativa",
+      "rename": "Renomear conexão",
+      "update": "Editar conexão"
+    },
+    "opEdit": "Editar conexão",
+    "renameTitle": "Renomear conexão",
+    "renameBody": "Escolha um nome de exibição para a conexão {{connectionId}}.",
+    "renameEffects": "Renomear altera apenas o nome de exibição: nunca altera a identidade da conexão, e nenhum job, credencial ou histórico de execução é movido.",
+    "renameInputLabel": "Nome de exibição",
+    "renameConfirm": "Renomear",
+    "editTitle": "Editar conexão",
+    "editBody": "Edite abaixo os campos não secretos da conexão {{connectionId}}.",
+    "editEffects": "Apenas os campos não secretos são alterados. A chave armazenada nunca é exibida nem editada aqui: para alterar a chave, use Substituir chave ou Reinserir chave. Após uma edição confirmada, o último teste da conexão deixa de contar como atual até que você execute o teste novamente.",
+    "editProviderLabel": "Provedor",
+    "editBaseUrlLabel": "URL base (opcional)",
+    "editModelLabel": "ID do modelo",
+    "editHeadersLabel": "Cabeçalhos personalizados (opcional)",
+    "editHeadersHelp": "Um cabeçalho por linha, no formato Nome: valor.",
+    "editHeadersInvalid": "Informe os cabeçalhos um por linha, no formato Nome: valor.",
+    "editConfirm": "Salvar alterações",
+    "conflictNote": "Esta conexão mudou desde que foi lida (CONFLICT_STATE). Nada foi sobrescrito: verifique o status para reler o estado atual e reaplique sua alteração com base no que a lista mostra."
+  },
+  "updates": {
+    "body": "O status de atualizações e manutenção não é exibido: o contrato de status de atualização não está integrado neste marco. Esta interface nunca sugere checkout, bloqueio por expiração ou qualquer comportamento de manutenção."
+  },
+  "about": {
+    "appVersion": "Versão do shell da UI",
+    "license": "Licença",
+    "licenseValue": "Apache-2.0",
+    "body": "Esta compilação contém o shell compartilhado e a navegação aprovada. O logotipo tipográfico e os ativos de marca estão adiados aguardando decisão do proprietário; o nome do produto aparece em texto simples.",
+    "versionDisclaimer": "Esta é apenas a versão local do shell da UI. Ela não faz nenhuma afirmação sobre a versão mais recente ou mais segura disponível."
+  }
+}

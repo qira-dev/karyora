@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Chính",
+    "buildAndConnect": "Xây dựng & kết nối",
+    "extensions": "Mở rộng",
+    "operate": "Vận hành",
+    "bottom": "Thêm"
+  },
+  "items": {
+    "overview": "Tổng quan",
+    "chat": "Trò chuyện",
+    "jobs": "Job",
+    "knowledge": "Tri thức",
+    "memory": "Bộ nhớ",
+    "context": "Ngữ cảnh",
+    "workflows": "Quy trình",
+    "providersAndModels": "Nhà cung cấp & Mô hình",
+    "plugins": "Plugin",
+    "activityAndAudit": "Hoạt động & Kiểm toán",
+    "helpAndDocumentation": "Trợ giúp & Tài liệu",
+    "settings": "Cài đặt",
+    "session": "Phiên"
+  },
+  "unavailableSuffix": "(chưa khả dụng)",
+  "unavailableReason": "Chưa khả dụng: mục này sẽ ra mắt trong gói phát hành sau.",
+  "collapse": "Thu gọn thanh điều hướng",
+  "expand": "Mở rộng thanh điều hướng",
+  "openNavigation": "Mở thanh điều hướng",
+  "closeNavigation": "Đóng thanh điều hướng"
+}

@@ -63,7 +63,7 @@
     "reducedMotionFull": "No reduction",
     "reducedMotionHelp": "Follow system honors the operating-system reduced-motion setting. You can also force reduction on or off.",
     "language": "Language",
-    "languageHelp": "English is the source locale. Translations for the other accepted locales are not delivered yet, so selecting them renders English until the locale resources are reviewed.",
+    "languageHelp": "English is the authoritative source and fallback locale. All 13 accepted locales (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) are bundled with lazy per-locale loading and switch live.",
     "densityWithheld": "A compact density option is not offered: it renders only if target-size and accessibility checks pass, and those checks have not run.",
     "applied": "Changes apply immediately. Reset restores the documented defaults: Light theme, motion following the system, and English.",
     "resetConfirm": "Reset appearance to defaults"

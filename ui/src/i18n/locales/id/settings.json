@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "Pengaturan",
+    "subtitle": "Grup pengaturan. Grup yang layar berbasis Core-nya belum terhubung menampilkan status titik masuk yang jujur.",
+    "groupsNavLabel": "Grup pengaturan"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Tampilan",
+      "description": "Preferensi tema, gerak animasi, dan bahasa.",
+      "title": "Tampilan"
+    },
+    "connections": {
+      "label": "Koneksi",
+      "description": "Manajemen koneksi Core (tambah, uji, ganti, autentikasi ulang).",
+      "title": "Koneksi"
+    },
+    "privacy": {
+      "label": "Privasi",
+      "description": "Kontrol privasi dan data.",
+      "title": "Privasi"
+    },
+    "security": {
+      "label": "Keamanan",
+      "description": "Kontrol keamanan sesi dan kredensial.",
+      "title": "Keamanan"
+    },
+    "notifications": {
+      "label": "Notifikasi",
+      "description": "Preferensi notifikasi.",
+      "title": "Notifikasi"
+    },
+    "shortcuts": {
+      "label": "Pintasan",
+      "description": "Pintasan keyboard.",
+      "title": "Pintasan keyboard"
+    },
+    "diagnostics": {
+      "label": "Diagnostik",
+      "description": "Kesehatan Core dan ekspor diagnostik tersunting.",
+      "title": "Diagnostik"
+    },
+    "updates": {
+      "label": "Pembaruan",
+      "description": "Status pembaruan dan pemeliharaan.",
+      "title": "Pembaruan"
+    },
+    "about": {
+      "label": "Tentang",
+      "description": "Versi, lisensi, dan metadata produk.",
+      "title": "Tentang"
+    }
+  },
+  "appearance": {
+    "theme": "Tema",
+    "themeLight": "Terang",
+    "themeDark": "Gelap",
+    "themeSystem": "Sistem",
+    "themeHelp": "Terang adalah default saat pertama kali dijalankan. Sistem mengikuti tampilan sistem operasi dan berubah langsung saat tampilan OS berubah.",
+    "reducedMotion": "Gerak animasi",
+    "reducedMotionSystem": "Ikuti sistem",
+    "reducedMotionReduce": "Kurangi gerak",
+    "reducedMotionFull": "Tanpa pengurangan",
+    "reducedMotionHelp": "Ikuti sistem menghormati pengaturan pengurangan gerak sistem operasi. Anda juga dapat memaksa pengurangan aktif atau nonaktif.",
+    "language": "Bahasa",
+    "languageHelp": "Bahasa Inggris adalah sumber otoritatif dan lokal cadangan. Semua 13 lokal yang diterima (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) dibundel dengan pemuatan malas per lokal dan berganti secara langsung.",
+    "densityWithheld": "Opsi kepadatan ringkas tidak ditawarkan: opsi ini hanya muncul jika pemeriksaan ukuran target dan aksesibilitas lulus, dan pemeriksaan tersebut belum dijalankan.",
+    "applied": "Perubahan langsung diterapkan. Atur ulang mengembalikan ke default terdokumentasi: tema Terang, gerak mengikuti sistem, dan bahasa Inggris.",
+    "resetConfirm": "Atur ulang tampilan ke default"
+  },
+  "security": {
+    "logoutSectionTitle": "Keluar dari sesi ini",
+    "logoutSectionBody": "Keluar akan segera mengakhiri sesi ini di Core. Token yang disimpan dibuang dari memori browser ini, setiap tampilan bercakupan mengueri ulang dari Core pada penggunaan berikutnya, dan tidak ada yang tetap tersedia sampai sesi baru terbentuk.",
+    "logoutAction": "Keluar",
+    "postureNoSession": "Tidak ada sesi yang sedang aktif, sehingga tidak ada sesi untuk diakhiri.",
+    "postureNoSessionReason": "Bentuk sesi terlebih dahulu melalui bootstrap koneksi; kontrol ini hanya bekerja pada sesi yang sedang aktif.",
+    "postureRechecking": "Status koneksi sedang diperiksa ulang terhadap jawaban Core yang nyata.",
+    "postureUnknown": "Tidak ada transport Core yang merespons origin ini, sehingga status koneksi secara jujur tidak tersedia.",
+    "dialogTitle": "Keluar dari sesi ini?",
+    "dialogScope": "Tindakan ini segera mengakhiri sesi saat ini di Core. Token yang disimpan browser ini dibuang dan semua tampilan bercakupan tetap tidak tersedia sampai sesi baru terbentuk.",
+    "dialogKeep": "Preferensi lokal serta draf non-sensitif yang belum disimpan di perangkat ini tetap dipertahankan.",
+    "dialogConfirm": "Keluar",
+    "confirmedTitle": "Anda telah keluar",
+    "confirmedBody": "Core mengonfirmasi pencabutan sesi dan token telah dibuang dari memori browser ini.",
+    "confirmedReestablish": "Bentuk ulang sesi melalui bootstrap koneksi saat Anda kembali.",
+    "refusedTitle": "Core menolak permintaan keluar",
+    "refusedBody": "Permintaan keluar ditolak oleh Core (penolakan bertipe {{code}}). Sesi TIDAK diakhiri dan token yang dipegang tetap berada di memori browser ini.",
+    "refusedNote": "Tidak ada yang dikeluarkan. Kode bertipe di atas bersifat stabil dan netral bahasa; selesaikan penyebab yang dinyatakan lalu coba lagi secara eksplisit.",
+    "unknownTitle": "Respons hilang",
+    "unknownBody": "Core tidak pernah mengonfirmasi keluar, sehingga sesi TIDAK diasumsikan berakhir dan token yang dipegang tetap berada di memori.",
+    "unknownNote": "Tidak ada percobaan ulang otomatis. Periksa status sesi lalu keluar lagi secara eksplisit jika sesi masih aktif.",
+    "revokeAllAbsent": "Mencabut seluruh sesi pada instans ini (perubahan kredensial) adalah kelas tindakan sisi Core; tidak ada kontrol untuk itu di sini."
+  },
+  "shortcuts": {
+    "body": "Pintasan di bawah telah diimplementasikan pada shell saat ini. Registri pintasan lengkap serta kontrol pemetaan ulang dan penonaktifan akan hadir pada paket berikutnya.",
+    "localNote": "Preferensi pintasan adalah preferensi lokal per perangkat."
+  },
+  "connections": {
+    "body": "Manajemen koneksi — tambah, ubah nama, uji, autentikasi ulang, dan ganti — memerlukan kontrak koneksi Core yang belum terhubung pada tahap ini, sehingga daftar koneksi tidak ditampilkan. Tidak ada status koneksi yang direkayasa di sini.",
+    "listTitle": "Koneksi",
+    "listIntro": "Koneksi adalah catatan Core yang ditampilkan dengan nama tampilan yang aman. Halaman ini tidak pernah menampilkan token atau endpoint dengan kredensial tertanam.",
+    "listUnavailable": "Daftar koneksi tidak tersedia: kontrak koneksi Core belum terhubung pada tahap ini, sehingga catatan koneksi tidak dapat ditampilkan. Tidak ada status koneksi yang direkayasa di sini.",
+    "providerSectionTitle": "Penyiapan koneksi penyedia",
+    "providerIntro": "Ini adalah langkah penyiapan penyedia yang sama dengan wizard penyiapan awal. Anda juga dapat menjangkaunya dari penyiapan awal di halaman beranda. Menjalankan ulang penyiapan tidak pernah mereset status yang sudah ada.",
+    "operationsTitle": "Operasi koneksi",
+    "operationsIntro": "Alur koneksi khusus menawarkan tambah dan ganti di sini; setiap baris koneksi tersimpan memiliki perintahnya sendiri (ubah nama, sunting, uji, ganti kunci, masukkan ulang kunci, jadikan aktif, hapus), dan semuanya hanya berjalan melalui kontrak koneksi Core.",
+    "opAdd": "Tambah koneksi",
+    "opAddNote": "Membuka penyiapan koneksi penyedia di bawah — satu-satunya jenis koneksi yang kolom penyiapannya ditetapkan pada fase ini. Penyiapan jenis koneksi lain memerlukan kontrak bootstrap Core yang belum terhubung.",
+    "opAddGo": "Tambah koneksi penyedia",
+    "opRename": "Ubah nama koneksi",
+    "opRemove": "Hapus koneksi",
+    "opRemoveUnavailable": "Hapus berlaku untuk koneksi di dalam daftar. Daftar koneksi tidak tersedia, sehingga belum ada yang dapat dihapus. Penghapusan bersifat destruktif dan selalu meminta konfirmasi eksplisit yang menyatakan cakupan serta dampaknya sebelum dijalankan.",
+    "opTest": "Uji koneksi",
+    "opTestUnavailable": "Pengujian berlaku untuk koneksi tersimpan, dan belum ada yang dapat ditampilkan. Formulir penyedia di bawah menyediakan Uji koneksi untuk entri yang sedang Anda masukkan.",
+    "opReauth": "Autentikasi ulang",
+    "opReauthUnavailable": "Autentikasi ulang berjalan melalui kontrak sesi Core yang belum terhubung pada tahap ini. Saat Core melaporkan autentikasi diperlukan, jalur autentikasi ulang akan muncul di sini dan di menu sesi.",
+    "switchTitle": "Ganti koneksi",
+    "switchIntro": "Mengganti koneksi adalah perubahan konteks yang dimediasi Core: mengubah data dan izin yang tersedia. Tindakan ini tidak pernah memindahkan atau menyalin Job ataupun data antar-Core.",
+    "firstRunTitle": "Penyiapan awal",
+    "firstRunBody": "Anda dapat menjalankan atau melanjutkan penyiapan awal kapan saja. Menjalankan ulang penyiapan tetap mempertahankan pilihan Anda yang sudah ada.",
+    "resumeSetup": "Lanjutkan penyiapan awal",
+    "loadMore": "Muat lebih banyak",
+    "checkStatus": "Periksa status",
+    "dismiss": "Tutup",
+    "cancel": "Batal",
+    "activeBadge": "Aktif",
+    "secretStatusLabel": "Kunci API",
+    "secretStatus": {
+      "present": "Tersimpan aman (tidak pernah ditampilkan)",
+      "missing": "Belum tersimpan — masukkan ulang kunci",
+      "revoked": "Dicabut — masukkan ulang kunci",
+      "corrupt": "Tidak tersedia (rusak) — masukkan ulang kunci",
+      "inaccessible": "Penyimpanan kredensial tidak tersedia"
+    },
+    "testedLabel": "Uji koneksi",
+    "testedCurrent": "Teruji (terverifikasi pada {{time}})",
+    "testedChanged": "Sudah diuji, tetapi koneksi berubah setelahnya — jalankan uji lagi",
+    "testedNever": "Tersimpan, belum diuji",
+    "opRotate": "Ganti kunci",
+    "opSwitch": "Jadikan aktif",
+    "rotateTitle": "Ganti kunci",
+    "rotateBody": "Tindakan ini mengganti kunci API tersimpan untuk koneksi {{connectionId}} dengan kunci baru yang Anda masukkan di bawah.",
+    "rotateEffects": "Core menyimpan kunci baru di bawah handle kredensial yang sama; panggilan berikutnya akan memakainya. Permintaan yang sudah berjalan tidak dibaca ulang — Core melaporkan nasibnya sebagaimana terjadi. Hasil uji terverifikasi koneksi menjadi usang sampai pengujian berhasil berikutnya.",
+    "rotateConfirm": "Ganti kunci",
+    "reauthTitle": "Masukkan ulang kunci",
+    "reauthBody": "Tindakan ini memasukkan ulang kredensial untuk koneksi {{connectionId}}. Nilai tersimpan tidak pernah ditampilkan; Anda memasukkan kunci baru.",
+    "reauthEffects": "Core menyimpan kunci baru di bawah handle kredensial yang sama; panggilan berikutnya akan memakainya. Hasil uji terverifikasi koneksi menjadi usang sampai pengujian berhasil berikutnya.",
+    "reauthConfirm": "Simpan kunci baru",
+    "credentialLabel": "Kunci API atau token baru",
+    "credentialHint": "Kunci hanya berada di memori hingga Anda mengonfirmasi; setelah disimpan, kunci tidak akan pernah ditampilkan lagi.",
+    "deleteTitle": "Hapus koneksi",
+    "deleteBody": "Tindakan ini menghapus koneksi {{connectionId}} secara permanen dari Core.",
+    "deleteEffects": "Core juga mencabut kredensial tersimpan. Apa pun yang bergantung pada koneksi ini akan melaporkan kredensial tidak tersedia dan menolak panggilan terproteksi — tidak ada cadangan otomatis. Tindakan ini tidak dapat dibatalkan dari halaman ini.",
+    "deleteConfirm": "Hapus koneksi",
+    "switchConnTitle": "Jadikan koneksi aktif",
+    "switchConnBody": "Tindakan ini mencatat koneksi {{connectionId}} sebagai koneksi aktif.",
+    "switchConnEffects": "Tidak ada job yang bermigrasi dan tidak ada data yang berpindah — Core hanya mencatat referensi koneksi aktif; tampilan bercakupan diatur ulang dari data otoritatif.",
+    "switchConnConfirm": "Jadikan aktif",
+    "dialogDurableNote": "Perintah bersifat persisten setelah dikonfirmasi Core; tombol dialog ini menyatakan tindakan yang diambil. Menutup dialog ini tidak mengubah apa pun.",
+    "listRefusedTitle": "Daftar koneksi ditolak",
+    "listRefusedBody": "Core menolak pembacaan daftar ({{code}}). Tidak ada baris ditampilkan — tidak ada yang direkayasa.",
+    "listRefusedNote": "Referensi Core: {{correlationId}}",
+    "outcomeConfirmedTitle": "Selesai",
+    "outcomeConfirmedBody": "{{action}} selesai pada koneksi {{connectionId}}; daftar di bawah mencerminkan laporan terkini Core.",
+    "outcomeConfirmedNote": "Status terkonfirmasi selalu berasal dari pembacaan otoritatif Core — tidak pernah dari respons perintah saja.",
+    "outcomeRefusedTitle": "Tidak diterapkan",
+    "outcomeRefusedBody": "{{action}} ditolak oleh Core ({{code}}). Tidak ada yang berubah.",
+    "outcomeRefusedNote": "Referensi Core: {{correlationId}}",
+    "outcomeUnknownTitle": "Hasil tidak diketahui",
+    "outcomeUnknownBody": "{{action}} pada koneksi {{connectionId}} kehilangan respons sebelum sempat dibaca. Respons yang hilang bukan bukti apakah perintah sudah diterapkan atau belum.",
+    "outcomeUnknownNote": "Periksa status untuk membaca ulang daftar otoritatif — perintah tidak pernah dikirim ulang secara otomatis.",
+    "action": {
+      "test": "Uji koneksi",
+      "rotate": "Ganti kunci",
+      "reauth": "Masukkan ulang kunci",
+      "delete": "Hapus koneksi",
+      "switch": "Jadikan aktif",
+      "rename": "Ubah nama koneksi",
+      "update": "Sunting koneksi"
+    },
+    "opEdit": "Sunting koneksi",
+    "renameTitle": "Ubah nama koneksi",
+    "renameBody": "Pilih nama tampilan untuk koneksi {{connectionId}}.",
+    "renameEffects": "Pengubahan nama hanya mengubah nama tampilan: tidak pernah mengubah identitas koneksi, dan tidak ada job, kredensial, atau riwayat eksekusi yang berpindah.",
+    "renameInputLabel": "Nama tampilan",
+    "renameConfirm": "Ubah nama",
+    "editTitle": "Sunting koneksi",
+    "editBody": "Sunting kolom non-rahasia untuk koneksi {{connectionId}} di bawah.",
+    "editEffects": "Hanya kolom non-rahasia yang berubah. Kunci tersimpan tidak pernah ditampilkan atau disunting di sini: untuk mengubah kunci, gunakan Ganti kunci atau Masukkan ulang kunci. Setelah penyuntingan terkonfirmasi, uji terakhir koneksi tidak lagi dianggap terkini hingga Anda mengujinya kembali.",
+    "editProviderLabel": "Penyedia",
+    "editBaseUrlLabel": "URL Dasar (opsional)",
+    "editModelLabel": "ID Model",
+    "editHeadersLabel": "Header kustom (opsional)",
+    "editHeadersHelp": "Satu header per baris, dengan format Nama: nilai.",
+    "editHeadersInvalid": "Masukkan header satu per baris, dengan format Nama: nilai.",
+    "editConfirm": "Simpan perubahan",
+    "conflictNote": "Koneksi ini berubah sejak terakhir dibaca (CONFLICT_STATE). Tidak ada yang ditimpa: periksa status untuk membaca ulang kondisi terkini, lalu terapkan ulang perubahan Anda berdasarkan daftar terbaru."
+  },
+  "updates": {
+    "body": "Status pembaruan dan pemeliharaan tidak ditampilkan: kontrak status pembaruan belum terhubung pada tahap ini. Halaman ini tidak pernah menyiratkan pembayaran, penguncian kedaluwarsa, atau perilaku pemeliharaan apa pun."
+  },
+  "about": {
+    "appVersion": "Versi shell UI",
+    "license": "Lisensi",
+    "licenseValue": "Apache-2.0",
+    "body": "Build ini berisi shell bersama dan navigasi yang disetujui. Wordmark dan aset merek ditunda menunggu keputusan pemilik; nama produk ditampilkan sebagai teks biasa.",
+    "versionDisclaimer": "Ini hanya versi shell UI lokal. Ini tidak membuat klaim mengenai rilis terbaru atau paling aman yang tersedia."
+  }
+}

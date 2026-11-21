@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Aç",
+    "close": "Kapat",
+    "cancel": "İptal",
+    "reset": "Sıfırla",
+    "retry": "Yeniden dene"
+  },
+  "states": {
+    "unknown": "Bilinmiyor",
+    "unavailable": "Kullanılamıyor",
+    "notConnected": "Bağlı değil"
+  },
+  "entryNotice": {
+    "title": "Giriş noktası",
+    "body": "Bu grubun ekranları ve Core destekli denetimleri sonraki bir pakette sunulacaktır. Bu aşamada hiçbir Core sözleşmesi bağlı olmadığından bu girişin ötesinde bir şey gösterilmemektedir.",
+    "localOnlyBody": "Bu sayfadaki yerel tercih denetimleri şimdi çalışmaktadır; bu gruba ait kalan ekranlar sonraki bir pakette sunulacaktır."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Kaydedilmemiş girdiniz ve yerel taslağınız güvenle korundu.",
+      "correlationIdLabel": "Korelasyon kimliği: {{correlationId}}",
+      "errorCodeLabel": "Makine hata kodu: {{code}}"
+    },
+    "actions": {
+      "retry": "Eylemi yeniden dene",
+      "reconcileS4": "Yetkili Core durumunu yeniden oku",
+      "resolveConflict": "Çakışmayı incele ve çöz",
+      "reauthenticate": "Oturumu yeniden doğrula",
+      "switchCoreConnection": "Core bağlantısını değiştir",
+      "dismiss": "Kapat",
+      "openModelSettings": "Model ayarlarını aç"
+    },
+    "validationFailed": {
+      "title": "Doğrulama başarısız",
+      "explanation": "Gönderilen bir veya daha fazla alan Core doğrulama şemasına uymadı. Vurgulanan girdileri gözden geçirip yeniden deneyin."
+    },
+    "configConflict": {
+      "title": "Yapılandırma çakışması",
+      "explanation": "Yapılandırma siz yükledikten sonra değişti. Düzenlemelerinizi uygulamadan önce yetkili revizyonu yenileyin."
+    },
+    "authzDenied": {
+      "title": "İzin reddedildi",
+      "explanation": "Geçerli Core oturumunuzun bu eylem için izni yok veya oturumunuzun yeniden doğrulanması gerekiyor."
+    },
+    "notFound": {
+      "title": "Kaynak bulunamadı",
+      "explanation": "İstenen öğe artık mevcut değil veya etkin Core çalışma alanı kapsamınızın dışında."
+    },
+    "conflictState": {
+      "title": "Durum çakışması algılandı",
+      "explanation": "Bu kayıt Core üzerinde daha yeni bir revizyona geçti. Yeniden denemeden önce en güncel yetkili durumu karşılaştırın."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Yinelenen işlem anahtarı",
+      "explanation": "Core bu idempotency anahtarıyla zaten farklı bir istek kaydetti. Eyleminizin başarılı olup olmadığını doğrulamak için yetkili durumu yeniden okuyun."
+    },
+    "singleInstanceConflict": {
+      "title": "Başka bir Core örneği etkin",
+      "explanation": "Başka bir Karyora Core işlemi şu anda bu çalışma alanı kilidine sahip. Çakışan bir örnek başlatmak yerine çalışan Core bağlantısına geçin."
+    },
+    "storageUnavailable": {
+      "title": "Depolama geçici olarak kullanılamıyor",
+      "explanation": "Core yerel veya uzak depolama arka ucuna ulaşamadı. Depolama erişilebilirliğini kontrol edip yeniden deneyin."
+    },
+    "migrationFailed": {
+      "title": "Veri geçişi başarısız",
+      "explanation": "Core, kısmi değişiklikleri işlemeden önce şema veya veri geçişini güvenle durdurdu. Yeniden denemeden önce tanılama verilerini inceleyin."
+    },
+    "stateCorrupt": {
+      "title": "Kayıtlı durum bütünlük hatası",
+      "explanation": "Core, kalıcı durum üzerinde bir bütünlük kontrolü hatası algıladı ve verilerinizi korumak için durdu. Doğrulanmış bir yedekten geri yükleyin veya tanılamayı açın."
+    },
+    "recoveryRequired": {
+      "title": "Kurtarma kontrolü gerekiyor",
+      "explanation": "Önceki işlem temiz bir şekilde tamamlanmadı. Devam etmeden önce geçerli durumu doğrulamak için yetkili Core durumunu yeniden okuyun."
+    },
+    "rateLimited": {
+      "title": "Hız sınırına ulaşıldı",
+      "explanation": "Kısa bir zaman aralığında çok fazla istek gönderildi. Kısa bir süre bekleyip açıkça yeniden deneyin."
+    },
+    "internal": {
+      "title": "Core iç hatası",
+      "explanation": "Core beklenmeyen bir iç hata bildirdi. Yerel taslağınız silinmedi; tanılama dışa aktaracaksanız korelasyon kimliğini kopyalayın."
+    },
+    "unknownCode": {
+      "title": "Core isteği reddetti",
+      "explanation": "Core tanınmayan bir makine hata kodu döndürdü. Ham arka uç metni gösterilmez; Core sağlığını doğrulayın veya sansürlenmiş tanılama verilerini dışa aktarın."
+    },
+    "unknownOutcomeS4": {
+      "title": "İşlem sonucu bilinmiyor",
+      "explanation": "Core bu değişikliğin başarılı olup olmadığını doğrulamadan bağlantı koptu. Başarı veya başarısızlık varsaymayın—önce yetkili Core durumunu yeniden okuyun."
+    }
+  }
+}

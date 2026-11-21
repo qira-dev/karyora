@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "设置",
+    "subtitle": "设置分组。尚未接入 Core 支持界面的分组将如实展示其入口状态。",
+    "groupsNavLabel": "设置分组"
+  },
+  "groups": {
+    "appearance": {
+      "label": "外观",
+      "description": "主题、动效与语言偏好。",
+      "title": "外观"
+    },
+    "connections": {
+      "label": "连接",
+      "description": "Core 连接管理（添加、测试、切换、重新认证）。",
+      "title": "连接"
+    },
+    "privacy": {
+      "label": "隐私",
+      "description": "隐私与数据控制。",
+      "title": "隐私"
+    },
+    "security": {
+      "label": "安全",
+      "description": "会话与凭据安全控制。",
+      "title": "安全"
+    },
+    "notifications": {
+      "label": "通知",
+      "description": "通知偏好设置。",
+      "title": "通知"
+    },
+    "shortcuts": {
+      "label": "快捷键",
+      "description": "键盘快捷键。",
+      "title": "键盘快捷键"
+    },
+    "diagnostics": {
+      "label": "诊断",
+      "description": "Core 健康状态与脱敏诊断导出。",
+      "title": "诊断"
+    },
+    "updates": {
+      "label": "更新",
+      "description": "更新与维护状态。",
+      "title": "更新"
+    },
+    "about": {
+      "label": "关于",
+      "description": "版本、许可证与产品元数据。",
+      "title": "关于"
+    }
+  },
+  "appearance": {
+    "theme": "主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeSystem": "跟随系统",
+    "themeHelp": "首次运行默认为浅色。“跟随系统”会遵循操作系统外观并在系统外观切换时实时更新。",
+    "reducedMotion": "动效",
+    "reducedMotionSystem": "跟随系统",
+    "reducedMotionReduce": "减弱动效",
+    "reducedMotionFull": "完整动效",
+    "reducedMotionHelp": "“跟随系统”遵循操作系统的减弱动态效果设置。你也可以手动强制开启或关闭减弱动效。",
+    "language": "语言",
+    "languageHelp": "英语为权威源语言与回退语言。全部 13 种受支持语言（en、bn、zh-CN、es、pt-BR、ja、ru、ko、de、fr、id、tr、vi）均已内置，按语言懒加载并支持实时切换。",
+    "densityWithheld": "暂不提供紧凑密度选项：仅当触控目标尺寸与无障碍检查通过后才会提供，而相关检查尚未运行。",
+    "applied": "更改会立即生效。重置将恢复文档规定的默认值：浅色主题、动效跟随系统以及英语。",
+    "resetConfirm": "将外观重置为默认设置"
+  },
+  "security": {
+    "logoutSectionTitle": "退出当前会话",
+    "logoutSectionBody": "退出登录会立即在 Core 上终止当前会话。本浏览器内存中持有的令牌将被销毁，所有带作用域视图将在下次使用时向 Core 重新查询，且在重新建立会话前不会保留任何可用数据。",
+    "logoutAction": "退出登录",
+    "postureNoSession": "当前未持有任何会话，无需退出。",
+    "postureNoSessionReason": "请先通过连接引导建立会话；此控件仅对已持有的会话生效。",
+    "postureRechecking": "正在依据真实 Core 响应重新核查连接状态。",
+    "postureUnknown": "此来源未收到 Core 传输通道响应，因此连接状态如实显示为不可用。",
+    "dialogTitle": "退出当前会话？",
+    "dialogScope": "这将立即在 Core 上终止当前会话。本浏览器持有的令牌将被清除，且在重新建立会话前，所有带作用域视图都将不可用。",
+    "dialogKeep": "本设备上的本地偏好设置以及未保存的非敏感草稿将被保留。",
+    "dialogConfirm": "退出登录",
+    "confirmedTitle": "你已退出登录",
+    "confirmedBody": "Core 已确认吊销会话，令牌已从本浏览器内存中清除。",
+    "confirmedReestablish": "再次使用时，请通过连接引导重新建立会话。",
+    "refusedTitle": "Core 拒绝了退出登录",
+    "refusedBody": "Core 拒绝了退出请求（类型化拒绝码 {{code}}）。当前会话尚未终止，持有的令牌仍保留在本浏览器内存中。",
+    "refusedNote": "未执行退出。上方类型化错误码稳定且与语言无关；请解决所列原因后手动重试。",
+    "unknownTitle": "响应丢失",
+    "unknownBody": "Core 从未确认退出操作，因此不会假定会话已终止，持有的令牌仍保留在内存中。",
+    "unknownNote": "系统不会自动重试。请检查会话状态，若会话仍处于活动状态请手动再次退出。",
+    "revokeAllAbsent": "吊销此实例的全部会话（属于凭据变更）为 Core 侧操作类别；此处不提供相应控件。"
+  },
+  "shortcuts": {
+    "body": "下方快捷键已在当前外壳中实现。完整的快捷键注册表以及改键与禁用控件将在后续版本包中交付。",
+    "localNote": "快捷键偏好属于本设备的本地偏好设置。"
+  },
+  "connections": {
+    "body": "连接管理（添加、重命名、测试、重新认证与切换）需要 Core 连接契约，本里程碑尚未接入，因此暂不显示连接列表。此处绝不编造任何连接状态。",
+    "listTitle": "连接列表",
+    "listIntro": "连接为 Core 记录，仅以安全显示名称呈现。本页面绝不展示令牌或内嵌凭据的端点地址。",
+    "listUnavailable": "连接列表不可用：本里程碑尚未接入 Core 连接契约，因此无法列出连接记录。此处绝不编造任何连接状态。",
+    "providerSectionTitle": "模型提供方连接设置",
+    "providerIntro": "此步骤与首次运行向导中的提供方设置相同，你也可以从首页的首次运行设置进入。重新运行设置绝不会重置既有状态。",
+    "operationsTitle": "连接操作",
+    "operationsIntro": "专用连接流程在此提供添加与切换操作；每条已保存连接均附带自身命令（重命名、编辑、测试、更换密钥、重新输入密钥、设为活动、移除），且所有操作均仅通过 Core 连接契约执行。",
+    "opAdd": "添加连接",
+    "opAddNote": "打开下方的模型提供方连接设置——这是当前阶段唯一定义了配置字段的连接类型。其他连接类型的设置需要 Core 引导契约，目前尚未接入。",
+    "opAddGo": "添加模型提供方连接",
+    "opRename": "重命名连接",
+    "opRemove": "移除连接",
+    "opRemoveUnavailable": "移除操作针对列表中的连接。当前连接列表不可用，暂无可移除项。移除属于破坏性操作，执行前始终会要求显式确认并说明其作用范围与影响。",
+    "opTest": "测试连接",
+    "opTestUnavailable": "测试操作针对已保存的连接，而目前尚无法列出连接。下方提供方表单为你当前正在填写的配置提供了“测试连接”功能。",
+    "opReauth": "重新认证",
+    "opReauthUnavailable": "重新认证通过 Core 会话契约运行，本里程碑尚未接入。当 Core 上报需要认证时，重新认证入口会显示在此处及会话菜单中。",
+    "switchTitle": "切换连接",
+    "switchIntro": "切换是由 Core 仲裁的上下文变更：它决定当前可访问的数据与权限，绝不会在不同 Core 之间移动或复制作业与数据。",
+    "firstRunTitle": "首次运行设置",
+    "firstRunBody": "你可以随时运行或恢复首次运行设置。重新运行设置会保留你已有的选择。",
+    "resumeSetup": "恢复首次运行设置",
+    "loadMore": "加载更多",
+    "checkStatus": "检查状态",
+    "dismiss": "关闭",
+    "cancel": "取消",
+    "activeBadge": "当前活动",
+    "secretStatusLabel": "API 密钥",
+    "secretStatus": {
+      "present": "已安全存储（绝不显示）",
+      "missing": "未存储——请重新输入密钥",
+      "revoked": "已吊销——请重新输入密钥",
+      "corrupt": "不可用（已损坏）——请重新输入密钥",
+      "inaccessible": "凭据存储不可用"
+    },
+    "testedLabel": "连接测试",
+    "testedCurrent": "已测试（验证时间：{{time}}）",
+    "testedChanged": "已测试，但此后连接发生变更——请重新测试",
+    "testedNever": "已保存，尚未测试",
+    "opRotate": "更换密钥",
+    "opSwitch": "设为活动",
+    "rotateTitle": "更换密钥",
+    "rotateBody": "此操作将使用你在下方输入的新密钥替换连接 {{connectionId}} 已存储的 API 密钥。",
+    "rotateEffects": "Core 会将新密钥存储在同一凭据句柄下，下一次调用将启用新密钥。正在进行的请求不会被重读——Core 会在完成时如实上报其结果。在下次测试成功前，该连接的已验证测试结果将变为过期状态。",
+    "rotateConfirm": "更换密钥",
+    "reauthTitle": "重新输入密钥",
+    "reauthBody": "此操作将为连接 {{connectionId}} 重新输入凭据。已存储的值绝不会显示，你需要输入一个新的密钥。",
+    "reauthEffects": "Core 会将新密钥存储在同一凭据句柄下，下一次调用将启用新密钥。在下次测试成功前，该连接的已验证测试结果将变为过期状态。",
+    "reauthConfirm": "存储新密钥",
+    "credentialLabel": "新的 API 密钥或令牌",
+    "credentialHint": "密钥仅在你确认前暂存于内存中；一旦存储后绝不会再次显示。",
+    "deleteTitle": "移除连接",
+    "deleteBody": "此操作将从 Core 中永久移除连接 {{connectionId}}。",
+    "deleteEffects": "Core 同时会吊销已存储的凭据。任何依赖此连接的功能随后都会报告凭据不可用并拒绝受保护调用——不存在任何回退机制。此操作无法在此页面撤销。",
+    "deleteConfirm": "移除连接",
+    "switchConnTitle": "设为活动连接",
+    "switchConnBody": "此操作会将连接 {{connectionId}} 记录为当前活动连接。",
+    "switchConnEffects": "不会迁移任何作业，也不会移动任何数据——Core 仅记录活动连接引用；各带作用域视图将基于权威数据重新加载。",
+    "switchConnConfirm": "设为活动",
+    "dialogDurableNote": "一旦 Core 确认，该命令即持久化生效；此对话框的按钮明确表示所执行的操作。关闭此对话框不会产生任何更改。",
+    "listRefusedTitle": "连接列表读取被拒绝",
+    "listRefusedBody": "Core 拒绝了列表读取请求（{{code}}）。未展示任何行——绝不编造数据。",
+    "listRefusedNote": "Core 参考编号：{{correlationId}}",
+    "outcomeConfirmedTitle": "已完成",
+    "outcomeConfirmedBody": "已对连接 {{connectionId}} 完成“{{action}}”；下方列表反映 Core 当前上报的最新状态。",
+    "outcomeConfirmedNote": "已确认状态始终来源于 Core 的权威读取——绝不仅凭命令本身的响应决定。",
+    "outcomeRefusedTitle": "未应用",
+    "outcomeRefusedBody": "Core 拒绝了“{{action}}”（{{code}}）。未产生任何更改。",
+    "outcomeRefusedNote": "Core 参考编号：{{correlationId}}",
+    "outcomeUnknownTitle": "结果未知",
+    "outcomeUnknownBody": "针对连接 {{connectionId}} 的“{{action}}”在读取前丢失了响应。响应丢失绝不证明命令已生效或未生效。",
+    "outcomeUnknownNote": "请检查状态以重新读取权威列表——系统绝不会自动重发命令。",
+    "action": {
+      "test": "测试连接",
+      "rotate": "更换密钥",
+      "reauth": "重新输入密钥",
+      "delete": "移除连接",
+      "switch": "设为活动",
+      "rename": "重命名连接",
+      "update": "编辑连接"
+    },
+    "opEdit": "编辑连接",
+    "renameTitle": "重命名连接",
+    "renameBody": "为连接 {{connectionId}} 设置一个显示名称。",
+    "renameEffects": "重命名仅更改显示名称：绝不更改连接标识，也不会移动任何作业、凭据或执行历史。",
+    "renameInputLabel": "显示名称",
+    "renameConfirm": "重命名",
+    "editTitle": "编辑连接",
+    "editBody": "在下方编辑连接 {{connectionId}} 的非密钥字段。",
+    "editEffects": "仅会更改非密钥字段。已存储的密钥绝不会在此显示或编辑：如需更改密钥，请使用“更换密钥”或“重新输入密钥”。确认编辑后，该连接的上次测试结果将不再视为最新，直至你重新运行测试。",
+    "editProviderLabel": "模型提供方",
+    "editBaseUrlLabel": "基础 URL（可选）",
+    "editModelLabel": "模型 ID",
+    "editHeadersLabel": "自定义请求头（可选）",
+    "editHeadersHelp": "每行一个请求头，格式为 Name: value。",
+    "editHeadersInvalid": "请按每行一个、Name: value 的格式输入请求头。",
+    "editConfirm": "保存更改",
+    "conflictNote": "此连接自上次读取以来已发生变更（CONFLICT_STATE）。未覆盖任何数据：请先检查状态以重新读取当前状态，再基于列表展示的内容重新应用你的更改。"
+  },
+  "updates": {
+    "body": "暂不显示更新与维护状态：本里程碑尚未接入更新状态契约。本界面绝不暗示结账付费、到期锁定或任何强制维护行为。"
+  },
+  "about": {
+    "appVersion": "UI 外壳版本",
+    "license": "许可证",
+    "licenseValue": "Apache-2.0",
+    "body": "本构建包含共享外壳与获批导航结构。文字标识与品牌素材暂缓交付以待负责人决定；产品名称以纯文本展示。",
+    "versionDisclaimer": "此版本仅为本地 UI 外壳版本号，不代表最新或最安全的可用发行版本。"
+  }
+}

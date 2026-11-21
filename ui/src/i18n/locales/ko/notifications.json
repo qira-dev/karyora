@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "알림",
+    "noOsDelivery": "이 패널은 앱 내 상태만 표시합니다. 데스크톱 알림 전달에는 별도의 OS 권한이 필요하며 여기에서는 요청하지 않습니다.",
+    "preferencesAbsent": "알림 환경 설정은 아직 사용할 수 없습니다. 제공된 Core 계약에 알림 환경 설정 저장소가 없으므로 여기에서 변경하거나 저장할 항목이 없습니다. 아래 목록은 제공된 앱 내 알림 화면이며 데스크톱 전달은 포함되지 않습니다.",
+    "blocked": {
+      "noCore": "알림을 사용할 수 없습니다. 이 앱 출처에서 응답한 Core 전송 계층이 없어 읽을 알림 소스가 없습니다. Core의 로컬 전송 계층은 선택 활성화 방식이며 기본값은 비활성화입니다. 이 상태는 빈 목록으로 표시되지 않습니다.",
+      "noSession": "알림을 사용할 수 없습니다. 이 앱 출처에 수립된 Core 세션이 없어 권한이 부여된 알림 읽기를 실행할 수 없습니다. 초기 설정에서 일회용 부트스트랩 자격 증명으로 연결하세요.",
+      "sessionExpired": "알림을 사용할 수 없습니다. 이 페이지가 보유하던 세션이 더 이상 Core의 권한을 받지 못합니다(만료, 폐기 또는 무효화됨). 토큰이 이 페이지의 메모리에서 폐기되었으므로 초기 설정에서 새 일회용 자격 증명으로 다시 연결하세요.",
+      "connecting": "Core 연결 확인 중: Core 세션이 권한 있는 읽기에 응답하면 알림 읽기가 시작됩니다."
+    },
+    "loading": "알림을 불러오는 중…",
+    "refresh": "새로고침",
+    "refreshing": "새로고침 중…",
+    "lastConfirmed": "Core에서 마지막으로 확인됨: {{time}}",
+    "countsLine": "읽지 않음 {{total}}건",
+    "countsUnavailable": "읽지 않은 알림 수를 확인할 수 없음",
+    "announceData": "이 페이지에 표시된 알림 그룹: {{count}}개",
+    "filterCategory": "범주",
+    "filterReadState": "읽음 상태",
+    "filterAll": "전체",
+    "clearFilter": "필터 지우기",
+    "loadMore": "더 불러오기",
+    "loadingMore": "더 불러오는 중…",
+    "emptyAll": "알림 없음",
+    "emptyAllBody": "아직 알림이 없습니다. Core가 작업 결과, 실패, 승인 대기 및 기타 기록된 상태 전환을 발생시키면 여기에 표시됩니다.",
+    "emptyFiltered": "현재 필터와 일치하는 알림이 없습니다",
+    "emptyFilteredBody": "알림은 존재하지만 선택한 범주 및 읽음 상태 필터와 일치하는 항목이 없습니다. 필터를 지우면 전체 목록이 표시됩니다.",
+    "failureTitle": "알림을 읽을 수 없습니다",
+    "failureBody": "Core가 알림 읽기를 거부했습니다. 아래의 유형화된 코드는 Core 자체 거부이며 목록을 채우기 위해 아무것도 임의로 생성하지 않았습니다. 새로고침은 사용자의 명시적 작업입니다.",
+    "unknownTitle": "알림 읽기 결과를 알 수 없습니다",
+    "unknownBody": "알림 읽기에 대한 확정 응답이 도착하지 않았습니다. 읽기가 확인되기 전까지 목록 상태는 알 수 없으며, 빈 목록으로 표시하지 않습니다. 새로고침하면 Core에서 현재 상태를 다시 읽습니다.",
+    "presentation": {
+      "unread": "읽지 않음",
+      "read": "읽음",
+      "stale": "오래됨",
+      "permissionRevoked": "접근 권한 폐기됨",
+      "unknown": "알 수 없는 상태"
+    },
+    "stateClass": {
+      "result": "결과",
+      "failure": "실패",
+      "approvalNeeded": "승인 필요",
+      "unknown": "알 수 없는 유형"
+    },
+    "category": {
+      "job": "작업",
+      "unknown": "알 수 없는 범주"
+    },
+    "entry": {
+      "objectJob": "관련 작업",
+      "objectUnknownType": "관련 객체",
+      "stateUnavailable": "상태: 사용 불가",
+      "updatesCount": "이 그룹에 {{count}}건의 알림",
+      "unreadInGroup": "이 그룹에 읽지 않음 {{count}}건",
+      "blockNewest": "최신 {{time}}",
+      "blockUnread": "읽지 않음 {{count}}건",
+      "noDestination": "이 알림의 대상 경로는 아직 제공된 화면에 포함되지 않아 여기에서 열 수 없습니다.",
+      "copyId": "알림"
+    },
+    "actions": {
+      "markRead": "읽음으로 표시",
+      "markUnread": "읽지 않음으로 표시",
+      "clear": "지우기",
+      "pending": "처리 중…",
+      "scopeNote": "작업은 해당 항목의 최신 알림에 적용됩니다. Core는 지정된 알림 식별자만 정확히 변경하며 다른 항목은 건드리지 않습니다.",
+      "refusedTitle": "Core가 작업을 거부했습니다",
+      "refusedBody": "아래의 유형화된 코드는 Core 자체 거부이며 Core가 달리 알리지 않는 한 아무것도 적용되지 않았습니다. 다시 시도는 사용자의 명시적 작업입니다.",
+      "tryAgain": "다시 시도",
+      "unknownTitle": "작업 결과를 알 수 없습니다",
+      "unknownBody": "응답이 유실되어 작업이 기록되었는지 여부를 증명할 수 없습니다. 복구 방법은 재전송이 아니라 조회이며, 새로고침을 통해 Core의 현재 상태를 읽으세요.",
+      "checkByRefresh": "새로고침하여 확인"
+    },
+    "lawNote": "알림을 읽음으로 표시하거나 지워도 연결된 작업, 승인 또는 다른 기록은 절대 변경되지 않습니다. 승인 알림을 읽었다고 해서 승인이 수락되는 것은 아닙니다. 승인은 작업 상세 화면의 명시적인 수락 또는 거부 명령을 통해서만 처리됩니다."
+  }
+}

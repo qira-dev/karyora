@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "Paramètres",
+    "subtitle": "Groupes de paramètres. Les groupes dont les écrans adossés au Core ne sont pas encore intégrés affichent honnêtement leur état d'entrée.",
+    "groupsNavLabel": "Groupes de paramètres"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Apparence",
+      "description": "Préférences de thème, d'animations et de langue.",
+      "title": "Apparence"
+    },
+    "connections": {
+      "label": "Connexions",
+      "description": "Gestion des connexions au Core (ajouter, tester, basculer, réauthentifier).",
+      "title": "Connexions"
+    },
+    "privacy": {
+      "label": "Confidentialité",
+      "description": "Contrôles de confidentialité et de données.",
+      "title": "Confidentialité"
+    },
+    "security": {
+      "label": "Sécurité",
+      "description": "Contrôles de sécurité de session et d'identifiants.",
+      "title": "Sécurité"
+    },
+    "notifications": {
+      "label": "Notifications",
+      "description": "Préférences de notifications.",
+      "title": "Notifications"
+    },
+    "shortcuts": {
+      "label": "Raccourcis",
+      "description": "Raccourcis clavier.",
+      "title": "Raccourcis clavier"
+    },
+    "diagnostics": {
+      "label": "Diagnostics",
+      "description": "Santé du Core et export de diagnostics expurgés.",
+      "title": "Diagnostics"
+    },
+    "updates": {
+      "label": "Mises à jour",
+      "description": "Statut des mises à jour et de la maintenance.",
+      "title": "Mises à jour"
+    },
+    "about": {
+      "label": "À propos",
+      "description": "Version, licence et métadonnées du produit.",
+      "title": "À propos"
+    }
+  },
+  "appearance": {
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "themeHelp": "Clair est le thème par défaut au premier démarrage. Système suit l'apparence du système d'exploitation et bascule en direct lorsque celle-ci change.",
+    "reducedMotion": "Animations",
+    "reducedMotionSystem": "Suivre le système",
+    "reducedMotionReduce": "Réduire les animations",
+    "reducedMotionFull": "Aucune réduction",
+    "reducedMotionHelp": "Suivre le système respecte le réglage de réduction des animations du système d'exploitation. Vous pouvez également forcer l'activation ou la désactivation de la réduction.",
+    "language": "Langue",
+    "languageHelp": "L'anglais est la source faisant autorité et la langue de repli. Les 13 langues prises en charge (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) sont embarquées avec un chargement différé par langue et basculent en direct.",
+    "densityWithheld": "Aucune option de densité compacte n'est proposée : elle ne s'affiche que si les vérifications de taille de cible et d'accessibilité réussissent, et ces vérifications n'ont pas été exécutées.",
+    "applied": "Les modifications s'appliquent immédiatement. Réinitialiser restaure les valeurs par défaut documentées : thème Clair, animations suivant le système et anglais.",
+    "resetConfirm": "Réinitialiser l'apparence par défaut"
+  },
+  "security": {
+    "logoutSectionTitle": "Se déconnecter de cette session",
+    "logoutSectionBody": "La déconnexion met immédiatement fin à cette session sur le Core. Le jeton détenu est supprimé de la mémoire de ce navigateur, chaque vue délimitée réinterroge le Core lors de sa prochaine utilisation et rien ne reste accessible tant qu'une session n'est pas rétablie.",
+    "logoutAction": "Se déconnecter",
+    "postureNoSession": "Aucune session n'est actuellement active ; il n'y a donc rien à déconnecter.",
+    "postureNoSessionReason": "Rétablissez d'abord une session via l'amorçage de connexion ; ce contrôle agit uniquement sur une session active.",
+    "postureRechecking": "L'état de la connexion est en cours de revérification auprès d'une réponse réelle du Core.",
+    "postureUnknown": "Aucun transport Core n'a répondu à cette origine ; l'état de la connexion est donc honnêtement indisponible.",
+    "dialogTitle": "Se déconnecter de cette session ?",
+    "dialogScope": "Cela met immédiatement fin à la session actuelle sur le Core. Le jeton détenu par ce navigateur est supprimé et chaque vue délimitée reste indisponible tant qu'une session n'est pas rétablie.",
+    "dialogKeep": "Les préférences locales et les brouillons non enregistrés non sensibles sur cet appareil sont conservés.",
+    "dialogConfirm": "Se déconnecter",
+    "confirmedTitle": "Vous êtes déconnecté",
+    "confirmedBody": "Le Core a confirmé la révocation et le jeton a été supprimé de la mémoire de ce navigateur.",
+    "confirmedReestablish": "Rétablissez une session via l'amorçage de connexion à votre retour.",
+    "refusedTitle": "Le Core a refusé la déconnexion",
+    "refusedBody": "La déconnexion a été refusée par le Core (refus typé {{code}}). La session n'a PAS été terminée et le jeton détenu reste dans la mémoire de ce navigateur.",
+    "refusedNote": "Aucune déconnexion n'a eu lieu. Le code typé ci-dessus est stable et indépendant de la langue ; résolvez la cause indiquée puis réessayez explicitement.",
+    "unknownTitle": "La réponse a été perdue",
+    "unknownBody": "Le Core n'a jamais confirmé la déconnexion ; la session n'est donc PAS présumée terminée et le jeton détenu reste en mémoire.",
+    "unknownNote": "Aucune nouvelle tentative automatique n'est lancée. Vérifiez l'état de la session et déconnectez-vous de nouveau explicitement si elle est toujours active.",
+    "revokeAllAbsent": "La révocation de toutes les sessions de cette instance (changement d'identifiants) est une classe d'action côté Core ; aucun contrôle pour cela n'existe ici."
+  },
+  "shortcuts": {
+    "body": "Les raccourcis ci-dessous sont implémentés dans l'interface actuelle. Le registre complet des raccourcis ainsi que les contrôles de réattribution et de désactivation seront livrés dans un lot ultérieur.",
+    "localNote": "Les préférences de raccourcis sont locales à chaque appareil."
+  },
+  "connections": {
+    "body": "La gestion des connexions — ajouter, renommer, tester, réauthentifier et basculer — nécessite les contrats de connexion du Core, qui ne sont pas intégrés dans ce jalon ; aucune liste de connexions n'est donc affichée. Aucun état de connexion n'est inventé ici.",
+    "listTitle": "Connexions",
+    "listIntro": "Les connexions sont des enregistrements du Core présentés avec des noms d'affichage sûrs. Cette page n'affiche jamais de jetons ni de points de terminaison contenant des identifiants intégrés.",
+    "listUnavailable": "La liste des connexions est indisponible : les contrats de connexion du Core ne sont pas intégrés dans ce jalon, aucun enregistrement de connexion ne peut donc être listé. Aucun état de connexion n'est inventé ici.",
+    "providerSectionTitle": "Configuration d'une connexion fournisseur",
+    "providerIntro": "Il s'agit de la même étape de configuration de fournisseur que celle de l'assistant de configuration initiale. Vous pouvez aussi y accéder depuis la configuration initiale sur la page d'accueil. Relancer la configuration ne réinitialise jamais l'état existant.",
+    "operationsTitle": "Opérations de connexion",
+    "operationsIntro": "Le parcours de connexion dédié propose ici l'ajout et le basculement ; chaque ligne de connexion enregistrée porte ses propres commandes (renommer, modifier, tester, remplacer la clé, ressaisir la clé, définir comme active, supprimer), toutes exécutées uniquement via les contrats de connexion du Core.",
+    "opAdd": "Ajouter une connexion",
+    "opAddNote": "Ouvre la configuration de connexion fournisseur ci-dessous — le seul type de connexion dont les champs de configuration sont spécifiés dans cette phase. La configuration d'autres types de connexions requiert les contrats d'amorçage du Core, pas encore intégrés.",
+    "opAddGo": "Ajouter une connexion fournisseur",
+    "opRename": "Renommer la connexion",
+    "opRemove": "Supprimer la connexion",
+    "opRemoveUnavailable": "La suppression s'applique à une connexion de la liste. La liste des connexions étant indisponible, il n'y a encore rien à supprimer. La suppression est destructive et demande toujours une confirmation explicite indiquant sa portée et ses effets avant exécution.",
+    "opTest": "Tester la connexion",
+    "opTestUnavailable": "Le test s'applique à une connexion enregistrée, et aucune ne peut encore être listée. Le formulaire fournisseur ci-dessous propose Tester la connexion pour les informations en cours de saisie.",
+    "opReauth": "Réauthentifier",
+    "opReauthUnavailable": "La réauthentification passe par les contrats de session du Core, qui ne sont pas intégrés dans ce jalon. Lorsque le Core signale qu'une authentification est requise, le parcours de réauthentification apparaît ici et dans le menu de session.",
+    "switchTitle": "Changer de connexion",
+    "switchIntro": "Le changement de connexion est un changement de contexte géré par le Core : il modifie les données et les permissions disponibles. Il ne déplace et ne copie jamais de jobs ni de données entre Cores.",
+    "firstRunTitle": "Configuration initiale",
+    "firstRunBody": "Vous pouvez lancer ou reprendre la configuration initiale à tout moment. Relancer la configuration préserve vos choix existants.",
+    "resumeSetup": "Reprendre la configuration initiale",
+    "loadMore": "Charger plus",
+    "checkStatus": "Vérifier le statut",
+    "dismiss": "Ignorer",
+    "cancel": "Annuler",
+    "activeBadge": "Active",
+    "secretStatusLabel": "Clé API",
+    "secretStatus": {
+      "present": "Stockée en sécurité (jamais affichée)",
+      "missing": "Non stockée — ressaisissez la clé",
+      "revoked": "Révoquée — ressaisissez la clé",
+      "corrupt": "Indisponible (corrompue) — ressaisissez la clé",
+      "inaccessible": "Coffre d'identifiants indisponible"
+    },
+    "testedLabel": "Test de connexion",
+    "testedCurrent": "Testée (vérifiée à {{time}})",
+    "testedChanged": "Testée, mais la connexion a changé depuis — relancez le test",
+    "testedNever": "Enregistrée, non testée",
+    "opRotate": "Remplacer la clé",
+    "opSwitch": "Définir comme active",
+    "rotateTitle": "Remplacer la clé",
+    "rotateBody": "Cette action remplace la clé API stockée pour la connexion {{connectionId}} par la nouvelle clé que vous saisissez ci-dessous.",
+    "rotateEffects": "Le Core stocke la nouvelle clé sous le même descripteur d'identifiant ; le prochain appel l'utilisera. Les requêtes déjà en cours ne sont pas relues — le Core signale leur sort au fur et à mesure. Le résultat vérifié du test de la connexion devient obsolète jusqu'au prochain test réussi.",
+    "rotateConfirm": "Remplacer la clé",
+    "reauthTitle": "Ressaisir la clé",
+    "reauthBody": "Cette action ressaisit l'identifiant pour la connexion {{connectionId}}. La valeur stockée n'est jamais affichée ; vous saisissez une nouvelle clé.",
+    "reauthEffects": "Le Core stocke la nouvelle clé sous le même descripteur d'identifiant ; le prochain appel l'utilisera. Le résultat vérifié du test de la connexion devient obsolète jusqu'au prochain test réussi.",
+    "reauthConfirm": "Enregistrer la nouvelle clé",
+    "credentialLabel": "Nouvelle clé API ou jeton",
+    "credentialHint": "La clé reste uniquement en mémoire jusqu'à votre confirmation ; elle ne sera plus jamais affichée après stockage.",
+    "deleteTitle": "Supprimer la connexion",
+    "deleteBody": "Cette action supprime définitivement la connexion {{connectionId}} du Core.",
+    "deleteEffects": "Le Core révoque également l'identifiant stocké. Tout ce qui dépendait de cette connexion signale alors l'identifiant comme indisponible et refuse les appels protégés — sans solution de repli. Cette action ne peut pas être annulée depuis cette page.",
+    "deleteConfirm": "Supprimer la connexion",
+    "switchConnTitle": "Définir la connexion active",
+    "switchConnBody": "Cette action enregistre la connexion {{connectionId}} comme connexion active.",
+    "switchConnEffects": "Aucun job ne migre et aucune donnée ne se déplace — le Core enregistre uniquement la référence de connexion active ; les vues délimitées se réinitialisent depuis les données faisant autorité.",
+    "switchConnConfirm": "Définir comme active",
+    "dialogDurableNote": "La commande devient durable dès que le Core la confirme ; les boutons de cette boîte de dialogue énoncent l'acte. Fermer cette boîte de dialogue ne modifie rien.",
+    "listRefusedTitle": "La liste des connexions a été refusée",
+    "listRefusedBody": "Le Core a refusé la lecture de la liste ({{code}}). Aucune ligne n'est affichée — aucune n'est inventée.",
+    "listRefusedNote": "Référence Core : {{correlationId}}",
+    "outcomeConfirmedTitle": "Terminé",
+    "outcomeConfirmedBody": "{{action}} terminé sur la connexion {{connectionId}} ; la liste ci-dessous reflète ce que le Core rapporte maintenant.",
+    "outcomeConfirmedNote": "L'état confirmé provient toujours de la lecture faisant autorité du Core — jamais de la seule réponse de la commande.",
+    "outcomeRefusedTitle": "Non appliqué",
+    "outcomeRefusedBody": "{{action}} a été refusé par le Core ({{code}}). Rien n'a été modifié.",
+    "outcomeRefusedNote": "Référence Core : {{correlationId}}",
+    "outcomeUnknownTitle": "Issue inconnue",
+    "outcomeUnknownBody": "{{action}} sur la connexion {{connectionId}} a perdu sa réponse avant qu'elle puisse être lue. Une réponse perdue ne prouve jamais que la commande a été appliquée ou non.",
+    "outcomeUnknownNote": "Vérifiez le statut pour relire la liste faisant autorité — la commande n'est jamais renvoyée automatiquement.",
+    "action": {
+      "test": "Tester la connexion",
+      "rotate": "Remplacer la clé",
+      "reauth": "Ressaisir la clé",
+      "delete": "Supprimer la connexion",
+      "switch": "Définir comme active",
+      "rename": "Renommer la connexion",
+      "update": "Modifier la connexion"
+    },
+    "opEdit": "Modifier la connexion",
+    "renameTitle": "Renommer la connexion",
+    "renameBody": "Choisissez un nom d'affichage pour la connexion {{connectionId}}.",
+    "renameEffects": "Un renommage modifie uniquement le nom d'affichage : il ne change jamais l'identité de la connexion, et aucun job, identifiant ni historique d'exécution ne se déplace.",
+    "renameInputLabel": "Nom d'affichage",
+    "renameConfirm": "Renommer",
+    "editTitle": "Modifier la connexion",
+    "editBody": "Modifiez ci-dessous les champs non secrets de la connexion {{connectionId}}.",
+    "editEffects": "Seuls les champs non secrets changent. La clé stockée n'est jamais affichée ni modifiée ici : pour changer la clé, utilisez Remplacer la clé ou Ressaisir la clé. Après une modification confirmée, le dernier test de la connexion n'est plus considéré comme à jour tant que vous ne relancez pas le test.",
+    "editProviderLabel": "Fournisseur",
+    "editBaseUrlLabel": "URL de base (facultatif)",
+    "editModelLabel": "ID du modèle",
+    "editHeadersLabel": "En-têtes personnalisés (facultatif)",
+    "editHeadersHelp": "Un en-tête par ligne, au format Nom: valeur.",
+    "editHeadersInvalid": "Saisissez un en-tête par ligne, au format Nom: valeur.",
+    "editConfirm": "Enregistrer les modifications",
+    "conflictNote": "Cette connexion a changé depuis sa lecture (CONFLICT_STATE). Rien n'a été écrasé : vérifiez le statut pour relire l'état actuel, puis réappliquez votre modification d'après ce qu'affiche la liste."
+  },
+  "updates": {
+    "body": "Le statut des mises à jour et de la maintenance n'est pas affiché : le contrat de statut des mises à jour n'est pas intégré dans ce jalon. Cette vue n'implique jamais de paiement, de blocage à expiration ni aucun comportement de maintenance."
+  },
+  "about": {
+    "appVersion": "Version de l'interface",
+    "license": "Licence",
+    "licenseValue": "Apache-2.0",
+    "body": "Cette version contient l'enveloppe partagée et la navigation approuvée. Le logotype et les éléments de marque sont différés dans l'attente de la décision du propriétaire ; le nom du produit apparaît en texte brut.",
+    "versionDisclaimer": "Il s'agit uniquement de la version locale de l'interface. Elle n'avance aucune affirmation quant à la version disponible la plus récente ou la plus sécurisée."
+  }
+}

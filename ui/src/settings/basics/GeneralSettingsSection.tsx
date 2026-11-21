@@ -9,11 +9,8 @@
 
 import { useState, type ReactElement } from "react";
 import { Button, Input, Select, Toggle } from "../../components/primitives";
-import {
-  SUPPORTED_LOCALES,
-  type InterfaceMode,
-  type SupportedLocale,
-} from "../../types/decisions";
+import { LOCALE_METADATA } from "../../i18n";
+import type { InterfaceMode, SupportedLocale } from "../../types/decisions";
 
 export interface GeneralSettingsSectionProps {
   readonly locale: SupportedLocale;
@@ -56,7 +53,10 @@ export function GeneralSettingsSection({
           <Select
             label="Language (13 Locales)"
             value={locale}
-            options={SUPPORTED_LOCALES.map((loc) => ({ value: loc, label: loc }))}
+            options={LOCALE_METADATA.map((loc) => ({
+              value: loc.code,
+              label: `${loc.nativeLabel} (${loc.code})`,
+            }))}
             onChange={(e) => onChangeLocale(e.target.value as SupportedLocale)}
           />
           <Select

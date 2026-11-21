@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Ana",
+    "buildAndConnect": "Oluştur ve bağla",
+    "extensions": "Uzantılar",
+    "operate": "İşlet",
+    "bottom": "Diğer"
+  },
+  "items": {
+    "overview": "Genel Bakış",
+    "chat": "Sohbet",
+    "jobs": "İşler",
+    "knowledge": "Bilgi",
+    "memory": "Bellek",
+    "context": "Bağlam",
+    "workflows": "İş Akışları",
+    "providersAndModels": "Sağlayıcılar ve Modeller",
+    "plugins": "Eklentiler",
+    "activityAndAudit": "Etkinlik ve Denetim",
+    "helpAndDocumentation": "Yardım ve Belgeler",
+    "settings": "Ayarlar",
+    "session": "Oturum"
+  },
+  "unavailableSuffix": "(henüz kullanılamıyor)",
+  "unavailableReason": "Henüz kullanılamıyor: bu hedef sonraki bir sürüm paketinde sunulacaktır.",
+  "collapse": "Gezinmeyi daralt",
+  "expand": "Gezinmeyi genişlet",
+  "openNavigation": "Gezinmeyi aç",
+  "closeNavigation": "Gezinmeyi kapat"
+}

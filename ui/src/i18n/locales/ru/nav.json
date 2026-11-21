@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Основное",
+    "buildAndConnect": "Сборка и подключения",
+    "extensions": "Расширения",
+    "operate": "Управление",
+    "bottom": "Ещё"
+  },
+  "items": {
+    "overview": "Обзор",
+    "chat": "Чат",
+    "jobs": "Задания",
+    "knowledge": "Знания",
+    "memory": "Память",
+    "context": "Контекст",
+    "workflows": "Рабочие процессы",
+    "providersAndModels": "Провайдеры и модели",
+    "plugins": "Плагины",
+    "activityAndAudit": "Активность и аудит",
+    "helpAndDocumentation": "Справка и документация",
+    "settings": "Настройки",
+    "session": "Сессия"
+  },
+  "unavailableSuffix": "(пока недоступно)",
+  "unavailableReason": "Пока недоступно: этот раздел появится в одном из следующих релизных пакетов.",
+  "collapse": "Свернуть навигацию",
+  "expand": "Развернуть навигацию",
+  "openNavigation": "Открыть навигацию",
+  "closeNavigation": "Закрыть навигацию"
+}

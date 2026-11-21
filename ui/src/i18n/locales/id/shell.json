@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Cari",
+    "openSearch": "Buka pencarian",
+    "newMenu": "Baru",
+    "openNewMenu": "Buka menu pembuatan",
+    "notifications": "Notifikasi",
+    "openNotifications": "Buka notifikasi"
+  },
+  "search": {
+    "title": "Pencarian",
+    "inputLabel": "Cari",
+    "unavailable": "Pencarian belum tersedia: palet perintah hadir pada paket berikutnya dan memerlukan kontrak pencarian Core yang belum terhubung pada tahap ini.",
+    "shortcutHint": "Gunakan Ctrl+K atau Cmd+K untuk membuka pencarian saat tidak sedang mengetik di kolom input."
+  },
+  "newMenu": {
+    "startChat": "Mulai obrolan",
+    "runTask": "Jalankan tugas",
+    "importKnowledge": "Impor pengetahuan",
+    "unavailableReason": "Belum tersedia: alur ini akan hadir pada paket rilis berikutnya."
+  },
+  "connection": {
+    "label": "Status koneksi",
+    "popoverTitle": "Koneksi",
+    "stateUnknown": "Tidak diketahui",
+    "stateConnecting": "Menghubungkan",
+    "stateConnected": "Terhubung",
+    "stateDisconnected": "Terputus",
+    "stateReconnecting": "Menghubungkan ulang",
+    "stateSessionExpired": "Sesi kedaluwarsa",
+    "unknownExplanation": "Status koneksi Tidak diketahui: tidak ada transport Core yang merespons pada origin aplikasi ini, sehingga tidak ada status dari Core untuk ditampilkan. Transport lokal Core bersifat opt-in dan nonaktif secara default. Status Tidak diketahui tidak pernah ditampilkan sebagai terhubung.",
+    "connectingExplanation": "Status koneksi sedang diperiksa: satu pembacaan nyata sedang berlangsung terhadap transport Core di origin aplikasi ini.",
+    "connectedExplanation": "Core lokal menjawab pembacaan terotorisasi, sehingga koneksi aktif. Status ini hanya berasal dari respons transport nyata — bukan dari asumsi.",
+    "disconnectedExplanation": "Transport Core merespons di origin aplikasi ini, tetapi belum ada sesi yang terbentuk, sehingga belum ada operasi terotorisasi yang dapat dijalankan. Hubungkan dari penyiapan awal dengan kredensial bootstrap sekali pakai.",
+    "reconnectingExplanation": "Status koneksi terakhir yang diketahui sedang diperiksa ulang terhadap transport Core dengan satu pembacaan nyata.",
+    "sessionExpiredExplanation": "Sesi yang dipegang halaman ini tidak lagi diotorisasi oleh Core (kedaluwarsa, dicabut, atau tidak valid). Token telah dibuang dari memori halaman ini. Hubungkan ulang dari penyiapan awal dengan kredensial sekali pakai baru.",
+    "listUnavailable": "Daftar koneksi tidak tersedia: kontrak koneksi Core belum terhubung pada tahap ini.",
+    "switchUnavailable": "Pergantian koneksi belum ditawarkan: fitur ini memerlukan kontrak koneksi Core.",
+    "switch": {
+      "title": "Ganti koneksi",
+      "warningHeading": "Sebelum Anda berganti",
+      "warningBody": "Mengganti koneksi mengubah Core, ruang kerja, data, dan izin yang sedang Anda gunakan. Tindakan ini tidak pernah memindahkan atau menyalin Job ataupun data antar-Core, dan setiap koneksi menjaga cache, kursor, kredensial, dan peristiwanya sendiri — tidak pernah tercampur.",
+      "selectorLabel": "Koneksi",
+      "selectorUnavailable": "Daftar koneksi tidak tersedia: kontrak koneksi Core belum terhubung pada tahap ini, sehingga belum ada tujuan untuk diganti.",
+      "confirm": "Ganti koneksi",
+      "confirmUnavailableReason": "Pergantian memerlukan koneksi yang dapat dipilih dari daftar koneksi Core, yang saat ini tidak tersedia.",
+      "setupHint": "Anda dapat menyiapkan koneksi dari Pengaturan, Koneksi, atau dari penyiapan awal."
+    }
+  },
+  "session": {
+    "label": "Sesi",
+    "popoverTitle": "Sesi",
+    "stateUnavailable": "Status sesi tidak tersedia: tidak ada transport Core yang merespons pada origin aplikasi ini, sehingga tidak ada status sesi untuk ditampilkan.",
+    "stateRule": "Tampilan ini hanya menampilkan apa yang dilaporkan Core. Autentikasi diperlukan dan Izin terbatas hanya muncul saat dilaporkan Core — tidak pernah ditampilkan sebagai terhubung.",
+    "stateActiveBody": "Sesi Core aktif: sesi berhasil mengotorisasi pembacaan nyata pada Core lokal. Token sesi hanya disimpan di memori halaman ini — tidak pernah ditulis ke penyimpanan browser, tautan, atau log.",
+    "stateExpiredBody": "Sesi yang dipegang halaman ini tidak lagi diotorisasi oleh Core (kedaluwarsa, dicabut, atau tidak valid). Token telah dibuang dari memori halaman ini.",
+    "sessionIdLabel": "Pengenal sesi",
+    "sessionScopesLabel": "Cakupan",
+    "sessionExpiresLabel": "Kedaluwarsa",
+    "reauthLabel": "Autentikasi ulang",
+    "reauthUnavailable": "Autentikasi ulang belum ditawarkan: mekanisme alur autentikasi ulang khusus masih tercatat sebagai item terbuka, sehingga belum ada jalur autentikasi ulang di sini.",
+    "reauthNote": "Saat Core melaporkan Autentikasi diperlukan atau Izin terbatas, tampilan ini menunjukkannya dan menawarkan jalur autentikasi ulang sebagai alur khusus. Operasi terproteksi tetap dinonaktifkan beserta penjelasan selama status itu berlangsung, dan kredensial tidak pernah disimpan untuk menghindarinya. Pemulihan dari sesi kedaluwarsa dilakukan melalui langkah bootstrap sementara pada penyiapan awal."
+  },
+  "shortcutHelp": {
+    "trigger": "Pintasan keyboard",
+    "openHelp": "Buka pintasan keyboard",
+    "title": "Pintasan keyboard",
+    "shortcutColumn": "Pintasan",
+    "actionColumn": "Tindakan",
+    "implemented": "Pintasan berikut telah diimplementasikan pada shell saat ini.",
+    "remapNote": "Penonaktifan dan pemetaan ulang pintasan satu tombol dijadwalkan pada paket berikutnya; pintasan bantuan satu tombol saat ini dibatasi agar tidak pernah terpicu saat Anda mengetik di kolom input atau menyusun teks dengan metode input.",
+    "escNote": "Escape menutup popover dan dialog. Tombol ini tidak pernah membatalkan Job persisten; pembatalan selalu merupakan tindakan eksplisit."
+  },
+  "shortcuts": {
+    "openSearch": "Buka pencarian",
+    "openSettings": "Buka pengaturan",
+    "openShortcutHelp": "Buka bantuan pintasan ini",
+    "closeSurface": "Tutup popover atau dialog"
+  },
+  "skipToContent": "Lewati ke konten utama"
+}

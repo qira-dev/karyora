@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "通知",
+    "noOsDelivery": "此面板仅展示应用内状态。桌面端系统通知需要独立的操作系统权限，此处不会申请。",
+    "preferencesAbsent": "通知偏好设置暂不可用：当前交付的 Core 契约不含通知偏好存储，因此此处没有可修改或保存的项。下方列表为已交付的应用内通知界面，不包含桌面推送。",
+    "blocked": {
+      "noCore": "通知不可用：此应用来源下没有 Core 传输通道响应，因此没有可读取的通知来源。Core 的本地传输默认关闭且需主动启用；此处绝不会显示为空列表。",
+      "noSession": "通知不可用：此应用来源尚未建立 Core 会话，无法执行受权通知读取。请在首次运行设置中使用一次性引导凭据进行连接。",
+      "sessionExpired": "通知不可用：本页面持有的会话已不再受 Core 授权（已过期、被吊销或其他无效原因）。令牌已从本页面内存中清除；请在首次运行设置中使用新的一次性凭据重新连接。",
+      "connecting": "正在检查 Core 连接：一旦 Core 会话响应受权读取，通知读取即会开始。"
+    },
+    "loading": "正在加载通知…",
+    "refresh": "刷新",
+    "refreshing": "正在刷新…",
+    "lastConfirmed": "上次与 Core 确认时间：{{time}}",
+    "countsLine": "{{total}} 条未读",
+    "countsUnavailable": "未读计数不可用",
+    "announceData": "本页显示的通知分组数：{{count}}",
+    "filterCategory": "类别",
+    "filterReadState": "已读状态",
+    "filterAll": "全部",
+    "clearFilter": "清除筛选",
+    "loadMore": "加载更多",
+    "loadingMore": "正在加载更多…",
+    "emptyAll": "暂无通知",
+    "emptyAllBody": "目前没有任何通知。当 Core 触发作业结果、失败、审批等待或其他由 Core 记录的状态转换时，会显示在此处。",
+    "emptyFiltered": "没有符合当前筛选条件的通知",
+    "emptyFilteredBody": "存在通知，但没有匹配当前类别与已读状态筛选条件的记录。清除筛选即可查看完整列表。",
+    "failureTitle": "无法读取通知",
+    "failureBody": "Core 拒绝了通知读取请求。下方类型化错误码为 Core 自身的拒绝回复——未编造任何内容填充列表；刷新须由你手动触发。",
+    "unknownTitle": "通知读取结果未知",
+    "unknownBody": "通知读取未收到确认响应。在读取获得确认前，列表状态未知——绝不会将其显示为空列表。点击刷新可从 Core 读取当前状态。",
+    "presentation": {
+      "unread": "未读",
+      "read": "已读",
+      "stale": "已过期",
+      "permissionRevoked": "访问权限已吊销",
+      "unknown": "未知状态"
+    },
+    "stateClass": {
+      "result": "结果",
+      "failure": "失败",
+      "approvalNeeded": "需要审批",
+      "unknown": "未知类别"
+    },
+    "category": {
+      "job": "作业",
+      "unknown": "未知类别"
+    },
+    "entry": {
+      "objectJob": "关联作业",
+      "objectUnknownType": "关联对象",
+      "stateUnavailable": "状态：不可用",
+      "updatesCount": "本分组共 {{count}} 条通知",
+      "unreadInGroup": "本分组有 {{count}} 条未读",
+      "blockNewest": "最新于 {{time}}",
+      "blockUnread": "{{count}} 条未读",
+      "noDestination": "该通知的目标路由尚未包含在当前已交付界面中，因此无法从此处直接打开。",
+      "copyId": "通知"
+    },
+    "actions": {
+      "markRead": "标为已读",
+      "markUnread": "标为未读",
+      "clear": "清除",
+      "pending": "处理中…",
+      "scopeNote": "操作仅作用于该条目中的最新一条通知：Core 仅变更所指定的通知标识——绝不影响其他记录。",
+      "refusedTitle": "Core 拒绝了该操作",
+      "refusedBody": "下方类型化错误码为 Core 自身的拒绝回复；除非 Core 另有说明，本次操作未被应用。重试须由你手动触发。",
+      "tryAgain": "重试",
+      "unknownTitle": "操作结果未知",
+      "unknownBody": "响应丢失，因此无法证明操作是否已被记录。恢复方式是查询而非重发：点击刷新即可从 Core 读取当前状态。",
+      "checkByRefresh": "刷新核查"
+    },
+    "lawNote": "将通知标为已读或清除绝不会改变底层作业、审批或任何其他记录——阅读一条审批通知绝不等同于批准审批。审批只能通过作业详情页中明确的“批准”或“拒绝”命令完成。"
+  }
+}

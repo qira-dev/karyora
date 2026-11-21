@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Ara",
+    "openSearch": "Aramayı aç",
+    "newMenu": "Yeni",
+    "openNewMenu": "Oluşturma menüsünü aç",
+    "notifications": "Bildirimler",
+    "openNotifications": "Bildirimleri aç"
+  },
+  "search": {
+    "title": "Ara",
+    "inputLabel": "Ara",
+    "unavailable": "Arama henüz kullanılamıyor: komut paleti sonraki bir pakette sunulacaktır ve bu aşamada bağlı olmayan Core arama sözleşmesini gerektirir.",
+    "shortcutHint": "Düzenlenebilir bir alana yazmıyorken aramayı açmak için Ctrl+K veya Cmd+K kullanın."
+  },
+  "newMenu": {
+    "startChat": "Sohbet başlat",
+    "runTask": "Bir görev çalıştır",
+    "importKnowledge": "Bilgi içe aktar",
+    "unavailableReason": "Henüz kullanılamıyor: bu akış sonraki bir sürüm paketinde sunulacaktır."
+  },
+  "connection": {
+    "label": "Bağlantı durumu",
+    "popoverTitle": "Bağlantı",
+    "stateUnknown": "Bilinmiyor",
+    "stateConnecting": "Bağlanıyor",
+    "stateConnected": "Bağlı",
+    "stateDisconnected": "Bağlı değil",
+    "stateReconnecting": "Yeniden bağlanıyor",
+    "stateSessionExpired": "Oturum süresi doldu",
+    "unknownExplanation": "Bağlantı durumu Bilinmiyor: bu uygulama kaynağında hiçbir Core aktarımı yanıt vermediğinden görüntülenecek Core tarafından bildirilmiş bir durum yoktur. Core'un yerel aktarımı isteğe bağlıdır ve varsayılan olarak devre dışıdır. Bilinmiyor durumu asla bağlı olarak gösterilmez.",
+    "connectingExplanation": "Bağlantı durumu kontrol ediliyor: bu uygulama kaynağındaki Core aktarımına karşı gerçek bir okuma sürüyor.",
+    "connectedExplanation": "Yerel Core yetkili bir okumaya yanıt verdi, dolayısıyla bağlantı etkin. Bu durum yalnızca gerçek aktarım yanıtlarından gelir — asla bir varsayımdan değil.",
+    "disconnectedExplanation": "Bu uygulama kaynağında bir Core aktarımı yanıt verdi ancak henüz bir oturum kurulmadığından hiçbir yetkili işlem çalıştırılamıyor. İlk kurulumdan tek kullanımlık bir bootstrap kimlik bilgisiyle bağlanın.",
+    "reconnectingExplanation": "Bilinen son bağlantı durumu gerçek bir okumayla Core aktarımına karşı yeniden kontrol ediliyor.",
+    "sessionExpiredExplanation": "Bu sayfanın tuttuğu oturum artık Core tarafından yetkilendirilmiyor (süresi dolmuş, iptal edilmiş veya başka bir nedenle geçersiz). Belirteç bu sayfanın belleğinden atıldı. İlk kurulumdan yeni bir tek kullanımlık kimlik bilgisiyle yeniden bağlanın.",
+    "listUnavailable": "Bağlantı listesi kullanılamıyor: Core bağlantı sözleşmeleri bu aşamada bağlı değil.",
+    "switchUnavailable": "Bağlantı değiştirme henüz sunulmuyor: Core bağlantı sözleşmelerini gerektirir.",
+    "switch": {
+      "title": "Bağlantıyı değiştir",
+      "warningHeading": "Değiştirmeden önce",
+      "warningBody": "Değiştirme, hangi Core, çalışma alanı, veriler ve izinlerle çalıştığınızı değiştirir. İşleri veya verileri hiçbir zaman Core'lar arasında taşımaz ya da kopyalamaz ve her bağlantı kendi önbelleklerini, imleçlerini, kimlik bilgilerini ve olaylarını ayrı tutar — bunlar asla karıştırılmaz.",
+      "selectorLabel": "Bağlantı",
+      "selectorUnavailable": "Bağlantı listesi kullanılamıyor: Core bağlantı sözleşmeleri bu aşamada bağlı olmadığından henüz geçilecek bir bağlantı yok.",
+      "confirm": "Bağlantıyı değiştir",
+      "confirmUnavailableReason": "Değiştirme, kullanılamayan Core bağlantı listesinden seçilebilir bir bağlantı gerektirir.",
+      "setupHint": "Ayarlar > Bağlantılar bölümünden veya ilk kurulumdan bir bağlantı kurabilirsiniz."
+    }
+  },
+  "session": {
+    "label": "Oturum",
+    "popoverTitle": "Oturum",
+    "stateUnavailable": "Oturum durumu kullanılamıyor: bu uygulama kaynağında hiçbir Core aktarımı yanıt vermediğinden görüntülenecek bir oturum durumu yok.",
+    "stateRule": "Bu ekran yalnızca Core'un bildirdiklerini gösterir. Kimlik doğrulaması gerekiyor ve İzin sınırlı durumları yalnızca Core bunları bildirdiğinde görünür — asla bağlı olarak gösterilmez.",
+    "stateActiveBody": "Core oturumu etkin: yerel Core'a karşı gerçek bir okumayı yetkilendirdi. Oturum belirteci yalnızca bu sayfanın belleğinde tutulur — tarayıcı depolamasına, bağlantılara veya günlüklere asla yazılmaz.",
+    "stateExpiredBody": "Bu sayfanın tuttuğu oturum artık Core tarafından yetkilendirilmiyor (süresi dolmuş, iptal edilmiş veya başka bir nedenle geçersiz). Belirteç bu sayfanın belleğinden atıldı.",
+    "sessionIdLabel": "Oturum tanımlayıcısı",
+    "sessionScopesLabel": "Kapsamlar",
+    "sessionExpiresLabel": "Süre sonu",
+    "reauthLabel": "Yeniden doğrula",
+    "reauthUnavailable": "Yeniden doğrulama henüz sunulmuyor: özel yeniden doğrulama akışının mekanizması kayıtlı açık bir maddedir, bu nedenle burada sunulacak bir yeniden doğrulama yolu yoktur.",
+    "reauthNote": "Core Kimlik doğrulaması gerekiyor veya İzin sınırlı bildirdiğinde bu ekran bunu gösterir ve özel bir akış olarak yeniden doğrulama yolunu sunar. Bu durum sürdüğü sürece korumalı işlemler bir açıklamayla devre dışı kalır ve bunu önlemek için kimlik bilgileri asla saklanmaz. Süresi dolmuş bir oturumdan kurtarma, ilk kurulumun geçici bootstrap adımı üzerinden yapılır."
+  },
+  "shortcutHelp": {
+    "trigger": "Klavye kısayolları",
+    "openHelp": "Klavye kısayollarını aç",
+    "title": "Klavye kısayolları",
+    "shortcutColumn": "Kısayol",
+    "actionColumn": "Eylem",
+    "implemented": "Bu kısayollar geçerli kabukta uygulanmıştır.",
+    "remapNote": "Tek tuşlu kısayolları devre dışı bırakma ve yeniden atama sonraki bir paket için tanımlanmıştır; tek tuşlu yardım kısayolu şu anda düzenlenebilir bir alana yazarken veya bir giriş yöntemiyle metin oluştururken asla tetiklenmeyecek şekilde sınırlandırılmıştır.",
+    "escNote": "Escape açılır pencereleri ve iletişim kutularını kapatır. Kalıcı bir İşi asla iptal etmez; iptal her zaman yalnızca açık bir eylemdir."
+  },
+  "shortcuts": {
+    "openSearch": "Aramayı aç",
+    "openSettings": "Ayarları aç",
+    "openShortcutHelp": "Bu kısayol yardımını aç",
+    "closeSurface": "Açılır pencereyi veya iletişim kutusunu kapat"
+  },
+  "skipToContent": "Ana içeriğe atla"
+}

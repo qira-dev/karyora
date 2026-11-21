@@ -1,14 +1,18 @@
 export {
+  PLATFORM_PARITY_PROFILES,
   createPlatformBridge,
   detectRuntimePlatform,
   evaluateWindowCloseGuard,
+  formatPlatformShortcut,
   getPlatformCapabilities,
+  getPlatformParityProfile,
   validateExternalUrlForOpen,
   type ExternalUrlValidationResult,
   type PickedPath,
   type PickerOptions,
   type PlatformBridge,
   type PlatformCapabilities,
+  type PlatformParityProfile,
   type RuntimeEnvironmentHint,
   type WindowCloseDisposition,
 } from "./platformBridge";

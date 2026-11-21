@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "開く",
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "reset": "リセット",
+    "retry": "再試行"
+  },
+  "states": {
+    "unknown": "不明",
+    "unavailable": "利用不可",
+    "notConnected": "未接続"
+  },
+  "entryNotice": {
+    "title": "エントリポイント",
+    "body": "このグループの画面および Core 連携コントロールは後続パッケージで提供されます。このマイルストーンでは Core コントラクトが接続されていないため、このエントリ以上の内容は表示されません。",
+    "localOnlyBody": "このページのローカル設定コントロールは現在利用できます。このグループの残りの画面は後続パッケージで提供されます。"
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "未保存の入力内容とローカル下書きは安全に保持されています。",
+      "correlationIdLabel": "相関 ID: {{correlationId}}",
+      "errorCodeLabel": "マシンエラーコード: {{code}}"
+    },
+    "actions": {
+      "retry": "操作を再試行",
+      "reconcileS4": "正規の Core 状態を再読み込み",
+      "resolveConflict": "競合を確認して解決",
+      "reauthenticate": "セッションを再認証",
+      "switchCoreConnection": "Core 接続を切り替え",
+      "dismiss": "閉じる",
+      "openModelSettings": "モデル設定を開く"
+    },
+    "validationFailed": {
+      "title": "入力検証に失敗しました",
+      "explanation": "送信された 1 つ以上の項目が Core の検証スキーマを満たしていません。強調表示された入力欄を確認して再試行してください。"
+    },
+    "configConflict": {
+      "title": "設定の競合",
+      "explanation": "読み込んだ後に設定が変更されました。編集内容を適用する前に、正規のリビジョンを更新してください。"
+    },
+    "authzDenied": {
+      "title": "権限が拒否されました",
+      "explanation": "現在の Core セッションにはこの操作の権限がないか、セッションの再認証が必要です。"
+    },
+    "notFound": {
+      "title": "リソースが見つかりません",
+      "explanation": "要求された項目は既に存在しないか、現在のアクティブな Core ワークスペースのスコープ外です。"
+    },
+    "conflictState": {
+      "title": "状態の競合を検出しました",
+      "explanation": "このレコードは Core 上で新しいリビジョンに更新されています。再試行する前に最新の正規状態と比較してください。"
+    },
+    "conflictIdempotencyKey": {
+      "title": "重複した操作キー",
+      "explanation": "Core はこのべき等性キーで別のリクエストを既に記録しています。操作が成功したか確認するため、正規の状態を再読み込みしてください。"
+    },
+    "singleInstanceConflict": {
+      "title": "別の Core インスタンスが稼働中です",
+      "explanation": "別の Karyora Core プロセスがこのワークスペースのロックを保持しています。競合するインスタンスを起動する代わりに、稼働中の Core 接続へ切り替えてください。"
+    },
+    "storageUnavailable": {
+      "title": "ストレージが一時的に利用できません",
+      "explanation": "Core がローカルまたはリモートのストレージバックエンドに接続できませんでした。ストレージの可用性を確認してから再試行してください。"
+    },
+    "migrationFailed": {
+      "title": "データマイグレーションに失敗しました",
+      "explanation": "Core は部分的な変更をコミットする前に、スキーマまたはデータのマイグレーションを安全に停止しました。再試行する前に診断情報を確認してください。"
+    },
+    "stateCorrupt": {
+      "title": "保存状態の整合性エラー",
+      "explanation": "Core が永続化された状態の整合性チェック失敗を検出し、データを保護するために停止しました。検証済みバックアップから復元するか、診断情報を開いてください。"
+    },
+    "recoveryRequired": {
+      "title": "復旧チェックが必要です",
+      "explanation": "前回の操作が正常に完了しませんでした。続行する前に、正規の Core 状態を再読み込みして現在の状況を確認してください。"
+    },
+    "rateLimited": {
+      "title": "レート制限に達しました",
+      "explanation": "短時間に送信されたリクエストが多すぎます。しばらく待ってから明示的に再試行してください。"
+    },
+    "internal": {
+      "title": "Core 内部エラー",
+      "explanation": "Core が予期しない内部障害を報告しました。ローカル下書きは破棄されていません。診断情報をエクスポートする場合は相関 ID をコピーしてください。"
+    },
+    "unknownCode": {
+      "title": "Core がリクエストを拒否しました",
+      "explanation": "Core が未知のマシンエラーコードを返しました。生のバックエンドテキストは表示されません。Core の健全性を確認するか、秘匿化済みの診断情報をエクスポートしてください。"
+    },
+    "unknownOutcomeS4": {
+      "title": "操作結果が不明です",
+      "explanation": "この変更が成功したかを Core が確認する前に接続が切断されました。成功・失敗のいずれとも決めつけず、まず正規の Core 状態を再読み込みしてください。"
+    }
+  }
+}

@@ -8,14 +8,27 @@
 import { useMemo, useState, type ReactElement } from "react";
 import { Badge, Button, Input } from "../../components/primitives";
 import {
+  detectRuntimePlatform,
+  formatPlatformShortcut,
+} from "../../platform-bridge";
+import {
   DEFAULT_KEYBOARD_SHORTCUTS,
   detectShortcutConflicts,
   type ShortcutBinding,
 } from "../settingsConfig";
 
 export function KeyboardShortcutsSettingsSection(): ReactElement {
+  const runtimeTarget = useMemo(() => detectRuntimePlatform(), []);
+  const platformDefaults = useMemo<readonly ShortcutBinding[]>(
+    () =>
+      DEFAULT_KEYBOARD_SHORTCUTS.map((binding) => ({
+        ...binding,
+        keys: formatPlatformShortcut(binding.keys, runtimeTarget),
+      })),
+    [runtimeTarget],
+  );
   const [bindings, setBindings] = useState<readonly ShortcutBinding[]>(
-    DEFAULT_KEYBOARD_SHORTCUTS,
+    platformDefaults,
   );
   const [search, setSearch] = useState("");
 
@@ -49,7 +62,7 @@ export function KeyboardShortcutsSettingsSection(): ReactElement {
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setBindings(DEFAULT_KEYBOARD_SHORTCUTS)}
+            onClick={() => setBindings(platformDefaults)}
           >
             Reset all to defaults
           </Button>

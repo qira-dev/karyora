@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "Principal",
+    "buildAndConnect": "Construir e conectar",
+    "extensions": "Extensões",
+    "operate": "Operar",
+    "bottom": "Mais"
+  },
+  "items": {
+    "overview": "Visão geral",
+    "chat": "Chat",
+    "jobs": "Jobs",
+    "knowledge": "Conhecimento",
+    "memory": "Memória",
+    "context": "Contexto",
+    "workflows": "Workflows",
+    "providersAndModels": "Provedores e Modelos",
+    "plugins": "Plugins",
+    "activityAndAudit": "Atividade e Auditoria",
+    "helpAndDocumentation": "Ajuda e Documentação",
+    "settings": "Configurações",
+    "session": "Sessão"
+  },
+  "unavailableSuffix": "(ainda não disponível)",
+  "unavailableReason": "Ainda não disponível: este destino será entregue em um pacote de lançamento posterior.",
+  "collapse": "Recolher navegação",
+  "expand": "Expandir navegação",
+  "openNavigation": "Abrir navegação",
+  "closeNavigation": "Fechar navegação"
+}

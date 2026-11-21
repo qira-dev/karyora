@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Rechercher",
+    "openSearch": "Ouvrir la recherche",
+    "newMenu": "Nouveau",
+    "openNewMenu": "Ouvrir le menu de création",
+    "notifications": "Notifications",
+    "openNotifications": "Ouvrir les notifications"
+  },
+  "search": {
+    "title": "Rechercher",
+    "inputLabel": "Rechercher",
+    "unavailable": "La recherche n'est pas encore disponible : la palette de commandes sera livrée dans un lot ultérieur et nécessite le contrat de recherche du Core, qui n'est pas intégré dans ce jalon.",
+    "shortcutHint": "Utilisez Ctrl+K ou Cmd+K pour ouvrir la recherche lorsque vous ne saisissez pas de texte dans un champ éditable."
+  },
+  "newMenu": {
+    "startChat": "Démarrer un chat",
+    "runTask": "Exécuter une tâche",
+    "importKnowledge": "Importer des connaissances",
+    "unavailableReason": "Pas encore disponible : ce parcours sera livré dans un lot ultérieur."
+  },
+  "connection": {
+    "label": "État de la connexion",
+    "popoverTitle": "Connexion",
+    "stateUnknown": "Inconnu",
+    "stateConnecting": "Connexion…",
+    "stateConnected": "Connecté",
+    "stateDisconnected": "Déconnecté",
+    "stateReconnecting": "Reconnexion…",
+    "stateSessionExpired": "Session expirée",
+    "unknownExplanation": "L'état de la connexion est Inconnu : aucun transport Core n'a répondu à cette origine d'application, aucun état signalé par le Core n'existe donc à afficher. Le transport local du Core est facultatif et désactivé par défaut. Inconnu n'est jamais présenté comme connecté.",
+    "connectingExplanation": "L'état de la connexion est en cours de vérification : une lecture réelle est en cours auprès du transport Core à cette origine d'application.",
+    "connectedExplanation": "Le Core local a répondu à une lecture autorisée ; la connexion est donc active. Cet état provient uniquement de réponses réelles du transport — jamais d'une supposition.",
+    "disconnectedExplanation": "Un transport Core a répondu à cette origine d'application, mais aucune session n'est encore établie ; aucune opération autorisée ne peut donc s'exécuter. Connectez-vous depuis la configuration initiale avec un identifiant d'amorçage à usage unique.",
+    "reconnectingExplanation": "Le dernier état de connexion connu est en cours de revérification auprès du transport Core au moyen d'une lecture réelle.",
+    "sessionExpiredExplanation": "La session détenue par cette page n'est plus autorisée par le Core (elle a expiré, a été révoquée ou est invalide). Le jeton a été supprimé de la mémoire de cette page. Reconnectez-vous depuis la configuration initiale avec un nouvel identifiant à usage unique.",
+    "listUnavailable": "La liste des connexions est indisponible : les contrats de connexion du Core ne sont pas intégrés dans ce jalon.",
+    "switchUnavailable": "Le changement de connexion n'est pas encore proposé : il nécessite les contrats de connexion du Core.",
+    "switch": {
+      "title": "Changer de connexion",
+      "warningHeading": "Avant de basculer",
+      "warningBody": "Changer de connexion modifie le Core, l'espace de travail, les données et les permissions avec lesquels vous travaillez. Cela ne déplace et ne copie jamais de jobs ni de données entre Cores, et chaque connexion conserve ses propres caches, curseurs, identifiants et événements — ils ne sont jamais mélangés.",
+      "selectorLabel": "Connexion",
+      "selectorUnavailable": "La liste des connexions est indisponible : les contrats de connexion du Core ne sont pas intégrés dans ce jalon, il n'y a donc encore aucune cible vers laquelle basculer.",
+      "confirm": "Changer de connexion",
+      "confirmUnavailableReason": "Le basculement nécessite une connexion sélectionnable dans la liste des connexions du Core, qui est indisponible.",
+      "setupHint": "Vous pouvez configurer une connexion depuis Paramètres, Connexions, ou depuis la configuration initiale."
+    }
+  },
+  "session": {
+    "label": "Session",
+    "popoverTitle": "Session",
+    "stateUnavailable": "L'état de la session est indisponible : aucun transport Core n'a répondu à cette origine d'application, il n'y a donc aucun état de session à afficher.",
+    "stateRule": "Cet affichage présente uniquement ce que le Core rapporte. Authentification requise et Permission limitée n'apparaissent que lorsque le Core les signale — jamais présentés comme connectés.",
+    "stateActiveBody": "La session Core est active : elle a autorisé une lecture réelle auprès du Core local. Le jeton de session est conservé uniquement en mémoire de cette page — jamais écrit dans le stockage du navigateur, les liens ni les journaux.",
+    "stateExpiredBody": "La session détenue par cette page n'est plus autorisée par le Core (elle a expiré, a été révoquée ou est invalide). Le jeton a été supprimé de la mémoire de cette page.",
+    "sessionIdLabel": "Identifiant de session",
+    "sessionScopesLabel": "Portées",
+    "sessionExpiresLabel": "Expire le",
+    "reauthLabel": "Réauthentifier",
+    "reauthUnavailable": "La réauthentification n'est pas encore proposée : le mécanisme du flux dédié de réauthentification est un point ouvert consigné, aucun parcours de réauthentification n'est donc proposé ici.",
+    "reauthNote": "Lorsque le Core signale Authentification requise ou Permission limitée, cet affichage l'indique et propose le parcours de réauthentification comme flux dédié. Les opérations protégées restent désactivées avec une explication tant que cet état perdure, et aucun identifiant n'est jamais stocké pour l'éviter. La reprise après expiration de session passe par l'étape d'amorçage transitoire de la configuration initiale."
+  },
+  "shortcutHelp": {
+    "trigger": "Raccourcis clavier",
+    "openHelp": "Ouvrir les raccourcis clavier",
+    "title": "Raccourcis clavier",
+    "shortcutColumn": "Raccourci",
+    "actionColumn": "Action",
+    "implemented": "Ces raccourcis sont implémentés dans l'interface actuelle.",
+    "remapNote": "La désactivation et la réattribution des raccourcis à touche unique sont prévues pour un lot ultérieur ; le raccourci d'aide à touche unique est actuellement restreint afin qu'il ne se déclenche jamais lorsque vous saisissez du texte dans un champ éditable ou avec une méthode de saisie.",
+    "escNote": "Échap ferme les fenêtres contextuelles et les boîtes de dialogue. Elle n'annule jamais un job durable ; l'annulation reste toujours une action explicite."
+  },
+  "shortcuts": {
+    "openSearch": "Ouvrir la recherche",
+    "openSettings": "Ouvrir les paramètres",
+    "openShortcutHelp": "Ouvrir cette aide sur les raccourcis",
+    "closeSurface": "Fermer la fenêtre contextuelle ou la boîte de dialogue"
+  },
+  "skipToContent": "Aller au contenu principal"
+}

@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Abrir",
+    "close": "Fechar",
+    "cancel": "Cancelar",
+    "reset": "Redefinir",
+    "retry": "Tentar novamente"
+  },
+  "states": {
+    "unknown": "Desconhecido",
+    "unavailable": "Indisponível",
+    "notConnected": "Desconectado"
+  },
+  "entryNotice": {
+    "title": "Ponto de entrada",
+    "body": "As telas e os controles integrados ao Core deste grupo serão entregues em um pacote posterior. Nenhum contrato do Core está conectado neste marco, portanto nada além deste ponto de entrada é exibido.",
+    "localOnlyBody": "Os controles de preferências locais nesta página já funcionam; as demais telas deste grupo serão entregues em um pacote posterior."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Suas entradas não salvas e seu rascunho local foram preservados com segurança.",
+      "correlationIdLabel": "ID de correlação: {{correlationId}}",
+      "errorCodeLabel": "Código de erro de máquina: {{code}}"
+    },
+    "actions": {
+      "retry": "Tentar ação novamente",
+      "reconcileS4": "Reler estado autoritativo do Core",
+      "resolveConflict": "Revisar e resolver conflito",
+      "reauthenticate": "Reautenticar sessão",
+      "switchCoreConnection": "Trocar conexão do Core",
+      "dismiss": "Dispensar",
+      "openModelSettings": "Abrir configurações de modelo"
+    },
+    "validationFailed": {
+      "title": "Falha na validação",
+      "explanation": "Um ou mais campos enviados não atenderam ao esquema de validação do Core. Revise os campos destacados e tente novamente."
+    },
+    "configConflict": {
+      "title": "Conflito de configuração",
+      "explanation": "A configuração mudou desde que você a carregou. Atualize a revisão autoritativa antes de aplicar suas edições."
+    },
+    "authzDenied": {
+      "title": "Permissão negada",
+      "explanation": "Sua sessão atual do Core não tem permissão para esta ação, ou a sessão precisa ser reautenticada."
+    },
+    "notFound": {
+      "title": "Recurso não encontrado",
+      "explanation": "O item solicitado não existe mais ou está fora do escopo do seu workspace ativo no Core."
+    },
+    "conflictState": {
+      "title": "Conflito de estado detectado",
+      "explanation": "Este registro avançou para uma revisão mais recente no Core. Compare o estado autoritativo mais recente antes de tentar novamente."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Chave de operação duplicada",
+      "explanation": "O Core já registrou uma solicitação diferente com esta chave de idempotência. Releia o estado autoritativo para verificar se sua ação foi concluída."
+    },
+    "singleInstanceConflict": {
+      "title": "Outra instância do Core está ativa",
+      "explanation": "Outro processo do Karyora Core detém atualmente o bloqueio deste workspace. Troque para a conexão do Core em execução em vez de iniciar uma instância conflitante."
+    },
+    "storageUnavailable": {
+      "title": "Armazenamento temporariamente indisponível",
+      "explanation": "O Core não conseguiu acessar seu backend de armazenamento local ou remoto. Verifique a disponibilidade do armazenamento e tente novamente."
+    },
+    "migrationFailed": {
+      "title": "Falha na migração de dados",
+      "explanation": "O Core interrompeu com segurança uma migração de esquema ou de dados antes de confirmar alterações parciais. Inspecione os diagnósticos antes de tentar novamente."
+    },
+    "stateCorrupt": {
+      "title": "Erro de integridade do estado armazenado",
+      "explanation": "O Core detectou uma falha na verificação de integridade do estado persistido e parou para proteger seus dados. Restaure a partir de um backup verificado ou abra os diagnósticos."
+    },
+    "recoveryRequired": {
+      "title": "Verificação de recuperação necessária",
+      "explanation": "A operação anterior não foi concluída de forma limpa. Releia o estado autoritativo do Core para confirmar o status atual antes de continuar."
+    },
+    "rateLimited": {
+      "title": "Limite de taxa atingido",
+      "explanation": "Muitas solicitações foram enviadas em um curto intervalo. Aguarde brevemente e tente novamente de forma explícita."
+    },
+    "internal": {
+      "title": "Erro interno do Core",
+      "explanation": "O Core relatou uma falha interna inesperada. Seu rascunho local não foi descartado; copie o ID de correlação caso exporte os diagnósticos."
+    },
+    "unknownCode": {
+      "title": "O Core rejeitou a solicitação",
+      "explanation": "O Core retornou um código de erro de máquina não reconhecido. Nenhum texto bruto do backend é exibido; verifique a integridade do Core ou exporte diagnósticos com dados sensíveis ocultados."
+    },
+    "unknownOutcomeS4": {
+      "title": "Resultado da operação desconhecido",
+      "explanation": "A conexão caiu antes de o Core confirmar se esta alteração foi bem-sucedida. Não presuma falha nem sucesso — releia primeiro o estado autoritativo do Core."
+    }
+  }
+}

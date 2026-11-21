@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "noOsDelivery": "Dieses Feld zeigt ausschließlich den In-App-Zustand. Die Zustellung auf dem Desktop erfordert eine eigene Betriebssystem-Berechtigung und wird hier nicht angefordert.",
+    "preferencesAbsent": "Benachrichtigungseinstellungen sind noch nicht verfügbar: Der ausgelieferte Core-Vertrag besitzt keinen Speicher für Benachrichtigungseinstellungen, daher gibt es hier nichts zu ändern oder zu speichern. Die Liste unten ist die ausgelieferte In-App-Oberfläche; Desktop-Zustellung ist nicht Teil davon.",
+    "blocked": {
+      "noCore": "Benachrichtigungen sind nicht verfügbar: Unter dieser App-Origin hat kein Core-Transport geantwortet, daher gibt es keine lesbare Benachrichtigungsquelle. Der lokale Transport des Cores ist Opt-in und standardmäßig deaktiviert; dies wird niemals als leere Liste dargestellt.",
+      "noSession": "Benachrichtigungen sind nicht verfügbar: Unter dieser App-Origin besteht keine Core-Sitzung, daher kann kein autorisierter Lesezugriff auf Benachrichtigungen ausgeführt werden. Verbinden Sie sich über die Ersteinrichtung mit einem einmaligen Bootstrap-Zugangsschlüssel.",
+      "sessionExpired": "Benachrichtigungen sind nicht verfügbar: Die von dieser Seite gehaltene Sitzung ist vom Core nicht mehr autorisiert (abgelaufen, widerrufen oder anderweitig ungültig). Das Token wurde aus dem Arbeitsspeicher dieser Seite entfernt; verbinden Sie sich über die Ersteinrichtung mit einem neuen einmaligen Zugangsschlüssel erneut.",
+      "connecting": "Core-Verbindung wird geprüft: Das Lesen der Benachrichtigungen startet, sobald eine Core-Sitzung einen autorisierten Lesezugriff beantwortet."
+    },
+    "loading": "Benachrichtigungen werden geladen…",
+    "refresh": "Aktualisieren",
+    "refreshing": "Wird aktualisiert…",
+    "lastConfirmed": "Zuletzt mit dem Core bestätigt: {{time}}",
+    "countsLine": "{{total}} ungelesen",
+    "countsUnavailable": "Anzahl ungelesener Benachrichtigungen nicht verfügbar",
+    "announceData": "Auf dieser Seite angezeigte Benachrichtigungsgruppen: {{count}}",
+    "filterCategory": "Kategorie",
+    "filterReadState": "Lesestatus",
+    "filterAll": "Alle",
+    "clearFilter": "Filter zurücksetzen",
+    "loadMore": "Mehr laden",
+    "loadingMore": "Weitere werden geladen…",
+    "emptyAll": "Keine Benachrichtigungen",
+    "emptyAllBody": "Es liegen noch keine Benachrichtigungen vor. Job-Ergebnisse, Fehler, ausstehende Genehmigungen und andere vom Core protokollierte Übergänge erscheinen hier, sobald der Core sie auslöst.",
+    "emptyFiltered": "Keine Benachrichtigungen entsprechen dem aktiven Filter",
+    "emptyFilteredBody": "Es sind Benachrichtigungen vorhanden, jedoch passt keine zu den Filtern für Kategorie und Lesestatus. Durch Zurücksetzen der Filter wird die vollständige Liste angezeigt.",
+    "failureTitle": "Benachrichtigungen konnten nicht gelesen werden",
+    "failureBody": "Der Core hat den Lesezugriff auf die Benachrichtigungen abgelehnt. Der typisierte Code unten ist die eigene Ablehnung des Cores – es wurde nichts erfunden, um die Liste zu füllen; Aktualisieren ist Ihre explizite Aktion.",
+    "unknownTitle": "Das Ergebnis des Lesezugriffs auf die Benachrichtigungen ist unbekannt",
+    "unknownBody": "Für den Lesezugriff auf die Benachrichtigungen ist keine bestätigte Antwort eingetroffen. Über die Liste ist nichts bekannt, bis ein Lesezugriff bestätigt wird – dies wird niemals als leere Liste dargestellt. Aktualisieren liest den aktuellen Zustand vom Core.",
+    "presentation": {
+      "unread": "Ungelesen",
+      "read": "Gelesen",
+      "stale": "Veraltet",
+      "permissionRevoked": "Zugriff widerrufen",
+      "unknown": "Unbekannter Zustand"
+    },
+    "stateClass": {
+      "result": "Ergebnis",
+      "failure": "Fehlschlag",
+      "approvalNeeded": "Genehmigung erforderlich",
+      "unknown": "Unbekannte Klasse"
+    },
+    "category": {
+      "job": "Jobs",
+      "unknown": "Unbekannte Kategorie"
+    },
+    "entry": {
+      "objectJob": "Zugehöriger Job",
+      "objectUnknownType": "Zugehöriges Objekt",
+      "stateUnavailable": "Zustand: Nicht verfügbar",
+      "updatesCount": "{{count}} Benachrichtigungen in dieser Gruppe",
+      "unreadInGroup": "{{count}} ungelesen in dieser Gruppe",
+      "blockNewest": "neueste {{time}}",
+      "blockUnread": "{{count}} ungelesen",
+      "noDestination": "Die Zielroute dieser Benachrichtigung gehört noch nicht zu den ausgelieferten Oberflächen und kann daher von hier aus nicht geöffnet werden.",
+      "copyId": "Benachrichtigung"
+    },
+    "actions": {
+      "markRead": "Als gelesen markieren",
+      "markUnread": "Als ungelesen markieren",
+      "clear": "Entfernen",
+      "pending": "Wird verarbeitet…",
+      "scopeNote": "Aktionen gelten für die neueste Benachrichtigung des Eintrags: Der Core ändert exakt die benannte Benachrichtigungsidentität – nichts anderes.",
+      "refusedTitle": "Der Core hat die Aktion abgelehnt",
+      "refusedBody": "Der typisierte Code unten ist die eigene Ablehnung des Cores; sofern der Core nichts anderes meldet, wurde nichts angewendet. Ein erneuter Versuch ist Ihre explizite Aktion.",
+      "tryAgain": "Erneut versuchen",
+      "unknownTitle": "Das Ergebnis der Aktion ist unbekannt",
+      "unknownBody": "Die Antwort ging verloren, daher ist sie niemals ein Beweis dafür, ob die Aktion protokolliert wurde oder nicht. Die Wiederherstellung erfolgt über eine Abfrage, niemals über erneutes Senden: Aktualisieren liest den aktuellen Zustand vom Core.",
+      "checkByRefresh": "Zum Prüfen aktualisieren"
+    },
+    "lawNote": "Das Markieren als gelesen oder das Entfernen einer Benachrichtigung verändert niemals den zugrunde liegenden Job, eine Genehmigung oder einen anderen Datensatz – eine gelesene Genehmigungsbenachrichtigung ist keine erteilte Genehmigung. Eine Genehmigung erfolgt ausschließlich über den expliziten Befehl zum Erteilen oder Ablehnen in den Job-Details."
+  }
+}

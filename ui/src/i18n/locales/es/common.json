@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Abrir",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "reset": "Restablecer",
+    "retry": "Reintentar"
+  },
+  "states": {
+    "unknown": "Desconocido",
+    "unavailable": "No disponible",
+    "notConnected": "Sin conexión"
+  },
+  "entryNotice": {
+    "title": "Punto de entrada",
+    "body": "Las pantallas y controles respaldados por el Core de este grupo se entregarán en un paquete posterior. En este hito no hay ningún contrato del Core conectado, por lo que no se muestra nada más allá de esta entrada.",
+    "localOnlyBody": "Los controles de preferencias locales de esta página ya funcionan; el resto de pantallas de este grupo se entregarán en un paquete posterior."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Tus datos sin guardar y tu borrador local se han conservado de forma segura.",
+      "correlationIdLabel": "ID de correlación: {{correlationId}}",
+      "errorCodeLabel": "Código de error de máquina: {{code}}"
+    },
+    "actions": {
+      "retry": "Reintentar acción",
+      "reconcileS4": "Volver a leer el estado autoritativo del Core",
+      "resolveConflict": "Revisar y resolver conflicto",
+      "reauthenticate": "Volver a autenticar sesión",
+      "switchCoreConnection": "Cambiar conexión del Core",
+      "dismiss": "Descartar",
+      "openModelSettings": "Abrir ajustes de modelo"
+    },
+    "validationFailed": {
+      "title": "Error de validación",
+      "explanation": "Uno o más campos enviados no cumplieron el esquema de validación del Core. Revisa los campos resaltados e inténtalo de nuevo."
+    },
+    "configConflict": {
+      "title": "Conflicto de configuración",
+      "explanation": "La configuración cambió desde que la cargaste. Actualiza la revisión autoritativa antes de aplicar tus cambios."
+    },
+    "authzDenied": {
+      "title": "Permiso denegado",
+      "explanation": "Tu sesión actual del Core no tiene permiso para esta acción, o necesita volver a autenticarse."
+    },
+    "notFound": {
+      "title": "Recurso no encontrado",
+      "explanation": "El elemento solicitado ya no existe o está fuera del ámbito de tu espacio de trabajo activo en el Core."
+    },
+    "conflictState": {
+      "title": "Conflicto de estado detectado",
+      "explanation": "Este registro avanzó a una revisión más reciente en el Core. Compara el estado autoritativo más reciente antes de reintentar."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Clave de operación duplicada",
+      "explanation": "El Core ya registró una solicitud diferente con esta clave de idempotencia. Vuelve a leer el estado autoritativo para verificar si tu acción se completó."
+    },
+    "singleInstanceConflict": {
+      "title": "Otra instancia del Core está activa",
+      "explanation": "Otro proceso de Karyora Core posee actualmente el bloqueo de este espacio de trabajo. Cambia a la conexión del Core en ejecución en lugar de iniciar una instancia en conflicto."
+    },
+    "storageUnavailable": {
+      "title": "Almacenamiento temporalmente no disponible",
+      "explanation": "El Core no pudo comunicarse con su almacenamiento local o remoto. Comprueba la disponibilidad del almacenamiento y vuelve a intentarlo."
+    },
+    "migrationFailed": {
+      "title": "Error en la migración de datos",
+      "explanation": "El Core detuvo de forma segura una migración de esquema o datos antes de confirmar cambios parciales. Revisa los diagnósticos antes de reintentar."
+    },
+    "stateCorrupt": {
+      "title": "Error de integridad del estado almacenado",
+      "explanation": "El Core detectó un fallo en la comprobación de integridad del estado persistido y se detuvo para proteger tus datos. Restaura desde una copia de seguridad verificada o abre los diagnósticos."
+    },
+    "recoveryRequired": {
+      "title": "Se requiere comprobación de recuperación",
+      "explanation": "La operación anterior no finalizó limpiamente. Vuelve a leer el estado autoritativo del Core para confirmar el estado actual antes de continuar."
+    },
+    "rateLimited": {
+      "title": "Límite de frecuencia alcanzado",
+      "explanation": "Se enviaron demasiadas solicitudes en poco tiempo. Espera brevemente y vuelve a intentarlo de forma explícita."
+    },
+    "internal": {
+      "title": "Error interno del Core",
+      "explanation": "El Core informó un fallo interno inesperado. Tu borrador local no se descartó; copia el ID de correlación si exportas diagnósticos."
+    },
+    "unknownCode": {
+      "title": "El Core rechazó la solicitud",
+      "explanation": "El Core devolvió un código de error de máquina no reconocido. No se muestra texto sin procesar del servidor; verifica el estado del Core o exporta diagnósticos redactados."
+    },
+    "unknownOutcomeS4": {
+      "title": "Resultado de la operación desconocido",
+      "explanation": "La conexión se interrumpió antes de que el Core confirmara si esta modificación tuvo éxito. No asumas ni fallo ni éxito — vuelve a leer primero el estado autoritativo del Core."
+    }
+  }
+}

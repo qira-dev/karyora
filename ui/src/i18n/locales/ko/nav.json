@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "주요",
+    "buildAndConnect": "구축 및 연결",
+    "extensions": "확장 기능",
+    "operate": "운영",
+    "bottom": "더보기"
+  },
+  "items": {
+    "overview": "개요",
+    "chat": "채팅",
+    "jobs": "작업",
+    "knowledge": "지식",
+    "memory": "메모리",
+    "context": "컨텍스트",
+    "workflows": "워크플로",
+    "providersAndModels": "공급자 및 모델",
+    "plugins": "플러그인",
+    "activityAndAudit": "활동 및 감사",
+    "helpAndDocumentation": "도움말 및 문서",
+    "settings": "설정",
+    "session": "세션"
+  },
+  "unavailableSuffix": "(아직 사용 불가)",
+  "unavailableReason": "아직 사용할 수 없음: 이 메뉴는 이후 릴리스 패키지에서 제공됩니다.",
+  "collapse": "탐색 메뉴 접기",
+  "expand": "탐색 메뉴 펼치기",
+  "openNavigation": "탐색 메뉴 열기",
+  "closeNavigation": "탐색 메뉴 닫기"
+}

@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "Cài đặt",
+    "subtitle": "Các nhóm cài đặt. Những nhóm có màn hình kết nối Core chưa được gắn kết sẽ hiển thị đúng trạng thái điểm truy cập thực tế.",
+    "groupsNavLabel": "Các nhóm cài đặt"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Giao diện",
+      "description": "Tùy chọn chủ đề, chuyển động và ngôn ngữ.",
+      "title": "Giao diện"
+    },
+    "connections": {
+      "label": "Kết nối",
+      "description": "Quản lý kết nối Core (thêm, kiểm tra, chuyển đổi, xác thực lại).",
+      "title": "Kết nối"
+    },
+    "privacy": {
+      "label": "Quyền riêng tư",
+      "description": "Kiểm soát quyền riêng tư và dữ liệu.",
+      "title": "Quyền riêng tư"
+    },
+    "security": {
+      "label": "Bảo mật",
+      "description": "Kiểm soát bảo mật phiên và thông tin xác thực.",
+      "title": "Bảo mật"
+    },
+    "notifications": {
+      "label": "Thông báo",
+      "description": "Tùy chọn thông báo.",
+      "title": "Thông báo"
+    },
+    "shortcuts": {
+      "label": "Phím tắt",
+      "description": "Các phím tắt bàn phím.",
+      "title": "Phím tắt bàn phím"
+    },
+    "diagnostics": {
+      "label": "Chẩn đoán",
+      "description": "Tình trạng Core và xuất dữ liệu chẩn đoán đã ẩn thông tin nhạy cảm.",
+      "title": "Chẩn đoán"
+    },
+    "updates": {
+      "label": "Cập nhật",
+      "description": "Trạng thái cập nhật và bảo trì.",
+      "title": "Cập nhật"
+    },
+    "about": {
+      "label": "Giới thiệu",
+      "description": "Phiên bản, giấy phép và siêu dữ liệu sản phẩm.",
+      "title": "Giới thiệu"
+    }
+  },
+  "appearance": {
+    "theme": "Chủ đề",
+    "themeLight": "Sáng",
+    "themeDark": "Tối",
+    "themeSystem": "Hệ thống",
+    "themeHelp": "Chủ đề Sáng là mặc định lần đầu chạy. Hệ thống sẽ đi theo giao diện hệ điều hành và tự động chuyển trực tiếp khi giao diện hệ điều hành thay đổi.",
+    "reducedMotion": "Chuyển động",
+    "reducedMotionSystem": "Theo hệ thống",
+    "reducedMotionReduce": "Giảm chuyển động",
+    "reducedMotionFull": "Không giảm",
+    "reducedMotionHelp": "Theo hệ thống sẽ tuân theo thiết lập giảm chuyển động của hệ điều hành. Bạn cũng có thể chủ động bật hoặc tắt chế độ giảm chuyển động.",
+    "language": "Ngôn ngữ",
+    "languageHelp": "Tiếng Anh là nguồn ngôn ngữ chuẩn và ngôn ngữ dự phòng. Cả 13 ngôn ngữ được chấp nhận (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) đều được đóng gói với cơ chế tải lười theo từng ngôn ngữ và chuyển đổi trực tiếp.",
+    "densityWithheld": "Tùy chọn mật độ gọn chưa được cung cấp: tùy chọn này chỉ hiển thị khi các kiểm tra kích thước mục tiêu và khả năng tiếp cận đạt yêu cầu, và các kiểm tra đó chưa được chạy.",
+    "applied": "Thay đổi được áp dụng ngay lập tức. Đặt lại sẽ khôi phục các giá trị mặc định đã ghi nhận: chủ đề Sáng, chuyển động theo hệ thống và tiếng Anh.",
+    "resetConfirm": "Đặt lại giao diện về mặc định"
+  },
+  "security": {
+    "logoutSectionTitle": "Đăng xuất khỏi phiên này",
+    "logoutSectionBody": "Đăng xuất sẽ chấm dứt phiên này trên Core ngay lập tức. Token đang giữ sẽ bị xóa khỏi bộ nhớ trình duyệt này, mọi khung nhìn theo phạm vi sẽ truy vấn lại từ Core ở lần dùng tiếp theo và không có gì tiếp tục khả dụng cho đến khi thiết lập lại phiên mới.",
+    "logoutAction": "Đăng xuất",
+    "postureNoSession": "Hiện không có phiên nào đang được giữ, nên không có gì để đăng xuất.",
+    "postureNoSessionReason": "Hãy thiết lập lại một phiên qua bước khởi tạo kết nối trước; điều khiển này chỉ tác động lên phiên đang giữ.",
+    "postureRechecking": "Trạng thái kết nối đang được kiểm tra lại bằng một phản hồi thực từ Core.",
+    "postureUnknown": "Không có kênh truyền tải Core nào phản hồi nguồn gốc này, nên trạng thái kết nối thực sự không khả dụng.",
+    "dialogTitle": "Đăng xuất khỏi phiên này?",
+    "dialogScope": "Thao tác này chấm dứt phiên hiện tại trên Core ngay lập tức. Token đang giữ của trình duyệt này sẽ bị xóa bỏ và mọi khung nhìn theo phạm vi sẽ không khả dụng cho đến khi thiết lập lại phiên.",
+    "dialogKeep": "Các tùy chọn cục bộ và bản nháp không nhạy cảm chưa lưu trên thiết bị này vẫn được giữ nguyên.",
+    "dialogConfirm": "Đăng xuất",
+    "confirmedTitle": "Bạn đã đăng xuất",
+    "confirmedBody": "Core đã xác nhận việc thu hồi phiên và token đã bị xóa khỏi bộ nhớ trình duyệt này.",
+    "confirmedReestablish": "Hãy thiết lập lại phiên qua bước khởi tạo kết nối khi bạn quay lại.",
+    "refusedTitle": "Core đã từ chối đăng xuất",
+    "refusedBody": "Yêu cầu đăng xuất đã bị Core từ chối (từ chối có định kiểu {{code}}). Phiên CHƯA bị chấm dứt và token đang giữ vẫn còn trong bộ nhớ trình duyệt này.",
+    "refusedNote": "Chưa có phiên nào bị đăng xuất. Mã có định kiểu ở trên ổn định và không phụ thuộc ngôn ngữ; hãy xử lý nguyên nhân đã nêu rồi thử lại một cách chủ động.",
+    "unknownTitle": "Phản hồi đã bị mất",
+    "unknownBody": "Core chưa bao giờ xác nhận việc đăng xuất, nên KHÔNG mặc định rằng phiên đã kết thúc và token đang giữ vẫn còn trong bộ nhớ.",
+    "unknownNote": "Hệ thống không tự động thử lại. Hãy kiểm tra trạng thái phiên và chủ động đăng xuất lại nếu phiên vẫn còn hoạt động.",
+    "revokeAllAbsent": "Thu hồi toàn bộ phiên của thực thể này (một thay đổi thông tin xác thực) thuộc lớp hành động phía Core; không có điều khiển nào cho thao tác đó tại đây."
+  },
+  "shortcuts": {
+    "body": "Các phím tắt bên dưới đã được triển khai trong khung ứng dụng hiện tại. Danh mục phím tắt đầy đủ cùng điều khiển gán lại và tắt phím tắt sẽ ra mắt trong gói sau.",
+    "localNote": "Tùy chọn phím tắt là tùy chọn cục bộ trên từng thiết bị."
+  },
+  "connections": {
+    "body": "Quản lý kết nối — thêm, đổi tên, kiểm tra, xác thực lại và chuyển đổi — cần các giao ước kết nối Core, vốn chưa được gắn kết ở cột mốc này, nên không hiển thị danh sách kết nối. Không có trạng thái kết nối nào được tự tạo ở đây.",
+    "listTitle": "Kết nối",
+    "listIntro": "Các kết nối là bản ghi của Core được hiển thị với tên hiển thị an toàn. Trang này không bao giờ hiển thị token hay điểm cuối có nhúng thông tin đăng nhập.",
+    "listUnavailable": "Danh sách kết nối không khả dụng: các giao ước kết nối Core chưa được gắn kết ở cột mốc này, nên chưa thể liệt kê bản ghi kết nối nào. Không có trạng thái kết nối nào được tự tạo ở đây.",
+    "providerSectionTitle": "Thiết lập kết nối nhà cung cấp",
+    "providerIntro": "Đây là cùng bước thiết lập nhà cung cấp mà trình hướng dẫn lần đầu sử dụng. Bạn cũng có thể truy cập từ phần thiết lập lần đầu trên trang chủ. Chạy lại thiết lập không bao giờ đặt lại trạng thái hiện có.",
+    "operationsTitle": "Thao tác kết nối",
+    "operationsIntro": "Luồng kết nối chuyên biệt cung cấp thao tác thêm và chuyển đổi tại đây; mỗi dòng kết nối đã lưu có các lệnh riêng (đổi tên, chỉnh sửa, kiểm tra, thay khóa, nhập lại khóa, đặt làm đang hoạt động, gỡ bỏ), tất cả đều chỉ chạy qua các giao ước kết nối của Core.",
+    "opAdd": "Thêm kết nối",
+    "opAddNote": "Mở phần thiết lập kết nối nhà cung cấp bên dưới — loại kết nối duy nhất có các trường thiết lập được đặc tả ở giai đoạn này. Thiết lập các loại kết nối khác cần các giao ước khởi tạo của Core hiện chưa được gắn kết.",
+    "opAddGo": "Thêm kết nối nhà cung cấp",
+    "opRename": "Đổi tên kết nối",
+    "opRemove": "Gỡ bỏ kết nối",
+    "opRemoveUnavailable": "Thao tác gỡ bỏ áp dụng cho một kết nối trong danh sách. Danh sách kết nối hiện không khả dụng, nên chưa có gì để gỡ bỏ. Gỡ bỏ là hành động phá hủy dữ liệu và luôn yêu cầu xác nhận rõ ràng nêu rõ phạm vi và tác động trước khi thực thi.",
+    "opTest": "Kiểm tra kết nối",
+    "opTestUnavailable": "Thao tác kiểm tra áp dụng cho một kết nối đã lưu, nhưng hiện chưa thể liệt kê kết nối nào. Biểu mẫu nhà cung cấp bên dưới có nút Kiểm tra kết nối cho các thông tin bạn đang nhập.",
+    "opReauth": "Xác thực lại",
+    "opReauthUnavailable": "Xác thực lại chạy qua các giao ước phiên của Core, vốn chưa được gắn kết ở cột mốc này. Khi Core báo cáo cần xác thực, lối vào xác thực lại sẽ xuất hiện ở đây và trong menu phiên.",
+    "switchTitle": "Chuyển kết nối",
+    "switchIntro": "Chuyển đổi là thay đổi ngữ cảnh do Core điều phối: nó thay đổi tập dữ liệu và quyền hạn khả dụng. Nó không bao giờ di chuyển hay sao chép Job hay dữ liệu giữa các Core.",
+    "firstRunTitle": "Thiết lập lần đầu",
+    "firstRunBody": "Bạn có thể chạy hoặc tiếp tục thiết lập lần đầu bất kỳ lúc nào. Chạy lại thiết lập luôn giữ nguyên các lựa chọn hiện có của bạn.",
+    "resumeSetup": "Tiếp tục thiết lập lần đầu",
+    "loadMore": "Tải thêm",
+    "checkStatus": "Kiểm tra trạng thái",
+    "dismiss": "Đóng",
+    "cancel": "Hủy",
+    "activeBadge": "Đang hoạt động",
+    "secretStatusLabel": "Khóa API",
+    "secretStatus": {
+      "present": "Đã lưu an toàn (không bao giờ hiển thị)",
+      "missing": "Chưa được lưu — hãy nhập lại khóa",
+      "revoked": "Đã bị thu hồi — hãy nhập lại khóa",
+      "corrupt": "Không khả dụng (bị hỏng) — hãy nhập lại khóa",
+      "inaccessible": "Kho thông tin xác thực không khả dụng"
+    },
+    "testedLabel": "Kiểm tra kết nối",
+    "testedCurrent": "Đã kiểm tra (xác minh lúc {{time}})",
+    "testedChanged": "Đã kiểm tra, nhưng kết nối đã thay đổi sau đó — hãy chạy kiểm tra lại",
+    "testedNever": "Đã lưu, chưa kiểm tra",
+    "opRotate": "Thay khóa",
+    "opSwitch": "Đặt làm đang hoạt động",
+    "rotateTitle": "Thay khóa",
+    "rotateBody": "Thao tác này thay thế khóa API đang lưu của kết nối {{connectionId}} bằng khóa mới mà bạn nhập bên dưới.",
+    "rotateEffects": "Core lưu khóa mới dưới cùng một mã định danh thông tin xác thực; lời gọi tiếp theo sẽ dùng khóa mới. Các yêu cầu đang trên đường truyền sẽ không bị đọc lại — Core báo cáo kết cục của chúng theo thực tế. Kết quả kiểm tra đã xác minh của kết nối sẽ trở nên cũ cho đến lần kiểm tra thành công tiếp theo.",
+    "rotateConfirm": "Thay khóa",
+    "reauthTitle": "Nhập lại khóa",
+    "reauthBody": "Thao tác này nhập lại thông tin xác thực cho kết nối {{connectionId}}. Giá trị đang lưu không bao giờ được hiển thị; bạn hãy nhập một khóa mới.",
+    "reauthEffects": "Core lưu khóa mới dưới cùng một mã định danh thông tin xác thực; lời gọi tiếp theo sẽ dùng khóa mới. Kết quả kiểm tra đã xác minh của kết nối sẽ trở nên cũ cho đến lần kiểm tra thành công tiếp theo.",
+    "reauthConfirm": "Lưu khóa mới",
+    "credentialLabel": "Khóa API hoặc token mới",
+    "credentialHint": "Khóa chỉ nằm trong bộ nhớ cho đến khi bạn xác nhận; khóa không bao giờ hiển thị lại sau khi được lưu.",
+    "deleteTitle": "Gỡ bỏ kết nối",
+    "deleteBody": "Thao tác này gỡ bỏ vĩnh viễn kết nối {{connectionId}} khỏi Core.",
+    "deleteEffects": "Core cũng sẽ thu hồi thông tin xác thực đang lưu. Mọi thành phần phụ thuộc vào kết nối này sẽ báo thông tin xác thực không khả dụng và từ chối các lời gọi được bảo vệ — không có kết nối dự phòng. Hành động này không thể hoàn tác từ trang này.",
+    "deleteConfirm": "Gỡ bỏ kết nối",
+    "switchConnTitle": "Đặt làm kết nối đang hoạt động",
+    "switchConnBody": "Thao tác này ghi nhận kết nối {{connectionId}} là kết nối đang hoạt động.",
+    "switchConnEffects": "Không có Job nào bị di trú và không có dữ liệu nào bị di chuyển — Core chỉ ghi nhận tham chiếu kết nối đang hoạt động; các khung nhìn theo phạm vi sẽ đặt lại từ dữ liệu chính thức.",
+    "switchConnConfirm": "Đặt làm đang hoạt động",
+    "dialogDurableNote": "Lệnh có hiệu lực bền vững ngay khi Core xác nhận; các nút trong hộp thoại này nêu rõ hành động. Đóng hộp thoại này sẽ không thay đổi gì.",
+    "listRefusedTitle": "Danh sách kết nối bị từ chối",
+    "listRefusedBody": "Core đã từ chối yêu cầu đọc danh sách ({{code}}). Không có dòng nào được hiển thị — không tự tạo dữ liệu.",
+    "listRefusedNote": "Tham chiếu Core: {{correlationId}}",
+    "outcomeConfirmedTitle": "Hoàn tất",
+    "outcomeConfirmedBody": "Đã hoàn tất {{action}} trên kết nối {{connectionId}}; danh sách bên dưới phản ánh đúng những gì Core hiện báo cáo.",
+    "outcomeConfirmedNote": "Trạng thái xác nhận luôn đến từ phép đọc chính thức của Core — không bao giờ chỉ dựa vào phản hồi của lệnh.",
+    "outcomeRefusedTitle": "Chưa được áp dụng",
+    "outcomeRefusedBody": "{{action}} đã bị Core từ chối ({{code}}). Không có gì thay đổi.",
+    "outcomeRefusedNote": "Tham chiếu Core: {{correlationId}}",
+    "outcomeUnknownTitle": "Kết quả chưa xác định",
+    "outcomeUnknownBody": "{{action}} trên kết nối {{connectionId}} đã bị mất phản hồi trước khi đọc được. Phản hồi bị mất không bao giờ là bằng chứng cho thấy lệnh đã được áp dụng hay chưa.",
+    "outcomeUnknownNote": "Kiểm tra trạng thái để đọc lại danh sách chính thức — lệnh không bao giờ được gửi lại tự động.",
+    "action": {
+      "test": "Kiểm tra kết nối",
+      "rotate": "Thay khóa",
+      "reauth": "Nhập lại khóa",
+      "delete": "Gỡ bỏ kết nối",
+      "switch": "Đặt làm đang hoạt động",
+      "rename": "Đổi tên kết nối",
+      "update": "Chỉnh sửa kết nối"
+    },
+    "opEdit": "Chỉnh sửa kết nối",
+    "renameTitle": "Đổi tên kết nối",
+    "renameBody": "Chọn tên hiển thị cho kết nối {{connectionId}}.",
+    "renameEffects": "Đổi tên chỉ thay đổi tên hiển thị: không bao giờ thay đổi danh tính kết nối và không di chuyển bất kỳ Job, thông tin xác thực hay lịch sử thực thi nào.",
+    "renameInputLabel": "Tên hiển thị",
+    "renameConfirm": "Đổi tên",
+    "editTitle": "Chỉnh sửa kết nối",
+    "editBody": "Chỉnh sửa các trường không bí mật của kết nối {{connectionId}} bên dưới.",
+    "editEffects": "Chỉ các trường không bí mật thay đổi. Khóa đã lưu không bao giờ được hiển thị hay sửa ở đây: để đổi khóa, hãy dùng Thay khóa hoặc Nhập lại khóa. Sau khi chỉnh sửa được xác nhận, kết quả kiểm tra gần nhất của kết nối sẽ không còn được tính là hiện hành cho đến khi bạn chạy kiểm tra lại.",
+    "editProviderLabel": "Nhà cung cấp",
+    "editBaseUrlLabel": "URL cơ sở (tùy chọn)",
+    "editModelLabel": "ID mô hình",
+    "editHeadersLabel": "Header tùy chỉnh (tùy chọn)",
+    "editHeadersHelp": "Mỗi dòng một header, theo dạng Tên: giá trị.",
+    "editHeadersInvalid": "Nhập mỗi dòng một header, theo dạng Tên: giá trị.",
+    "editConfirm": "Lưu thay đổi",
+    "conflictNote": "Kết nối này đã thay đổi kể từ lần đọc trước (CONFLICT_STATE). Không có gì bị ghi đè: hãy kiểm tra trạng thái để đọc lại trạng thái hiện tại, sau đó áp dụng lại thay đổi của bạn dựa trên những gì danh sách hiển thị."
+  },
+  "updates": {
+    "body": "Trạng thái cập nhật và bảo trì không được hiển thị: giao ước trạng thái cập nhật chưa được gắn kết ở cột mốc này. Giao diện này không bao giờ ngầm ý thanh toán, khóa hết hạn hay bất kỳ hành vi bảo trì nào."
+  },
+  "about": {
+    "appVersion": "Phiên bản khung giao diện UI",
+    "license": "Giấy phép",
+    "licenseValue": "Apache-2.0",
+    "body": "Bản dựng này chứa khung ứng dụng dùng chung và hệ thống điều hướng đã duyệt. Biểu trưng chữ và tài sản thương hiệu đang tạm hoãn chờ quyết định của chủ sở hữu; tên sản phẩm hiển thị dưới dạng văn bản thuần.",
+    "versionDisclaimer": "Đây chỉ là phiên bản khung giao diện UI cục bộ. Nó không đưa ra khẳng định nào về bản phát hành mới nhất hay an toàn nhất hiện có."
+  }
+}

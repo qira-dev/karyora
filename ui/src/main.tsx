@@ -13,6 +13,7 @@ import "./side-pane/side-pane.css";
 import "./automations/automations-marketplace.css";
 import "./domains/enterprise-domains.css";
 import "./settings/settings-hub.css";
+import "./styles/responsive-reflow.css";
 
 createI18n();
 

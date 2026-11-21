@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "Einstellungen",
+    "subtitle": "Einstellungsgruppen. Gruppen, deren Core-gestützte Ansichten noch nicht angebunden sind, zeigen ihren ehrlichen Einstiegszustand.",
+    "groupsNavLabel": "Einstellungsgruppen"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Erscheinungsbild",
+      "description": "Design-, Bewegungs- und Spracheinstellungen.",
+      "title": "Erscheinungsbild"
+    },
+    "connections": {
+      "label": "Verbindungen",
+      "description": "Verwaltung von Core-Verbindungen (hinzufügen, testen, wechseln, erneut authentifizieren).",
+      "title": "Verbindungen"
+    },
+    "privacy": {
+      "label": "Datenschutz",
+      "description": "Datenschutz- und Datenkontrollen.",
+      "title": "Datenschutz"
+    },
+    "security": {
+      "label": "Sicherheit",
+      "description": "Steuerelemente für Sitzungs- und Zugangsdatensicherheit.",
+      "title": "Sicherheit"
+    },
+    "notifications": {
+      "label": "Benachrichtigungen",
+      "description": "Benachrichtigungseinstellungen.",
+      "title": "Benachrichtigungen"
+    },
+    "shortcuts": {
+      "label": "Tastenkürzel",
+      "description": "Tastenkürzel.",
+      "title": "Tastenkürzel"
+    },
+    "diagnostics": {
+      "label": "Diagnose",
+      "description": "Core-Zustand und bereinigter Diagnoseexport.",
+      "title": "Diagnose"
+    },
+    "updates": {
+      "label": "Updates",
+      "description": "Update- und Wartungsstatus.",
+      "title": "Updates"
+    },
+    "about": {
+      "label": "Über",
+      "description": "Version, Lizenz und Produktmetadaten.",
+      "title": "Über"
+    }
+  },
+  "appearance": {
+    "theme": "Design",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System",
+    "themeHelp": "„Hell“ ist die Standardeinstellung beim ersten Start. „System“ folgt dem Erscheinungsbild des Betriebssystems und wechselt live, sobald es sich ändert.",
+    "reducedMotion": "Bewegung",
+    "reducedMotionSystem": "System folgen",
+    "reducedMotionReduce": "Bewegung reduzieren",
+    "reducedMotionFull": "Keine Reduzierung",
+    "reducedMotionHelp": "„System folgen“ respektiert die Betriebssystem-Einstellung für reduzierte Bewegung. Sie können die Reduzierung auch manuell erzwingen oder deaktivieren.",
+    "language": "Sprache",
+    "languageHelp": "Englisch ist die maßgebliche Quell- und Fallback-Sprache. Alle 13 unterstützten Gebietsschemata (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) sind mit bedarfsgesteuertem Laden pro Sprache gebündelt und wechseln live.",
+    "densityWithheld": "Eine kompakte Darstellungsdichte wird nicht angeboten: Sie wird erst freigeschaltet, wenn Zielgrößen- und Barrierefreiheitsprüfungen bestanden wurden, und diese Prüfungen wurden noch nicht durchgeführt.",
+    "applied": "Änderungen gelten sofort. „Zurücksetzen“ stellt die dokumentierten Standardwerte wieder her: helles Design, Bewegung gemäß System und Englisch.",
+    "resetConfirm": "Erscheinungsbild auf Standardwerte zurücksetzen"
+  },
+  "security": {
+    "logoutSectionTitle": "Von dieser Sitzung abmelden",
+    "logoutSectionBody": "Das Abmelden beendet diese Sitzung auf dem Core sofort. Das gehaltene Token wird aus dem Arbeitsspeicher dieses Browsers entfernt, jede bereichsbezogene Ansicht fragt beim nächsten Aufruf erneut den Core ab, und nichts bleibt verfügbar, bis eine neue Sitzung hergestellt wurde.",
+    "logoutAction": "Abmelden",
+    "postureNoSession": "Derzeit besteht keine Sitzung, daher gibt es nichts zum Abmelden.",
+    "postureNoSessionReason": "Stellen Sie zuerst über den Verbindungs-Bootstrap eine Sitzung her; dieses Steuerelement wirkt ausschließlich auf eine bestehende Sitzung.",
+    "postureRechecking": "Der Verbindungsstatus wird anhand einer echten Core-Antwort erneut geprüft.",
+    "postureUnknown": "Unter dieser Origin hat kein Core-Transport geantwortet, daher ist der Verbindungsstatus ehrlich nicht verfügbar.",
+    "dialogTitle": "Von dieser Sitzung abmelden?",
+    "dialogScope": "Dadurch wird die aktuelle Sitzung auf dem Core sofort beendet. Das von diesem Browser gehaltene Token wird verworfen, und jede bereichsbezogene Ansicht bleibt nicht verfügbar, bis eine neue Sitzung hergestellt wurde.",
+    "dialogKeep": "Lokale Einstellungen und ungespeicherte, nicht sensible Entwürfe auf diesem Gerät bleiben erhalten.",
+    "dialogConfirm": "Abmelden",
+    "confirmedTitle": "Sie sind abgemeldet",
+    "confirmedBody": "Der Core hat den Widerruf bestätigt, und das Token wurde aus dem Arbeitsspeicher dieses Browsers entfernt.",
+    "confirmedReestablish": "Stellen Sie bei Ihrer Rückkehr über den Verbindungs-Bootstrap eine neue Sitzung her.",
+    "refusedTitle": "Der Core hat die Abmeldung abgelehnt",
+    "refusedBody": "Die Abmeldung wurde vom Core abgelehnt (typisierte Ablehnung {{code}}). Die Sitzung wurde NICHT beendet, und das gehaltene Token verbleibt im Arbeitsspeicher dieses Browsers.",
+    "refusedNote": "Es wurde nichts abgemeldet. Der typisierte Code oben ist stabil und sprachneutral; beheben Sie die angegebene Ursache und versuchen Sie es explizit erneut.",
+    "unknownTitle": "Die Antwort ging verloren",
+    "unknownBody": "Der Core hat die Abmeldung nie bestätigt, daher wird NICHT angenommen, dass die Sitzung beendet wurde, und das gehaltene Token verbleibt im Arbeitsspeicher.",
+    "unknownNote": "Es erfolgt keine automatische Wiederholung. Prüfen Sie den Sitzungsstatus und melden Sie sich explizit erneut ab, falls die Sitzung noch aktiv ist.",
+    "revokeAllAbsent": "Das Widerrufen aller Sitzungen dieser Instanz (eine Zugangsdatenänderung) ist eine Core-seitige Aktionsklasse; hier existiert dafür kein Steuerelement."
+  },
+  "shortcuts": {
+    "body": "Die unten aufgeführten Tastenkürzel sind in der aktuellen Shell implementiert. Das vollständige Tastenkürzel-Register sowie Funktionen zum Neubelegen und Deaktivieren erscheinen in einem späteren Paket.",
+    "localNote": "Tastenkürzel-Einstellungen sind eine lokale, gerätebezogene Präferenz."
+  },
+  "connections": {
+    "body": "Die Verbindungsverwaltung – hinzufügen, umbenennen, testen, erneut authentifizieren und wechseln – erfordert die Core-Verbindungsverträge, die in diesem Meilenstein nicht angebunden sind; daher wird keine Verbindungsliste angezeigt. Hier wird kein Verbindungsstatus erfunden.",
+    "listTitle": "Verbindungen",
+    "listIntro": "Verbindungen sind Core-Datensätze mit sicheren Anzeigenamen. Diese Seite zeigt niemals Token oder Endpunkte mit eingebetteten Zugangsdaten an.",
+    "listUnavailable": "Die Verbindungsliste ist nicht verfügbar: Die Core-Verbindungsverträge sind in diesem Meilenstein nicht angebunden, sodass keine Verbindungsdatensätze aufgelistet werden können. Hier wird kein Verbindungsstatus erfunden.",
+    "providerSectionTitle": "Anbieterverbindung einrichten",
+    "providerIntro": "Dies ist derselbe Schritt zur Anbietereinrichtung, den der Ersteinrichtungsassistent verwendet. Sie erreichen ihn auch über die Ersteinrichtung auf der Startseite. Ein erneutes Ausführen der Einrichtung setzt bestehende Zustände niemals zurück.",
+    "operationsTitle": "Verbindungsoperationen",
+    "operationsIntro": "Der dedizierte Verbindungsablauf bietet hier Hinzufügen und Wechseln an; jede Zeile einer gespeicherten Verbindung enthält eigene Befehle (Umbenennen, Bearbeiten, Testen, Schlüssel ersetzen, Schlüssel erneut eingeben, Als aktiv festlegen, Entfernen), die alle ausschließlich über die Core-Verbindungsverträge laufen.",
+    "opAdd": "Verbindung hinzufügen",
+    "opAddNote": "Öffnet unten die Einrichtung für Anbieterverbindungen – den einzigen Verbindungstyp, dessen Einrichtungsfelder in dieser Phase spezifiziert sind. Die Einrichtung anderer Verbindungstypen erfordert die Core-Bootstrap-Verträge, die noch nicht angebunden sind.",
+    "opAddGo": "Anbieterverbindung hinzufügen",
+    "opRename": "Verbindung umbenennen",
+    "opRemove": "Verbindung entfernen",
+    "opRemoveUnavailable": "„Entfernen“ bezieht sich auf eine Verbindung in der Liste. Die Verbindungsliste ist nicht verfügbar, daher gibt es noch nichts zu entfernen. Das Entfernen ist destruktiv und verlangt vor der Ausführung stets eine explizite Bestätigung mit Angabe von Geltungsbereich und Wirkungen.",
+    "opTest": "Verbindung testen",
+    "opTestUnavailable": "„Testen“ bezieht sich auf eine gespeicherte Verbindung, und bisher können keine aufgelistet werden. Das Anbieterformular unten bietet „Verbindung testen“ für die Einträge an, die Sie gerade eingeben.",
+    "opReauth": "Erneut authentifizieren",
+    "opReauthUnavailable": "Die erneute Authentifizierung läuft über die Core-Sitzungsverträge, die in diesem Meilenstein nicht angebunden sind. Sobald der Core meldet, dass eine Authentifizierung erforderlich ist, erscheint der Pfad zur erneuten Authentifizierung hier und im Sitzungsmenü.",
+    "switchTitle": "Verbindung wechseln",
+    "switchIntro": "Das Wechseln ist ein vom Core vermittelter Kontextwechsel: Es ändert, welche Daten und Berechtigungen verfügbar sind. Es verschiebt oder kopiert niemals Jobs oder Daten zwischen Cores.",
+    "firstRunTitle": "Ersteinrichtung",
+    "firstRunBody": "Sie können die Ersteinrichtung jederzeit ausführen oder fortsetzen. Ein erneutes Ausführen bewahrt Ihre bestehenden Auswahlen.",
+    "resumeSetup": "Ersteinrichtung fortsetzen",
+    "loadMore": "Mehr laden",
+    "checkStatus": "Status prüfen",
+    "dismiss": "Schließen",
+    "cancel": "Abbrechen",
+    "activeBadge": "Aktiv",
+    "secretStatusLabel": "API-Schlüssel",
+    "secretStatus": {
+      "present": "Sicher gespeichert (wird niemals angezeigt)",
+      "missing": "Nicht gespeichert – Schlüssel erneut eingeben",
+      "revoked": "Widerrufen – Schlüssel erneut eingeben",
+      "corrupt": "Nicht verfügbar (beschädigt) – Schlüssel erneut eingeben",
+      "inaccessible": "Zugangsdatenspeicher nicht verfügbar"
+    },
+    "testedLabel": "Verbindungstest",
+    "testedCurrent": "Getestet (verifiziert um {{time}})",
+    "testedChanged": "Getestet, aber die Verbindung wurde seitdem geändert – Test erneut ausführen",
+    "testedNever": "Gespeichert, nicht getestet",
+    "opRotate": "Schlüssel ersetzen",
+    "opSwitch": "Als aktiv festlegen",
+    "rotateTitle": "Schlüssel ersetzen",
+    "rotateBody": "Dadurch wird der gespeicherte API-Schlüssel für Verbindung {{connectionId}} durch einen neuen Schlüssel ersetzt, den Sie unten eingeben.",
+    "rotateEffects": "Der Core speichert den neuen Schlüssel unter demselben Zugangsdaten-Handle; der nächste Aufruf verwendet ihn. Bereits laufende Anfragen werden nicht neu gelesen – der Core meldet ihr Ergebnis im jeweiligen Verlauf. Das verifizierte Testergebnis der Verbindung wird bis zum nächsten erfolgreichen Test als veraltet gewertet.",
+    "rotateConfirm": "Schlüssel ersetzen",
+    "reauthTitle": "Schlüssel erneut eingeben",
+    "reauthBody": "Dadurch werden die Zugangsdaten für Verbindung {{connectionId}} erneut eingegeben. Der gespeicherte Wert wird niemals angezeigt; Sie geben einen neuen Schlüssel ein.",
+    "reauthEffects": "Der Core speichert den neuen Schlüssel unter demselben Zugangsdaten-Handle; der nächste Aufruf verwendet ihn. Das verifizierte Testergebnis der Verbindung wird bis zum nächsten erfolgreichen Test als veraltet gewertet.",
+    "reauthConfirm": "Neuen Schlüssel speichern",
+    "credentialLabel": "Neuer API-Schlüssel oder neues Token",
+    "credentialHint": "Der Schlüssel bleibt nur im Arbeitsspeicher, bis Sie bestätigen; nach dem Speichern wird er nie wieder angezeigt.",
+    "deleteTitle": "Verbindung entfernen",
+    "deleteBody": "Dadurch wird Verbindung {{connectionId}} dauerhaft aus dem Core entfernt.",
+    "deleteEffects": "Der Core widerruft zudem die gespeicherten Zugangsdaten. Alles, was von dieser Verbindung abhing, meldet die Zugangsdaten anschließend als nicht verfügbar und lehnt geschützte Aufrufe ab – es gibt keinen Fallback. Dies lässt sich von dieser Seite aus nicht rückgängig machen.",
+    "deleteConfirm": "Verbindung entfernen",
+    "switchConnTitle": "Aktive Verbindung festlegen",
+    "switchConnBody": "Dadurch wird Verbindung {{connectionId}} als aktive Verbindung protokolliert.",
+    "switchConnEffects": "Es wird kein Job migriert und es werden keine Daten verschoben – der Core protokolliert lediglich die Referenz der aktiven Verbindung; bereichsbezogene Ansichten werden anhand maßgeblicher Daten zurückgesetzt.",
+    "switchConnConfirm": "Als aktiv festlegen",
+    "dialogDurableNote": "Der Befehl ist dauerhaft, sobald der Core ihn bestätigt; die Schaltflächen dieses Dialogs benennen die Handlung. Das Schließen dieses Dialogs ändert nichts.",
+    "listRefusedTitle": "Die Verbindungsliste wurde abgelehnt",
+    "listRefusedBody": "Der Core hat den Lesezugriff auf die Liste abgelehnt ({{code}}). Es werden keine Zeilen angezeigt – keine werden erfunden.",
+    "listRefusedNote": "Core-Referenz: {{correlationId}}",
+    "outcomeConfirmedTitle": "Erledigt",
+    "outcomeConfirmedBody": "Aktion „{{action}}“ für Verbindung {{connectionId}} abgeschlossen; die Liste unten gibt wieder, was der Core nun meldet.",
+    "outcomeConfirmedNote": "Der bestätigte Zustand stammt stets aus dem maßgeblichen Lesezugriff des Cores – niemals allein aus der Befehlsantwort.",
+    "outcomeRefusedTitle": "Nicht angewendet",
+    "outcomeRefusedBody": "Aktion „{{action}}“ wurde vom Core abgelehnt ({{code}}). Es wurde nichts geändert.",
+    "outcomeRefusedNote": "Core-Referenz: {{correlationId}}",
+    "outcomeUnknownTitle": "Ergebnis unbekannt",
+    "outcomeUnknownBody": "Für Aktion „{{action}}“ auf Verbindung {{connectionId}} ging die Antwort verloren, bevor sie gelesen werden konnte. Eine verlorene Antwort ist niemals ein Beweis dafür, ob der Befehl angewendet wurde oder nicht.",
+    "outcomeUnknownNote": "Prüfen Sie den Status, um die maßgebliche Liste erneut zu lesen – der Befehl wird niemals automatisch erneut gesendet.",
+    "action": {
+      "test": "Verbindung testen",
+      "rotate": "Schlüssel ersetzen",
+      "reauth": "Schlüssel erneut eingeben",
+      "delete": "Verbindung entfernen",
+      "switch": "Als aktiv festlegen",
+      "rename": "Verbindung umbenennen",
+      "update": "Verbindung bearbeiten"
+    },
+    "opEdit": "Verbindung bearbeiten",
+    "renameTitle": "Verbindung umbenennen",
+    "renameBody": "Wählen Sie einen Anzeigenamen für Verbindung {{connectionId}}.",
+    "renameEffects": "Eine Umbenennung ändert ausschließlich den Anzeigenamen: Sie ändert niemals die Verbindungsidentität, und es werden weder Jobs noch Zugangsdaten oder Ausführungsverläufe verschoben.",
+    "renameInputLabel": "Anzeigename",
+    "renameConfirm": "Umbenennen",
+    "editTitle": "Verbindung bearbeiten",
+    "editBody": "Bearbeiten Sie unten die nicht geheimen Felder von Verbindung {{connectionId}}.",
+    "editEffects": "Es ändern sich ausschließlich die nicht geheimen Felder. Der gespeicherte Schlüssel wird hier niemals angezeigt oder bearbeitet: Verwenden Sie zum Ändern des Schlüssels „Schlüssel ersetzen“ oder „Schlüssel erneut eingeben“. Nach einer bestätigten Bearbeitung gilt der letzte Test der Verbindung erst wieder als aktuell, wenn Sie den Test erneut ausführen.",
+    "editProviderLabel": "Anbieter",
+    "editBaseUrlLabel": "Basis-URL (optional)",
+    "editModelLabel": "Modell-ID",
+    "editHeadersLabel": "Benutzerdefinierte Header (optional)",
+    "editHeadersHelp": "Ein Header pro Zeile im Format Name: Wert.",
+    "editHeadersInvalid": "Geben Sie Header zeilenweise im Format Name: Wert ein.",
+    "editConfirm": "Änderungen speichern",
+    "conflictNote": "Diese Verbindung hat sich seit dem Lesen geändert (CONFLICT_STATE). Es wurde nichts überschrieben: Prüfen Sie den Status, um den aktuellen Zustand erneut zu lesen, und wenden Sie Ihre Änderung dann auf Basis der Liste erneut an."
+  },
+  "updates": {
+    "body": "Der Update- und Wartungsstatus wird nicht angezeigt: Der Update-Status-Vertrag ist in diesem Meilenstein nicht angebunden. Diese Oberfläche impliziert niemals einen Bezahlvorgang, eine Ablaufsperre oder irgendein Wartungsverhalten."
+  },
+  "about": {
+    "appVersion": "UI-Shell-Version",
+    "license": "Lizenz",
+    "licenseValue": "Apache-2.0",
+    "body": "Dieser Build enthält die gemeinsame Shell und die freigegebene Navigation. Wortmarke und Marken-Assets sind bis zur Entscheidung des Eigentümers zurückgestellt; der Produktname erscheint als Klartext.",
+    "versionDisclaimer": "Dies ist ausschließlich die lokale UI-Shell-Version. Sie trifft keine Aussage über die neueste oder sicherste verfügbare Version."
+  }
+}

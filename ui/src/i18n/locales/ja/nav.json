@@ -1,0 +1,30 @@
+{
+  "groups": {
+    "main": "メイン",
+    "buildAndConnect": "構築と接続",
+    "extensions": "拡張機能",
+    "operate": "運用",
+    "bottom": "その他"
+  },
+  "items": {
+    "overview": "概要",
+    "chat": "チャット",
+    "jobs": "ジョブ",
+    "knowledge": "ナレッジ",
+    "memory": "メモリ",
+    "context": "コンテキスト",
+    "workflows": "ワークフロー",
+    "providersAndModels": "プロバイダーとモデル",
+    "plugins": "プラグイン",
+    "activityAndAudit": "アクティビティと監査",
+    "helpAndDocumentation": "ヘルプとドキュメント",
+    "settings": "設定",
+    "session": "セッション"
+  },
+  "unavailableSuffix": "（未対応）",
+  "unavailableReason": "まだ利用できません。この機能は後続のリリースパッケージで提供されます。",
+  "collapse": "ナビゲーションを折りたたむ",
+  "expand": "ナビゲーションを展開",
+  "openNavigation": "ナビゲーションを開く",
+  "closeNavigation": "ナビゲーションを閉じる"
+}

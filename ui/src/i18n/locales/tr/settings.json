@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "Ayarlar",
+    "subtitle": "Ayar grupları. Core destekli ekranları henüz bağlı olmayan gruplar dürüst giriş durumlarını gösterir.",
+    "groupsNavLabel": "Ayar grupları"
+  },
+  "groups": {
+    "appearance": {
+      "label": "Görünüm",
+      "description": "Tema, hareket ve dil tercihleri.",
+      "title": "Görünüm"
+    },
+    "connections": {
+      "label": "Bağlantılar",
+      "description": "Core bağlantı yönetimi (ekle, test et, değiştir, yeniden doğrula).",
+      "title": "Bağlantılar"
+    },
+    "privacy": {
+      "label": "Gizlilik",
+      "description": "Gizlilik ve veri denetimleri.",
+      "title": "Gizlilik"
+    },
+    "security": {
+      "label": "Güvenlik",
+      "description": "Oturum ve kimlik bilgisi güvenlik denetimleri.",
+      "title": "Güvenlik"
+    },
+    "notifications": {
+      "label": "Bildirimler",
+      "description": "Bildirim tercihleri.",
+      "title": "Bildirimler"
+    },
+    "shortcuts": {
+      "label": "Kısayollar",
+      "description": "Klavye kısayolları.",
+      "title": "Klavye kısayolları"
+    },
+    "diagnostics": {
+      "label": "Tanılama",
+      "description": "Core sağlığı ve sansürlenmiş tanılama dışa aktarımı.",
+      "title": "Tanılama"
+    },
+    "updates": {
+      "label": "Güncellemeler",
+      "description": "Güncelleme ve bakım durumu.",
+      "title": "Güncellemeler"
+    },
+    "about": {
+      "label": "Hakkında",
+      "description": "Sürüm, lisans ve ürün üst verileri.",
+      "title": "Hakkında"
+    }
+  },
+  "appearance": {
+    "theme": "Tema",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeSystem": "Sistem",
+    "themeHelp": "İlk kurulumda varsayılan tema Açık'tır. Sistem seçeneği işletim sistemi görünümünü izler ve işletim sistemi görünümü değiştiğinde anında geçiş yapar.",
+    "reducedMotion": "Hareket",
+    "reducedMotionSystem": "Sistemi izle",
+    "reducedMotionReduce": "Hareketi azalt",
+    "reducedMotionFull": "Azaltma yok",
+    "reducedMotionHelp": "Sistemi izle seçeneği işletim sisteminin azaltılmış hareket ayarını dikkate alır. Azaltmayı ayrıca açık veya kapalı olarak zorlayabilirsiniz.",
+    "language": "Dil",
+    "languageHelp": "İngilizce yetkili kaynak ve yedek yerel ayardır. Kabul edilen 13 yerel ayarın tamamı (en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi) yerel ayar başına geç yüklemeyle paketlenmiştir ve anında değiştirilebilir.",
+    "densityWithheld": "Kompakt yoğunluk seçeneği sunulmuyor: yalnızca hedef boyutu ve erişilebilirlik denetimleri geçtiğinde gösterilir ve bu denetimler henüz çalıştırılmadı.",
+    "applied": "Değişiklikler anında uygulanır. Sıfırlama belgelenmiş varsayılanları geri yükler: Açık tema, sistemi izleyen hareket ve İngilizce.",
+    "resetConfirm": "Görünümü varsayılanlara sıfırla"
+  },
+  "security": {
+    "logoutSectionTitle": "Bu oturumdan çıkış yap",
+    "logoutSectionBody": "Çıkış yapmak Core üzerindeki bu oturumu derhal sonlandırır. Tutulan belirteç bu tarayıcının belleğinden atılır, her kapsamlı görünüm sonraki kullanımında Core'dan yeniden sorgulama yapar ve yeni bir oturum kurulana kadar hiçbir şey kullanılabilir kalmaz.",
+    "logoutAction": "Çıkış yap",
+    "postureNoSession": "Şu anda tutulan bir oturum olmadığından çıkış yapılacak bir şey yok.",
+    "postureNoSessionReason": "Önce bağlantı bootstrap adımıyla bir oturum kurun; bu denetim yalnızca tutulan bir oturum üzerinde çalışır.",
+    "postureRechecking": "Bağlantı durumu gerçek bir Core yanıtına karşı yeniden kontrol ediliyor.",
+    "postureUnknown": "Bu kaynağa yanıt veren bir Core aktarımı olmadığından bağlantı durumu dürüstçe kullanılamıyor olarak gösterilir.",
+    "dialogTitle": "Bu oturumdan çıkış yapılsın mı?",
+    "dialogScope": "Bu işlem Core üzerindeki geçerli oturumu derhal sonlandırır. Bu tarayıcıda tutulan belirteç atılır ve yeni bir oturum kurulana kadar her kapsamlı görünüm kullanılamaz durumda kalır.",
+    "dialogKeep": "Bu cihazdaki yerel tercihler ve kaydedilmemiş, hassas olmayan taslaklar korunur.",
+    "dialogConfirm": "Çıkış yap",
+    "confirmedTitle": "Çıkış yaptınız",
+    "confirmedBody": "Core iptali doğruladı ve belirteç bu tarayıcının belleğinden atıldı.",
+    "confirmedReestablish": "Geri döndüğünüzde bağlantı bootstrap adımıyla yeniden bir oturum kurun.",
+    "refusedTitle": "Core çıkış işlemini reddetti",
+    "refusedBody": "Çıkış işlemi Core tarafından reddedildi (tipli ret {{code}}). Oturum SONLANDIRILMADI ve tutulan belirteç bu tarayıcının belleğinde kalmaya devam ediyor.",
+    "refusedNote": "Hiçbir oturumdan çıkış yapılmadı. Yukarıdaki tipli kod kararlıdır ve dilden bağımsızdır; belirtilen nedeni çözüp açıkça yeniden deneyin.",
+    "unknownTitle": "Yanıt kayboldu",
+    "unknownBody": "Core çıkışı hiç doğrulamadı, bu nedenle oturumun sonlandığı VARSAYILMAZ ve tutulan belirteç bellekte kalır.",
+    "unknownNote": "Otomatik yeniden deneme yapılmaz. Oturum durumunu kontrol edin ve hâlâ etkinse açıkça yeniden çıkış yapın.",
+    "revokeAllAbsent": "Bu örneğin tüm oturumlarını iptal etmek (bir kimlik bilgisi değişikliği) Core tarafında bir eylem sınıfıdır; burada buna yönelik bir denetim bulunmaz."
+  },
+  "shortcuts": {
+    "body": "Aşağıdaki kısayollar geçerli kabukta uygulanmıştır. Tam kısayol kayıt listesi ile yeniden atama ve devre dışı bırakma denetimleri sonraki bir pakette sunulacaktır.",
+    "localNote": "Kısayol tercihleri cihaz başına yerel bir tercihtir."
+  },
+  "connections": {
+    "body": "Bağlantı yönetimi — ekleme, yeniden adlandırma, test etme, yeniden doğrulama ve değiştirme — bu aşamada bağlı olmayan Core bağlantı sözleşmelerini gerektirir; bu nedenle bağlantı listesi gösterilmez. Burada hiçbir bağlantı durumu uydurulmaz.",
+    "listTitle": "Bağlantılar",
+    "listIntro": "Bağlantılar güvenli görünen adlarla gösterilen Core kayıtlarıdır. Bu sayfa hiçbir zaman belirteçleri veya gömülü kimlik bilgisi içeren uç noktaları göstermez.",
+    "listUnavailable": "Bağlantı listesi kullanılamıyor: Core bağlantı sözleşmeleri bu aşamada bağlı olmadığından hiçbir bağlantı kaydı listelenemiyor. Burada hiçbir bağlantı durumu uydurulmaz.",
+    "providerSectionTitle": "Sağlayıcı bağlantısı kurulumu",
+    "providerIntro": "Bu, ilk kurulum sihirbazının kullandığı aynı sağlayıcı kurulum adımıdır. Buna ana sayfadaki ilk kurulumdan da ulaşabilirsiniz. Kurulumu yeniden çalıştırmak mevcut durumu asla sıfırlamaz.",
+    "operationsTitle": "Bağlantı işlemleri",
+    "operationsIntro": "Özel bağlantı akışı burada ekleme ve değiştirme sunar; her kayıtlı bağlantının satırı kendi komutlarını taşır (yeniden adlandır, düzenle, test et, anahtarı değiştir, anahtarı yeniden gir, etkin yap, kaldır) ve bunların her biri yalnızca Core bağlantı sözleşmeleri üzerinden çalışır.",
+    "opAdd": "Bağlantı ekle",
+    "opAddNote": "Aşağıdaki sağlayıcı bağlantısı kurulumunu açar — bu aşamada kurulum alanları tanımlanan tek bağlantı türü budur. Diğer bağlantı türlerinin kurulumu henüz bağlı olmayan Core bootstrap sözleşmelerini gerektirir.",
+    "opAddGo": "Bir sağlayıcı bağlantısı ekle",
+    "opRename": "Bağlantıyı yeniden adlandır",
+    "opRemove": "Bağlantıyı kaldır",
+    "opRemoveUnavailable": "Kaldır işlemi listedeki bir bağlantıya uygulanır. Bağlantı listesi kullanılamadığından henüz kaldırılacak bir şey yok. Kaldırma yıkıcı bir işlemdir ve çalışmadan önce her zaman kapsamını ve etkilerini belirten açık bir onay ister.",
+    "opTest": "Bağlantıyı test et",
+    "opTestUnavailable": "Test işlemi kayıtlı bir bağlantıya uygulanır ve henüz hiçbiri listelenemiyor. Aşağıdaki sağlayıcı formu, şu anda girmekte olduğunuz bilgiler için Bağlantıyı test et seçeneğini sunar.",
+    "opReauth": "Yeniden doğrula",
+    "opReauthUnavailable": "Yeniden doğrulama, bu aşamada bağlı olmayan Core oturum sözleşmeleri üzerinden çalışır. Core kimlik doğrulaması gerektiğini bildirdiğinde yeniden doğrulama yolu burada ve oturum menüsünde görünür.",
+    "switchTitle": "Bağlantıyı değiştir",
+    "switchIntro": "Değiştirme, Core aracılığıyla yürütülen bir bağlam değişikliğidir: hangi verilerin ve izinlerin kullanılabilir olduğunu değiştirir. İşleri veya verileri hiçbir zaman Core'lar arasında taşımaz ya da kopyalamaz.",
+    "firstRunTitle": "İlk kurulum",
+    "firstRunBody": "İlk kurulumu istediğiniz zaman çalıştırabilir veya devam ettirebilirsiniz. Kurulumu yeniden çalıştırmak mevcut seçimlerinizi korur.",
+    "resumeSetup": "İlk kuruluma devam et",
+    "loadMore": "Daha fazla yükle",
+    "checkStatus": "Durumu kontrol et",
+    "dismiss": "Kapat",
+    "cancel": "İptal",
+    "activeBadge": "Etkin",
+    "secretStatusLabel": "API anahtarı",
+    "secretStatus": {
+      "present": "Güvenle depolandı (asla gösterilmez)",
+      "missing": "Depolanmadı — anahtarı yeniden girin",
+      "revoked": "İptal edildi — anahtarı yeniden girin",
+      "corrupt": "Kullanılamıyor (bozuk) — anahtarı yeniden girin",
+      "inaccessible": "Kimlik bilgisi deposu kullanılamıyor"
+    },
+    "testedLabel": "Bağlantı testi",
+    "testedCurrent": "Test edildi (doğrulandı: {{time}})",
+    "testedChanged": "Test edildi, ancak bağlantı o zamandan beri değişti — testi yeniden çalıştırın",
+    "testedNever": "Kaydedildi, test edilmedi",
+    "opRotate": "Anahtarı değiştir",
+    "opSwitch": "Etkin yap",
+    "rotateTitle": "Anahtarı değiştir",
+    "rotateBody": "Bu işlem, {{connectionId}} bağlantısı için depolanan API anahtarını aşağıda gireceğiniz yeni bir anahtarla değiştirir.",
+    "rotateEffects": "Core yeni anahtarı aynı kimlik bilgisi tutamacı altında depolar; bir sonraki çağrı bunu kullanır. Halihazırda sürmekte olan istekler yeniden okunmaz — Core bunların sonucunu gerçekleştiği gibi bildirir. Bağlantının doğrulanmış test sonucu bir sonraki başarılı teste kadar geçerliliğini yitirir.",
+    "rotateConfirm": "Anahtarı değiştir",
+    "reauthTitle": "Anahtarı yeniden gir",
+    "reauthBody": "Bu işlem {{connectionId}} bağlantısının kimlik bilgisini yeniden girmenizi sağlar. Depolanan değer asla gösterilmez; yeni bir anahtar girersiniz.",
+    "reauthEffects": "Core yeni anahtarı aynı kimlik bilgisi tutamacı altında depolar; bir sonraki çağrı bunu kullanır. Bağlantının doğrulanmış test sonucu bir sonraki başarılı teste kadar geçerliliğini yitirir.",
+    "reauthConfirm": "Yeni anahtarı depola",
+    "credentialLabel": "Yeni API anahtarı veya belirteci",
+    "credentialHint": "Anahtar yalnızca siz onaylayana kadar bellekte kalır; depolandıktan sonra bir daha asla gösterilmez.",
+    "deleteTitle": "Bağlantıyı kaldır",
+    "deleteBody": "Bu işlem {{connectionId}} bağlantısını Core'dan kalıcı olarak kaldırır.",
+    "deleteEffects": "Core ayrıca depolanan kimlik bilgisini de iptal eder. Bu bağlantıya bağlı olan her şey bundan sonra kimlik bilgisini kullanılamıyor olarak bildirir ve korumalı çağrıları reddeder — yedek mekanizma yoktur. Bu işlem bu sayfadan geri alınamaz.",
+    "deleteConfirm": "Bağlantıyı kaldır",
+    "switchConnTitle": "Etkin bağlantıyı ayarla",
+    "switchConnBody": "Bu işlem {{connectionId}} bağlantısını etkin bağlantı olarak kaydeder.",
+    "switchConnEffects": "Hiçbir iş taşınmaz ve hiçbir veri yer değiştirmez — Core yalnızca etkin bağlantı referansını kaydeder; kapsamlı görünümler yetkili verilerden sıfırlanır.",
+    "switchConnConfirm": "Etkin yap",
+    "dialogDurableNote": "Core doğruladıktan sonra komut kalıcıdır; bu iletişim kutusunun düğmeleri eylemi açıkça belirtir. Bu iletişim kutusunu kapatmak hiçbir şeyi değiştirmez.",
+    "listRefusedTitle": "Bağlantı listesi reddedildi",
+    "listRefusedBody": "Core liste okumasını reddetti ({{code}}). Hiçbir satır gösterilmez — hiçbiri uydurulmaz.",
+    "listRefusedNote": "Core referansı: {{correlationId}}",
+    "outcomeConfirmedTitle": "Tamamlandı",
+    "outcomeConfirmedBody": "{{connectionId}} bağlantısında {{action}} tamamlandı; aşağıdaki liste Core'un şimdi bildirdiğini yansıtıyor.",
+    "outcomeConfirmedNote": "Doğrulanan durum her zaman yalnızca komutun yanıtından değil, Core'un yetkili okumasından gelir.",
+    "outcomeRefusedTitle": "Uygulanmadı",
+    "outcomeRefusedBody": "{{action}} Core tarafından reddedildi ({{code}}). Hiçbir şey değiştirilmedi.",
+    "outcomeRefusedNote": "Core referansı: {{correlationId}}",
+    "outcomeUnknownTitle": "Sonuç bilinmiyor",
+    "outcomeUnknownBody": "{{connectionId}} bağlantısındaki {{action}} işleminin yanıtı okunamadan kayboldu. Kaybolan bir yanıt hiçbir zaman komutun uygulandığının veya uygulanmadığının kanıtı değildir.",
+    "outcomeUnknownNote": "Yetkili listeyi yeniden okumak için durumu kontrol edin — komut asla otomatik olarak yeniden gönderilmez.",
+    "action": {
+      "test": "Bağlantıyı test et",
+      "rotate": "Anahtarı değiştir",
+      "reauth": "Anahtarı yeniden gir",
+      "delete": "Bağlantıyı kaldır",
+      "switch": "Etkin yap",
+      "rename": "Bağlantıyı yeniden adlandır",
+      "update": "Bağlantıyı düzenle"
+    },
+    "opEdit": "Bağlantıyı düzenle",
+    "renameTitle": "Bağlantıyı yeniden adlandır",
+    "renameBody": "{{connectionId}} bağlantısı için bir görünen ad seçin.",
+    "renameEffects": "Yeniden adlandırma yalnızca görünen adı değiştirir: bağlantı kimliğini asla değiştirmez ve hiçbir iş, kimlik bilgisi veya yürütme geçmişi taşınmaz.",
+    "renameInputLabel": "Görünen ad",
+    "renameConfirm": "Yeniden adlandır",
+    "editTitle": "Bağlantıyı düzenle",
+    "editBody": "Aşağıda {{connectionId}} bağlantısının gizli olmayan alanlarını düzenleyin.",
+    "editEffects": "Yalnızca gizli olmayan alanlar değişir. Depolanan anahtar burada asla gösterilmez veya düzenlenmez: anahtarı değiştirmek için Anahtarı değiştir veya Anahtarı yeniden gir seçeneğini kullanın. Doğrulanan bir düzenlemeden sonra testi yeniden çalıştırana kadar bağlantının son testi artık güncel sayılmaz.",
+    "editProviderLabel": "Sağlayıcı",
+    "editBaseUrlLabel": "Temel URL (isteğe bağlı)",
+    "editModelLabel": "Model kimliği",
+    "editHeadersLabel": "Özel üstbilgiler (isteğe bağlı)",
+    "editHeadersHelp": "Her satırda bir üstbilgi, Name: value biçiminde.",
+    "editHeadersInvalid": "Üstbilgileri her satırda bir tane olacak şekilde Name: value biçiminde girin.",
+    "editConfirm": "Değişiklikleri kaydet",
+    "conflictNote": "Bu bağlantı okunduktan sonra değişti (CONFLICT_STATE). Hiçbir şeyin üzerine yazılmadı: geçerli durumu yeniden okumak için durumu kontrol edin, ardından listenin gösterdiği durum üzerinden değişikliğinizi yeniden uygulayın."
+  },
+  "updates": {
+    "body": "Güncelleme ve bakım durumu gösterilmiyor: güncelleme durumu sözleşmesi bu aşamada bağlı değil. Bu ekran hiçbir zaman ödeme, süre sonu kilitlemesi veya herhangi bir bakım davranışı ima etmez."
+  },
+  "about": {
+    "appVersion": "Kullanıcı arayüzü kabuğu sürümü",
+    "license": "Lisans",
+    "licenseValue": "Apache-2.0",
+    "body": "Bu derleme paylaşılan kabuğu ve onaylanmış gezinmeyi içerir. Sözcük logosu ve marka varlıkları sahibin kararı beklenerek ertelenmiştir; ürün adı düz metin olarak görünür.",
+    "versionDisclaimer": "Bu yalnızca yerel kullanıcı arayüzü kabuğu sürümüdür. Mevcut en yeni veya en güvenli sürüm hakkında herhangi bir iddiada bulunmaz."
+  }
+}

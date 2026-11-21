@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Buscar",
+    "openSearch": "Abrir busca",
+    "newMenu": "Novo",
+    "openNewMenu": "Abrir menu de criação",
+    "notifications": "Notificações",
+    "openNotifications": "Abrir notificações"
+  },
+  "search": {
+    "title": "Buscar",
+    "inputLabel": "Buscar",
+    "unavailable": "A busca ainda não está disponível: a paleta de comandos será entregue em um pacote posterior e precisa do contrato de busca do Core, que não está integrado neste marco.",
+    "shortcutHint": "Use Ctrl+K ou Cmd+K para abrir a busca quando não estiver digitando em um campo editável."
+  },
+  "newMenu": {
+    "startChat": "Iniciar chat",
+    "runTask": "Executar uma tarefa",
+    "importKnowledge": "Importar conhecimento",
+    "unavailableReason": "Ainda não disponível: este fluxo será entregue em um pacote de lançamento posterior."
+  },
+  "connection": {
+    "label": "Status da conexão",
+    "popoverTitle": "Conexão",
+    "stateUnknown": "Desconhecido",
+    "stateConnecting": "Conectando",
+    "stateConnected": "Conectado",
+    "stateDisconnected": "Desconectado",
+    "stateReconnecting": "Reconectando",
+    "stateSessionExpired": "Sessão expirada",
+    "unknownExplanation": "O estado da conexão é Desconhecido: nenhum transporte do Core respondeu nesta origem do aplicativo, portanto não há estado informado pelo Core para exibir. O transporte local do Core é opcional (opt-in) e desativado por padrão. Desconhecido nunca é exibido como conectado.",
+    "connectingExplanation": "O estado da conexão está sendo verificado: uma leitura real está em andamento contra o transporte do Core nesta origem do aplicativo.",
+    "connectedExplanation": "O Core local respondeu a uma leitura autorizada, portanto a conexão está ativa. Este estado vem apenas de respostas reais do transporte — nunca de uma suposição.",
+    "disconnectedExplanation": "Um transporte do Core respondeu nesta origem do aplicativo, mas nenhuma sessão está estabelecida ainda, portanto nenhuma operação autorizada pode ser executada. Conecte-se pela configuração inicial com uma credencial de bootstrap de uso único.",
+    "reconnectingExplanation": "O último estado conhecido da conexão está sendo verificado novamente junto ao transporte do Core com uma leitura real.",
+    "sessionExpiredExplanation": "A sessão mantida por esta página não está mais autorizada pelo Core (expirou, foi revogada ou é inválida). O token foi descartado da memória desta página. Reconecte-se pela configuração inicial com uma nova credencial de uso único.",
+    "listUnavailable": "A lista de conexões está indisponível: os contratos de conexão do Core não estão integrados neste marco.",
+    "switchUnavailable": "Alternar conexões ainda não é oferecido: isso exige os contratos de conexão do Core.",
+    "switch": {
+      "title": "Alternar conexão",
+      "warningHeading": "Antes de alternar",
+      "warningBody": "Alternar muda com qual Core, workspace, dados e permissões você está trabalhando. Nunca move nem copia Jobs ou dados entre Cores, e cada conexão mantém seus próprios caches, cursores, credenciais e eventos — eles nunca se misturam.",
+      "selectorLabel": "Conexão",
+      "selectorUnavailable": "A lista de conexões está indisponível: os contratos de conexão do Core não estão integrados neste marco, portanto ainda não há para onde alternar.",
+      "confirm": "Alternar conexão",
+      "confirmUnavailableReason": "Alternar precisa de uma conexão selecionável na lista de conexões do Core, que está indisponível.",
+      "setupHint": "Você pode configurar uma conexão em Configurações, Conexões ou pela configuração inicial."
+    }
+  },
+  "session": {
+    "label": "Sessão",
+    "popoverTitle": "Sessão",
+    "stateUnavailable": "O estado da sessão está indisponível: nenhum transporte do Core respondeu nesta origem do aplicativo, portanto não há estado de sessão para exibir.",
+    "stateRule": "Esta exibição mostra apenas o que o Core informa. Autenticação necessária e Permissão limitada só aparecem quando o Core as informa — nunca são exibidas como conectado.",
+    "stateActiveBody": "A sessão do Core está ativa: ela autorizou uma leitura real no Core local. O token da sessão é mantido apenas na memória desta página — nunca gravado no armazenamento do navegador, em links ou em logs.",
+    "stateExpiredBody": "A sessão mantida por esta página não está mais autorizada pelo Core (expirou, foi revogada ou é inválida). O token foi descartado da memória desta página.",
+    "sessionIdLabel": "Identificador da sessão",
+    "sessionScopesLabel": "Escopos",
+    "sessionExpiresLabel": "Expira em",
+    "reauthLabel": "Reautenticar",
+    "reauthUnavailable": "A reautenticação ainda não é oferecida: o mecanismo do fluxo dedicado de reautenticação é um item em aberto registrado, portanto não há caminho de reautenticação para oferecer aqui.",
+    "reauthNote": "Quando o Core informa Autenticação necessária ou Permissão limitada, esta exibição mostra o estado e oferece o caminho de reautenticação como um fluxo dedicado. Operações protegidas permanecem desativadas com explicação enquanto esse estado durar, e credenciais nunca são armazenadas para evitá-lo. A recuperação de uma sessão expirada passa pela etapa temporária de bootstrap na configuração inicial."
+  },
+  "shortcutHelp": {
+    "trigger": "Atalhos de teclado",
+    "openHelp": "Abrir atalhos de teclado",
+    "title": "Atalhos de teclado",
+    "shortcutColumn": "Atalho",
+    "actionColumn": "Ação",
+    "implemented": "Estes atalhos estão implementados no shell atual.",
+    "remapNote": "Desativar e remapear atalhos de tecla única está especificado para um pacote posterior; o atalho de ajuda de tecla única atualmente tem escopo limitado para nunca disparar enquanto você digita em um campo editável ou compõe texto com um método de entrada.",
+    "escNote": "Escape fecha popovers e caixas de diálogo. Ele nunca cancela um Job durável; o cancelamento é sempre uma ação explícita."
+  },
+  "shortcuts": {
+    "openSearch": "Abrir busca",
+    "openSettings": "Abrir configurações",
+    "openShortcutHelp": "Abrir esta ajuda de atalhos",
+    "closeSurface": "Fechar popover ou caixa de diálogo"
+  },
+  "skipToContent": "Pular para o conteúdo principal"
+}

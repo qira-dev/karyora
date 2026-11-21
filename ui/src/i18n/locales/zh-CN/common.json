@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "打开",
+    "close": "关闭",
+    "cancel": "取消",
+    "reset": "重置",
+    "retry": "重试"
+  },
+  "states": {
+    "unknown": "未知",
+    "unavailable": "不可用",
+    "notConnected": "未连接"
+  },
+  "entryNotice": {
+    "title": "功能入口",
+    "body": "该分组的界面与 Core 支持的控件将在后续版本包中交付。本里程碑尚未接入 Core 契约，因此仅展示此入口说明。",
+    "localOnlyBody": "本页的本地偏好设置控件现已可用；该分组的其余界面将在后续版本包中交付。"
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "你未保存的输入和本地草稿已安全保留。",
+      "correlationIdLabel": "关联 ID：{{correlationId}}",
+      "errorCodeLabel": "机器错误码：{{code}}"
+    },
+    "actions": {
+      "retry": "重试操作",
+      "reconcileS4": "重新读取 Core 权威状态",
+      "resolveConflict": "查看并解决冲突",
+      "reauthenticate": "重新认证会话",
+      "switchCoreConnection": "切换 Core 连接",
+      "dismiss": "关闭",
+      "openModelSettings": "打开模型设置"
+    },
+    "validationFailed": {
+      "title": "校验失败",
+      "explanation": "一个或多个已提交字段不符合 Core 校验模式。请检查高亮标注的输入项后重试。"
+    },
+    "configConflict": {
+      "title": "配置冲突",
+      "explanation": "自你加载配置以来，该配置已被修改。应用更改前，请先刷新权威版本。"
+    },
+    "authzDenied": {
+      "title": "权限不足",
+      "explanation": "你当前的 Core 会话无权执行此操作，或会话需要重新认证。"
+    },
+    "notFound": {
+      "title": "未找到资源",
+      "explanation": "请求的条目已不存在，或不在你当前活动的 Core 工作区范围内。"
+    },
+    "conflictState": {
+      "title": "检测到状态冲突",
+      "explanation": "该记录在 Core 上已更新至较新版本。重试前请先比对最新权威状态。"
+    },
+    "conflictIdempotencyKey": {
+      "title": "操作幂等键重复",
+      "explanation": "Core 已使用此幂等键记录过另一条不同请求。请重新读取权威状态以确认你的操作是否成功。"
+    },
+    "singleInstanceConflict": {
+      "title": "已有另一个 Core 实例处于活动状态",
+      "explanation": "另一个 Karyora Core 进程当前持有此工作区锁。请切换到正在运行的 Core 连接，切勿启动冲突实例。"
+    },
+    "storageUnavailable": {
+      "title": "存储暂时不可用",
+      "explanation": "Core 无法访问其本地或远程存储后端。请检查存储可用性后重试。"
+    },
+    "migrationFailed": {
+      "title": "数据迁移失败",
+      "explanation": "Core 在提交部分变更前已安全中止模式或数据迁移。重试前请先检查诊断信息。"
+    },
+    "stateCorrupt": {
+      "title": "存储状态完整性错误",
+      "explanation": "Core 在持久化状态上检测到完整性校验失败，为保护你的数据已停止运行。请从经过验证的备份恢复或打开诊断工具。"
+    },
+    "recoveryRequired": {
+      "title": "需要执行恢复检查",
+      "explanation": "上一次操作未能正常结束。继续前请重新读取 Core 权威状态以确认当前状态。"
+    },
+    "rateLimited": {
+      "title": "已达到速率限制",
+      "explanation": "短时间内发送的请求过多。请稍候片刻再手动重试。"
+    },
+    "internal": {
+      "title": "Core 内部错误",
+      "explanation": "Core 报告了意外的内部故障。你的本地草稿未被丢弃；如需导出诊断信息，请复制关联 ID。"
+    },
+    "unknownCode": {
+      "title": "Core 拒绝了该请求",
+      "explanation": "Core 返回了无法识别的机器错误码。界面不会渲染后端原始文本；请验证 Core 健康状态或导出已脱敏的诊断信息。"
+    },
+    "unknownOutcomeS4": {
+      "title": "操作结果未知",
+      "explanation": "在 Core 确认此次变更是否成功之前连接已断开。请勿假定成功或失败——请先重新读取 Core 权威状态。"
+    }
+  }
+}

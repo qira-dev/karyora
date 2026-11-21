@@ -1,0 +1,96 @@
+{
+  "appName": "Karyora",
+  "actions": {
+    "open": "Buka",
+    "close": "Tutup",
+    "cancel": "Batal",
+    "reset": "Atur ulang",
+    "retry": "Coba lagi"
+  },
+  "states": {
+    "unknown": "Tidak diketahui",
+    "unavailable": "Tidak tersedia",
+    "notConnected": "Tidak terhubung"
+  },
+  "entryNotice": {
+    "title": "Titik masuk",
+    "body": "Layar dan kontrol berbasis Core untuk grup ini akan hadir pada paket berikutnya. Belum ada kontrak Core yang terhubung pada tahap ini, sehingga tidak ada yang ditampilkan selain titik masuk ini.",
+    "localOnlyBody": "Kontrol preferensi lokal di halaman ini sudah berfungsi; layar lainnya untuk grup ini akan hadir pada paket berikutnya."
+  },
+  "errors": {
+    "common": {
+      "draftPreservedSafely": "Input yang belum disimpan dan draf lokal Anda telah dijaga dengan aman.",
+      "correlationIdLabel": "ID korelasi: {{correlationId}}",
+      "errorCodeLabel": "Kode galat mesin: {{code}}"
+    },
+    "actions": {
+      "retry": "Ulangi tindakan",
+      "reconcileS4": "Baca ulang status Core otoritatif",
+      "resolveConflict": "Tinjau dan selesaikan konflik",
+      "reauthenticate": "Autentikasi ulang sesi",
+      "switchCoreConnection": "Ganti koneksi Core",
+      "dismiss": "Tutup",
+      "openModelSettings": "Buka pengaturan model"
+    },
+    "validationFailed": {
+      "title": "Validasi gagal",
+      "explanation": "Satu atau beberapa kolom yang dikirim tidak memenuhi skema validasi Core. Periksa input yang ditandai lalu coba lagi."
+    },
+    "configConflict": {
+      "title": "Konflik konfigurasi",
+      "explanation": "Konfigurasi telah berubah sejak Anda memuatnya. Muat ulang revisi otoritatif sebelum menerapkan perubahan Anda."
+    },
+    "authzDenied": {
+      "title": "Izin ditolak",
+      "explanation": "Sesi Core Anda saat ini tidak memiliki izin untuk tindakan ini, atau sesi Anda memerlukan autentikasi ulang."
+    },
+    "notFound": {
+      "title": "Sumber daya tidak ditemukan",
+      "explanation": "Item yang diminta sudah tidak ada atau berada di luar cakupan ruang kerja Core aktif Anda."
+    },
+    "conflictState": {
+      "title": "Konflik status terdeteksi",
+      "explanation": "Catatan ini telah berpindah ke revisi yang lebih baru di Core. Bandingkan status otoritatif terbaru sebelum mencoba lagi."
+    },
+    "conflictIdempotencyKey": {
+      "title": "Kunci operasi duplikat",
+      "explanation": "Core sudah mencatat permintaan berbeda dengan kunci idempotensi ini. Baca ulang status otoritatif untuk memastikan apakah tindakan Anda berhasil."
+    },
+    "singleInstanceConflict": {
+      "title": "Instans Core lain sedang aktif",
+      "explanation": "Proses Karyora Core lain sedang memegang kunci ruang kerja ini. Beralihlah ke koneksi Core yang sedang berjalan alih-alih memulai instans yang bertabrakan."
+    },
+    "storageUnavailable": {
+      "title": "Penyimpanan sementara tidak tersedia",
+      "explanation": "Core tidak dapat menjangkau backend penyimpanan lokal atau jarak jauhnya. Periksa ketersediaan penyimpanan lalu coba lagi."
+    },
+    "migrationFailed": {
+      "title": "Migrasi data gagal",
+      "explanation": "Core menghentikan migrasi skema atau data secara aman sebelum menerapkan perubahan parsial. Periksa diagnostik sebelum mencoba lagi."
+    },
+    "stateCorrupt": {
+      "title": "Galat integritas status tersimpan",
+      "explanation": "Core mendeteksi kegagalan pemeriksaan integritas pada status persisten dan berhenti demi melindungi data Anda. Pulihkan dari cadangan terverifikasi atau buka diagnostik."
+    },
+    "recoveryRequired": {
+      "title": "Pemeriksaan pemulihan diperlukan",
+      "explanation": "Operasi sebelumnya tidak selesai secara bersih. Baca ulang status Core otoritatif untuk memastikan kondisi terkini sebelum melanjutkan."
+    },
+    "rateLimited": {
+      "title": "Batas laju tercapai",
+      "explanation": "Terlalu banyak permintaan dikirim dalam waktu singkat. Tunggu sebentar lalu coba lagi secara eksplisit."
+    },
+    "internal": {
+      "title": "Galat internal Core",
+      "explanation": "Core melaporkan kegagalan internal tak terduga. Draf lokal Anda tidak dibuang; salin ID korelasi jika Anda mengekspor diagnostik."
+    },
+    "unknownCode": {
+      "title": "Core menolak permintaan",
+      "explanation": "Core mengembalikan kode galat mesin yang tidak dikenali. Tidak ada teks backend mentah yang ditampilkan; periksa kesehatan Core atau ekspor diagnostik yang telah disunting."
+    },
+    "unknownOutcomeS4": {
+      "title": "Hasil operasi tidak diketahui",
+      "explanation": "Koneksi terputus sebelum Core mengonfirmasi apakah perubahan ini berhasil. Jangan berasumsi gagal atau berhasil — baca ulang status Core otoritatif terlebih dahulu."
+    }
+  }
+}

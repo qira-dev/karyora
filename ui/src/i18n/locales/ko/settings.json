@@ -1,0 +1,209 @@
+{
+  "hub": {
+    "title": "설정",
+    "subtitle": "설정 그룹입니다. Core 연동 화면이 아직 연결되지 않은 그룹은 현재 진입 상태를 그대로 표시합니다.",
+    "groupsNavLabel": "설정 그룹"
+  },
+  "groups": {
+    "appearance": {
+      "label": "모양",
+      "description": "테마, 모션 및 언어 환경 설정입니다.",
+      "title": "모양"
+    },
+    "connections": {
+      "label": "연결",
+      "description": "Core 연결 관리(추가, 테스트, 전환, 재인증)입니다.",
+      "title": "연결"
+    },
+    "privacy": {
+      "label": "개인정보 보호",
+      "description": "개인정보 보호 및 데이터 제어입니다.",
+      "title": "개인정보 보호"
+    },
+    "security": {
+      "label": "보안",
+      "description": "세션 및 자격 증명 보안 제어입니다.",
+      "title": "보안"
+    },
+    "notifications": {
+      "label": "알림",
+      "description": "알림 환경 설정입니다.",
+      "title": "알림"
+    },
+    "shortcuts": {
+      "label": "단축키",
+      "description": "키보드 단축키입니다.",
+      "title": "키보드 단축키"
+    },
+    "diagnostics": {
+      "label": "진단",
+      "description": "Core 상태 확인 및 마스킹된 진단 내보내기입니다.",
+      "title": "진단"
+    },
+    "updates": {
+      "label": "업데이트",
+      "description": "업데이트 및 유지보수 상태입니다.",
+      "title": "업데이트"
+    },
+    "about": {
+      "label": "정보",
+      "description": "버전, 라이선스 및 제품 메타데이터입니다.",
+      "title": "정보"
+    }
+  },
+  "appearance": {
+    "theme": "테마",
+    "themeLight": "라이트",
+    "themeDark": "다크",
+    "themeSystem": "시스템",
+    "themeHelp": "초기 실행 기본값은 라이트입니다. 시스템 옵션은 운영체제 모양을 따르며 OS 모양이 변경되면 실시간으로 전환됩니다.",
+    "reducedMotion": "모션",
+    "reducedMotionSystem": "시스템 설정 따르기",
+    "reducedMotionReduce": "모션 줄이기",
+    "reducedMotionFull": "줄이기 안 함",
+    "reducedMotionHelp": "시스템 설정 따르기는 운영체제의 동작 줄이기 설정을 존중합니다. 모션 줄이기를 직접 켜거나 끌 수도 있습니다.",
+    "language": "언어",
+    "languageHelp": "영어(English)가 기준 원본이자 폴백 로캘입니다. 승인된 13개 로캘(en, bn, zh-CN, es, pt-BR, ja, ru, ko, de, fr, id, tr, vi)이 로캘별 지연 로딩으로 번들되어 실시간으로 전환됩니다.",
+    "densityWithheld": "밀집(compact) 밀도 옵션은 제공되지 않습니다. 대상 크기 및 접근성 검사를 통과해야만 표시되며 해당 검사가 아직 실행되지 않았습니다.",
+    "applied": "변경 사항이 즉시 적용됩니다. 초기화를 누르면 문서화된 기본값(라이트 테마, 시스템 모션 설정 따르기, 영어)으로 복원됩니다.",
+    "resetConfirm": "모양 설정을 기본값으로 초기화"
+  },
+  "security": {
+    "logoutSectionTitle": "이 세션에서 로그아웃",
+    "logoutSectionBody": "로그아웃하면 Core에서 이 세션이 즉시 종료됩니다. 보유 중이던 토큰은 이 브라우저 메모리에서 폐기되며, 범위가 지정된 모든 화면은 다음 사용 시 Core에서 다시 조회하고 세션이 다시 수립될 때까지 사용할 수 없게 됩니다.",
+    "logoutAction": "로그아웃",
+    "postureNoSession": "현재 보유 중인 세션이 없어 로그아웃할 대상이 없습니다.",
+    "postureNoSessionReason": "먼저 연결 부트스트랩을 통해 세션을 다시 수립하세요. 이 컨트롤은 보유 중인 세션에만 작동합니다.",
+    "postureRechecking": "실제 Core 응답을 기준으로 연결 상태를 다시 확인하는 중입니다.",
+    "postureUnknown": "이 출처에 응답한 Core 전송 계층이 없어 연결 상태를 확인할 수 없습니다.",
+    "dialogTitle": "이 세션에서 로그아웃할까요?",
+    "dialogScope": "Core에서 현재 세션이 즉시 종료됩니다. 이 브라우저가 보유한 토큰이 폐기되며 세션이 다시 수립될 때까지 범위가 지정된 모든 화면을 사용할 수 없습니다.",
+    "dialogKeep": "이 기기의 로컬 환경 설정과 저장되지 않은 비민감 초안은 유지됩니다.",
+    "dialogConfirm": "로그아웃",
+    "confirmedTitle": "로그아웃되었습니다",
+    "confirmedBody": "Core가 세션 폐기를 확인했으며 토큰이 이 브라우저 메모리에서 폐기되었습니다.",
+    "confirmedReestablish": "다시 돌아올 때 연결 부트스트랩을 통해 세션을 다시 수립하세요.",
+    "refusedTitle": "Core가 로그아웃을 거부했습니다",
+    "refusedBody": "Core가 로그아웃을 거부했습니다(유형화된 거부 코드: {{code}}). 세션은 종료되지 않았으며 보유 토큰이 이 브라우저 메모리에 그대로 남아 있습니다.",
+    "refusedNote": "로그아웃되지 않았습니다. 위의 유형화된 코드는 고정된 언어 중립적 식별자입니다. 명시된 원인을 해결한 후 직접 다시 시도하세요.",
+    "unknownTitle": "응답이 유실되었습니다",
+    "unknownBody": "Core가 로그아웃을 확인하지 못했으므로 세션이 종료되었다고 가정하지 않으며 보유 토큰이 메모리에 유지됩니다.",
+    "unknownNote": "자동 재시도는 실행되지 않습니다. 세션 상태를 확인한 뒤 여전히 활성 상태라면 직접 다시 로그아웃하세요.",
+    "revokeAllAbsent": "이 인스턴스의 모든 세션 폐기(자격 증명 변경)는 Core 측 작업 범주이며 여기에는 해당 컨트롤이 존재하지 않습니다."
+  },
+  "shortcuts": {
+    "body": "아래 단축키는 현재 셸에 구현되어 있습니다. 전체 단축키 레지스트리와 재할당 및 비활성화 컨트롤은 이후 패키지에서 제공됩니다.",
+    "localNote": "단축키 환경 설정은 기기별 로컬 환경 설정입니다."
+  },
+  "connections": {
+    "body": "연결 관리(추가, 이름 변경, 테스트, 재인증, 전환)에는 Core 연결 계약이 필요하며 이 마일스톤에서는 연결되지 않았으므로 연결 목록이 표시되지 않습니다. 여기에서 연결 상태를 임의로 생성하지 않습니다.",
+    "listTitle": "연결",
+    "listIntro": "연결은 안전한 표시 이름으로 표시되는 Core 기록입니다. 이 페이지는 토큰이나 자격 증명이 포함된 엔드포인트를 절대 표시하지 않습니다.",
+    "listUnavailable": "연결 목록을 사용할 수 없습니다. 이 마일스톤에서는 Core 연결 계약이 연결되지 않아 연결 기록을 나열할 수 없습니다. 여기에서 연결 상태를 임의로 생성하지 않습니다.",
+    "providerSectionTitle": "공급자 연결 설정",
+    "providerIntro": "초기 설정 마법사에서 사용하는 것과 동일한 공급자 설정 단계입니다. 홈 페이지의 초기 설정에서도 접근할 수 있습니다. 설정을 다시 실행해도 기존 상태는 초기화되지 않습니다.",
+    "operationsTitle": "연결 작업",
+    "operationsIntro": "전용 연결 흐름에서는 여기에서 추가 및 전환을 제공하며, 저장된 각 연결 행은 자체 명령(이름 변경, 편집, 테스트, 키 교체, 키 다시 입력, 활성으로 설정, 제거)을 포함하고 모든 명령은 Core 연결 계약을 통해서만 실행됩니다.",
+    "opAdd": "연결 추가",
+    "opAddNote": "아래의 공급자 연결 설정을 엽니다. 이 단계에서 설정 필드가 정의된 유일한 연결 유형입니다. 다른 연결 유형의 설정에는 아직 연결되지 않은 Core 부트스트랩 계약이 필요합니다.",
+    "opAddGo": "공급자 연결 추가",
+    "opRename": "연결 이름 변경",
+    "opRemove": "연결 제거",
+    "opRemoveUnavailable": "제거는 목록의 연결에 적용됩니다. 연결 목록을 사용할 수 없으므로 아직 제거할 항목이 없습니다. 제거는 파괴적 작업이며 실행 전 항상 범위와 효과를 명시하는 확인 절차를 요구합니다.",
+    "opTest": "연결 테스트",
+    "opTestUnavailable": "테스트는 저장된 연결에 적용되며 아직 나열할 수 있는 연결이 없습니다. 아래 공급자 양식에서 현재 입력 중인 항목에 대한 연결 테스트를 실행할 수 있습니다.",
+    "opReauth": "다시 인증",
+    "opReauthUnavailable": "재인증은 Core 세션 계약을 통해 실행되며 이 마일스톤에서는 연결되지 않았습니다. Core가 인증이 필요하다고 보고하면 여기와 세션 메뉴에 재인증 경로가 표시됩니다.",
+    "switchTitle": "연결 전환",
+    "switchIntro": "전환은 Core가 중재하는 컨텍스트 변경으로, 사용 가능한 데이터와 권한을 변경합니다. Core 간에 작업이나 데이터를 이동하거나 복사하지 않습니다.",
+    "firstRunTitle": "초기 설정",
+    "firstRunBody": "언제든 초기 설정을 실행하거나 이어서 진행할 수 있습니다. 설정을 다시 실행해도 기존 선택 사항은 보존됩니다.",
+    "resumeSetup": "초기 설정 이어하기",
+    "loadMore": "더 불러오기",
+    "checkStatus": "상태 확인",
+    "dismiss": "닫기",
+    "cancel": "취소",
+    "activeBadge": "활성",
+    "secretStatusLabel": "API 키",
+    "secretStatus": {
+      "present": "안전하게 저장됨(표시되지 않음)",
+      "missing": "저장되지 않음 — 키를 다시 입력하세요",
+      "revoked": "폐기됨 — 키를 다시 입력하세요",
+      "corrupt": "사용 불가(손상됨) — 키를 다시 입력하세요",
+      "inaccessible": "자격 증명 저장소 사용 불가"
+    },
+    "testedLabel": "연결 테스트",
+    "testedCurrent": "테스트 완료({{time}}에 검증됨)",
+    "testedChanged": "테스트되었으나 이후 연결이 변경됨 — 테스트를 다시 실행하세요",
+    "testedNever": "저장됨, 테스트 안 됨",
+    "opRotate": "키 교체",
+    "opSwitch": "활성으로 설정",
+    "rotateTitle": "키 교체",
+    "rotateBody": "연결 {{connectionId}}에 저장된 API 키를 아래에 입력하는 새 키로 교체합니다.",
+    "rotateEffects": "Core가 동일한 자격 증명 핸들 아래 새 키를 저장하며 다음 호출부터 적용됩니다. 이미 진행 중인 요청은 다시 읽지 않으며 Core가 진행 결과를 그대로 보고합니다. 다음 성공적인 테스트 전까지 이 연결의 검증된 테스트 결과는 만료(오래됨) 상태가 됩니다.",
+    "rotateConfirm": "키 교체",
+    "reauthTitle": "키 다시 입력",
+    "reauthBody": "연결 {{connectionId}}의 자격 증명을 다시 입력합니다. 저장된 값은 절대 표시되지 않으며 새 키를 입력해야 합니다.",
+    "reauthEffects": "Core가 동일한 자격 증명 핸들 아래 새 키를 저장하며 다음 호출부터 적용됩니다. 다음 성공적인 테스트 전까지 이 연결의 검증된 테스트 결과는 만료(오래됨) 상태가 됩니다.",
+    "reauthConfirm": "새 키 저장",
+    "credentialLabel": "새 API 키 또는 토큰",
+    "credentialHint": "키는 확인할 때까지만 메모리에 유지되며 저장된 후에는 다시 표시되지 않습니다.",
+    "deleteTitle": "연결 제거",
+    "deleteBody": "Core에서 연결 {{connectionId}}을(를) 영구적으로 제거합니다.",
+    "deleteEffects": "Core가 저장된 자격 증명도 함께 폐기합니다. 이 연결에 의존하던 모든 항목은 자격 증명 사용 불가를 보고하고 보호된 호출을 거부하며 대체(fallback) 경로는 없습니다. 이 페이지에서 되돌릴 수 없습니다.",
+    "deleteConfirm": "연결 제거",
+    "switchConnTitle": "활성 연결 설정",
+    "switchConnBody": "연결 {{connectionId}}을(를) 활성 연결로 기록합니다.",
+    "switchConnEffects": "작업이 이전되거나 데이터가 이동하지 않습니다. Core는 활성 연결 참조만 기록하며 범위가 지정된 화면은 기준 데이터로부터 새로 불러옵니다.",
+    "switchConnConfirm": "활성으로 설정",
+    "dialogDurableNote": "Core가 확인하면 명령이 영구 적용됩니다. 이 대화 상자의 버튼이 실제 수행할 동작을 명시하며, 대화 상자를 닫아도 아무것도 변경되지 않습니다.",
+    "listRefusedTitle": "연결 목록이 거부되었습니다",
+    "listRefusedBody": "Core가 목록 읽기를 거부했습니다({{code}}). 행을 임의로 생성하지 않으므로 아무것도 표시되지 않습니다.",
+    "listRefusedNote": "Core 참조: {{correlationId}}",
+    "outcomeConfirmedTitle": "완료",
+    "outcomeConfirmedBody": "연결 {{connectionId}}에서 {{action}} 작업이 완료되었습니다. 아래 목록은 Core가 현재 보고하는 상태를 반영합니다.",
+    "outcomeConfirmedNote": "확정된 상태는 명령 응답 단독이 아니라 항상 Core의 기준 읽기에서 가져옵니다.",
+    "outcomeRefusedTitle": "적용되지 않음",
+    "outcomeRefusedBody": "Core가 {{action}} 작업을 거부했습니다({{code}}). 변경된 내용은 없습니다.",
+    "outcomeRefusedNote": "Core 참조: {{correlationId}}",
+    "outcomeUnknownTitle": "결과 알 수 없음",
+    "outcomeUnknownBody": "연결 {{connectionId}}에 대한 {{action}} 응답을 읽기 전에 유실되었습니다. 응답 유실은 명령이 적용되었거나 적용되지 않았다는 근거가 아닙니다.",
+    "outcomeUnknownNote": "기준 목록을 다시 읽으려면 상태를 확인하세요. 명령은 자동으로 재전송되지 않습니다.",
+    "action": {
+      "test": "연결 테스트",
+      "rotate": "키 교체",
+      "reauth": "키 다시 입력",
+      "delete": "연결 제거",
+      "switch": "활성으로 설정",
+      "rename": "연결 이름 변경",
+      "update": "연결 편집"
+    },
+    "opEdit": "연결 편집",
+    "renameTitle": "연결 이름 변경",
+    "renameBody": "연결 {{connectionId}}의 표시 이름을 입력하세요.",
+    "renameEffects": "이름 변경은 표시 이름만 바꿉니다. 연결 식별자는 변경되지 않으며 작업, 자격 증명 또는 실행 이력도 이동하지 않습니다.",
+    "renameInputLabel": "표시 이름",
+    "renameConfirm": "이름 변경",
+    "editTitle": "연결 편집",
+    "editBody": "아래에서 연결 {{connectionId}}의 비기밀 필드를 편집하세요.",
+    "editEffects": "비기밀 필드만 변경됩니다. 저장된 키는 여기에서 표시하거나 편집할 수 없으며 키를 변경하려면 키 교체 또는 키 다시 입력을 사용하세요. 편집이 확인된 후에는 테스트를 다시 실행할 때까지 마지막 테스트 결과가 최신으로 인정되지 않습니다.",
+    "editProviderLabel": "공급자",
+    "editBaseUrlLabel": "기본 URL(선택 사항)",
+    "editModelLabel": "모델 ID",
+    "editHeadersLabel": "사용자 지정 헤더(선택 사항)",
+    "editHeadersHelp": "한 줄에 하나씩 Name: value 형식으로 입력하세요.",
+    "editHeadersInvalid": "헤더를 한 줄에 하나씩 Name: value 형식으로 입력하세요.",
+    "editConfirm": "변경 사항 저장",
+    "conflictNote": "이 연결을 읽은 이후 변경되었습니다(CONFLICT_STATE). 덮어쓰지 않았으므로 상태를 확인해 현재 상태를 다시 읽은 다음 목록에 표시된 최신 상태를 기준으로 변경 사항을 다시 적용하세요."
+  },
+  "updates": {
+    "body": "업데이트 및 유지보수 상태는 표시되지 않습니다. 이 마일스톤에서는 업데이트 상태 계약이 연결되지 않았습니다. 이 화면은 결제, 만료 잠금 또는 어떠한 유지보수 동작도 암시하지 않습니다."
+  },
+  "about": {
+    "appVersion": "UI 셸 버전",
+    "license": "라이선스",
+    "licenseValue": "Apache-2.0",
+    "body": "이 빌드에는 공유 셸과 승인된 탐색 구조가 포함되어 있습니다. 워드마크와 브랜드 에셋은 소유자 결정 대기 중으로 보류되었으며 제품 이름은 일반 텍스트로 표시됩니다.",
+    "versionDisclaimer": "이 정보는 로컬 UI 셸 버전일 뿐이며 최신 릴리스 또는 가장 안전한 릴리스 여부를 보장하지 않습니다."
+  }
+}

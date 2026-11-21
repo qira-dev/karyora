@@ -1,0 +1,81 @@
+{
+  "topbar": {
+    "search": "Suchen",
+    "openSearch": "Suche öffnen",
+    "newMenu": "Neu",
+    "openNewMenu": "Erstellungsmenü öffnen",
+    "notifications": "Benachrichtigungen",
+    "openNotifications": "Benachrichtigungen öffnen"
+  },
+  "search": {
+    "title": "Suchen",
+    "inputLabel": "Suchen",
+    "unavailable": "Die Suche ist noch nicht verfügbar: Die Befehlspalette erscheint in einem späteren Paket und benötigt den Core-Suchvertrag, der in diesem Meilenstein nicht angebunden ist.",
+    "shortcutHint": "Verwenden Sie Strg+K oder Cmd+K, um die Suche zu öffnen, wenn Sie nicht in einem Eingabefeld tippen."
+  },
+  "newMenu": {
+    "startChat": "Chat starten",
+    "runTask": "Aufgabe ausführen",
+    "importKnowledge": "Wissen importieren",
+    "unavailableReason": "Noch nicht verfügbar: Dieser Ablauf erscheint in einem späteren Release-Paket."
+  },
+  "connection": {
+    "label": "Verbindungsstatus",
+    "popoverTitle": "Verbindung",
+    "stateUnknown": "Unbekannt",
+    "stateConnecting": "Verbindung wird hergestellt",
+    "stateConnected": "Verbunden",
+    "stateDisconnected": "Getrennt",
+    "stateReconnecting": "Verbindung wird wiederhergestellt",
+    "stateSessionExpired": "Sitzung abgelaufen",
+    "unknownExplanation": "Der Verbindungsstatus ist „Unbekannt“: Unter dieser App-Origin hat kein Core-Transport geantwortet, daher gibt es keinen vom Core gemeldeten Zustand anzuzeigen. Der lokale Transport des Cores ist Opt-in und standardmäßig deaktiviert. „Unbekannt“ wird niemals als verbunden dargestellt.",
+    "connectingExplanation": "Der Verbindungsstatus wird geprüft: Eine echte Leseanfrage an den Core-Transport unter dieser App-Origin läuft derzeit.",
+    "connectedExplanation": "Der lokale Core hat einen autorisierten Lesezugriff beantwortet, die Verbindung ist also aktiv. Dieser Zustand stammt ausschließlich aus echten Transportantworten – niemals aus einer Annahme.",
+    "disconnectedExplanation": "Unter dieser App-Origin hat ein Core-Transport geantwortet, aber es besteht noch keine Sitzung, daher kann keine autorisierte Operation ausgeführt werden. Verbinden Sie sich über die Ersteinrichtung mit einem einmaligen Bootstrap-Zugangsschlüssel.",
+    "reconnectingExplanation": "Der zuletzt bekannte Verbindungsstatus wird mit einer echten Leseanfrage gegen den Core-Transport erneut geprüft.",
+    "sessionExpiredExplanation": "Die von dieser Seite gehaltene Sitzung ist vom Core nicht mehr autorisiert (abgelaufen, widerrufen oder anderweitig ungültig). Das Token wurde aus dem Arbeitsspeicher dieser Seite entfernt. Verbinden Sie sich über die Ersteinrichtung mit einem neuen einmaligen Zugangsschlüssel erneut.",
+    "listUnavailable": "Die Verbindungsliste ist nicht verfügbar: Die Core-Verbindungsverträge sind in diesem Meilenstein nicht angebunden.",
+    "switchUnavailable": "Das Wechseln von Verbindungen wird noch nicht angeboten: Es erfordert die Core-Verbindungsverträge.",
+    "switch": {
+      "title": "Verbindung wechseln",
+      "warningHeading": "Bevor Sie wechseln",
+      "warningBody": "Durch das Wechseln ändert sich, mit welchem Core, Arbeitsbereich, Datenbestand und Berechtigungen Sie arbeiten. Es verschiebt oder kopiert niemals Jobs oder Daten zwischen Cores, und jede Verbindung behält ihre eigenen Caches, Cursor, Zugangsdaten und Ereignisse – sie werden niemals vermischt.",
+      "selectorLabel": "Verbindung",
+      "selectorUnavailable": "Die Verbindungsliste ist nicht verfügbar: Die Core-Verbindungsverträge sind in diesem Meilenstein nicht angebunden, sodass es noch kein Wechselziel gibt.",
+      "confirm": "Verbindung wechseln",
+      "confirmUnavailableReason": "Das Wechseln erfordert eine auswählbare Verbindung aus der Core-Verbindungsliste, die nicht verfügbar ist.",
+      "setupHint": "Sie können eine Verbindung unter Einstellungen > Verbindungen oder über die Ersteinrichtung einrichten."
+    }
+  },
+  "session": {
+    "label": "Sitzung",
+    "popoverTitle": "Sitzung",
+    "stateUnavailable": "Der Sitzungsstatus ist nicht verfügbar: Unter dieser App-Origin hat kein Core-Transport geantwortet, daher gibt es keinen Sitzungsstatus anzuzeigen.",
+    "stateRule": "Diese Anzeige zeigt ausschließlich an, was der Core meldet. „Authentifizierung erforderlich“ und „Eingeschränkte Berechtigung“ erscheinen nur, wenn der Core sie meldet – niemals als verbunden dargestellt.",
+    "stateActiveBody": "Die Core-Sitzung ist aktiv: Sie hat einen echten Lesezugriff auf den lokalen Core autorisiert. Das Sitzungstoken wird ausschließlich im Arbeitsspeicher dieser Seite gehalten – niemals in Browserspeicher, Links oder Protokollen gespeichert.",
+    "stateExpiredBody": "Die von dieser Seite gehaltene Sitzung ist vom Core nicht mehr autorisiert (abgelaufen, widerrufen oder anderweitig ungültig). Das Token wurde aus dem Arbeitsspeicher dieser Seite entfernt.",
+    "sessionIdLabel": "Sitzungskennung",
+    "sessionScopesLabel": "Geltungsbereiche",
+    "sessionExpiresLabel": "Läuft ab",
+    "reauthLabel": "Erneut authentifizieren",
+    "reauthUnavailable": "Die erneute Authentifizierung wird noch nicht angeboten: Der Mechanismus des dedizierten Re-Auth-Ablaufs ist ein protokollierter offener Punkt, daher kann hier noch kein Re-Auth-Pfad angeboten werden.",
+    "reauthNote": "Wenn der Core „Authentifizierung erforderlich“ oder „Eingeschränkte Berechtigung“ meldet, zeigt diese Anzeige dies an und bietet den Pfad zur erneuten Authentifizierung als eigenen Ablauf an. Geschützte Operationen bleiben während dieses Zustands mit einer Erklärung deaktiviert, und Zugangsdaten werden niemals gespeichert, um dies zu umgehen. Die Wiederherstellung nach einer abgelaufenen Sitzung erfolgt über den vorläufigen Bootstrap-Schritt in der Ersteinrichtung."
+  },
+  "shortcutHelp": {
+    "trigger": "Tastenkürzel",
+    "openHelp": "Tastenkürzel öffnen",
+    "title": "Tastenkürzel",
+    "shortcutColumn": "Tastenkürzel",
+    "actionColumn": "Aktion",
+    "implemented": "Diese Tastenkürzel sind in der aktuellen Shell implementiert.",
+    "remapNote": "Das Deaktivieren und Neubelegen von Einzeltasten-Kürzeln ist für ein späteres Paket vorgesehen; das Einzeltasten-Hilfekürzel ist derzeit so eingegrenzt, dass es niemals auslöst, während Sie in einem Eingabefeld tippen oder Text über eine Eingabemethode zusammensetzen.",
+    "escNote": "Escape schließt Popovers und Dialoge. Es bricht niemals einen dauerhaften Job ab; ein Abbruch ist stets eine explizite Aktion."
+  },
+  "shortcuts": {
+    "openSearch": "Suche öffnen",
+    "openSettings": "Einstellungen öffnen",
+    "openShortcutHelp": "Diese Tastenkürzel-Hilfe öffnen",
+    "closeSurface": "Popover oder Dialog schließen"
+  },
+  "skipToContent": "Zum Hauptinhalt springen"
+}

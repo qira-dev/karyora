@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "noOsDelivery": "Ce panneau affiche uniquement l'état intégré à l'application. Les notifications système nécessitent leur propre autorisation OS et ne sont pas demandées ici.",
+    "preferencesAbsent": "Les préférences de notification ne sont pas encore disponibles : le contrat Core livré ne comporte pas de magasin de préférences de notification, il n'y a donc rien à modifier ni à enregistrer ici. La liste ci-dessous constitue la surface intégrée livrée ; les notifications système n'en font pas partie.",
+    "blocked": {
+      "noCore": "Les notifications sont indisponibles : aucun transport Core n'a répondu à cette origine d'application, aucune source de notification ne peut donc être lue. Le transport local du Core est facultatif et désactivé par défaut ; cela n'est jamais présenté comme une liste vide.",
+      "noSession": "Les notifications sont indisponibles : aucune session Core n'est établie à cette origine d'application, aucune lecture autorisée de notifications ne peut donc s'exécuter. Connectez-vous depuis la configuration initiale avec un identifiant d'amorçage à usage unique.",
+      "sessionExpired": "Les notifications sont indisponibles : la session détenue par cette page n'est plus autorisée par le Core (elle a expiré, a été révoquée ou est invalide). Le jeton a été supprimé de la mémoire de cette page ; reconnectez-vous depuis la configuration initiale avec un nouvel identifiant à usage unique.",
+      "connecting": "Vérification de la connexion au Core : la lecture des notifications démarre dès qu'une session Core répond à une lecture autorisée."
+    },
+    "loading": "Chargement des notifications…",
+    "refresh": "Actualiser",
+    "refreshing": "Actualisation…",
+    "lastConfirmed": "Dernière confirmation avec le Core : {{time}}",
+    "countsLine": "{{total}} non lues",
+    "countsUnavailable": "Décompte des non lues indisponible",
+    "announceData": "Groupes de notifications affichés sur cette page : {{count}}",
+    "filterCategory": "Catégorie",
+    "filterReadState": "État de lecture",
+    "filterAll": "Toutes",
+    "clearFilter": "Effacer le filtre",
+    "loadMore": "Charger plus",
+    "loadingMore": "Chargement supplémentaire…",
+    "emptyAll": "Aucune notification",
+    "emptyAllBody": "Rien n'a encore été notifié. Les résultats de jobs, les échecs, les attentes d'approbation et autres transitions consignées par le Core apparaissent ici lorsque le Core les émet.",
+    "emptyFiltered": "Aucune notification ne correspond au filtre actif",
+    "emptyFilteredBody": "Des notifications existent, mais aucune ne correspond aux filtres de catégorie et d'état de lecture. Effacer les filtres affiche la liste complète.",
+    "failureTitle": "Impossible de lire les notifications",
+    "failureBody": "Le Core a refusé la lecture des notifications. Le code typé ci-dessous est le refus propre du Core — rien n'a été fabriqué pour remplir la liste ; l'actualisation est votre action explicite.",
+    "unknownTitle": "L'issue de la lecture des notifications est inconnue",
+    "unknownBody": "Aucune réponse confirmée n'est parvenue pour la lecture des notifications. Rien n'est connu au sujet de la liste tant qu'une lecture n'est pas confirmée — elle n'est jamais présentée comme une liste vide. Actualiser lit l'état actuel auprès du Core.",
+    "presentation": {
+      "unread": "Non lue",
+      "read": "Lue",
+      "stale": "Obsolète",
+      "permissionRevoked": "Accès révoqué",
+      "unknown": "État inconnu"
+    },
+    "stateClass": {
+      "result": "Résultat",
+      "failure": "Échec",
+      "approvalNeeded": "Approbation requise",
+      "unknown": "Classe inconnue"
+    },
+    "category": {
+      "job": "Jobs",
+      "unknown": "Catégorie inconnue"
+    },
+    "entry": {
+      "objectJob": "Job associé",
+      "objectUnknownType": "Objet associé",
+      "stateUnavailable": "État : Indisponible",
+      "updatesCount": "{{count}} notifications dans ce groupe",
+      "unreadInGroup": "{{count}} non lues dans ce groupe",
+      "blockNewest": "la plus récente {{time}}",
+      "blockUnread": "{{count}} non lues",
+      "noDestination": "La route de destination de cette notification ne fait pas encore partie des surfaces livrées ; elle ne peut donc pas être ouverte depuis ici.",
+      "copyId": "Notification"
+    },
+    "actions": {
+      "markRead": "Marquer comme lue",
+      "markUnread": "Marquer comme non lue",
+      "clear": "Effacer",
+      "pending": "Traitement…",
+      "scopeNote": "Les actions s'appliquent à la notification la plus récente de l'entrée : le Core modifie exactement l'identité de notification nommée — rien d'autre.",
+      "refusedTitle": "Le Core a refusé l'action",
+      "refusedBody": "Le code typé ci-dessous est le refus propre du Core ; rien n'a été appliqué sauf indication contraire du Core. Réessayer est votre action explicite.",
+      "tryAgain": "Réessayer",
+      "unknownTitle": "L'issue de l'action est inconnue",
+      "unknownBody": "La réponse a été perdue ; elle ne prouve donc jamais que l'action a été enregistrée ou non. La reprise est une interrogation, jamais un renvoi : actualiser lit l'état actuel auprès du Core.",
+      "checkByRefresh": "Actualiser pour vérifier"
+    },
+    "lawNote": "Marquer comme lue ou effacer une notification ne modifie jamais le job, l'approbation ni aucun autre enregistrement sous-jacent — une notification d'approbation lue n'est pas une approbation accordée. L'approbation intervient uniquement via la commande explicite d'acceptation ou de rejet sur le détail du job."
+  }
+}

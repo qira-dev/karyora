@@ -1,0 +1,76 @@
+{
+  "notifications": {
+    "title": "Thông báo",
+    "noOsDelivery": "Bảng này chỉ hiển thị trạng thái trong ứng dụng. Thông báo trên màn hình nền cần quyền riêng của hệ điều hành và không được yêu cầu tại đây.",
+    "preferencesAbsent": "Tùy chọn thông báo chưa khả dụng: giao ước Core hiện tại chưa có kho lưu tùy chọn thông báo, nên không có gì để thay đổi hay lưu ở đây. Danh sách bên dưới là giao diện trong ứng dụng hiện có; thông báo màn hình nền không thuộc phạm vi này.",
+    "blocked": {
+      "noCore": "Thông báo không khả dụng: không có kênh truyền tải Core nào phản hồi tại nguồn gốc ứng dụng này, nên không có nguồn thông báo để đọc. Kênh truyền tải cục bộ của Core là tính năng cần chủ động bật và mặc định bị tắt; trạng thái này không bao giờ được hiển thị như một danh sách trống.",
+      "noSession": "Thông báo không khả dụng: chưa có phiên Core nào được thiết lập tại nguồn gốc ứng dụng này, nên không thể chạy phép đọc thông báo có cấp quyền. Hãy kết nối từ trình thiết lập lần đầu bằng thông tin xác thực khởi tạo dùng một lần.",
+      "sessionExpired": "Thông báo không khả dụng: phiên mà trang này đang giữ không còn được Core cấp phép nữa (đã hết hạn, bị thu hồi hoặc không hợp lệ). Token đã bị xóa khỏi bộ nhớ của trang này; hãy kết nối lại từ trình thiết lập lần đầu bằng một thông tin xác thực dùng một lần mới.",
+      "connecting": "Đang kiểm tra kết nối tới Core: việc đọc thông báo sẽ bắt đầu ngay khi một phiên Core trả lời phép đọc có cấp quyền."
+    },
+    "loading": "Đang tải thông báo…",
+    "refresh": "Làm mới",
+    "refreshing": "Đang làm mới…",
+    "lastConfirmed": "Lần xác nhận gần nhất với Core: {{time}}",
+    "countsLine": "{{total}} chưa đọc",
+    "countsUnavailable": "Số thông báo chưa đọc không khả dụng",
+    "announceData": "Số nhóm thông báo hiển thị trên trang này: {{count}}",
+    "filterCategory": "Danh mục",
+    "filterReadState": "Trạng thái đọc",
+    "filterAll": "Tất cả",
+    "clearFilter": "Xóa bộ lọc",
+    "loadMore": "Tải thêm",
+    "loadingMore": "Đang tải thêm…",
+    "emptyAll": "Không có thông báo nào",
+    "emptyAllBody": "Chưa có thông báo nào được gửi. Kết quả Job, lỗi, chờ phê duyệt và các chuyển đổi trạng thái khác do Core ghi nhận sẽ xuất hiện tại đây khi Core phát sinh.",
+    "emptyFiltered": "Không có thông báo nào khớp với bộ lọc đang bật",
+    "emptyFilteredBody": "Có thông báo tồn tại, nhưng không thông báo nào khớp với bộ lọc danh mục và trạng thái đọc. Xóa bộ lọc sẽ hiển thị toàn bộ danh sách.",
+    "failureTitle": "Không thể đọc thông báo",
+    "failureBody": "Core đã từ chối yêu cầu đọc thông báo. Mã có định kiểu bên dưới là phản hồi từ chối của chính Core — không có gì được tạo giả để lấp đầy danh sách; làm mới là hành động chủ động của bạn.",
+    "unknownTitle": "Kết quả đọc thông báo chưa xác định",
+    "unknownBody": "Không có phản hồi xác nhận nào cho yêu cầu đọc thông báo. Chưa có thông tin chắc chắn nào về danh sách cho đến khi yêu cầu đọc được xác nhận — trạng thái này không bao giờ được hiển thị như một danh sách trống. Nhấn Làm mới để đọc trạng thái hiện tại từ Core.",
+    "presentation": {
+      "unread": "Chưa đọc",
+      "read": "Đã đọc",
+      "stale": "Đã cũ",
+      "permissionRevoked": "Đã thu hồi quyền truy cập",
+      "unknown": "Trạng thái không xác định"
+    },
+    "stateClass": {
+      "result": "Kết quả",
+      "failure": "Thất bại",
+      "approvalNeeded": "Cần phê duyệt",
+      "unknown": "Loại không xác định"
+    },
+    "category": {
+      "job": "Job",
+      "unknown": "Danh mục không xác định"
+    },
+    "entry": {
+      "objectJob": "Job liên quan",
+      "objectUnknownType": "Đối tượng liên quan",
+      "stateUnavailable": "Trạng thái: Không khả dụng",
+      "updatesCount": "{{count}} thông báo trong nhóm này",
+      "unreadInGroup": "{{count}} chưa đọc trong nhóm này",
+      "blockNewest": "mới nhất {{time}}",
+      "blockUnread": "{{count}} chưa đọc",
+      "noDestination": "Tuyến đường đích của thông báo này chưa thuộc các giao diện hiện có, nên không thể mở từ đây.",
+      "copyId": "Thông báo"
+    },
+    "actions": {
+      "markRead": "Đánh dấu đã đọc",
+      "markUnread": "Đánh dấu chưa đọc",
+      "clear": "Xóa",
+      "pending": "Đang xử lý…",
+      "scopeNote": "Hành động áp dụng cho thông báo mới nhất của mục: Core chỉ thay đổi đúng mã định danh thông báo được chỉ định — không tác động mục nào khác.",
+      "refusedTitle": "Core đã từ chối hành động",
+      "refusedBody": "Mã có định kiểu bên dưới là phản hồi từ chối của chính Core; không có gì được áp dụng trừ khi Core thông báo khác. Thử lại là hành động chủ động của bạn.",
+      "tryAgain": "Thử lại",
+      "unknownTitle": "Kết quả hành động chưa xác định",
+      "unknownBody": "Phản hồi đã bị mất, nên không bao giờ là bằng chứng cho thấy hành động đã được ghi nhận hay chưa. Cách khôi phục là truy vấn chứ không bao giờ gửi lại: nhấn Làm mới để đọc trạng thái hiện tại từ Core.",
+      "checkByRefresh": "Làm mới để kiểm tra"
+    },
+    "lawNote": "Đánh dấu đã đọc hoặc xóa một thông báo không bao giờ làm thay đổi Job gốc, yêu cầu phê duyệt hay bất kỳ bản ghi nào khác — thông báo phê duyệt đã đọc không có nghĩa là đã phê duyệt. Phê duyệt chỉ diễn ra thông qua lệnh chấp thuận hoặc từ chối rõ ràng trên trang chi tiết Job."
+  }
+}
