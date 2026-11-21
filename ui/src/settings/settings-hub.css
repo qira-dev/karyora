@@ -1,0 +1,250 @@
+/**
+ * Complete 21-Section Overlay Settings Hub Styles (UIR-8, Screenshots #1–#60, Blueprint §13).
+ */
+
+.ky-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.ky-settings-nav {
+  width: 264px;
+  min-width: 220px;
+  max-width: 300px;
+  height: 100%;
+  border-inline-end: 1px solid var(--border-subtle);
+  background-color: var(--bg-sidebar);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ky-settings-nav__top {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ky-settings-nav__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ky-settings-nav__group-title {
+  margin: 0 0 6px var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.ky-settings-nav__btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.ky-settings-nav__btn:hover {
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+}
+
+.ky-settings-nav__btn[data-active="true"] {
+  background-color: var(--bg-surface-2);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.ky-settings-main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.ky-settings-content {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ky-settings-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ky-settings-card__title {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+
+.ky-settings-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+
+.ky-theme-preview-card {
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-subtle);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ky-theme-preview-card[data-active="true"] {
+  border-color: var(--accent-primary);
+}
+
+.ky-theme-preview-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ky-theme-preview-card__code {
+  margin: 0;
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.ky-swatch-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ky-swatch-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.ky-swatch-btn[data-active="true"] {
+  border-color: var(--text-primary);
+  transform: scale(1.12);
+}
+
+/* Usage Stats Summary Cards & 12-Month Heatmap (#56–#57) */
+.ky-usage-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: var(--space-2);
+}
+
+.ky-usage-stat-box {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ky-usage-stat-box__val {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.ky-usage-stat-box__label {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.ky-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(21, 1fr);
+  gap: 4px;
+}
+
+.ky-heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background-color: var(--bg-surface-2);
+}
+
+.ky-heatmap-cell[data-level="1"] { background-color: rgba(99, 102, 241, 0.25); }
+.ky-heatmap-cell[data-level="2"] { background-color: rgba(99, 102, 241, 0.48); }
+.ky-heatmap-cell[data-level="3"] { background-color: rgba(99, 102, 241, 0.72); }
+.ky-heatmap-cell[data-level="4"] { background-color: #6366f1; }
+
+.ky-bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 120px;
+  padding-top: var(--space-2);
+}
+
+.ky-bar-chart__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.ky-bar-chart__bar {
+  width: 100%;
+  max-width: 34px;
+  border-radius: 4px 4px 0 0;
+  background-color: var(--accent-primary);
+}
+
+@media (max-width: 720px) {
+  .ky-settings-overlay {
+    flex-direction: column;
+  }
+  .ky-settings-nav {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 180px;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}

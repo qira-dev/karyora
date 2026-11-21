@@ -6,7 +6,7 @@
  * Web Browser, Windows (amd64/arm64), macOS (arm64/amd64), and Linux (amd64/arm64).
  */
 
-import { useMemo, useState, type ReactElement } from "react";
+import { Suspense, lazy, useMemo, useState, type ReactElement } from "react";
 import {
   AutomationsAndWorkflowsPage,
   INITIAL_SCHEDULED_TASKS,
@@ -14,7 +14,7 @@ import {
   type ScheduledTaskRecord,
   type WorkflowDefinitionRecord,
 } from "./automations";
-import { Button, ModalDialog, type ToastMessage } from "./components/primitives";
+import type { ToastMessage } from "./components/primitives";
 import {
   createIdempotencyKey,
   createV3CoreClient,
@@ -70,13 +70,14 @@ import {
   type WorkspaceFileNode,
 } from "./side-pane";
 import { DockedTerminalPanel } from "./terminal";
-import {
-  SETTINGS_SECTIONS,
-  type AppTheme,
-  type InterfaceMode,
-  type SettingsSectionId,
-  type SupportedLocale,
+import type {
+  AppTheme,
+  InterfaceMode,
+  SettingsSectionId,
+  SupportedLocale,
 } from "./types/decisions";
+
+const LazySettingsOverlayHub = lazy(() => import("./settings/SettingsOverlayHub"));
 import {
   AgenticComposer,
   ConversationTimeline,
@@ -508,6 +509,7 @@ export function App(): ReactElement {
     "closed" | "onboarding" | "migration"
   >("closed");
   const [settingsOverlayOpen, setSettingsOverlayOpen] = useState(false);
+  const [browserUseEnabled, setBrowserUseEnabled] = useState(false);
   const [activeSettingsSection, setActiveSettingsSection] =
     useState<SettingsSectionId>("general");
   const [notifications, setNotifications] = useState<
@@ -809,7 +811,7 @@ export function App(): ReactElement {
               isFullView={sidePaneFullView}
               runtimeTarget={platformBridge.runtimeTarget}
               remoteShellEnabledByCore={platformBridge.isDesktop}
-              browserUseEnabled={false}
+              browserUseEnabled={browserUseEnabled}
               activeCodeTheme={activeCodeTheme}
               workspaceName={projects[0]?.name ?? "karyora_Platform"}
               workspaceFiles={INITIAL_WORKSPACE_FILES}
@@ -869,30 +871,126 @@ export function App(): ReactElement {
             />
           }
           settingsOverlayContent={
-            <ModalDialog
-              isOpen={settingsOverlayOpen}
-              title={`Settings — ${
-                SETTINGS_SECTIONS.find((s) => s.id === activeSettingsSection)
-                  ?.label ?? "General"
-              }`}
-              description="Full 21-section Overlay Settings Hub mounts in Phase 4 (UIR-8); workspace stays mounted and inert beneath this overlay."
-              onClose={closeSettingsOverlay}
+            <Suspense
+              fallback={
+                <div className="ky-settings-overlay" role="status">
+                  <div style={{ margin: "auto", fontSize: "0.9rem" }}>
+                    Loading 21-Section Settings Hub...
+                  </div>
+                </div>
+              }
             >
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
-                {SETTINGS_SECTIONS.map((sec) => (
-                  <Button
-                    key={sec.id}
-                    variant={
-                      sec.id === activeSettingsSection ? "primary" : "secondary"
-                    }
-                    size="sm"
-                    onClick={() => setActiveSettingsSection(sec.id)}
-                  >
-                    {sec.label}
-                  </Button>
-                ))}
-              </div>
-            </ModalDialog>
+              <LazySettingsOverlayHub
+                isOpen={settingsOverlayOpen}
+                activeSection={activeSettingsSection}
+                runtimeTarget={platformBridge.runtimeTarget}
+                computerUseSupported={platformBridge.capabilities.computerUse}
+                appTheme={prefs.appTheme}
+                lightCodeTheme={prefs.lightCodeTheme}
+                darkCodeTheme={prefs.darkCodeTheme}
+                locale={prefs.locale}
+                interfaceMode={prefs.interfaceMode}
+                browserUseEnabled={browserUseEnabled}
+                projects={projects}
+                plugins={marketplacePlugins}
+                memoryProps={{
+                  items: memoryItems,
+                  workspaceMemoryEnabled,
+                  availableProjects: projects.map((p) => p.name),
+                  activeCodeTheme,
+                  onToggleWorkspaceMemory: setWorkspaceMemoryEnabled,
+                  onApproveItem: (memoryId) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId
+                          ? { ...m, state: "active", updatedAt: "Just now" }
+                          : m,
+                      ),
+                    ),
+                  onRejectItem: (memoryId) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId ? forgetMemoryItem(m).item : m,
+                      ),
+                    ),
+                  onEditItemContent: (memoryId, nextContent) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId
+                          ? { ...m, content: nextContent, updatedAt: "Just now" }
+                          : m,
+                      ),
+                    ),
+                  onTogglePinItem: (memoryId) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId ? { ...m, pinned: !m.pinned } : m,
+                      ),
+                    ),
+                  onForgetItem: (memoryId) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId ? forgetMemoryItem(m).item : m,
+                      ),
+                    ),
+                  onRestoreItem: (memoryId) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId ? restoreMemoryItem(m).item : m,
+                      ),
+                    ),
+                  onPermanentDeleteItem: (memoryId) =>
+                    setMemoryItems((prev) =>
+                      prev.map((m) =>
+                        m.memoryId === memoryId
+                          ? permanentlyDeleteMemoryItem(m, `aud-del-${Date.now()}`).item
+                          : m,
+                      ),
+                    ),
+                }}
+                onSelectSection={setActiveSettingsSection}
+                onChangeAppTheme={(theme) => updatePref("appTheme", theme)}
+                onChangeLightCodeTheme={(theme) => updatePref("lightCodeTheme", theme)}
+                onChangeDarkCodeTheme={(theme) => updatePref("darkCodeTheme", theme)}
+                onChangeLocale={(loc) => updatePref("locale", loc)}
+                onChangeInterfaceMode={(mode) => updatePref("interfaceMode", mode)}
+                onToggleBrowserUse={setBrowserUseEnabled}
+                onTogglePlugin={(pluginId, enabled) =>
+                  setMarketplacePlugins((prev) =>
+                    prev.map((p) =>
+                      p.pluginId === pluginId
+                        ? {
+                            ...p,
+                            lifecycleState: enabled
+                              ? "installed-enabled"
+                              : "installed-disabled",
+                          }
+                        : p,
+                    ),
+                  )
+                }
+                onBrowseMarketplace={() => {
+                  closeSettingsOverlay();
+                  setActiveSurface("marketplace");
+                }}
+                onSwitchCoreConnection={(mode) =>
+                  pushToast(
+                    `Switched Core connection (${mode})`,
+                    "Purged DomainStateCache cleanly.",
+                  )
+                }
+                onOpenOnboarding={() => {
+                  closeSettingsOverlay();
+                  setOnboardingMode("onboarding");
+                }}
+                onOpenMigrationGuide={() => {
+                  closeSettingsOverlay();
+                  setOnboardingMode("migration");
+                }}
+                onNotify={(msg) => pushToast("Settings", msg)}
+                onClose={closeSettingsOverlay}
+              />
+            </Suspense>
           }
         >
           {activeSurface === "workspace" ? (
