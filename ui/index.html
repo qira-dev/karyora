@@ -1,15 +1,63 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate icon" href="/favicon.ico" />
-    <title>Karyora</title>
+    <title>Karyora — Unified AI Work Platform</title>
+    <style>
+      /* Inline dark/light Startup Logo Shell (UIR-3.1, Blueprint §4.1) — prevents white flash on cold start */
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #0b0e14;
+        color: #f8fafc;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: light) {
+        html[data-theme="system"] body {
+          background-color: #f8fafc;
+          color: #0f172a;
+        }
+      }
+      #startup-logo-shell {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background-color: inherit;
+        color: inherit;
+        z-index: 9999;
+      }
+      #startup-logo-shell svg {
+        width: 44px;
+        height: 44px;
+        opacity: 0.92;
+      }
+      #startup-logo-shell .startup-caption {
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        opacity: 0.72;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="startup-logo-shell" role="status" aria-label="Starting Karyora">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="4" y="4" width="40" height="40" rx="10" stroke="currentColor" stroke-width="2.5" />
+          <path d="M16 15V33M16 24L30 15M21 21L31 33" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="startup-caption">Karyora</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

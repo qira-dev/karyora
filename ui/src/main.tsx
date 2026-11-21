@@ -7,6 +7,7 @@ import "./styles/tokens.css";
 import "./styles/animations.css";
 import "./styles/code-themes.css";
 import "./styles/layout.css";
+import "./shell/shell.css";
 
 createI18n();
 

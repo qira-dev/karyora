@@ -1,0 +1,220 @@
+/**
+ * 3-Region Application Shell, Left Sidebar (248px), Top Bar, Popovers & Overlay Styles
+ * (UIR-3, Blueprint §4.2–4.4, §14, §22.2, Screenshots #55, #61–#65, #68, #79–#80, #84–#85).
+ */
+
+.ky-app-shell {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+.ky-app-shell[data-inert="true"] {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Left Sidebar (248px expanded, collapsible via Ctrl+B) */
+.ky-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  max-width: var(--sidebar-width);
+  height: 100%;
+  background-color: var(--bg-sidebar);
+  border-inline-end: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.ky-sidebar__top-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--topbar-height);
+  padding-inline: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.ky-sidebar__primary-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ky-sidebar__scroll-region {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ky-sidebar__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--space-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ky-sidebar__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-sidebar);
+  position: relative;
+}
+
+/* Center Workspace Column + Optional Side Pane + Bottom Docked Terminal */
+.ky-main-column {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ky-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: var(--topbar-height);
+  padding-inline: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-canvas);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.ky-workspace-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.ky-center-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ky-center-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+
+.ky-side-pane-slot {
+  width: 440px;
+  min-width: 320px;
+  max-width: 55%;
+  height: 100%;
+  border-inline-start: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ky-bottom-terminal-slot {
+  height: 220px;
+  border-top: 1px solid var(--border-default);
+  background-color: var(--code-bg);
+  color: var(--code-fg);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* Floating Popover Surfaces (Elevation 3 — Project Hover Card #84, Profile #61–#65, Share #79, Help #80) */
+.ky-popover-surface {
+  position: absolute;
+  z-index: 35;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.ky-project-hover-card {
+  width: 280px;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Notification Drawer */
+.ky-drawer-right {
+  position: fixed;
+  top: var(--topbar-height);
+  inset-inline-end: 0;
+  bottom: 0;
+  width: min(380px, 100vw);
+  z-index: 42;
+  background-color: var(--bg-surface-1);
+  border-inline-start: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4);
+  gap: var(--space-3);
+  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.32);
+}
+
+/* Compact Desktop / Tablet & 320 CSS px Reflow (Blueprint §22.2, G-07) */
+@media (max-width: 1199px) {
+  .ky-side-pane-slot {
+    position: fixed;
+    top: var(--topbar-height);
+    inset-inline-end: 0;
+    bottom: 0;
+    width: min(440px, 100vw);
+    max-width: 100vw;
+    z-index: 38;
+  }
+}
+
+@media (max-width: 767px) {
+  .ky-sidebar {
+    position: fixed;
+    top: 0;
+    inset-inline-start: 0;
+    bottom: 0;
+    z-index: 39;
+    width: min(280px, 88vw);
+    min-width: 0;
+    max-width: 88vw;
+  }
+
+  .ky-topbar {
+    padding-inline: var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .ky-center-scroll {
+    padding: var(--space-3);
+  }
+}
