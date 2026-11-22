@@ -1,15 +1,9 @@
 /**
- * `Automations | Workflows` Dual Surface (UIR-6.1 & UIR-6.2, Screenshots #66–#67, Blueprint §10).
- *
- * Implements:
- * - Dual segmented header (`Automations` | `Workflows`) + primary `+ New scheduled task` / `+ New workflow`
- * - `Automations` list + exact 4 starter templates (`Project progress brief`, `Code health sweep`,
- *   `Dependency security review`, `Idle-time doc refresh`)
- * - `ScheduledTaskModal` (`#67`)
- * - `Workflows` DAG builder + keyboard-accessible `WorkflowStepListInspector`
+ * `Automations | Workflows` Dual Surface — Calibrated 1:1 to ZCode Screenshots #66–#67.
  */
 
 import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../components/icons";
 import { Badge, Button, Toggle } from "../components/primitives";
 import {
@@ -50,7 +44,9 @@ export function AutomationsAndWorkflowsPage({
   onPickProjectFolder,
   onOpenJobHistory,
 }: AutomationsAndWorkflowsPageProps): ReactElement {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<"automations" | "workflows">("automations");
+  const [keepAwake, setKeepAwake] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<ScheduledTaskRecord | null>(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>(
@@ -95,7 +91,7 @@ export function AutomationsAndWorkflowsPage({
                 data-active={activeTab === "automations" ? "true" : "false"}
                 onClick={() => setActiveTab("automations")}
               >
-                Automations
+                {t("ui.surfaces.automations", { defaultValue: "Automations" })}
               </button>
               <button
                 type="button"
@@ -105,14 +101,20 @@ export function AutomationsAndWorkflowsPage({
                 data-active={activeTab === "workflows" ? "true" : "false"}
                 onClick={() => setActiveTab("workflows")}
               >
-                Workflows
+                {t("ui.surfaces.workflows", { defaultValue: "Workflows" })}
               </button>
             </div>
           </div>
           <p className="ky-domain-page__subtitle">
             {activeTab === "automations"
-              ? "Schedule recurring or idle-time tasks executed as durable Karyora Jobs."
-              : "Author Core-validated versioned DAG workflows with full keyboard step parity."}
+              ? t("ui.surfaces.automationsSubtitle", {
+                  defaultValue:
+                    "Schedule recurring tasks or queue background work that runs as durable Jobs.",
+                })
+              : t("ui.surfaces.workflowsSubtitle", {
+                  defaultValue:
+                    "Author Core-validated versioned DAG workflows with full keyboard step parity.",
+                })}
           </p>
         </div>
 
@@ -127,12 +129,16 @@ export function AutomationsAndWorkflowsPage({
               }}
             >
               <ChromeIcon name="plus" size={14} />
-              <span>New scheduled task</span>
+              <span>
+                {t("ui.surfaces.newScheduledTask", {
+                  defaultValue: "New scheduled task",
+                })}
+              </span>
             </Button>
           ) : (
             <Button variant="primary" size="sm" onClick={onCreateWorkflow}>
               <ChromeIcon name="plus" size={14} />
-              <span>New workflow</span>
+              <span>{t("ui.surfaces.newWorkflow", { defaultValue: "New workflow" })}</span>
             </Button>
           )}
         </div>
@@ -155,15 +161,16 @@ export function AutomationsAndWorkflowsPage({
                     <span>
                       {task.frequency} · {task.customCron ?? task.scheduleTime}
                     </span>
-                    <span>Mode: {task.sessionMode}</span>
-                    <span>Model: {task.modelId}</span>
+                    <span>{task.sessionMode}</span>
+                    <span>{task.modelId}</span>
                     <span>{task.lastRunLabel}</span>
                   </div>
                 </div>
 
                 <div className="ky-auto-card__actions">
                   <Toggle
-                    label="Active"
+                    label=""
+                    aria-label={`Toggle ${task.name}`}
                     checked={task.active}
                     onChange={(next) => onToggleScheduledTaskActive(task.taskId, next)}
                   />
@@ -184,16 +191,36 @@ export function AutomationsAndWorkflowsPage({
                     }}
                   >
                     <ChromeIcon name="edit" size={14} />
-                    <span>Edit</span>
                   </Button>
                 </div>
               </article>
             ))}
           </div>
 
+          {/* Keep Computer Awake Bar (Exact Match to Screenshot #66) */}
+          <div className="ky-awake-banner">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <ChromeIcon name="automations" size={16} />
+              <span>
+                {t("ui.surfaces.keepAwakeStrip", {
+                  defaultValue:
+                    "Keep your computer awake while Karyora is running a chat.",
+                })}
+              </span>
+            </span>
+            <Toggle
+              label=""
+              aria-label="Keep your computer awake while Karyora is running a chat"
+              checked={keepAwake}
+              onChange={setKeepAwake}
+            />
+          </div>
+
           <div>
-            <h3 style={{ margin: "0 0 var(--space-2) 0", fontSize: "0.9rem" }}>
-              Starter Templates
+            <h3 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", fontWeight: 600 }}>
+              {t("ui.surfaces.scheduledTemplates", {
+                defaultValue: "Scheduled task templates",
+              })}
             </h3>
             <div className="ky-template-grid" data-testid="automation-starter-templates">
               {STARTER_AUTOMATION_TEMPLATES.map((tpl) => (
@@ -205,10 +232,9 @@ export function AutomationsAndWorkflowsPage({
                 >
                   <span className="ky-template-card__title">{tpl.title}</span>
                   <span className="ky-template-card__desc">{tpl.description}</span>
-                  <Badge
-                    tone="neutral"
-                    label={`${tpl.defaultFrequency} · ${tpl.defaultTime}`}
-                  />
+                  <span style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
+                    {tpl.defaultFrequency} · {tpl.defaultTime}
+                  </span>
                 </button>
               ))}
             </div>

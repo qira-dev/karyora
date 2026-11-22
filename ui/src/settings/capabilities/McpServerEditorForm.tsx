@@ -167,7 +167,7 @@ export function McpServerEditorForm({
             />
           ) : (
             <Input
-              label="Authorization Header Secret (Write-Only OS Keyring D-37)"
+              label="Authorization Header Secret (OS Keyring)"
               writeOnlySecret={true}
               placeholder="Optional bearer credential..."
               value={authHeaderDraft}

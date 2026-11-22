@@ -90,7 +90,7 @@ export function Input({
           aria-describedby={describedBy}
           placeholder={
             writeOnlySecret && hasStoredKeyringSecret && !hasUnsavedText
-              ? "•••••••••••••••• (Stored in OS keyring D-37)"
+              ? "•••••••••••••••• (Stored in OS keyring)"
               : rest.placeholder
           }
           className="ky-input"

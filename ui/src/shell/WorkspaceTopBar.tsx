@@ -1,16 +1,11 @@
 /**
- * Workspace Top Title Bar (UIR-3.3, Screenshots #70–#85, #79 Share Popover, #80 Help Menu).
- *
- * Implements:
- * - Left: Sidebar reopen button (when collapsed) + active task/surface title
- * - Right: Clickable `+A -R` diff pill, `Share conversation` preflight popover (#79),
- *   Bottom Terminal toggle (`Ctrl+J`), Side-Pane toggle (`Ctrl+Alt+B`),
- *   Notifications drawer toggle, and 7-item `?` Help menu (#80)
+ * Workspace Top Title Bar — Calibrated 1:1 to ZCode Screenshots #70–#85, #79 Share Popover, #80 Help Menu.
  */
 
 import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../components/icons";
-import { Badge, Button, DiffCountPill } from "../components/primitives";
+import { Badge, Button, DiffCountPill, Input } from "../components/primitives";
 import type { TaskSessionSummary } from "../coreclient/types";
 import { validateExternalUrlForOpen } from "../platform-bridge";
 import { HELP_MENU_ITEMS } from "./shellConfig";
@@ -48,7 +43,10 @@ export function WorkspaceTopBar({
   onOpenAboutSettings,
   onOpenMigrationGuide,
 }: WorkspaceTopBarProps): ReactElement {
+  const { t } = useTranslation();
   const [shareOpen, setShareOpen] = useState(false);
+  const [shareTitleDraft, setShareTitleDraft] = useState("");
+  const [shareCheckedNoSensitive, setShareCheckedNoSensitive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
   return (
@@ -79,7 +77,7 @@ export function WorkspaceTopBar({
         <h2
           style={{
             margin: 0,
-            fontSize: "0.9375rem",
+            fontSize: "0.9rem",
             fontWeight: 600,
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -89,7 +87,11 @@ export function WorkspaceTopBar({
           {activeTask ? activeTask.title : surfaceTitle}
         </h2>
         {activeTask && activeTask.status === "running" && (
-          <Badge tone="info" dot label="Working" />
+          <Badge
+            tone="info"
+            dot
+            label={t("ui.topbar.working", { defaultValue: "Working" })}
+          />
         )}
       </div>
 
@@ -116,19 +118,21 @@ export function WorkspaceTopBar({
           </button>
         )}
 
-        {/* Share Conversation Preflight Popover (Screenshot #79) */}
+        {/* Share Conversation Preflight Popover (Exact Match to Screenshot #79) */}
         <div style={{ position: "relative" }}>
           <Button
             variant="ghost"
             size="sm"
             aria-haspopup="dialog"
             aria-expanded={shareOpen ? "true" : "false"}
-            aria-label="Share conversation"
-            title="Share conversation"
+            aria-label={t("ui.topbar.share", { defaultValue: "Share conversation" })}
+            title={t("ui.topbar.share", { defaultValue: "Share conversation" })}
             disabled={!activeTask}
             disabledReason="Select an active task to create a share link"
             onClick={() => {
               setHelpOpen(false);
+              setShareTitleDraft(activeTask?.title ?? "");
+              setShareCheckedNoSensitive(false);
               setShareOpen((prev) => !prev);
             }}
           >
@@ -144,32 +148,70 @@ export function WorkspaceTopBar({
               style={{
                 top: "calc(100% + 6px)",
                 insetInlineEnd: 0,
-                width: "300px",
-                padding: "var(--space-4)",
+                width: "320px",
+                padding: "16px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--space-3)",
+                gap: "12px",
               }}
             >
-              <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>
-                Share conversation
+              <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                {t("ui.topbar.share", { defaultValue: "Share conversation" })}
               </div>
-              <p
+
+              <Input
+                label={t("ui.surfaces.shareTitleLabel", { defaultValue: "Share title" })}
+                value={shareTitleDraft}
+                onChange={(e) => setShareTitleDraft(e.target.value)}
+              />
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 500 }}>
+                  {t("ui.surfaces.shareAccessLabel", { defaultValue: "Access" })}
+                </span>
+                <div
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border-subtle)",
+                    backgroundColor: "var(--bg-surface-2)",
+                    fontSize: "0.8rem",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {t("ui.surfaces.shareAccessValue", {
+                    defaultValue: "Link: read-only snapshot",
+                  })}
+                </div>
+              </div>
+
+              <label
                 style={{
-                  margin: 0,
-                  fontSize: "0.75rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontSize: "0.78rem",
                   color: "var(--text-secondary)",
+                  cursor: "pointer",
                 }}
               >
-                Creates a read-only snapshot link governed by your Core share policy.
-                Secrets and OS-keyring credentials are never included. You can revoke
-                active links anytime in Settings → Shares.
-              </p>
+                <input
+                  type="checkbox"
+                  checked={shareCheckedNoSensitive}
+                  onChange={(e) => setShareCheckedNoSensitive(e.target.checked)}
+                />
+                <span>
+                  {t("ui.surfaces.shareCheckLabel", {
+                    defaultValue: "I've checked: no sensitive info.",
+                  })}
+                </span>
+              </label>
+
               <div
                 style={{
                   display: "flex",
                   justifyContent: "flex-end",
-                  gap: "var(--space-2)",
+                  gap: "8px",
                 }}
               >
                 <Button
@@ -177,17 +219,20 @@ export function WorkspaceTopBar({
                   size="sm"
                   onClick={() => setShareOpen(false)}
                 >
-                  Cancel
+                  {t("actions.cancel", { defaultValue: "Cancel" })}
                 </Button>
                 <Button
                   variant="primary"
                   size="sm"
+                  disabled={!shareCheckedNoSensitive}
                   onClick={() => {
                     onCreateShareLink(activeTask.taskId);
                     setShareOpen(false);
                   }}
                 >
-                  Create share link
+                  {t("ui.surfaces.createShareLink", {
+                    defaultValue: "Create share link",
+                  })}
                 </Button>
               </div>
             </div>
@@ -199,8 +244,8 @@ export function WorkspaceTopBar({
           variant="ghost"
           size="sm"
           selected={terminalOpen}
-          aria-label="Toggle Terminal (Ctrl+J)"
-          title="Toggle Terminal (Ctrl+J)"
+          aria-label={t("ui.topbar.terminal", { defaultValue: "Toggle terminal" })}
+          title={`${t("ui.topbar.terminal", { defaultValue: "Toggle terminal" })} (Ctrl+J)`}
           onClick={onToggleTerminal}
         >
           <ChromeIcon name="terminal" size={16} />
@@ -211,8 +256,8 @@ export function WorkspaceTopBar({
           variant="ghost"
           size="sm"
           selected={sidePaneOpen}
-          aria-label="Toggle Side Pane (Ctrl+Alt+B)"
-          title="Toggle Side Pane (Ctrl+Alt+B)"
+          aria-label={t("ui.topbar.sidePane", { defaultValue: "Toggle side pane" })}
+          title={`${t("ui.topbar.sidePane", { defaultValue: "Toggle side pane" })} (Ctrl+Alt+B)`}
           onClick={onToggleSidePane}
         >
           <ChromeIcon name="side-pane-right" size={16} />
@@ -222,8 +267,8 @@ export function WorkspaceTopBar({
         <Button
           variant="ghost"
           size="sm"
-          aria-label={`Notifications (${unreadNotificationsCount} unread)`}
-          title="Notifications"
+          aria-label={`${t("ui.topbar.notifications", { defaultValue: "Notifications" })} (${unreadNotificationsCount})`}
+          title={t("ui.topbar.notifications", { defaultValue: "Notifications" })}
           onClick={onToggleNotifications}
         >
           <ChromeIcon name="activity" size={16} />
@@ -232,15 +277,15 @@ export function WorkspaceTopBar({
           )}
         </Button>
 
-        {/* `?` Help Menu (Screenshot #80 — All 7 Canonical Items) */}
+        {/* `?` Help Menu (Screenshot #80) */}
         <div style={{ position: "relative" }}>
           <Button
             variant="ghost"
             size="sm"
             aria-haspopup="menu"
             aria-expanded={helpOpen ? "true" : "false"}
-            aria-label="Help and resources"
-            title="Help"
+            aria-label={t("ui.topbar.help", { defaultValue: "Help" })}
+            title={t("ui.topbar.help", { defaultValue: "Help" })}
             onClick={() => {
               setShareOpen(false);
               setHelpOpen((prev) => !prev);
@@ -258,8 +303,8 @@ export function WorkspaceTopBar({
               style={{
                 top: "calc(100% + 6px)",
                 insetInlineEnd: 0,
-                width: "220px",
-                padding: "var(--space-1)",
+                width: "228px",
+                padding: "6px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "2px",
@@ -279,7 +324,7 @@ export function WorkspaceTopBar({
                       style={{
                         border: "none",
                         borderTop: "1px solid var(--border-subtle)",
-                        margin: "var(--space-1) 0",
+                        margin: "4px 0",
                       }}
                     />
                   )}
@@ -316,7 +361,7 @@ export function WorkspaceTopBar({
                 style={{
                   border: "none",
                   borderTop: "1px solid var(--border-subtle)",
-                  margin: "var(--space-1) 0",
+                  margin: "4px 0",
                 }}
               />
               <Button
@@ -329,7 +374,7 @@ export function WorkspaceTopBar({
                   onOpenMigrationGuide();
                 }}
               >
-                Migration Guide (6 steps)
+                {t("ui.surfaces.migrationGuide", { defaultValue: "Migration Guide" })}
               </Button>
             </div>
           )}

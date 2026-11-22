@@ -43,7 +43,7 @@ export function OnboardingAndMigrationModal({
       <ModalDialog
         isOpen
         title="Welcome to Karyora — First-Run Setup"
-        description="Verify your local or remote Go Core connection, optionally link a BYOK model provider into the OS keyring (D-37), and select your first workspace."
+        description="Verify your local or remote Go Core connection, optionally link a BYOK model provider into your OS keyring, and select your first workspace."
         onClose={onClose}
         footer={
           <>

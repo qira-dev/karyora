@@ -1,10 +1,11 @@
 /**
- * Settings Section 6: Computer Use (UIR-8.1, Screenshot #20, Blueprint §3.2, §13.1 (6)).
+ * Settings Section 6: Computer Use — Calibrated 1:1 to ZCode Screenshot #20.
  *
  * Honestly reports OS and Web-mode capability boundaries from `PlatformBridge`.
  */
 
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "../../components/primitives";
 import type { TargetPlatform } from "../../types/decisions";
 
@@ -17,25 +18,41 @@ export function ComputerUseSettingsSection({
   runtimeTarget,
   computerUseSupported,
 }: ComputerUseSettingsSectionProps): ReactElement {
+  const { t } = useTranslation();
+
   return (
     <div className="ky-settings-content" data-testid="settings-section-computer-use">
-      <div className="ky-settings-card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 className="ky-settings-card__title">Computer Use & OS Permission Boundary</h3>
-          <Badge
-            tone={computerUseSupported ? "success" : "warning"}
-            label={
-              computerUseSupported
-                ? `Available on ${runtimeTarget}`
-                : `Unavailable in ${runtimeTarget} mode`
-            }
-          />
+      <div className="ky-setting-group">
+        <div className="ky-setting-row">
+          <div className="ky-setting-row__info">
+            <div className="ky-setting-row__title">
+              {computerUseSupported
+                ? t("ui.settings.computerUse.availableTitle", {
+                    defaultValue: "Computer Use is available",
+                  })
+                : t("ui.settings.computerUse.unavailableTitle", {
+                    defaultValue: "Computer Use is unavailable here",
+                  })}
+            </div>
+            <div className="ky-setting-row__desc">
+              {computerUseSupported
+                ? t("ui.settings.computerUse.availableDesc", {
+                    defaultValue:
+                      "Desktop Computer Use requires explicit OS Accessibility and Screen Recording permissions plus per-action approval.",
+                  })
+                : t("ui.settings.computerUse.unavailableDesc", {
+                    defaultValue:
+                      "Computer Use is not yet supported in Web Browser mode or unsupported Linux desktops. Switch to a native macOS or Windows workspace.",
+                  })}
+            </div>
+          </div>
+          <div className="ky-setting-row__control">
+            <Badge
+              tone={computerUseSupported ? "success" : "neutral"}
+              label={runtimeTarget}
+            />
+          </div>
         </div>
-        <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-          {computerUseSupported
-            ? "Desktop Computer Use requires explicit OS Accessibility / Screen Recording permission and per-action operator approval."
-            : "Computer Use is truthfully disabled in Web Browser mode and unsupported Linux headless hosts. Run the native macOS or Windows desktop shell to request OS desktop automation permissions."}
-        </p>
       </div>
     </div>
   );

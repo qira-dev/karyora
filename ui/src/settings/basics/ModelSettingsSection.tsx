@@ -65,7 +65,7 @@ export function ModelSettingsSection({
     onDirtyChange?.(false);
     onNotify(
       hadNewKey
-        ? `${activeProvider.label}: secret rotated into OS keyring (D-37) and cleared from UI memory.`
+        ? `${activeProvider.label}: secret rotated into OS keyring and cleared from UI memory.`
         : `${activeProvider.label}: provider configuration saved.`,
     );
   };
@@ -87,7 +87,7 @@ export function ModelSettingsSection({
         <p className="ky-settings-section-sub" style={{ margin: 0 }}>
           {t("ui.settings.model.subtitle", {
             defaultValue:
-              "Manage BYOK model providers (OS keyring D-37). Once configured, models can be selected during chat.",
+              "Manage BYOK model providers stored securely in your OS keyring. Once configured, models can be selected during chat.",
           })}
         </p>
         <Button
@@ -226,7 +226,7 @@ export function ModelSettingsSection({
                   ? "success"
                   : "warning"
               }
-              label={`C3-19: ${activeProvider.c319DataHandlingStatus}`}
+              label={activeProvider.c319DataHandlingStatus}
             />
           </div>
 

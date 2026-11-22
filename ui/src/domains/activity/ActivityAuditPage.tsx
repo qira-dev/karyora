@@ -91,7 +91,7 @@ export function ActivityAuditPage({
             <Badge tone="neutral" label={`${filteredEvents.length.toLocaleString()} events`} />
           </div>
           <p className="ky-domain-page__subtitle">
-            Append-only tamper-evident audit timeline. Corrections append new linked records; exports scrub secrets (G-11).
+            Append-only tamper-evident audit timeline. Corrections append new linked records; exports automatically scrub secrets.
           </p>
         </div>
 

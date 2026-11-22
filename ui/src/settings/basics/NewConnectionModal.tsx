@@ -1,6 +1,6 @@
 /**
  * `+ New connection` Modal for Remote Devices (SSH & Docker)
- * (UIR-8.1, Screenshots #16–#19, E2E-19).
+ * Calibrated 1:1 to ZCode Screenshots #17–#19.
  */
 
 import { useState, type ReactElement } from "react";
@@ -27,108 +27,210 @@ export function NewConnectionModal({
   onClose,
 }: NewConnectionModalProps): ReactElement | null {
   const [kind, setKind] = useState<"ssh" | "docker">("ssh");
-  const [label, setLabel] = useState("");
-  const [sshHost, setSshHost] = useState("dev@10.0.0.12");
-  const [sshAuth, setSshAuth] = useState("private-key");
+  const [host, setHost] = useState("");
+  const [port, setPort] = useState("22");
+  const [username, setUsername] = useState("");
+  const [sshAuth, setSshAuth] = useState<"password" | "private-key">("password");
   const [sshKeyPath, setSshKeyPath] = useState("~/.ssh/id_ed25519");
   const [passphrase, setPassphrase] = useState("");
-  const [downloadMethod, setDownloadMethod] = useState("direct");
-  const [dockerMode, setDockerMode] = useState("running");
-  const [containerId, setContainerId] = useState("karyora-dev-container");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [downloadMethod, setDownloadMethod] = useState("local-relay");
+  const [dockerMode, setDockerMode] = useState<"running" | "manual">("running");
+  const [containerId, setContainerId] = useState("");
 
   if (!isOpen) return null;
+
+  const canSubmit =
+    kind === "ssh"
+      ? host.trim().length > 0 && username.trim().length > 0
+      : containerId.trim().length > 0;
 
   return (
     <ModalDialog
       isOpen={isOpen}
-      title="New remote device connection"
-      description="Add an SSH host or Docker container target. Passphrases are write-only (never stored in browser storage)."
+      title="New connection"
+      description={
+        kind === "ssh"
+          ? `${username || "user"}@${host || "host"}:${port || "22"}`
+          : "Choose a running container or enter a container ID manually."
+      }
       onClose={onClose}
     >
       <div className="ky-modal-form" data-testid="new-connection-modal">
-        <div className="ky-segmented-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={kind === "ssh"}
-            className="ky-segmented-tabs__btn"
-            data-active={kind === "ssh" ? "true" : "false"}
-            onClick={() => setKind("ssh")}
-          >
-            SSH
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={kind === "docker"}
-            className="ky-segmented-tabs__btn"
-            data-active={kind === "docker" ? "true" : "false"}
-            onClick={() => setKind("docker")}
-          >
-            Docker
-          </button>
-        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "8px",
+          }}
+        >
+          <div className="ky-segmented-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={kind === "ssh"}
+              className="ky-segmented-tabs__btn"
+              data-active={kind === "ssh" ? "true" : "false"}
+              onClick={() => setKind("ssh")}
+            >
+              SSH
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={kind === "docker"}
+              className="ky-segmented-tabs__btn"
+              data-active={kind === "docker" ? "true" : "false"}
+              onClick={() => setKind("docker")}
+            >
+              Docker
+            </button>
+          </div>
 
-        <Input
-          label="Connection label"
-          placeholder={kind === "ssh" ? "e.g. Build Server EU" : "e.g. Go 1.25 Dev Container"}
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-        />
+          {kind === "ssh" && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setHost("192.168.1.100");
+                setUsername("dev");
+                setPort("22");
+                setSshAuth("private-key");
+              }}
+            >
+              Import from SSH config
+            </Button>
+          )}
+        </div>
 
         {kind === "ssh" ? (
           <>
-            <Input
-              label="SSH Host (`user@host`)"
-              value={sshHost}
-              onChange={(e) => setSshHost(e.target.value)}
-            />
-            <Select
-              label="Authentication method"
-              value={sshAuth}
-              options={[
-                { value: "private-key", label: "Private key + passphrase" },
-                { value: "password", label: "Password (OS keyring D-37)" },
-                { value: "ssh-config", label: "Import from ~/.ssh/config" },
-              ]}
-              onChange={(e) => setSshAuth(e.target.value)}
-            />
-            {sshAuth === "private-key" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 110px", gap: "10px" }}>
               <Input
-                label="Private key path"
-                value={sshKeyPath}
-                onChange={(e) => setSshKeyPath(e.target.value)}
+                label="Host"
+                placeholder="Enter host address or IP, e.g. 192.168.1.100"
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+              />
+              <Input
+                label="Port"
+                value={port}
+                onChange={(e) => setPort(e.target.value)}
+              />
+            </div>
+
+            <Input
+              label="Username"
+              placeholder="Enter username, e.g. root"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.82rem", fontWeight: 500, color: "var(--text-primary)" }}>
+                Authentication method
+              </span>
+              <div className="ky-segmented-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sshAuth === "password"}
+                  className="ky-segmented-tabs__btn"
+                  data-active={sshAuth === "password" ? "true" : "false"}
+                  onClick={() => setSshAuth("password")}
+                >
+                  Password
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={sshAuth === "private-key"}
+                  className="ky-segmented-tabs__btn"
+                  data-active={sshAuth === "private-key" ? "true" : "false"}
+                  onClick={() => setSshAuth("private-key")}
+                >
+                  Private key
+                </button>
+              </div>
+            </div>
+
+            {sshAuth === "private-key" ? (
+              <>
+                <Input
+                  label="Private key path"
+                  placeholder="Select or enter a private key file path"
+                  value={sshKeyPath}
+                  onChange={(e) => setSshKeyPath(e.target.value)}
+                />
+                <Input
+                  label="Private key passphrase (optional)"
+                  placeholder="Enter your passphrase"
+                  writeOnlySecret={true}
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                />
+              </>
+            ) : (
+              <Input
+                label="SSH Password"
+                placeholder="Enter your SSH password"
+                writeOnlySecret={true}
+                value={passphrase}
+                onChange={(e) => setPassphrase(e.target.value)}
               />
             )}
-            <Input
-              label={sshAuth === "password" ? "SSH Password" : "Key Passphrase (optional)"}
-              writeOnlySecret={true}
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-            />
-            <Select
-              label="Resource download method"
-              value={downloadMethod}
-              options={[
-                { value: "direct", label: "Direct download on remote host" },
-                { value: "local-relay", label: "Relay through local machine" },
-              ]}
-              onChange={(e) => setDownloadMethod(e.target.value)}
-            />
+
+            <div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowAdvanced((v) => !v)}
+              >
+                {showAdvanced ? "▾ Advanced options" : "▸ Advanced options"}
+              </Button>
+            </div>
+
+            {showAdvanced && (
+              <Select
+                label="Resource download method"
+                value={downloadMethod}
+                options={[
+                  { value: "local-relay", label: "Download locally, then upload" },
+                  { value: "direct", label: "Download on remote server" },
+                ]}
+                onChange={(e) => setDownloadMethod(e.target.value)}
+              />
+            )}
           </>
         ) : (
           <>
-            <Select
-              label="Container selection mode"
-              value={dockerMode}
-              options={[
-                { value: "running", label: "Attach to running container" },
-                { value: "manual-id", label: "Manual container ID" },
-              ]}
-              onChange={(e) => setDockerMode(e.target.value)}
-            />
+            <div className="ky-segmented-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={dockerMode === "running"}
+                className="ky-segmented-tabs__btn"
+                data-active={dockerMode === "running" ? "true" : "false"}
+                onClick={() => setDockerMode("running")}
+              >
+                Select a running container
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={dockerMode === "manual"}
+                className="ky-segmented-tabs__btn"
+                data-active={dockerMode === "manual" ? "true" : "false"}
+                onClick={() => setDockerMode("manual")}
+              >
+                Enter a container manually
+              </button>
+            </div>
             <Input
-              label="Container name or ID"
+              label="Container"
+              placeholder="Enter container name or ID, e.g. my-container"
               value={containerId}
               onChange={(e) => setContainerId(e.target.value)}
             />
@@ -137,20 +239,26 @@ export function NewConnectionModal({
 
         <div className="ky-modal-form__footer">
           <span />
-          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             <Button size="sm" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
             <Button
               size="sm"
               variant="primary"
-              disabled={!label.trim()}
+              disabled={!canSubmit}
               onClick={() => {
                 onCreateConnection({
                   id: `conn-${Date.now()}`,
                   kind,
-                  label: label.trim(),
-                  target: kind === "ssh" ? sshHost : containerId,
+                  label:
+                    kind === "ssh"
+                      ? `${username.trim()}@${host.trim()}`
+                      : containerId.trim(),
+                  target:
+                    kind === "ssh"
+                      ? `${username.trim()}@${host.trim()}:${port.trim() || "22"}`
+                      : containerId.trim(),
                   authMethod: kind === "ssh" ? sshAuth : dockerMode,
                   status: "ready",
                 });
@@ -158,7 +266,7 @@ export function NewConnectionModal({
                 onClose();
               }}
             >
-              Add connection
+              Add and connect
             </Button>
           </div>
         </div>

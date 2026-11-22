@@ -1,16 +1,12 @@
 /**
- * `Plugin Marketplace` Surface (UIR-6.3, Screenshot #36, Blueprint §11, G-12, E2E-12).
+ * `Plugin Marketplace` Surface — Calibrated 1:1 to ZCode Screenshot #36.
  *
- * Implements:
- * - `Public` | `Community` | `Personal` catalog tabs
- * - Category pills (`All`, `App plugins`, `Developer Tools`, `Security & Audit`, `Knowledge & Docs`)
- * - Live search filter
- * - Plugin cards (`Documents`, `PDF`, `Presentations`, `Spreadsheets`, `Dev Team`,
- *   `Compound Engineering`, `Git Commit`, etc.)
- * - `+ Install` / `Installed` / `Governance` actions integrated with `PluginGovernanceDrawer`
+ * Compact 2-column icon+summary ZCode plugin cards, `Public` | `Community` | `Personal` tabs,
+ * category pills, live search, and WASM SHA-256 governance drawer.
  */
 
 import { useMemo, useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../components/icons";
 import { Badge, Button, Input } from "../components/primitives";
 import {
@@ -41,6 +37,7 @@ export function PluginMarketplacePage({
   onRevokePlugin,
   onOpenPluginsSettings,
 }: PluginMarketplacePageProps): ReactElement {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<MarketplaceTabId>("public");
   const [activeCategory, setActiveCategory] = useState<PluginCategory>("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,13 +60,18 @@ export function PluginMarketplacePage({
     >
       <header className="ky-domain-page__header">
         <div className="ky-domain-page__title-group">
-          <h2 className="ky-domain-page__title">Plugin Marketplace</h2>
+          <h2 className="ky-domain-page__title">
+            {t("ui.surfaces.marketplaceTitle", { defaultValue: "Plugin Marketplace" })}
+          </h2>
           <p className="ky-domain-page__subtitle">
-            Discover WASM-sandboxed app plugins and developer extensions governed by Core SHA-256 digests.
+            {t("ui.surfaces.marketplaceSubtitle", {
+              defaultValue:
+                "Discover WASM-sandboxed app plugins and developer extensions verified by Core SHA-256 digests.",
+            })}
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
           <div className="ky-segmented-tabs" role="tablist" aria-label="Marketplace catalogs">
             {MARKETPLACE_TABS.map((tab) => (
               <button
@@ -88,7 +90,9 @@ export function PluginMarketplacePage({
 
           <Button size="sm" variant="secondary" onClick={onOpenPluginsSettings}>
             <ChromeIcon name="settings" size={14} />
-            <span>Manage installed</span>
+            <span>
+              {t("ui.surfaces.manageInstalled", { defaultValue: "Manage installed" })}
+            </span>
           </Button>
         </div>
       </header>
@@ -111,7 +115,9 @@ export function PluginMarketplacePage({
         <div style={{ minWidth: "240px" }}>
           <Input
             aria-label="Search plugins"
-            placeholder="Search plugins..."
+            placeholder={t("ui.surfaces.searchPlugins", {
+              defaultValue: "Search plugins...",
+            })}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -130,31 +136,17 @@ export function PluginMarketplacePage({
               className="ky-plugin-card"
               data-testid={`plugin-card-${plugin.pluginId}`}
             >
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <div className="ky-plugin-card__top">
-                  <div>
+              <div className="ky-plugin-card__head-row">
+                <span className="ky-plugin-card__icon-box">
+                  <ChromeIcon name="plugin-marketplace" size={16} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="ky-plugin-card__top">
                     <h3 className="ky-plugin-card__title">{plugin.name}</h3>
-                    <span className="ky-plugin-card__publisher">
-                      {plugin.publisher} · v{plugin.version}
-                    </span>
+                    <span className="ky-plugin-card__publisher">v{plugin.version}</span>
                   </div>
-                  <Badge
-                    tone={
-                      plugin.lifecycleState === "revoked"
-                        ? "danger"
-                        : plugin.governance.signatureTrust === "unsigned-review-required"
-                          ? "warning"
-                          : "info"
-                    }
-                    label={
-                      plugin.lifecycleState === "revoked"
-                        ? "Revoked"
-                        : plugin.category
-                    }
-                  />
+                  <p className="ky-plugin-card__summary">{plugin.summary}</p>
                 </div>
-
-                <p className="ky-plugin-card__summary">{plugin.summary}</p>
               </div>
 
               <div className="ky-plugin-card__footer">
@@ -164,24 +156,21 @@ export function PluginMarketplacePage({
                   onClick={() => setInspectingPluginId(plugin.pluginId)}
                 >
                   <ChromeIcon name="shield-security" size={14} />
-                  <span>Governance</span>
+                  <span>{t("ui.surfaces.governance", { defaultValue: "Governance" })}</span>
                 </Button>
 
                 {plugin.lifecycleState === "revoked" ? (
-                  <Badge tone="danger" label="Trust Revoked" />
+                  <Badge tone="danger" label="Revoked" />
                 ) : isInstalled ? (
-                  <Badge
-                    tone={
-                      plugin.lifecycleState === "installed-enabled"
-                        ? "success"
-                        : "neutral"
-                    }
-                    label={
-                      plugin.lifecycleState === "installed-enabled"
-                        ? "Installed"
-                        : "Disabled"
-                    }
-                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setInspectingPluginId(plugin.pluginId)}
+                  >
+                    {plugin.lifecycleState === "installed-enabled"
+                      ? t("ui.surfaces.open", { defaultValue: "Open" })
+                      : "Disabled"}
+                  </Button>
                 ) : (
                   <Button
                     size="sm"
@@ -195,9 +184,10 @@ export function PluginMarketplacePage({
                       }
                     }}
                   >
-                    <ChromeIcon name="plus" size={14} />
                     <span>
-                      {policy.requiresExplicitTrustReview ? "Review & Install" : "Install"}
+                      {policy.requiresExplicitTrustReview
+                        ? "Review & Install"
+                        : t("ui.surfaces.install", { defaultValue: "Install" })}
                     </span>
                   </Button>
                 )}

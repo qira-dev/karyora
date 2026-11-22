@@ -1,14 +1,12 @@
 /**
- * Composer `+` Add Context Popup (UIR-4.1, Screenshot #68, Blueprint §7.3).
+ * Composer `+` Add Context Popup — Calibrated 1:1 to ZCode Screenshot #68.
  *
- * Implements:
- * - `Attachments` (upload files/folders)
- * - `Goal` toggle
- * - `Workflow ▸` selector
- * - `PLUGINS` quick toggles (`Documents`, `PDF`, `Presentations`, `Spreadsheets`)
+ * Implements `ADD` (`Attachments`, `Goal`, `Workflow`) and `PLUGINS` quick toggles,
+ * fully wired to live 13-locale i18next translations.
  */
 
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../../components/icons";
 import { Button, Toggle } from "../../components/primitives";
 import { ADD_CONTEXT_PLUGINS } from "../workspaceConfig";
@@ -34,6 +32,8 @@ export function AddContextMenu({
   onTogglePlugin,
   onClose,
 }: AddContextMenuProps): ReactElement | null {
+  const { t } = useTranslation();
+
   if (!isOpen) {
     return null;
   }
@@ -47,11 +47,11 @@ export function AddContextMenu({
       style={{
         bottom: "calc(100% + 8px)",
         insetInlineStart: 0,
-        width: "272px",
-        padding: "var(--space-2)",
+        width: "284px",
+        padding: "10px",
         display: "flex",
         flexDirection: "column",
-        gap: "var(--space-2)",
+        gap: "6px",
       }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
@@ -60,6 +60,18 @@ export function AddContextMenu({
         }
       }}
     >
+      <div
+        style={{
+          paddingInline: "8px",
+          fontSize: "0.68rem",
+          fontWeight: 600,
+          color: "var(--text-muted)",
+          letterSpacing: "0.05em",
+        }}
+      >
+        {t("ui.surfaces.addSection", { defaultValue: "ADD" })}
+      </div>
+
       <Button
         variant="ghost"
         size="sm"
@@ -70,15 +82,14 @@ export function AddContextMenu({
           onClose();
         }}
       >
-        Attachments
+        {t("ui.composer.attachments", { defaultValue: "Attachments" })}
       </Button>
 
-      <div style={{ paddingInline: "var(--space-2)" }}>
+      <div style={{ paddingInline: "8px", paddingBlock: "2px" }}>
         <Toggle
           checked={goalModeEnabled}
           onChange={onToggleGoalMode}
-          label="Goal"
-          description="Autonomous goal completion mode"
+          label={t("ui.composer.goal", { defaultValue: "Goal" })}
         />
       </div>
 
@@ -93,7 +104,7 @@ export function AddContextMenu({
           onClose();
         }}
       >
-        Workflow
+        {t("ui.composer.workflow", { defaultValue: "Workflow" })}
       </Button>
 
       <hr
@@ -107,22 +118,22 @@ export function AddContextMenu({
 
       <div
         style={{
-          paddingInline: "var(--space-2)",
-          fontSize: "0.7rem",
+          paddingInline: "8px",
+          fontSize: "0.68rem",
           fontWeight: 600,
           color: "var(--text-muted)",
-          letterSpacing: "0.04em",
+          letterSpacing: "0.05em",
         }}
       >
-        PLUGINS
+        {t("ui.surfaces.pluginsSection", { defaultValue: "PLUGINS" })}
       </div>
 
       <div
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "var(--space-2)",
-          paddingInline: "var(--space-2)",
+          gap: "6px",
+          paddingInline: "8px",
         }}
       >
         {ADD_CONTEXT_PLUGINS.map((plugin) => (

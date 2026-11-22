@@ -111,25 +111,45 @@
 
 .ky-template-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .ky-template-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ky-awake-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  font-size: 0.84rem;
+  color: var(--text-primary);
 }
 
 .ky-template-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
   border: 1px solid var(--border-subtle);
   background-color: var(--bg-surface-1);
   color: var(--text-primary);
   text-align: start;
   cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
 }
 
 .ky-template-card:hover {
-  border-color: var(--accent-primary);
+  border-color: var(--border-strong);
   background-color: var(--bg-surface-2);
 }
 
@@ -295,19 +315,49 @@
 
 .ky-plugin-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .ky-plugin-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ky-plugin-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
   border: 1px solid var(--border-subtle);
   background-color: var(--bg-surface-1);
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.ky-plugin-card:hover {
+  border-color: var(--border-strong);
+}
+
+.ky-plugin-card__head-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ky-plugin-card__icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 .ky-plugin-card__top {

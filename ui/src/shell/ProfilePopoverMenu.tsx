@@ -76,8 +76,9 @@ export function ProfilePopoverMenu({
             width: "24px",
             height: "24px",
             borderRadius: "var(--radius-full)",
-            backgroundColor: "#7c3aed",
-            color: "#ffffff",
+            backgroundColor: "var(--bg-surface-3)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border-default)",
             fontSize: "0.75rem",
             fontWeight: 600,
           }}
