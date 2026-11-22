@@ -8,10 +8,10 @@
  * - Dirty-form navigation guard (`ConfirmDialog`)
  */
 
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChromeIcon, type ChromeIconName } from "../components/icons";
-import { Badge, ConfirmDialog } from "../components/primitives";
+import { Badge, Button, ConfirmDialog } from "../components/primitives";
 import type { WorkspaceProjectSummary } from "../coreclient";
 import type { ScopedMemorySurfaceProps } from "../domains/memory";
 import type { MarketplacePluginRecord } from "../marketplace";
@@ -84,6 +84,26 @@ const GROUP_I18N_KEY_MAP: Readonly<Record<string, string>> = {
   "data-governance": "ui.settings.groups.dataAndStatistics",
 };
 
+export type SettingsEmbeddedCoreSurfaceId =
+  | "jobs"
+  | "knowledge"
+  | "context"
+  | "activity"
+  | "automations";
+
+const CORE_SETTINGS_ITEMS: readonly {
+  readonly id: SettingsEmbeddedCoreSurfaceId;
+  readonly labelKey: string;
+  readonly defaultLabel: string;
+  readonly icon: ChromeIconName;
+}[] = [
+  { id: "jobs", labelKey: "ui.sidebar.jobs", defaultLabel: "Jobs", icon: "cpu" },
+  { id: "knowledge", labelKey: "ui.sidebar.knowledge", defaultLabel: "Knowledge", icon: "database" },
+  { id: "context", labelKey: "ui.sidebar.context", defaultLabel: "Context", icon: "sliders" },
+  { id: "activity", labelKey: "ui.sidebar.activityAudit", defaultLabel: "Activity & Audit", icon: "activity" },
+  { id: "automations", labelKey: "ui.sidebar.automations", defaultLabel: "Automations", icon: "automations" },
+];
+
 export interface SettingsOverlayHubProps {
   readonly isOpen: boolean;
   readonly activeSection: SettingsSectionId;
@@ -98,6 +118,8 @@ export interface SettingsOverlayHubProps {
   readonly projects: readonly WorkspaceProjectSummary[];
   readonly plugins: readonly MarketplacePluginRecord[];
   readonly memoryProps: ScopedMemorySurfaceProps;
+  readonly coreSurfaceViews?: Readonly<Partial<Record<SettingsEmbeddedCoreSurfaceId, ReactNode>>>;
+  readonly onOpenCoreSurfaceInWorkspace?: (surface: SettingsEmbeddedCoreSurfaceId) => void;
   readonly onSelectSection: (section: SettingsSectionId) => void;
   readonly onChangeAppTheme: (theme: AppTheme) => void;
   readonly onChangeLightCodeTheme: (theme: LightCodeTheme) => void;
@@ -128,6 +150,8 @@ export default function SettingsOverlayHub({
   projects,
   plugins,
   memoryProps,
+  coreSurfaceViews,
+  onOpenCoreSurfaceInWorkspace,
   onSelectSection,
   onChangeAppTheme,
   onChangeLightCodeTheme,
@@ -146,6 +170,8 @@ export default function SettingsOverlayHub({
   const { t } = useTranslation();
   const [hasDirtyForm, setHasDirtyForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCoreSurface, setActiveCoreSurface] =
+    useState<SettingsEmbeddedCoreSurfaceId | null>(null);
   const [pendingNavTarget, setPendingNavTarget] = useState<
     { readonly kind: "close" } | { readonly kind: "section"; readonly id: SettingsSectionId } | null
   >(null);
@@ -154,11 +180,13 @@ export default function SettingsOverlayHub({
     if (hasDirtyForm) {
       setPendingNavTarget({ kind: "close" });
     } else {
+      setActiveCoreSurface(null);
       onClose();
     }
   };
 
   const requestSection = (id: SettingsSectionId) => {
+    setActiveCoreSurface(null);
     if (id === activeSection) return;
     if (hasDirtyForm) {
       setPendingNavTarget({ kind: "section", id });
@@ -264,7 +292,11 @@ export default function SettingsOverlayHub({
                       type="button"
                       className="ky-settings-nav__btn"
                       data-testid={`settings-nav-${sec.id}`}
-                      data-active={sec.id === activeSection ? "true" : "false"}
+                      data-active={
+                        activeCoreSurface === null && sec.id === activeSection
+                          ? "true"
+                          : "false"
+                      }
                       onClick={() => requestSection(sec.id)}
                     >
                       <ChromeIcon name={SECTION_ICON_MAP[sec.id]} size={16} />
@@ -278,19 +310,95 @@ export default function SettingsOverlayHub({
                 </div>
               );
             })}
+
+            {/* Karyora Core Surfaces Directly Accessible Inside Settings (Clean Left Sidebar) */}
+            {(() => {
+              const filteredCore = CORE_SETTINGS_ITEMS.filter((item) => {
+                if (!normalizedSearch) return true;
+                const locLabel = t(item.labelKey, { defaultValue: item.defaultLabel });
+                return (
+                  locLabel.toLowerCase().includes(normalizedSearch) ||
+                  item.defaultLabel.toLowerCase().includes(normalizedSearch)
+                );
+              });
+              if (filteredCore.length === 0) return null;
+              return (
+                <div>
+                  <h4 className="ky-settings-nav__group-title">
+                    {t("ui.sidebar.coreSection", { defaultValue: "Karyora Core" })}
+                  </h4>
+                  {filteredCore.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="ky-settings-nav__btn"
+                      data-testid={`settings-core-nav-${item.id}`}
+                      data-active={activeCoreSurface === item.id ? "true" : "false"}
+                      onClick={() => setActiveCoreSurface(item.id)}
+                    >
+                      <ChromeIcon name={item.icon} size={16} />
+                      <span>
+                        {t(item.labelKey, { defaultValue: item.defaultLabel })}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </nav>
 
         <main className="ky-settings-main">
-          <div className="ky-settings-content" style={{ marginBottom: "18px" }}>
-            <h2 className="ky-settings-page-title">
-              {t(`ui.settings.sections.${activeMeta.id}`, {
-                defaultValue: activeMeta.label,
-              })}
-            </h2>
-          </div>
+          {activeCoreSurface && coreSurfaceViews?.[activeCoreSurface] ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px", width: "100%" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <h2 className="ky-settings-page-title">
+                  {t(
+                    CORE_SETTINGS_ITEMS.find((i) => i.id === activeCoreSurface)?.labelKey ??
+                      "ui.sidebar.coreSection",
+                    {
+                      defaultValue:
+                        CORE_SETTINGS_ITEMS.find((i) => i.id === activeCoreSurface)
+                          ?.defaultLabel ?? "Workspace",
+                    },
+                  )}
+                </h2>
+                {onOpenCoreSurfaceInWorkspace && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const target = activeCoreSurface;
+                      setActiveCoreSurface(null);
+                      onClose();
+                      onOpenCoreSurfaceInWorkspace(target);
+                    }}
+                  >
+                    <ChromeIcon name="external-link" size={14} />
+                    <span>Open full view</span>
+                  </Button>
+                )}
+              </div>
+              {coreSurfaceViews[activeCoreSurface]}
+            </div>
+          ) : (
+            <>
+              <div className="ky-settings-content" style={{ marginBottom: "18px" }}>
+                <h2 className="ky-settings-page-title">
+                  {t(`ui.settings.sections.${activeMeta.id}`, {
+                    defaultValue: activeMeta.label,
+                  })}
+                </h2>
+              </div>
 
-          {activeSection === "general" ? (
+              {activeSection === "general" ? (
             <GeneralSettingsSection
               locale={locale}
               interfaceMode={interfaceMode}
@@ -368,11 +476,13 @@ export default function SettingsOverlayHub({
             <ProjectManagementSection projects={projects} onNotify={onNotify} />
           ) : activeSection === "archive-management" ? (
             <ArchiveManagementSection onNotify={onNotify} />
-          ) : (
-            <SharesAndGovernanceSection
-              runtimeTarget={runtimeTarget}
-              onNotify={onNotify}
-            />
+              ) : (
+                <SharesAndGovernanceSection
+                  runtimeTarget={runtimeTarget}
+                  onNotify={onNotify}
+                />
+              )}
+            </>
           )}
         </main>
       </div>

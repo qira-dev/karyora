@@ -477,6 +477,25 @@
       "resetPermissions": "সাইটের অনুমতি রিসেট করুন",
       "permissionsResetDone": "অনুমতি রিসেট হয়েছে। পুনরায় অনুমতির জন্য পেজ রিফ্রেশ করুন।",
       "permissionsSaved": "অনুমতি আপডেট হয়েছে। পরিবর্তন কার্যকর করতে পেজ রিফ্রেশ করুন।"
+    },
+    "overview": {
+      "title": "ওভারভিউ",
+      "customizeSections": "সেকশন কাস্টমাইজ করুন",
+      "coreSections": "কোর ও গভর্ন্যান্স",
+      "review": "রিভিউ",
+      "files": "ফাইলসমূহ",
+      "terminal": "টার্মিনাল",
+      "extensions": "এক্সটেনশন",
+      "subagents": "সাব-এজেন্ট",
+      "backgroundTasks": "ব্যাকগ্রাউন্ড টাস্ক",
+      "goals": "লক্ষ্যসমূহ",
+      "documents": "ডকুমেন্টস",
+      "artifacts": "আর্টিফ্যাক্টস",
+      "links": "লিংকসমূহ",
+      "modifiedFiles": "পরিবর্তিত ফাইল",
+      "uploads": "আপলোডসমূহ",
+      "skillsUsed": "ব্যবহৃত স্কিলস",
+      "seeAll": "সব দেখুন"
     }
   }
 }

@@ -200,7 +200,7 @@ export function LeftSidebar({
 
       <div className="ky-sidebar__divider" />
 
-      {/* Scrollable Projects & Tasks Tree + Karyora Core Domain Links */}
+      {/* Scrollable Projects & Tasks Tree (Clean Antigravity Left Sidebar — Core Surfaces live in Settings & Right Overview) */}
       <div className="ky-sidebar__scroll-region">
         <ProjectTaskTree
           projects={projects}
@@ -212,69 +212,6 @@ export function LeftSidebar({
           onShowProjectFiles={onShowProjectFiles}
           onTaskContextAction={onTaskContextAction}
         />
-
-        <div className="ky-sidebar__divider" style={{ margin: "6px 2px" }} />
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <div className="ky-sidebar__section-header">
-            <span>{t("ui.sidebar.coreSection", { defaultValue: "Karyora Core" })}</span>
-          </div>
-          <button
-            type="button"
-            className="ky-sidebar__nav-item"
-            data-active={activeSurface === "jobs" ? "true" : "false"}
-            onClick={() => onSelectSurface("jobs")}
-          >
-            <span className="ky-sidebar__nav-left">
-              <ChromeIcon name="cpu" size={14} />
-              <span>{t("ui.sidebar.jobs", { defaultValue: "Jobs" })}</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="ky-sidebar__nav-item"
-            data-active={activeSurface === "knowledge" ? "true" : "false"}
-            onClick={() => onSelectSurface("knowledge")}
-          >
-            <span className="ky-sidebar__nav-left">
-              <ChromeIcon name="database" size={14} />
-              <span>{t("ui.sidebar.knowledge", { defaultValue: "Knowledge" })}</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="ky-sidebar__nav-item"
-            data-active={activeSurface === "memory" ? "true" : "false"}
-            onClick={() => onSelectSurface("memory")}
-          >
-            <span className="ky-sidebar__nav-left">
-              <ChromeIcon name="brain-thinking" size={14} />
-              <span>{t("ui.sidebar.memory", { defaultValue: "Memory" })}</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="ky-sidebar__nav-item"
-            data-active={activeSurface === "context" ? "true" : "false"}
-            onClick={() => onSelectSurface("context")}
-          >
-            <span className="ky-sidebar__nav-left">
-              <ChromeIcon name="sliders" size={14} />
-              <span>{t("ui.sidebar.context", { defaultValue: "Context" })}</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="ky-sidebar__nav-item"
-            data-active={activeSurface === "activity" ? "true" : "false"}
-            onClick={() => onSelectSurface("activity")}
-          >
-            <span className="ky-sidebar__nav-left">
-              <ChromeIcon name="activity" size={14} />
-              <span>{t("ui.sidebar.activityAudit", { defaultValue: "Activity & Audit" })}</span>
-            </span>
-          </button>
-        </div>
       </div>
 
       {/* Bottom Footer: Profile Popover (#61–#65), Mobile Remote Control, Resource Manager & Settings (Ctrl+,) */}

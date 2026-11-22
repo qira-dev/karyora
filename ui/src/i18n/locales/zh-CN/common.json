@@ -477,6 +477,25 @@
       "resetPermissions": "重置网站权限",
       "permissionsResetDone": "权限已重置，刷新页面后将重新请求。",
       "permissionsSaved": "权限已更新，刷新页面后生效。"
+    },
+    "overview": {
+      "title": "概览",
+      "customizeSections": "自定义区块",
+      "coreSections": "核心与治理",
+      "review": "审查",
+      "files": "文件",
+      "terminal": "终端",
+      "extensions": "扩展",
+      "subagents": "子智能体",
+      "backgroundTasks": "后台任务",
+      "goals": "目标",
+      "documents": "文档",
+      "artifacts": "产物",
+      "links": "链接",
+      "modifiedFiles": "已修改文件",
+      "uploads": "上传文件",
+      "skillsUsed": "已用技能",
+      "seeAll": "查看全部"
     }
   }
 }

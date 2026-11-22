@@ -64,6 +64,7 @@ export interface ApplicationShellProps {
   readonly terminalOpen: boolean;
   readonly terminalMaximized?: boolean;
   readonly browserOpen?: boolean;
+  readonly overviewRailOpen?: boolean;
   readonly sidePaneOpen: boolean;
   readonly sidePaneFullView?: boolean;
   readonly activeSurface: ActiveMainSurface;
@@ -127,6 +128,7 @@ export interface ApplicationShellProps {
   readonly onChangeInterfaceMode: (mode: InterfaceMode) => void;
   readonly onChangeZoomPercent: (zoomPercent: number) => void;
   readonly onDismissToast: (toastId: string) => void;
+  readonly overviewRailContent?: ReactNode;
   readonly sidePaneContent?: ReactNode;
   readonly terminalContent?: ReactNode;
   readonly floatingWorkingBar?: ReactNode;
@@ -159,6 +161,7 @@ export function ApplicationShell({
   terminalOpen,
   terminalMaximized = false,
   browserOpen = false,
+  overviewRailOpen = true,
   sidePaneOpen,
   sidePaneFullView = false,
   activeSurface,
@@ -209,6 +212,7 @@ export function ApplicationShell({
   onChangeInterfaceMode,
   onChangeZoomPercent,
   onDismissToast,
+  overviewRailContent,
   sidePaneContent,
   terminalContent,
   floatingWorkingBar,
@@ -438,6 +442,12 @@ export function ApplicationShell({
                 </section>
               )}
             </div>
+
+            {!sidePaneOpen && overviewRailOpen && overviewRailContent && (
+              <div className="ky-overview-slot" data-testid="workspace-overview-slot">
+                {overviewRailContent}
+              </div>
+            )}
 
             {sidePaneOpen && !sidePaneFullView && (
               <div

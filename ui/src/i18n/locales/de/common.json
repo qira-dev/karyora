@@ -477,6 +477,25 @@
       "resetPermissions": "Berechtigungen zurücksetzen",
       "permissionsResetDone": "Berechtigungen zurückgesetzt. Seite neu laden.",
       "permissionsSaved": "Berechtigungen gespeichert. Zum Anwenden neu laden."
+    },
+    "overview": {
+      "title": "Übersicht",
+      "customizeSections": "Abschnitte anpassen",
+      "coreSections": "Kern & Governance",
+      "review": "Prüfen",
+      "files": "Dateien",
+      "terminal": "Terminal",
+      "extensions": "Erweiterungen",
+      "subagents": "Subagenten",
+      "backgroundTasks": "Hintergrundaufgaben",
+      "goals": "Ziele",
+      "documents": "Dokumente",
+      "artifacts": "Artefakte",
+      "links": "Links",
+      "modifiedFiles": "Geänderte Dateien",
+      "uploads": "Uploads",
+      "skillsUsed": "Genutzte Skills",
+      "seeAll": "Alle anzeigen"
     }
   }
 }

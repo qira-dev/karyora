@@ -477,6 +477,25 @@
       "resetPermissions": "Сбросить разрешения сайта",
       "permissionsResetDone": "Разрешения сброшены. Перезагрузите страницу.",
       "permissionsSaved": "Разрешения обновлены. Перезагрузите страницу для применения."
+    },
+    "overview": {
+      "title": "Обзор",
+      "customizeSections": "Настроить разделы",
+      "coreSections": "Ядро и управление",
+      "review": "Проверка",
+      "files": "Файлы",
+      "terminal": "Терминал",
+      "extensions": "Расширения",
+      "subagents": "Субагенты",
+      "backgroundTasks": "Фоновые задачи",
+      "goals": "Цели",
+      "documents": "Документы",
+      "artifacts": "Артефакты",
+      "links": "Ссылки",
+      "modifiedFiles": "Изменённые файлы",
+      "uploads": "Загрузки",
+      "skillsUsed": "Использованные навыки",
+      "seeAll": "Показать все"
     }
   }
 }

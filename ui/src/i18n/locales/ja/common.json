@@ -477,6 +477,25 @@
       "resetPermissions": "サイト権限をリセット",
       "permissionsResetDone": "権限をリセットしました。ページを再読み込みしてください。",
       "permissionsSaved": "権限を更新しました。反映するには再読み込みしてください。"
+    },
+    "overview": {
+      "title": "概要",
+      "customizeSections": "セクションをカスタマイズ",
+      "coreSections": "コアとガバナンス",
+      "review": "レビュー",
+      "files": "ファイル",
+      "terminal": "ターミナル",
+      "extensions": "拡張機能",
+      "subagents": "サブエージェント",
+      "backgroundTasks": "バックグラウンドタスク",
+      "goals": "ゴール",
+      "documents": "ドキュメント",
+      "artifacts": "アーティファクト",
+      "links": "リンク",
+      "modifiedFiles": "変更されたファイル",
+      "uploads": "アップロード",
+      "skillsUsed": "使用したスキル",
+      "seeAll": "すべて表示"
     }
   }
 }

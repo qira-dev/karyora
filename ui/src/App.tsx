@@ -62,12 +62,20 @@ import {
 } from "./shell";
 import {
   FloatingMinimizedWorkingBar,
+  INITIAL_OVERVIEW_ARTIFACTS,
+  INITIAL_OVERVIEW_UPLOADS,
   MultiTabSidePane,
+  WorkspaceOverviewRail,
   closeSideTab,
+  createDefaultOverviewVisibility,
   openOrFocusSideTab,
+  parseOverviewVisibilityJson,
   resetOriginPermissions,
   setOriginPermission,
+  toggleOverviewSectionVisibility,
   type NewTabLauncherItem,
+  type OverviewSectionId,
+  type OverviewSectionVisibilityMap,
   type ReviewDiffFileRecord,
   type SidePaneTab,
   type SitePermissionsStoreMap,
@@ -507,9 +515,22 @@ export function App(): ReactElement {
   );
   const [, setQueueTick] = useState(0);
 
-  // Multi-Tab Side Pane, Full-View Mode & Docked Terminal state (UIR-5)
+  // Multi-Tab Side Pane, Antigravity Right Overview Rail, Full-View Mode & Docked Terminal state (UIR-5)
   const [terminalOpen, setTerminalOpen] = useState(false);
   const [terminalMaximized, setTerminalMaximized] = useState(false);
+  const [overviewRailOpen, setOverviewRailOpen] = useState(true);
+  const [overviewVisibility, setOverviewVisibility] = useState<OverviewSectionVisibilityMap>(
+    () => {
+      if (typeof window === "undefined") return createDefaultOverviewVisibility();
+      try {
+        return parseOverviewVisibilityJson(
+          window.localStorage.getItem("karyora:ui:overview-sections-v1"),
+        );
+      } catch {
+        return createDefaultOverviewVisibility();
+      }
+    },
+  );
   const [sidePaneOpen, setSidePaneOpen] = useState(false);
   const [sidePaneFullView, setSidePaneFullView] = useState(false);
   const [sideTabs, setSideTabs] = useState<readonly SidePaneTab[]>(INITIAL_SIDE_TABS);
@@ -688,6 +709,21 @@ export function App(): ReactElement {
     if (restoreFocusTo && typeof document !== "undefined") {
       document.getElementById(restoreFocusTo)?.focus();
     }
+  };
+
+  const handleToggleOverviewSection = (sectionId: OverviewSectionId) => {
+    setOverviewVisibility((prev) => {
+      const next = toggleOverviewSectionVisibility(prev, sectionId);
+      try {
+        window.localStorage.setItem(
+          "karyora:ui:overview-sections-v1",
+          JSON.stringify(next),
+        );
+      } catch {
+        // ignore restricted storage
+      }
+      return next;
+    });
   };
 
   const openSideTab = (nextTab: SidePaneTab) => {
@@ -887,6 +923,7 @@ export function App(): ReactElement {
             sidePaneOpen &&
             sideTabs.some((t) => t.tabId === activeSideTabId && t.kind === "browser")
           }
+          overviewRailOpen={overviewRailOpen}
           sidePaneOpen={sidePaneOpen}
           sidePaneFullView={sidePaneFullView}
           activeSurface={activeSurface}
@@ -910,12 +947,17 @@ export function App(): ReactElement {
           onGoForward={handleGoForward}
           onToggleBrowser={handleToggleBrowser}
           onToggleTerminal={() => setTerminalOpen((prev) => !prev)}
-          onToggleSidePane={() =>
-            setSidePaneOpen((prev) => {
-              if (prev) setSidePaneFullView(false);
-              return !prev;
-            })
-          }
+          onToggleSidePane={() => {
+            if (sidePaneOpen) {
+              setSidePaneFullView(false);
+              setSidePaneOpen(false);
+              setOverviewRailOpen(true);
+            } else if (overviewRailOpen) {
+              setOverviewRailOpen(false);
+            } else {
+              setOverviewRailOpen(true);
+            }
+          }}
           onToggleSidePaneFullView={() => {
             if (!sidePaneOpen) {
               setSidePaneOpen(true);
@@ -1047,6 +1089,98 @@ export function App(): ReactElement {
               onClose={() => {
                 setTerminalMaximized(false);
                 setTerminalOpen(false);
+              }}
+            />
+          }
+          overviewRailContent={
+            <WorkspaceOverviewRail
+              visibility={overviewVisibility}
+              activeCodeTheme={activeCodeTheme}
+              subagents={INITIAL_SUBAGENT_RECORDS}
+              backgroundJobs={jobs}
+              goalSteps={INITIAL_PROGRESS_STEPS}
+              workspaceFiles={INITIAL_WORKSPACE_FILES}
+              artifacts={INITIAL_OVERVIEW_ARTIFACTS}
+              modifiedFiles={INITIAL_REVIEW_DIFFS}
+              uploads={INITIAL_OVERVIEW_UPLOADS}
+              plugins={marketplacePlugins}
+              knowledgePacks={knowledgePacks}
+              memoryItems={memoryItems}
+              contextSnapshots={INITIAL_CONTEXT_SNAPSHOTS}
+              auditEvents={auditEvents}
+              onToggleSection={handleToggleOverviewSection}
+              onOpenReview={(fp) =>
+                openSideTab({
+                  tabId: "tab-review",
+                  kind: "review",
+                  title: "Review",
+                  filePath: fp,
+                })
+              }
+              onOpenFiles={(fp) => {
+                if (fp) setSelectedFilePath(fp);
+                openSideTab({
+                  tabId: "tab-files",
+                  kind: "files",
+                  title: "Files",
+                  filePath: fp,
+                });
+              }}
+              onOpenBrowser={(url) =>
+                openSideTab({
+                  tabId: "tab-browser",
+                  kind: "browser",
+                  title: "Browser",
+                  browserUrl: url,
+                })
+              }
+              onOpenTerminal={() => setTerminalOpen((prev) => !prev)}
+              onOpenExtensions={() => {
+                setActiveSurface("marketplace");
+                pushNavHistory("marketplace", activeTaskId);
+              }}
+              onInspectSubagent={(sub) =>
+                openSideTab({
+                  tabId: `subagent-report-${sub.subagentId}`,
+                  kind: "subagent-report",
+                  title: sub.name,
+                  subagentId: sub.subagentId,
+                })
+              }
+              onOpenSubagentsDirectory={() =>
+                openSideTab({
+                  tabId: "tab-subagents",
+                  kind: "subagents",
+                  title: "Subagents",
+                })
+              }
+              onOpenJobsSurface={() => {
+                setActiveSurface("jobs");
+                pushNavHistory("jobs", activeTaskId);
+              }}
+              onOpenDocumentPreview={(filePath, title) =>
+                openSideTab({
+                  tabId: `doc-${filePath}`,
+                  kind: "document-preview",
+                  title,
+                  filePath,
+                })
+              }
+              onOpenKnowledgeSurface={() => {
+                setActiveSurface("knowledge");
+                pushNavHistory("knowledge", activeTaskId);
+              }}
+              onOpenMemorySurface={() => {
+                setActiveSurface("memory");
+                pushNavHistory("memory", activeTaskId);
+              }}
+              onOpenContextSurface={() => {
+                setActiveSurface("context");
+                pushNavHistory("context", activeTaskId);
+              }}
+              onOpenActivitySurface={() => {
+                setActiveSurface("activity");
+                pushNavHistory("activity", activeTaskId);
               }}
             />
           }
@@ -1242,6 +1376,118 @@ export function App(): ReactElement {
                           : m,
                       ),
                     ),
+                }}
+                coreSurfaceViews={{
+                  jobs: (
+                    <JobsPage
+                      jobs={jobs}
+                      onCancelJob={(jobId) => {
+                        setJobs((prev) =>
+                          prev.map((j) =>
+                            j.jobId === jobId ? { ...j, status: "cancelled" } : j,
+                          ),
+                        );
+                        pushToast("Safe cancel dispatched", jobId);
+                      }}
+                      onRetryOrResumeJob={(jobId) => {
+                        setJobs((prev) =>
+                          prev.map((j) =>
+                            j.jobId === jobId
+                              ? { ...j, status: "running", attemptCount: j.attemptCount + 1 }
+                              : j,
+                          ),
+                        );
+                        pushToast("Job resumed", jobId);
+                      }}
+                      onReconcileS4Job={(jobId) => {
+                        setJobs((prev) =>
+                          prev.map((j) =>
+                            j.jobId === jobId ? { ...j, status: "running" } : j,
+                          ),
+                        );
+                        pushToast("Reconciled S4 Job state", jobId);
+                      }}
+                    />
+                  ),
+                  knowledge: (
+                    <KnowledgePackPage
+                      packs={knowledgePacks}
+                      onCreatePackAndIngest={(name, sourceUri) => {
+                        pushToast("KnowledgePack queued", `${name} (${sourceUri})`);
+                      }}
+                      onExportManifest={(pack) =>
+                        pushToast("Exported KnowledgePack manifest", pack.name)
+                      }
+                      onInspectIngestionJob={() => {
+                        closeSettingsOverlay();
+                        setActiveSurface("jobs");
+                      }}
+                    />
+                  ),
+                  context: <ContextInspectorView snapshots={INITIAL_CONTEXT_SNAPSHOTS} />,
+                  activity: (
+                    <ActivityAuditPage
+                      events={auditEvents}
+                      onAppendCorrectionNote={(targetEventId, note) => {
+                        const corr = createAppendOnlyCorrectionEvent(
+                          auditEvents,
+                          targetEventId,
+                          note,
+                        );
+                        setAuditEvents((prev) => [corr, ...prev]);
+                        pushToast("Correction appended", `${corr.eventId} -> ${targetEventId}`);
+                      }}
+                      onExportRedactedAudit={(_json, count) => {
+                        pushToast("Redacted audit exported", `${count} sanitized event(s)`);
+                      }}
+                    />
+                  ),
+                  automations: (
+                    <AutomationsAndWorkflowsPage
+                      scheduledTasks={scheduledTasks}
+                      workflows={workflows}
+                      availableModels={["configured-default", "claude-sonnet", "gpt-5", "gemini-pro"]}
+                      onSaveScheduledTask={(task) => {
+                        setScheduledTasks((prev) => {
+                          const exists = prev.some((t) => t.taskId === task.taskId);
+                          return exists
+                            ? prev.map((t) => (t.taskId === task.taskId ? task : t))
+                            : [task, ...prev];
+                        });
+                        pushToast("Scheduled task saved", task.name);
+                      }}
+                      onToggleScheduledTaskActive={(taskId, active) =>
+                        setScheduledTasks((prev) =>
+                          prev.map((t) => (t.taskId === taskId ? { ...t, active } : t)),
+                        )
+                      }
+                      onDeleteScheduledTask={(taskId) => {
+                        setScheduledTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+                        pushToast("Scheduled task deleted", taskId);
+                      }}
+                      onRunScheduledTaskNow={(task) =>
+                        pushToast("Automation dispatched", task.name)
+                      }
+                      onSaveWorkflowRevision={(updated) =>
+                        setWorkflows((prev) =>
+                          prev.map((w) => (w.workflowId === updated.workflowId ? updated : w)),
+                        )
+                      }
+                      onCreateWorkflow={() => pushToast("Workflow created")}
+                      onLaunchWorkflowJob={(wf) => pushToast("Workflow launched", wf.name)}
+                      onPickProjectFolder={() => {
+                        void platformBridge.pickFolderOrFile({ mode: "folder" });
+                      }}
+                      onOpenJobHistory={() => {
+                        closeSettingsOverlay();
+                        setActiveSurface("jobs");
+                      }}
+                    />
+                  ),
+                }}
+                onOpenCoreSurfaceInWorkspace={(surface) => {
+                  setActiveSurface(surface);
+                  pushNavHistory(surface, activeTaskId);
                 }}
                 onSelectSection={setActiveSettingsSection}
                 onChangeAppTheme={(theme) => updatePref("appTheme", theme)}

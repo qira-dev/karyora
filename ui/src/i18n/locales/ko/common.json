@@ -477,6 +477,25 @@
       "resetPermissions": "사이트 권한 재설정",
       "permissionsResetDone": "권한이 초기화되었습니다. 페이지를 새로고침하세요.",
       "permissionsSaved": "권한이 업데이트되었습니다. 적용하려면 새로고침하세요."
+    },
+    "overview": {
+      "title": "개요",
+      "customizeSections": "섹션 사용자 지정",
+      "coreSections": "코어 및 거버넌스",
+      "review": "리뷰",
+      "files": "파일",
+      "terminal": "터미널",
+      "extensions": "확장 프로그램",
+      "subagents": "서브에이전트",
+      "backgroundTasks": "백그라운드 작업",
+      "goals": "목표",
+      "documents": "문서",
+      "artifacts": "아티팩트",
+      "links": "링크",
+      "modifiedFiles": "수정된 파일",
+      "uploads": "업로드",
+      "skillsUsed": "사용된 스킬",
+      "seeAll": "모두 보기"
     }
   }
 }

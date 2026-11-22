@@ -477,6 +477,25 @@
       "resetPermissions": "Reset site permissions",
       "permissionsResetDone": "Permissions reset. Reload the page to request access again.",
       "permissionsSaved": "Permissions updated. Reload the page to apply changes to active resources."
+    },
+    "overview": {
+      "title": "Overview",
+      "customizeSections": "Customize Sections",
+      "coreSections": "Core & Governance",
+      "review": "Review",
+      "files": "Files",
+      "terminal": "Terminal",
+      "extensions": "Extensions",
+      "subagents": "Subagents",
+      "backgroundTasks": "Background Tasks",
+      "goals": "Goals",
+      "documents": "Documents",
+      "artifacts": "Artifacts",
+      "links": "Links",
+      "modifiedFiles": "Modified Files",
+      "uploads": "Uploads",
+      "skillsUsed": "Skills Used",
+      "seeAll": "See all"
     }
   }
 }

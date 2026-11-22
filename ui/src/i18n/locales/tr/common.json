@@ -477,6 +477,25 @@
       "resetPermissions": "Site izinlerini sıfırla",
       "permissionsResetDone": "İzinler sıfırlandı. Sayfayı yenileyin.",
       "permissionsSaved": "İzinler güncellendi. Uygulamak için sayfayı yenileyin."
+    },
+    "overview": {
+      "title": "Genel Bakış",
+      "customizeSections": "Bölümleri Özelleştir",
+      "coreSections": "Çekirdek ve Yönetişim",
+      "review": "İnceleme",
+      "files": "Dosyalar",
+      "terminal": "Terminal",
+      "extensions": "Uzantılar",
+      "subagents": "Alt Ajanlar",
+      "backgroundTasks": "Arka Plan Görevleri",
+      "goals": "Hedefler",
+      "documents": "Belgeler",
+      "artifacts": "Yapıtlar",
+      "links": "Bağlantılar",
+      "modifiedFiles": "Değiştirilen Dosyalar",
+      "uploads": "Yüklemeler",
+      "skillsUsed": "Kullanılan Beceriler",
+      "seeAll": "Tümünü gör"
     }
   }
 }

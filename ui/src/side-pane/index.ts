@@ -1,5 +1,6 @@
 export * from "./sidePaneConfig";
 export * from "./browserConfig";
+export * from "./overviewConfig";
 export * from "./NewTabLauncher";
 export * from "./FilesTreeAndPreviewTab";
 export * from "./ReviewDiffTab";
@@ -9,3 +10,4 @@ export * from "./BrowserPermissionsTab";
 export * from "./SideConversationTab";
 export * from "./FloatingMinimizedWorkingBar";
 export * from "./MultiTabSidePane";
+export * from "./WorkspaceOverviewRail";

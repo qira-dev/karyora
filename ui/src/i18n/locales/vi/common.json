@@ -477,6 +477,25 @@
       "resetPermissions": "Đặt lại quyền trang web",
       "permissionsResetDone": "Đã đặt lại quyền. Hãy tải lại trang.",
       "permissionsSaved": "Đã cập nhật quyền. Hãy tải lại trang để áp dụng."
+    },
+    "overview": {
+      "title": "Tổng quan",
+      "customizeSections": "Tùy chỉnh mục",
+      "coreSections": "Lõi & Quản trị",
+      "review": "Đánh giá",
+      "files": "Tệp",
+      "terminal": "Terminal",
+      "extensions": "Tiện ích mở rộng",
+      "subagents": "Tác nhân phụ",
+      "backgroundTasks": "Tác vụ nền",
+      "goals": "Mục tiêu",
+      "documents": "Tài liệu",
+      "artifacts": "Tạo phẩm",
+      "links": "Liên kết",
+      "modifiedFiles": "Tệp đã sửa đổi",
+      "uploads": "Tệp đã tải lên",
+      "skillsUsed": "Kỹ năng đã dùng",
+      "seeAll": "Xem tất cả"
     }
   }
 }

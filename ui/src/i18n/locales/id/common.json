@@ -477,6 +477,25 @@
       "resetPermissions": "Atur ulang izin situs",
       "permissionsResetDone": "Izin diatur ulang. Muat ulang halaman.",
       "permissionsSaved": "Izin diperbarui. Muat ulang halaman untuk menerapkan."
+    },
+    "overview": {
+      "title": "Ringkasan",
+      "customizeSections": "Sesuaikan Bagian",
+      "coreSections": "Inti & Tata Kelola",
+      "review": "Tinjau",
+      "files": "File",
+      "terminal": "Terminal",
+      "extensions": "Ekstensi",
+      "subagents": "Subagen",
+      "backgroundTasks": "Tugas Latar Belakang",
+      "goals": "Tujuan",
+      "documents": "Dokumen",
+      "artifacts": "Artefak",
+      "links": "Tautan",
+      "modifiedFiles": "File Dimodifikasi",
+      "uploads": "Unggahan",
+      "skillsUsed": "Keterampilan Digunakan",
+      "seeAll": "Lihat semua"
     }
   }
 }

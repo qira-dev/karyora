@@ -477,6 +477,25 @@
       "resetPermissions": "Réinitialiser les autorisations",
       "permissionsResetDone": "Autorisations réinitialisées. Actualisez la page.",
       "permissionsSaved": "Autorisations mises à jour. Actualisez pour appliquer."
+    },
+    "overview": {
+      "title": "Vue d'ensemble",
+      "customizeSections": "Personnaliser les sections",
+      "coreSections": "Noyau et gouvernance",
+      "review": "Révision",
+      "files": "Fichiers",
+      "terminal": "Terminal",
+      "extensions": "Extensions",
+      "subagents": "Sous-agents",
+      "backgroundTasks": "Tâches d'arrière-plan",
+      "goals": "Objectifs",
+      "documents": "Documents",
+      "artifacts": "Artefacts",
+      "links": "Liens",
+      "modifiedFiles": "Fichiers modifiés",
+      "uploads": "Fichiers importés",
+      "skillsUsed": "Compétences utilisées",
+      "seeAll": "Tout voir"
     }
   }
 }

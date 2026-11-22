@@ -477,6 +477,25 @@
       "resetPermissions": "Restablecer permisos del sitio",
       "permissionsResetDone": "Permisos restablecidos. Recarga la página.",
       "permissionsSaved": "Permisos actualizados. Recarga la página para aplicarlos."
+    },
+    "overview": {
+      "title": "Resumen",
+      "customizeSections": "Personalizar secciones",
+      "coreSections": "Núcleo y gobierno",
+      "review": "Revisión",
+      "files": "Archivos",
+      "terminal": "Terminal",
+      "extensions": "Extensiones",
+      "subagents": "Subagentes",
+      "backgroundTasks": "Tareas en segundo plano",
+      "goals": "Objetivos",
+      "documents": "Documentos",
+      "artifacts": "Artefactos",
+      "links": "Enlaces",
+      "modifiedFiles": "Archivos modificados",
+      "uploads": "Archivos subidos",
+      "skillsUsed": "Habilidades usadas",
+      "seeAll": "Ver todo"
     }
   }
 }
