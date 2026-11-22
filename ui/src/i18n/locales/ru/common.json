@@ -111,7 +111,9 @@
       "settings": "Настройки",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Назад",
+      "goForward": "Вперёд"
     },
     "greeting": {
       "morning": "Доброе утро",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Настройки"
+      "openSettings": "Настройки",
+      "browser": "Переключить браузер"
     },
     "profile": {
       "language": "Язык",
@@ -402,7 +405,8 @@
       "newTab": "Новая вкладка",
       "open": "Открыть",
       "appPlugins": "Плагины приложений",
-      "viewAllPlugins": "Все плагины"
+      "viewAllPlugins": "Все плагины",
+      "workspaceTools": "Инструменты рабочей области"
     },
     "coreStatus": {
       "offlinePill": "Core не в сети (предпросмотр)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Руководство по миграции",
       "addSection": "ДОБАВИТЬ",
       "pluginsSection": "ПЛАГИНЫ"
+    },
+    "remoteControl": {
+      "title": "Мобильное управление",
+      "subtitle": "Отсканируйте QR-код с телефона в доверенной сети, чтобы следить за задачами, проверять изменения и подтверждать действия."
+    },
+    "browser": {
+      "title": "Браузер",
+      "browserAria": "Встроенный браузер",
+      "sitesAria": "Предпросмотр локальных сайтов",
+      "back": "Назад",
+      "forward": "Вперёд",
+      "reload": "Обновить",
+      "siteInfo": "Сведения о сайте",
+      "agentActive": "Браузер агента: вкл.",
+      "agentManual": "Ручной просмотр",
+      "sitePermissions": "Разрешения сайта",
+      "configureBrowserUse": "Настройки браузера",
+      "addressLabel": "Адресная строка",
+      "addressPlaceholder": "Введите URL (например example.com или http://127.0.0.1:5173)",
+      "enterResponsive": "Свободный размер экрана",
+      "exitResponsive": "Выйти из режима размеров",
+      "startPicker": "Выбрать элемент страницы для чата",
+      "cancelPicker": "Отменить выбор элемента",
+      "moreActions": "Другие действия браузера",
+      "openExternal": "Открыть в браузере по умолчанию",
+      "exportPng": "Экспорт в PNG",
+      "exportPdf": "Экспорт в PDF",
+      "recentlyVisited": "Недавно посещённые",
+      "removeRecent": "Удалить из истории",
+      "devicePreset": "Пресет устройства",
+      "fitToWindow": "По размеру окна",
+      "addToChat": "Добавить в чат",
+      "invalidUrl": "Поддерживаются только адреса http:// и https://.",
+      "emptyHint": "Вставьте или введите URL, чтобы открыть страницу.",
+      "loadingPage": "Загрузка страницы...",
+      "embedHint": "Сайт запретил встраивание?",
+      "resetPermissions": "Сбросить разрешения сайта",
+      "permissionsResetDone": "Разрешения сброшены. Перезагрузите страницу.",
+      "permissionsSaved": "Разрешения обновлены. Перезагрузите страницу для применения."
     }
   }
 }

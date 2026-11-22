@@ -9,6 +9,7 @@ export type SidePaneToolKind =
   | "new-tab"
   | "files"
   | "browser"
+  | "browser-permissions"
   | "terminal"
   | "review"
   | "sites"
@@ -16,7 +17,11 @@ export type SidePaneToolKind =
   | "subagents"
   | "context-inspector"
   | "document-preview"
-  | "subagent-report";
+  | "subagent-report"
+  | "treemapping"
+  | "whiteboard"
+  | "model-trajectory"
+  | "developer-tools";
 
 export type AppPluginLauncherId =
   | "plugin-documents"
@@ -27,7 +32,7 @@ export type AppPluginLauncherId =
 export interface NewTabLauncherItem {
   readonly id: string;
   readonly kind: SidePaneToolKind;
-  readonly category: "tool" | "app-plugin";
+  readonly category: "tool" | "advanced-tool" | "app-plugin";
   readonly label: string;
   readonly description: string;
   readonly iconName: string;
@@ -40,7 +45,11 @@ export interface SidePaneTab {
   readonly title: string;
   readonly filePath?: string;
   readonly subagentId?: string;
+  readonly browserUrl?: string;
+  readonly browserOrigin?: string;
+  readonly htmlSourceContent?: string;
   readonly pinned?: boolean;
+  readonly closedAt?: number;
 }
 
 export type GitFileStatus = "M" | "U" | "A" | "D" | null;
@@ -160,6 +169,44 @@ export const NEW_TAB_TOOLS: readonly NewTabLauncherItem[] = [
     label: "Context Inspector",
     description: "Inspect exact assembled ContextSnapshot tokens & omissions",
     iconName: "cpu",
+  },
+];
+
+/**
+ * Authoritative ZCode v3.18.2 Advanced Workspace Tools (`VQn` side-pane tabs).
+ */
+export const NEW_TAB_ADVANCED_TOOLS: readonly NewTabLauncherItem[] = [
+  {
+    id: "tool-treemapping",
+    kind: "treemapping",
+    category: "advanced-tool",
+    label: "Treemapping",
+    description: "Visual map of files read, written, modified, or deleted this turn",
+    iconName: "layout-dashboard",
+  },
+  {
+    id: "tool-whiteboard",
+    kind: "whiteboard",
+    category: "advanced-tool",
+    label: "Whiteboard",
+    description: "Interactive drawing canvas with Pen, Eraser, Undo/Redo & Add to chat",
+    iconName: "pen-tool",
+  },
+  {
+    id: "tool-model-trajectory",
+    kind: "model-trajectory",
+    category: "advanced-tool",
+    label: "Model Trajectory",
+    description: "Inspect raw model prompts, reasoning blocks, tool calls, and results",
+    iconName: "activity",
+  },
+  {
+    id: "tool-developer-tools",
+    kind: "developer-tools",
+    category: "advanced-tool",
+    label: "Developer Tools",
+    description: "Inspect live local requests, SSE streams, and runtime telemetry",
+    iconName: "wrench",
   },
 ];
 

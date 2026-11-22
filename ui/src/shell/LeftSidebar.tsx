@@ -24,6 +24,9 @@ import type { TaskContextActionId } from "./TaskContextMenu";
 
 export interface LeftSidebarProps {
   readonly collapsed: boolean;
+  readonly widthPx?: number;
+  readonly canGoBack?: boolean;
+  readonly canGoForward?: boolean;
   readonly activeSurface: ActiveMainSurface;
   readonly projects: readonly WorkspaceProjectSummary[];
   readonly tasks: readonly TaskSessionSummary[];
@@ -33,14 +36,19 @@ export interface LeftSidebarProps {
   readonly activeInterfaceMode: InterfaceMode;
   readonly activeZoomPercent: number;
   readonly onToggleCollapse: () => void;
+  readonly onGoBack?: () => void;
+  readonly onGoForward?: () => void;
   readonly onNewTask: () => void;
   readonly onSelectSurface: (surface: ActiveMainSurface) => void;
   readonly onSelectTask: (task: TaskSessionSummary) => void;
   readonly onAddProject: () => void;
+  readonly onShowProjectFiles?: (project: WorkspaceProjectSummary) => void;
   readonly onTaskContextAction: (
     actionId: TaskContextActionId,
     task: TaskSessionSummary,
   ) => void;
+  readonly onOpenMobileRemoteControl?: () => void;
+  readonly onOpenResourceManager?: () => void;
   readonly onOpenSettings: (section?: SettingsSectionId, triggerId?: string) => void;
   readonly onOpenCommandCenter: (triggerId?: string) => void;
   readonly onChangeLocale: (locale: SupportedLocale) => void;
@@ -51,6 +59,9 @@ export interface LeftSidebarProps {
 
 export function LeftSidebar({
   collapsed,
+  widthPx,
+  canGoBack = false,
+  canGoForward = false,
   activeSurface,
   projects,
   tasks,
@@ -60,11 +71,16 @@ export function LeftSidebar({
   activeInterfaceMode,
   activeZoomPercent,
   onToggleCollapse,
+  onGoBack,
+  onGoForward,
   onNewTask,
   onSelectSurface,
   onSelectTask,
   onAddProject,
+  onShowProjectFiles,
   onTaskContextAction,
+  onOpenMobileRemoteControl,
+  onOpenResourceManager,
   onOpenSettings,
   onOpenCommandCenter,
   onChangeLocale,
@@ -83,8 +99,13 @@ export function LeftSidebar({
       aria-label="Primary workspace navigation"
       data-testid="karyora-left-sidebar"
       className="ky-sidebar"
+      style={
+        widthPx
+          ? { width: `${widthPx}px`, minWidth: `${widthPx}px`, maxWidth: `${widthPx}px` }
+          : undefined
+      }
     >
-      {/* Top Window Brand Mark & Subtle Navigation Arrows (#68, #75, #82) */}
+      {/* Top Window Brand Mark & Back/Forward Navigation Arrows (`00-main-window.aria.yaml`, #68, #75, #82) */}
       <div className="ky-sidebar__top-chrome">
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span className="ky-sidebar__brand-mark" aria-hidden="true">
@@ -95,6 +116,26 @@ export function LeftSidebar({
           </span>
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!canGoBack}
+            aria-label={t("ui.sidebar.goBack", { defaultValue: "Go back" })}
+            title={t("ui.sidebar.goBack", { defaultValue: "Go back" })}
+            onClick={onGoBack}
+          >
+            <ChromeIcon name="chevron-left" size={14} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!canGoForward}
+            aria-label={t("ui.sidebar.goForward", { defaultValue: "Go forward" })}
+            title={t("ui.sidebar.goForward", { defaultValue: "Go forward" })}
+            onClick={onGoForward}
+          >
+            <ChromeIcon name="chevron-right" size={14} />
+          </Button>
           <Button
             id="sidebar-cmd-center-btn"
             variant="ghost"
@@ -167,6 +208,8 @@ export function LeftSidebar({
           activeTaskId={activeTaskId}
           onSelectTask={onSelectTask}
           onAddProject={onAddProject}
+          onNewTask={onNewTask}
+          onShowProjectFiles={onShowProjectFiles}
           onTaskContextAction={onTaskContextAction}
         />
 
@@ -234,7 +277,7 @@ export function LeftSidebar({
         </div>
       </div>
 
-      {/* Bottom Footer: Profile Popover (#61–#65) & Settings Trigger (Ctrl+,) */}
+      {/* Bottom Footer: Profile Popover (#61–#65), Mobile Remote Control, Resource Manager & Settings (Ctrl+,) */}
       <footer className="ky-sidebar__footer">
         <ProfilePopoverMenu
           userDisplayName="Local Owner"
@@ -248,16 +291,46 @@ export function LeftSidebar({
           onChangeInterfaceMode={onChangeInterfaceMode}
           onChangeZoomPercent={onChangeZoomPercent}
         />
-        <Button
-          id="sidebar-settings-btn"
-          variant="ghost"
-          size="sm"
-          aria-label={t("ui.sidebar.settings", { defaultValue: "Settings" })}
-          title={`${t("ui.sidebar.settings", { defaultValue: "Settings" })} (Ctrl+,)`}
-          onClick={() => onOpenSettings("general", "sidebar-settings-btn")}
-        >
-          <ChromeIcon name="settings" size={16} />
-        </Button>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
+          {onOpenMobileRemoteControl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t("ui.remoteControl.title", {
+                defaultValue: "Mobile remote control",
+              })}
+              title={t("ui.remoteControl.title", {
+                defaultValue: "Mobile remote control",
+              })}
+              data-testid="sidebar-mobile-remote-btn"
+              onClick={onOpenMobileRemoteControl}
+            >
+              <ChromeIcon name="qr-code" size={16} />
+            </Button>
+          )}
+          {onOpenResourceManager && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Resource Manager"
+              title="Resource Manager"
+              data-testid="sidebar-resource-manager-btn"
+              onClick={onOpenResourceManager}
+            >
+              <ChromeIcon name="gauge" size={16} />
+            </Button>
+          )}
+          <Button
+            id="sidebar-settings-btn"
+            variant="ghost"
+            size="sm"
+            aria-label={t("ui.sidebar.settings", { defaultValue: "Settings" })}
+            title={`${t("ui.sidebar.settings", { defaultValue: "Settings" })} (Ctrl+,)`}
+            onClick={() => onOpenSettings("general", "sidebar-settings-btn")}
+          >
+            <ChromeIcon name="settings" size={16} />
+          </Button>
+        </div>
       </footer>
     </aside>
   );

@@ -13,13 +13,28 @@ import { HELP_MENU_ITEMS } from "./shellConfig";
 export interface WorkspaceTopBarProps {
   readonly sidebarCollapsed: boolean;
   readonly surfaceTitle: string;
+  readonly projectName?: string;
   readonly activeTask: TaskSessionSummary | null;
   readonly terminalOpen: boolean;
+  readonly browserOpen?: boolean;
   readonly sidePaneOpen: boolean;
   readonly unreadNotificationsCount: number;
   readonly onExpandSidebar: () => void;
+  readonly onOpenProjectFiles?: () => void;
+  readonly onTaskTopBarAction?: (
+    actionId:
+      | "open-in-editor"
+      | "open-in-file-manager"
+      | "copy-path"
+      | "copy-session-id"
+      | "reload-session"
+      | "view-model-trajectory"
+      | "open-resource-manager"
+      | "go-to-config",
+  ) => void;
   readonly onOpenReviewDiffTab: () => void;
   readonly onCreateShareLink: (taskId: string) => void;
+  readonly onToggleBrowser?: () => void;
   readonly onToggleTerminal: () => void;
   readonly onToggleSidePane: () => void;
   readonly onToggleNotifications: () => void;
@@ -30,13 +45,18 @@ export interface WorkspaceTopBarProps {
 export function WorkspaceTopBar({
   sidebarCollapsed,
   surfaceTitle,
+  projectName = "karyora_Platform",
   activeTask,
   terminalOpen,
+  browserOpen = false,
   sidePaneOpen,
   unreadNotificationsCount,
   onExpandSidebar,
+  onOpenProjectFiles,
+  onTaskTopBarAction,
   onOpenReviewDiffTab,
   onCreateShareLink,
+  onToggleBrowser,
   onToggleTerminal,
   onToggleSidePane,
   onToggleNotifications,
@@ -48,6 +68,7 @@ export function WorkspaceTopBar({
   const [shareTitleDraft, setShareTitleDraft] = useState("");
   const [shareCheckedNoSensitive, setShareCheckedNoSensitive] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   return (
     <header
@@ -74,6 +95,18 @@ export function WorkspaceTopBar({
             <ChromeIcon name="sidebar-left" size={16} />
           </Button>
         )}
+        {activeTask && (
+          <button
+            type="button"
+            className="ky-topbar__project-pill"
+            title={`Open workspace files for ${projectName}`}
+            onClick={onOpenProjectFiles}
+            data-testid="topbar-project-pill"
+          >
+            <ChromeIcon name="projects" size={14} />
+            <span>{projectName}</span>
+          </button>
+        )}
         <h2
           style={{
             margin: 0,
@@ -86,6 +119,72 @@ export function WorkspaceTopBar({
         >
           {activeTask ? activeTask.title : surfaceTitle}
         </h2>
+        {activeTask && (
+          <div style={{ position: "relative" }}>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-haspopup="menu"
+              aria-expanded={moreMenuOpen}
+              aria-label="More task actions"
+              title="More"
+              data-testid="topbar-title-more-btn"
+              onClick={() => {
+                setShareOpen(false);
+                setHelpOpen(false);
+                setMoreMenuOpen((prev) => !prev);
+              }}
+            >
+              <ChromeIcon name="more" size={14} />
+            </Button>
+
+            {moreMenuOpen && (
+              <div
+                role="menu"
+                aria-label="Task actions"
+                data-testid="topbar-title-more-menu"
+                className="ky-popover-surface"
+                style={{
+                  top: "calc(100% + 6px)",
+                  insetInlineStart: 0,
+                  width: "224px",
+                  padding: "6px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                }}
+              >
+                {(
+                  [
+                    { id: "open-in-editor", label: "Open in Editor", icon: "code" },
+                    { id: "open-in-file-manager", label: "Open in File Manager", icon: "projects" },
+                    { id: "copy-path", label: "Copy path", icon: "copy" },
+                    { id: "copy-session-id", label: "Copy session ID", icon: "copy" },
+                    { id: "reload-session", label: "Reload session", icon: "refresh" },
+                    { id: "view-model-trajectory", label: "View model trajectory", icon: "activity" },
+                    { id: "open-resource-manager", label: "Resource Manager", icon: "gauge" },
+                    { id: "go-to-config", label: "Go to config", icon: "settings" },
+                  ] as const
+                ).map((entry) => (
+                  <Button
+                    key={entry.id}
+                    variant="ghost"
+                    size="sm"
+                    role="menuitem"
+                    style={{ width: "100%", justifyContent: "flex-start" }}
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      onTaskTopBarAction?.(entry.id);
+                    }}
+                  >
+                    <ChromeIcon name={entry.icon} size={14} />
+                    <span>{entry.label}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {activeTask && activeTask.status === "running" && (
           <Badge
             tone="info"
@@ -238,6 +337,21 @@ export function WorkspaceTopBar({
             </div>
           )}
         </div>
+
+        {/* Built-In Browser Quick Toggle (ZCode `browser.toggle`) */}
+        {onToggleBrowser && (
+          <Button
+            variant="ghost"
+            size="sm"
+            selected={browserOpen}
+            aria-label={t("ui.topbar.browser", { defaultValue: "Toggle browser" })}
+            title={t("ui.topbar.browser", { defaultValue: "Toggle browser" })}
+            data-testid="topbar-toggle-browser-btn"
+            onClick={onToggleBrowser}
+          >
+            <ChromeIcon name="browser-globe" size={16} />
+          </Button>
+        )}
 
         {/* Bottom Terminal Toggle (Ctrl+J, Screenshot #81) */}
         <Button

@@ -5,6 +5,7 @@
 import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { ChromeIcon, type ChromeIconName } from "../components/icons";
+import type { WorkspaceProjectSummary } from "../coreclient/types";
 import {
   resolveTimeOfDayGreeting,
   STARTER_QUICK_CHIPS,
@@ -13,6 +14,10 @@ import {
 
 export interface GreetingEmptyStateProps {
   readonly currentHour24?: number;
+  readonly projects?: readonly WorkspaceProjectSummary[];
+  readonly selectedProjectId?: string | null;
+  readonly onSelectProject?: (projectId: string) => void;
+  readonly onAddProject?: () => void;
   readonly onSelectQuickChip: (chip: StarterQuickChip) => void;
 }
 
@@ -32,9 +37,15 @@ const CHIP_I18N_KEY_MAP: Readonly<Record<string, string>> = {
 
 export function GreetingEmptyState({
   currentHour24 = new Date().getHours(),
+  projects = [],
+  selectedProjectId = null,
+  onSelectProject,
+  onAddProject,
   onSelectQuickChip,
 }: GreetingEmptyStateProps): ReactElement {
   const { t } = useTranslation();
+  const activeProject =
+    projects.find((p) => p.projectId === selectedProjectId) ?? projects[0] ?? null;
   const fallbackGreeting = resolveTimeOfDayGreeting(currentHour24);
   const greetingKey =
     currentHour24 < 12
@@ -65,6 +76,32 @@ export function GreetingEmptyState({
           defaultValue: "What would you like to build, inspect, or automate today?",
         })}
       </p>
+
+      {/* ZCode Empty-State Select Project Pill (`00-main-window.aria.yaml`) */}
+      {projects.length > 0 && (
+        <div className="ky-project-pill-bar" data-testid="greeting-project-selector">
+          <ChromeIcon name="projects" size={14} />
+          <select
+            aria-label="Select project"
+            className="ky-composer-inline-select"
+            value={activeProject?.projectId ?? ""}
+            onChange={(e) => {
+              if (e.target.value === "__add__") {
+                onAddProject?.();
+              } else {
+                onSelectProject?.(e.target.value);
+              }
+            }}
+          >
+            {projects.map((p) => (
+              <option key={p.projectId} value={p.projectId}>
+                {p.name} {p.gitBranch ? `(${p.gitBranch})` : ""}
+              </option>
+            ))}
+            {onAddProject && <option value="__add__">+ Add project folder...</option>}
+          </select>
+        </div>
+      )}
 
       <div className="ky-quick-chips-row">
         {STARTER_QUICK_CHIPS.map((chip, idx) => (

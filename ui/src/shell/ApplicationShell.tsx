@@ -10,8 +10,19 @@
  *   underlying workspace mounted & `inert` (`G-06`).
  */
 
-import { useEffect, type ReactElement, type ReactNode } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { ToastRegion, type ToastMessage } from "../components/primitives";
+
+const LazyMobileRemoteControlModal = lazy(() => import("./MobileRemoteControlModal"));
+const LazyResourceManagerModal = lazy(() => import("./ResourceManagerModal"));
 import type {
   CoreBootstrapStatus,
   TaskSessionSummary,
@@ -48,8 +59,11 @@ export interface ApplicationShellProps {
   readonly activeInterfaceMode: InterfaceMode;
   readonly activeZoomPercent: number;
   readonly sidebarCollapsed: boolean;
+  readonly canGoBack?: boolean;
+  readonly canGoForward?: boolean;
   readonly terminalOpen: boolean;
   readonly terminalMaximized?: boolean;
+  readonly browserOpen?: boolean;
   readonly sidePaneOpen: boolean;
   readonly sidePaneFullView?: boolean;
   readonly activeSurface: ActiveMainSurface;
@@ -62,13 +76,35 @@ export interface ApplicationShellProps {
   readonly notificationDrawerOpen: boolean;
   readonly onboardingMode: "closed" | "onboarding" | "migration";
   readonly settingsOverlayOpen: boolean;
+  readonly mobileRemoteOpen?: boolean;
+  readonly resourceManagerOpen?: boolean;
   readonly toasts: readonly ToastMessage[];
   readonly canWrite: boolean;
   readonly onToggleSidebar: () => void;
+  readonly onGoBack?: () => void;
+  readonly onGoForward?: () => void;
+  readonly onToggleBrowser?: () => void;
   readonly onToggleTerminal: () => void;
   readonly onToggleSidePane: () => void;
   readonly onToggleSidePaneFullView?: () => void;
   readonly onOpenReviewDiffTab?: () => void;
+  readonly onShowProjectFiles?: (project: WorkspaceProjectSummary) => void;
+  readonly onTaskTopBarAction?: (
+    actionId:
+      | "open-in-editor"
+      | "open-in-file-manager"
+      | "copy-path"
+      | "copy-session-id"
+      | "reload-session"
+      | "view-model-trajectory"
+      | "open-resource-manager"
+      | "go-to-config",
+  ) => void;
+  readonly onOpenMobileRemoteControl?: () => void;
+  readonly onCloseMobileRemoteControl?: () => void;
+  readonly onOpenResourceManager?: () => void;
+  readonly onCloseResourceManager?: () => void;
+  readonly onNotify?: (title: string, detail?: string) => void;
   readonly onNewTask: () => void;
   readonly onSelectSurface: (surface: ActiveMainSurface) => void;
   readonly onSelectTask: (task: TaskSessionSummary) => void;
@@ -118,8 +154,11 @@ export function ApplicationShell({
   activeInterfaceMode,
   activeZoomPercent,
   sidebarCollapsed,
+  canGoBack = false,
+  canGoForward = false,
   terminalOpen,
   terminalMaximized = false,
+  browserOpen = false,
   sidePaneOpen,
   sidePaneFullView = false,
   activeSurface,
@@ -132,13 +171,25 @@ export function ApplicationShell({
   notificationDrawerOpen,
   onboardingMode,
   settingsOverlayOpen,
+  mobileRemoteOpen = false,
+  resourceManagerOpen = false,
   toasts,
   canWrite,
   onToggleSidebar,
+  onGoBack,
+  onGoForward,
+  onToggleBrowser,
   onToggleTerminal,
   onToggleSidePane,
   onToggleSidePaneFullView,
   onOpenReviewDiffTab,
+  onShowProjectFiles,
+  onTaskTopBarAction,
+  onOpenMobileRemoteControl,
+  onCloseMobileRemoteControl,
+  onOpenResourceManager,
+  onCloseResourceManager,
+  onNotify,
   onNewTask,
   onSelectSurface,
   onSelectTask,
@@ -164,8 +215,38 @@ export function ApplicationShell({
   settingsOverlayContent,
   children,
 }: ApplicationShellProps): ReactElement {
+  const [sidebarWidthPx, setSidebarWidthPx] = useState(260);
+  const [sidePaneWidthPx, setSidePaneWidthPx] = useState(520);
+
+  const beginHorizontalResize = (
+    e: ReactMouseEvent<HTMLDivElement>,
+    kind: "sidebar" | "side-pane",
+  ) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = kind === "sidebar" ? sidebarWidthPx : sidePaneWidthPx;
+    const onMove = (ev: MouseEvent) => {
+      const dx = ev.clientX - startX;
+      if (kind === "sidebar") {
+        setSidebarWidthPx(Math.min(380, Math.max(210, startW + dx)));
+      } else {
+        setSidePaneWidthPx(Math.min(860, Math.max(340, startW - dx)));
+      }
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   const workspaceInert =
-    commandCenterOpen || settingsOverlayOpen || onboardingMode !== "closed";
+    commandCenterOpen ||
+    settingsOverlayOpen ||
+    onboardingMode !== "closed" ||
+    mobileRemoteOpen ||
+    resourceManagerOpen;
   const unreadNotificationsCount = notifications.filter(
     (n) => !n.read && !n.dismissed,
   ).length;
@@ -257,6 +338,9 @@ export function ApplicationShell({
       >
         <LeftSidebar
           collapsed={sidebarCollapsed}
+          widthPx={sidebarWidthPx}
+          canGoBack={canGoBack}
+          canGoForward={canGoForward}
           activeSurface={activeSurface}
           projects={projects}
           tasks={tasks}
@@ -266,11 +350,16 @@ export function ApplicationShell({
           activeInterfaceMode={activeInterfaceMode}
           activeZoomPercent={activeZoomPercent}
           onToggleCollapse={onToggleSidebar}
+          onGoBack={onGoBack}
+          onGoForward={onGoForward}
           onNewTask={onNewTask}
           onSelectSurface={onSelectSurface}
           onSelectTask={onSelectTask}
           onAddProject={onAddProject}
+          onShowProjectFiles={onShowProjectFiles}
           onTaskContextAction={onTaskContextAction}
+          onOpenMobileRemoteControl={onOpenMobileRemoteControl}
+          onOpenResourceManager={onOpenResourceManager}
           onOpenSettings={onOpenSettings}
           onOpenCommandCenter={onOpenCommandCenter}
           onChangeLocale={onChangeLocale}
@@ -279,15 +368,31 @@ export function ApplicationShell({
           onChangeZoomPercent={onChangeZoomPercent}
         />
 
+        {!sidebarCollapsed && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+            className="ky-resize-handle"
+            onMouseDown={(e) => beginHorizontalResize(e, "sidebar")}
+          />
+        )}
+
         <div className="ky-main-column">
           <WorkspaceTopBar
             sidebarCollapsed={sidebarCollapsed}
             surfaceTitle={SURFACE_TITLES[activeSurface]}
+            projectName={projects[0]?.name ?? "karyora_Platform"}
             activeTask={activeSurface === "workspace" ? activeTask : null}
             terminalOpen={terminalOpen}
+            browserOpen={browserOpen}
             sidePaneOpen={sidePaneOpen}
             unreadNotificationsCount={unreadNotificationsCount}
             onExpandSidebar={onToggleSidebar}
+            onOpenProjectFiles={() => {
+              if (projects[0]) onShowProjectFiles?.(projects[0]);
+            }}
+            onTaskTopBarAction={onTaskTopBarAction}
             onOpenReviewDiffTab={() => {
               if (onOpenReviewDiffTab) {
                 onOpenReviewDiffTab();
@@ -296,6 +401,7 @@ export function ApplicationShell({
               }
             }}
             onCreateShareLink={onCreateShareLink}
+            onToggleBrowser={onToggleBrowser}
             onToggleTerminal={onToggleTerminal}
             onToggleSidePane={onToggleSidePane}
             onToggleNotifications={onToggleNotifications}
@@ -333,12 +439,27 @@ export function ApplicationShell({
               )}
             </div>
 
+            {sidePaneOpen && !sidePaneFullView && (
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize side pane"
+                className="ky-resize-handle"
+                onMouseDown={(e) => beginHorizontalResize(e, "side-pane")}
+              />
+            )}
+
             {sidePaneOpen && (
               <aside
                 aria-label="Multi-Tab Side Pane"
                 data-testid="multi-tab-side-pane-slot"
                 data-full-view={sidePaneFullView ? "true" : "false"}
                 className="ky-side-pane-slot"
+                style={
+                  !sidePaneFullView
+                    ? { width: `${sidePaneWidthPx}px`, maxWidth: "68%" }
+                    : undefined
+                }
               >
                 {sidePaneContent ?? (
                   <div
@@ -406,6 +527,26 @@ export function ApplicationShell({
       />
 
       {settingsOverlayOpen && settingsOverlayContent}
+
+      {mobileRemoteOpen && (
+        <Suspense fallback={null}>
+          <LazyMobileRemoteControlModal
+            isOpen={mobileRemoteOpen}
+            workspaceName={projects[0]?.name ?? "karyora_Platform"}
+            onClose={() => onCloseMobileRemoteControl?.()}
+            onNotify={onNotify}
+          />
+        </Suspense>
+      )}
+
+      {resourceManagerOpen && (
+        <Suspense fallback={null}>
+          <LazyResourceManagerModal
+            isOpen={resourceManagerOpen}
+            onClose={() => onCloseResourceManager?.()}
+          />
+        </Suspense>
+      )}
 
       <ToastRegion toasts={toasts} onDismissToast={onDismissToast} />
     </div>

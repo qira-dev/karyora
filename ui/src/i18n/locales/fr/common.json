@@ -111,7 +111,9 @@
       "settings": "Paramètres",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Précédent",
+      "goForward": "Suivant"
     },
     "greeting": {
       "morning": "Bonjour",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Paramètres"
+      "openSettings": "Paramètres",
+      "browser": "Afficher/masquer le navigateur"
     },
     "profile": {
       "language": "Langue",
@@ -402,7 +405,8 @@
       "newTab": "Nouvel onglet",
       "open": "Ouvrir",
       "appPlugins": "Plugins d'application",
-      "viewAllPlugins": "Voir tous les plugins"
+      "viewAllPlugins": "Voir tous les plugins",
+      "workspaceTools": "Outils de l'espace"
     },
     "coreStatus": {
       "offlinePill": "Core hors ligne (aperçu)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Guide de migration",
       "addSection": "AJOUTER",
       "pluginsSection": "PLUGINS"
+    },
+    "remoteControl": {
+      "title": "Contrôle à distance mobile",
+      "subtitle": "Scannez ce QR code depuis votre téléphone sur le même réseau de confiance pour suivre les tâches et approuver les actions."
+    },
+    "browser": {
+      "title": "Navigateur",
+      "browserAria": "Navigateur intégré",
+      "sitesAria": "Aperçu des sites locaux",
+      "back": "Précédent",
+      "forward": "Suivant",
+      "reload": "Actualiser",
+      "siteInfo": "Voir les informations du site",
+      "agentActive": "Navigateur d'agent : Activé",
+      "agentManual": "Navigation manuelle",
+      "sitePermissions": "Autorisations du site",
+      "configureBrowserUse": "Paramètres du navigateur",
+      "addressLabel": "Barre d'adresse",
+      "addressPlaceholder": "Saisir une URL (ex. example.com ou http://127.0.0.1:5173)",
+      "enterResponsive": "Viewport libre",
+      "exitResponsive": "Quitter le viewport libre",
+      "startPicker": "Sélectionner un élément pour le chat",
+      "cancelPicker": "Annuler la sélection",
+      "moreActions": "Plus d'actions du navigateur",
+      "openExternal": "Ouvrir dans le navigateur par défaut",
+      "exportPng": "Exporter en PNG",
+      "exportPdf": "Exporter en PDF",
+      "recentlyVisited": "Visités récemment",
+      "removeRecent": "Retirer des visites récentes",
+      "devicePreset": "Préréglage d'appareil",
+      "fitToWindow": "Ajuster à la fenêtre",
+      "addToChat": "Ajouter au chat",
+      "invalidUrl": "Seules les URL http:// et https:// sont prises en charge.",
+      "emptyHint": "Collez ou saisissez une URL pour ouvrir une page.",
+      "loadingPage": "Chargement de la page...",
+      "embedHint": "Le site bloque l'intégration ?",
+      "resetPermissions": "Réinitialiser les autorisations",
+      "permissionsResetDone": "Autorisations réinitialisées. Actualisez la page.",
+      "permissionsSaved": "Autorisations mises à jour. Actualisez pour appliquer."
     }
   }
 }

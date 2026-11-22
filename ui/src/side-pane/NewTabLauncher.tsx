@@ -9,6 +9,7 @@ import type { ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { ChromeIcon, type ChromeIconName } from "../components/icons";
 import {
+  NEW_TAB_ADVANCED_TOOLS,
   NEW_TAB_APP_PLUGINS,
   NEW_TAB_TOOLS,
   type NewTabLauncherItem,
@@ -40,6 +41,36 @@ export function NewTabLauncher({
         </div>
         <div className="ky-new-tab-launcher__grid">
           {NEW_TAB_TOOLS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="ky-new-tab-launcher__card"
+              data-testid={`launcher-item-${item.id}`}
+              onClick={() => onLaunchItem(item)}
+            >
+              <span className="ky-new-tab-launcher__left">
+                <span className="ky-new-tab-launcher__icon">
+                  <ChromeIcon name={item.iconName as ChromeIconName} size={16} />
+                </span>
+                <span className="ky-new-tab-launcher__copy">
+                  <span className="ky-new-tab-launcher__title">{item.label}</span>
+                  <span className="ky-new-tab-launcher__desc">{item.description}</span>
+                </span>
+              </span>
+              <span className="ky-new-tab-launcher__open-pill">{openLabel}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="ky-new-tab-launcher__group">
+        <div className="ky-new-tab-launcher__head-row">
+          <h3 className="ky-new-tab-launcher__heading">
+            {t("ui.sidePane.workspaceTools", { defaultValue: "Workspace tools" })}
+          </h3>
+        </div>
+        <div className="ky-new-tab-launcher__grid">
+          {NEW_TAB_ADVANCED_TOOLS.map((item) => (
             <button
               key={item.id}
               type="button"

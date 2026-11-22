@@ -111,7 +111,9 @@
       "settings": "설정",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "뒤로",
+      "goForward": "앞으로"
     },
     "greeting": {
       "morning": "좋은 아침입니다",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "설정"
+      "openSettings": "설정",
+      "browser": "브라우저 전환"
     },
     "profile": {
       "language": "언어",
@@ -402,7 +405,8 @@
       "newTab": "새 탭",
       "open": "열기",
       "appPlugins": "앱 플러그인",
-      "viewAllPlugins": "모든 플러그인 보기"
+      "viewAllPlugins": "모든 플러그인 보기",
+      "workspaceTools": "워크스페이스 도구"
     },
     "coreStatus": {
       "offlinePill": "Core 오프라인 (미리보기)",
@@ -434,6 +438,45 @@
       "migrationGuide": "마이그레이션 가이드",
       "addSection": "추가",
       "pluginsSection": "플러그인"
+    },
+    "remoteControl": {
+      "title": "모바일 원격 제어",
+      "subtitle": "신뢰할 수 있는 동일 네트워크의 휴대폰에서 QR 코드를 스캔해 작업 모니터링과 승인을 원격으로 수행하세요."
+    },
+    "browser": {
+      "title": "브라우저",
+      "browserAria": "내장 브라우저",
+      "sitesAria": "로컬 사이트 미리보기",
+      "back": "뒤로",
+      "forward": "앞으로",
+      "reload": "새로고침",
+      "siteInfo": "사이트 정보 보기",
+      "agentActive": "에이전트 브라우저 사용: 켜짐",
+      "agentManual": "수동 브라우징 모드",
+      "sitePermissions": "사이트 권한",
+      "configureBrowserUse": "브라우저 사용 설정",
+      "addressLabel": "주소 표시줄",
+      "addressPlaceholder": "URL 입력 (예: example.com 또는 http://127.0.0.1:5173)",
+      "enterResponsive": "자유 크기 뷰포트",
+      "exitResponsive": "자유 크기 뷰포트 종료",
+      "startPicker": "채팅용 페이지 요소 선택",
+      "cancelPicker": "요소 선택 취소",
+      "moreActions": "추가 브라우저 작업",
+      "openExternal": "기본 브라우저에서 열기",
+      "exportPng": "PNG로 내보내기",
+      "exportPdf": "PDF로 내보내기",
+      "recentlyVisited": "최근 방문",
+      "removeRecent": "최근 방문에서 제거",
+      "devicePreset": "기기 프리셋",
+      "fitToWindow": "창에 맞춤",
+      "addToChat": "채팅에 추가",
+      "invalidUrl": "http:// 및 https:// URL만 지원됩니다.",
+      "emptyHint": "페이지를 열려면 URL을 붙여넣거나 입력하세요.",
+      "loadingPage": "페이지 불러오는 중...",
+      "embedHint": "사이트에서 임베드를 차단했나요?",
+      "resetPermissions": "사이트 권한 재설정",
+      "permissionsResetDone": "권한이 초기화되었습니다. 페이지를 새로고침하세요.",
+      "permissionsSaved": "권한이 업데이트되었습니다. 적용하려면 새로고침하세요."
     }
   }
 }

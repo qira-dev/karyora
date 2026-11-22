@@ -283,6 +283,63 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
 }
 
+/* ZCode Resizable Drag Handle (`Resize sidebar` / `Resize side pane`) */
+.ky-resize-handle {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background-color: transparent;
+  transition: background-color 0.14s ease;
+}
+
+.ky-resize-handle:hover,
+.ky-resize-handle:active {
+  background-color: var(--color-resize-handle);
+}
+
+/* ZCode TopBar Project Pill (`21-worked-expanded.aria.yaml`) */
+.ky-topbar__project-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ky-topbar__project-pill:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* ZCode Per-Project Inline Hover Actions (`00-main-window.aria.yaml`) */
+.ky-project-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.ky-project-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.ky-project-row-wrap:hover .ky-project-row-actions,
+.ky-project-row-wrap:focus-within .ky-project-row-actions {
+  opacity: 1;
+}
+
 @media (max-width: 1199px) {
   .ky-side-pane-slot {
     position: fixed;

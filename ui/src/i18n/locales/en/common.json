@@ -111,7 +111,9 @@
       "settings": "Settings",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Go back",
+      "goForward": "Go forward"
     },
     "greeting": {
       "morning": "Good morning",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Settings"
+      "openSettings": "Settings",
+      "browser": "Toggle browser"
     },
     "profile": {
       "language": "Language",
@@ -402,7 +405,8 @@
       "newTab": "New tab",
       "open": "Open",
       "appPlugins": "App plugins",
-      "viewAllPlugins": "View all plugins"
+      "viewAllPlugins": "View all plugins",
+      "workspaceTools": "Workspace tools"
     },
     "coreStatus": {
       "offlinePill": "Core offline (local preview)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Migration Guide",
       "addSection": "ADD",
       "pluginsSection": "PLUGINS"
+    },
+    "remoteControl": {
+      "title": "Mobile remote control",
+      "subtitle": "Scan this QR code from your phone on the same trusted network to monitor tasks, inspect diffs, and approve agent actions remotely."
+    },
+    "browser": {
+      "title": "Browser",
+      "browserAria": "Built-in Browser",
+      "sitesAria": "Local Sites preview",
+      "back": "Back",
+      "forward": "Forward",
+      "reload": "Refresh",
+      "siteInfo": "View site information",
+      "agentActive": "Agent Browser Use: On",
+      "agentManual": "Manual browsing mode",
+      "sitePermissions": "Site permissions",
+      "configureBrowserUse": "Browser Use settings",
+      "addressLabel": "Address bar",
+      "addressPlaceholder": "Enter URL (e.g. example.com or http://127.0.0.1:5173)",
+      "enterResponsive": "Free-size viewport",
+      "exitResponsive": "Exit free-size viewport",
+      "startPicker": "Select page element for chat",
+      "cancelPicker": "Cancel element selection",
+      "moreActions": "More browser actions",
+      "openExternal": "Open in default browser",
+      "exportPng": "Export as PNG",
+      "exportPdf": "Export as PDF",
+      "recentlyVisited": "Recently visited",
+      "removeRecent": "Remove from recent visits",
+      "devicePreset": "Device preset",
+      "fitToWindow": "Fit to window",
+      "addToChat": "Add to chat",
+      "invalidUrl": "Only http:// and https:// URLs are supported (e.g. example.com or http://127.0.0.1:5173).",
+      "emptyHint": "Paste or type a URL to open a page.",
+      "loadingPage": "Loading page...",
+      "embedHint": "Site blocked embedding?",
+      "resetPermissions": "Reset site permissions",
+      "permissionsResetDone": "Permissions reset. Reload the page to request access again.",
+      "permissionsSaved": "Permissions updated. Reload the page to apply changes to active resources."
     }
   }
 }

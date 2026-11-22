@@ -111,7 +111,9 @@
       "settings": "Configurações",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Voltar",
+      "goForward": "Avançar"
     },
     "greeting": {
       "morning": "Bom dia",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Configurações"
+      "openSettings": "Configurações",
+      "browser": "Alternar navegador"
     },
     "profile": {
       "language": "Idioma",
@@ -402,7 +405,8 @@
       "newTab": "Nova aba",
       "open": "Abrir",
       "appPlugins": "Plugins do app",
-      "viewAllPlugins": "Ver todos os plugins"
+      "viewAllPlugins": "Ver todos os plugins",
+      "workspaceTools": "Ferramentas do espaço"
     },
     "coreStatus": {
       "offlinePill": "Core offline (prévia local)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Guia de migração",
       "addSection": "ADICIONAR",
       "pluginsSection": "PLUGINS"
+    },
+    "remoteControl": {
+      "title": "Controle remoto móvel",
+      "subtitle": "Escaneie este QR code no celular na mesma rede confiável para monitorar tarefas, inspecionar diffs e aprovar ações."
+    },
+    "browser": {
+      "title": "Navegador",
+      "browserAria": "Navegador integrado",
+      "sitesAria": "Prévia de sites locais",
+      "back": "Voltar",
+      "forward": "Avançar",
+      "reload": "Atualizar",
+      "siteInfo": "Ver informações do site",
+      "agentActive": "Uso do navegador pelo agente: Ativo",
+      "agentManual": "Modo de navegação manual",
+      "sitePermissions": "Permissões do site",
+      "configureBrowserUse": "Configurações de uso do navegador",
+      "addressLabel": "Barra de endereços",
+      "addressPlaceholder": "Digite uma URL (ex. example.com ou http://127.0.0.1:5173)",
+      "enterResponsive": "Viewport responsivo livre",
+      "exitResponsive": "Sair do viewport livre",
+      "startPicker": "Selecionar elemento da página para o chat",
+      "cancelPicker": "Cancelar seleção de elemento",
+      "moreActions": "Mais ações do navegador",
+      "openExternal": "Abrir no navegador padrão",
+      "exportPng": "Exportar como PNG",
+      "exportPdf": "Exportar como PDF",
+      "recentlyVisited": "Visitados recentemente",
+      "removeRecent": "Remover dos visitados recentemente",
+      "devicePreset": "Predefinição de dispositivo",
+      "fitToWindow": "Ajustar à janela",
+      "addToChat": "Adicionar ao chat",
+      "invalidUrl": "Apenas URLs http:// e https:// são suportadas.",
+      "emptyHint": "Cole ou digite uma URL para abrir uma página.",
+      "loadingPage": "Carregando página...",
+      "embedHint": "O site bloqueou incorporação?",
+      "resetPermissions": "Redefinir permissões do site",
+      "permissionsResetDone": "Permissões redefinidas. Recarregue a página.",
+      "permissionsSaved": "Permissões atualizadas. Recarregue a página para aplicar."
     }
   }
 }

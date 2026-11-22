@@ -111,7 +111,9 @@
       "settings": "সেটিংস",
       "searchPlaceholder": "টাস্ক খুঁজুন...",
       "collapseSidebar": "সাইডবার বন্ধ করুন",
-      "addProject": "প্রজেক্ট যোগ করুন"
+      "addProject": "প্রজেক্ট যোগ করুন",
+      "goBack": "পিছনে যান",
+      "goForward": "সামনে যান"
     },
     "greeting": {
       "morning": "শুভ সকাল",
@@ -149,7 +151,8 @@
       "sidePane": "সাইড প্যানেল খুলুন/বন্ধ করুন",
       "notifications": "বিজ্ঞপ্তি",
       "working": "কাজ চলছে",
-      "openSettings": "সেটিংস"
+      "openSettings": "সেটিংস",
+      "browser": "ব্রাউজার চালু/বন্ধ করুন"
     },
     "profile": {
       "language": "ভাষা",
@@ -402,7 +405,8 @@
       "newTab": "নতুন ট্যাব",
       "open": "খুলুন",
       "appPlugins": "অ্যাপ প্লাগইন",
-      "viewAllPlugins": "সব প্লাগইন দেখুন"
+      "viewAllPlugins": "সব প্লাগইন দেখুন",
+      "workspaceTools": "ওয়ার্কস্পেস টুলস"
     },
     "coreStatus": {
       "offlinePill": "কোর অফলাইন (লোকাল প্রিভিউ)",
@@ -434,6 +438,45 @@
       "migrationGuide": "মাইগ্রেশন গাইড",
       "addSection": "যোগ করুন",
       "pluginsSection": "প্লাগইনসমূহ"
+    },
+    "remoteControl": {
+      "title": "মোবাইল রিমোট কন্ট্রোল",
+      "subtitle": "একই নিরাপদ নেটওয়ার্কে থাকা ফোন থেকে এই QR কোড স্ক্যান করে দূর থেকে টাস্ক দেখুন, ডিফ যাচাই করুন এবং এজেন্ট অনুমোদন দিন।"
+    },
+    "browser": {
+      "title": "ব্রাউজার",
+      "browserAria": "বিল্ট-ইন ব্রাউজার",
+      "sitesAria": "লোকাল সাইট প্রিভিউ",
+      "back": "পিছনে",
+      "forward": "সামনে",
+      "reload": "রিফ্রেশ",
+      "siteInfo": "সাইটের তথ্য দেখুন",
+      "agentActive": "এজেন্ট ব্রাউজার ব্যবহার: চালু",
+      "agentManual": "ম্যানুয়াল ব্রাউজিং মোড",
+      "sitePermissions": "সাইটের অনুমতি",
+      "configureBrowserUse": "ব্রাউজার ব্যবহার সেটিংস",
+      "addressLabel": "অ্যাড্রেস বার",
+      "addressPlaceholder": "URL লিখুন (যেমন example.com বা http://127.0.0.1:5173)",
+      "enterResponsive": "মুক্ত-আকারের ভিউপোর্ট",
+      "exitResponsive": "মুক্ত-আকারের ভিউপোর্ট বন্ধ করুন",
+      "startPicker": "চ্যাটের জন্য পেজের উপাদান নির্বাচন করুন",
+      "cancelPicker": "উপাদান নির্বাচন বাতিল করুন",
+      "moreActions": "আরও ব্রাউজার অপশন",
+      "openExternal": "ডিফল্ট ব্রাউজারে খুলুন",
+      "exportPng": "PNG হিসেবে এক্সপোর্ট করুন",
+      "exportPdf": "PDF হিসেবে এক্সপোর্ট করুন",
+      "recentlyVisited": "সাম্প্রতিক ভিজিট করা সাইট",
+      "removeRecent": "সাম্প্রতিক তালিকা থেকে সরান",
+      "devicePreset": "ডিভাইস প্রিসেট",
+      "fitToWindow": "উইন্ডোর সাথে মানানসই করুন",
+      "addToChat": "চ্যাটে যোগ করুন",
+      "invalidUrl": "শুধুমাত্র http:// এবং https:// লিংক সমর্থিত (যেমন example.com বা http://127.0.0.1:5173)।",
+      "emptyHint": "কোনো পেজ খুলতে URL পেস্ট বা টাইপ করুন।",
+      "loadingPage": "পেজ লোড হচ্ছে...",
+      "embedHint": "সাইট কি এমবেড ব্লক করেছে?",
+      "resetPermissions": "সাইটের অনুমতি রিসেট করুন",
+      "permissionsResetDone": "অনুমতি রিসেট হয়েছে। পুনরায় অনুমতির জন্য পেজ রিফ্রেশ করুন।",
+      "permissionsSaved": "অনুমতি আপডেট হয়েছে। পরিবর্তন কার্যকর করতে পেজ রিফ্রেশ করুন।"
     }
   }
 }

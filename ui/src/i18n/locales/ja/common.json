@@ -111,7 +111,9 @@
       "settings": "設定",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "戻る",
+      "goForward": "進む"
     },
     "greeting": {
       "morning": "おはようございます",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "設定"
+      "openSettings": "設定",
+      "browser": "ブラウザ切替"
     },
     "profile": {
       "language": "言語",
@@ -402,7 +405,8 @@
       "newTab": "新しいタブ",
       "open": "開く",
       "appPlugins": "アプリプラグイン",
-      "viewAllPlugins": "すべてのプラグイン"
+      "viewAllPlugins": "すべてのプラグイン",
+      "workspaceTools": "ワークスペースツール"
     },
     "coreStatus": {
       "offlinePill": "Core オフライン（プレビュー）",
@@ -434,6 +438,45 @@
       "migrationGuide": "移行ガイド",
       "addSection": "追加",
       "pluginsSection": "プラグイン"
+    },
+    "remoteControl": {
+      "title": "モバイルリモート操作",
+      "subtitle": "同じ信頼されたネットワーク上のスマートフォンでこのQRコードをスキャンし、タスク確認や承認をリモートで行えます。"
+    },
+    "browser": {
+      "title": "ブラウザ",
+      "browserAria": "内蔵ブラウザ",
+      "sitesAria": "ローカルサイトプレビュー",
+      "back": "戻る",
+      "forward": "進む",
+      "reload": "再読み込み",
+      "siteInfo": "サイト情報を表示",
+      "agentActive": "エージェントブラウザ操作: オン",
+      "agentManual": "手動ブラウズモード",
+      "sitePermissions": "サイト権限",
+      "configureBrowserUse": "ブラウザ使用設定",
+      "addressLabel": "アドレスバー",
+      "addressPlaceholder": "URLを入力 (例: example.com または http://127.0.0.1:5173)",
+      "enterResponsive": "フリーサイズビューポート",
+      "exitResponsive": "フリーサイズを終了",
+      "startPicker": "チャット用にページ要素を選択",
+      "cancelPicker": "要素選択をキャンセル",
+      "moreActions": "その他のブラウザ操作",
+      "openExternal": "既定のブラウザで開く",
+      "exportPng": "PNGとして書き出す",
+      "exportPdf": "PDFとして書き出す",
+      "recentlyVisited": "最近アクセスしたページ",
+      "removeRecent": "履歴から削除",
+      "devicePreset": "デバイスプリセット",
+      "fitToWindow": "ウィンドウに合わせる",
+      "addToChat": "チャットに追加",
+      "invalidUrl": "http:// および https:// のURLのみ対応しています。",
+      "emptyHint": "URLを貼り付けるか入力してページを開きます。",
+      "loadingPage": "ページを読み込み中...",
+      "embedHint": "埋め込みがブロックされましたか？",
+      "resetPermissions": "サイト権限をリセット",
+      "permissionsResetDone": "権限をリセットしました。ページを再読み込みしてください。",
+      "permissionsSaved": "権限を更新しました。反映するには再読み込みしてください。"
     }
   }
 }

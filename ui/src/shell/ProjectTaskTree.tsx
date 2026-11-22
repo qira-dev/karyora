@@ -31,6 +31,8 @@ export interface ProjectTaskTreeProps {
   readonly activeTaskId: string | null;
   readonly onSelectTask: (task: TaskSessionSummary) => void;
   readonly onAddProject: () => void;
+  readonly onNewTask?: () => void;
+  readonly onShowProjectFiles?: (project: WorkspaceProjectSummary) => void;
   readonly onTaskContextAction: (
     actionId: TaskContextActionId,
     task: TaskSessionSummary,
@@ -43,6 +45,8 @@ export function ProjectTaskTree({
   activeTaskId,
   onSelectTask,
   onAddProject,
+  onNewTask,
+  onShowProjectFiles,
   onTaskContextAction,
 }: ProjectTaskTreeProps): ReactElement {
   const { t } = useTranslation();
@@ -176,6 +180,21 @@ export function ProjectTaskTree({
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Collapse all projects"
+            title="Collapse all projects"
+            onClick={() =>
+              setExpandedProjectIds((prev) =>
+                prev.size > 0
+                  ? new Set()
+                  : new Set(projects.map((p) => p.projectId)),
+              )
+            }
+          >
+            <ChromeIcon name="minimize" size={14} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             aria-label="Add project folder"
             title="Add project"
             onClick={onAddProject}
@@ -255,45 +274,72 @@ export function ProjectTaskTree({
                     )
                   }
                 >
-                  <button
-                    type="button"
-                    aria-expanded={isExpanded ? "true" : "false"}
-                    className="ky-btn ky-btn--ghost ky-btn--sm"
-                    style={{
-                      width: "100%",
-                      justifyContent: "flex-start",
-                      fontWeight: 500,
-                    }}
-                    onClick={() => toggleProjectExpanded(project.projectId)}
-                  >
-                    <ChromeIcon
-                      name={isExpanded ? "chevron-down" : "chevron-right"}
-                      size={14}
-                    />
-                    <ChromeIcon
-                      name={isExpanded ? "project-open" : "projects"}
-                      size={14}
-                    />
-                    <span
+                  <div className="ky-project-row-wrap">
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded ? "true" : "false"}
+                      className="ky-btn ky-btn--ghost ky-btn--sm"
                       style={{
                         flex: 1,
-                        textAlign: "start",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        minWidth: 0,
+                        justifyContent: "flex-start",
+                        fontWeight: 500,
                       }}
+                      onClick={() => toggleProjectExpanded(project.projectId)}
                     >
-                      {project.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        color: "var(--text-muted)",
-                      }}
-                    >
-                      {projectTasks.length}
-                    </span>
-                  </button>
+                      <ChromeIcon
+                        name={isExpanded ? "chevron-down" : "chevron-right"}
+                        size={14}
+                      />
+                      <ChromeIcon
+                        name={isExpanded ? "project-open" : "projects"}
+                        size={14}
+                      />
+                      <span
+                        style={{
+                          flex: 1,
+                          textAlign: "start",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {project.name}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        {projectTasks.length}
+                      </span>
+                    </button>
+                    <div className="ky-project-row-actions">
+                      {onShowProjectFiles && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Show files for ${project.name}`}
+                          title="Show files"
+                          onClick={() => onShowProjectFiles(project)}
+                        >
+                          <ChromeIcon name="file-code" size={14} />
+                        </Button>
+                      )}
+                      {onNewTask && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`New task in ${project.name}`}
+                          title="New task"
+                          onClick={onNewTask}
+                        >
+                          <ChromeIcon name="plus" size={14} />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
 
                   {hoveredProjectId === project.projectId && (
                     <div

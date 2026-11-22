@@ -65,9 +65,12 @@ import {
   MultiTabSidePane,
   closeSideTab,
   openOrFocusSideTab,
+  resetOriginPermissions,
+  setOriginPermission,
   type NewTabLauncherItem,
   type ReviewDiffFileRecord,
   type SidePaneTab,
+  type SitePermissionsStoreMap,
   type SubagentRunRecord,
   type WorkspaceFileNode,
 } from "./side-pane";
@@ -307,6 +310,36 @@ const INITIAL_WORKSPACE_FILES: readonly WorkspaceFileNode[] = [
     parentPath: "docs",
     gitStatus: null,
   },
+  { path: "public", name: "public", isDirectory: true, depth: 0, parentPath: null },
+  {
+    path: "public/preview.html",
+    name: "preview.html",
+    isDirectory: false,
+    depth: 1,
+    parentPath: "public",
+    gitStatus: "A",
+    content: [
+      "<!doctype html>",
+      '<html lang="en">',
+      "  <head>",
+      '    <meta charset="utf-8" />',
+      "    <title>Karyora Built-In Browser Preview</title>",
+      "    <style>",
+      "      body { font-family: system-ui, sans-serif; margin: 0; padding: 32px; background: #171717; color: #f0f0f0; }",
+      "      .card { max-width: 560px; margin: 0 auto; padding: 24px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: #232323; }",
+      "      h1 { margin: 0 0 8px; font-size: 20px; }",
+      "      p { color: #b5b5b5; line-height: 1.6; margin: 0; }",
+      "    </style>",
+      "  </head>",
+      "  <body>",
+      '    <div class="card">',
+      "      <h1>Karyora Built-In Browser Live Preview</h1>",
+      "      <p>Workspace HTML files open directly inside the embedded browser with responsive viewport presets (Desktop, Tablet, Phone, Slide) and element selection for chat.</p>",
+      "    </div>",
+      "  </body>",
+      "</html>",
+    ].join("\n"),
+  },
 ];
 
 const INITIAL_REVIEW_DIFFS: readonly ReviewDiffFileRecord[] = [
@@ -345,6 +378,11 @@ const INITIAL_REVIEW_DIFFS: readonly ReviewDiffFileRecord[] = [
 ];
 
 const INITIAL_SIDE_TABS: readonly SidePaneTab[] = [
+  {
+    tabId: "tab-browser",
+    kind: "browser",
+    title: "Browser",
+  },
   {
     tabId: "tab-files",
     kind: "files",
@@ -475,10 +513,22 @@ export function App(): ReactElement {
   const [sidePaneOpen, setSidePaneOpen] = useState(false);
   const [sidePaneFullView, setSidePaneFullView] = useState(false);
   const [sideTabs, setSideTabs] = useState<readonly SidePaneTab[]>(INITIAL_SIDE_TABS);
-  const [activeSideTabId, setActiveSideTabId] = useState<string | null>("tab-files");
+  const [recentlyClosedTabs, setRecentlyClosedTabs] = useState<readonly SidePaneTab[]>([]);
+  const [activeSideTabId, setActiveSideTabId] = useState<string | null>("tab-browser");
+  const [sitePermissionsStore, setSitePermissionsStore] = useState<SitePermissionsStoreMap>({});
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    INITIAL_PROJECTS[0]?.projectId ?? null,
+  );
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(
     "internal/plan/planstore_test.go",
   );
+  const [navHistory, setNavHistory] = useState<{
+    readonly entries: readonly { readonly surface: ActiveMainSurface; readonly taskId: string | null }[];
+    readonly index: number;
+  }>({
+    entries: [{ surface: "workspace", taskId: INITIAL_TASKS[0]?.taskId ?? null }],
+    index: 0,
+  });
 
   // Automations, Workflows & Plugin Marketplace state (UIR-6)
   const [scheduledTasks, setScheduledTasks] = useState<readonly ScheduledTaskRecord[]>(
@@ -511,7 +561,9 @@ export function App(): ReactElement {
     "closed" | "onboarding" | "migration"
   >("closed");
   const [settingsOverlayOpen, setSettingsOverlayOpen] = useState(false);
-  const [browserUseEnabled, setBrowserUseEnabled] = useState(false);
+  const [mobileRemoteOpen, setMobileRemoteOpen] = useState(false);
+  const [resourceManagerOpen, setResourceManagerOpen] = useState(false);
+  const [browserUseEnabled, setBrowserUseEnabled] = useState(true);
   const [activeSettingsSection, setActiveSettingsSection] =
     useState<SettingsSectionId>("general");
   const [notifications, setNotifications] = useState<
@@ -645,6 +697,99 @@ export function App(): ReactElement {
     setSidePaneOpen(true);
   };
 
+  const pushNavHistory = (surface: ActiveMainSurface, taskId: string | null) => {
+    setNavHistory((prev) => {
+      const cur = prev.entries[prev.index];
+      if (cur && cur.surface === surface && cur.taskId === taskId) {
+        return prev;
+      }
+      const nextEntries = [...prev.entries.slice(0, prev.index + 1), { surface, taskId }].slice(-30);
+      return { entries: nextEntries, index: nextEntries.length - 1 };
+    });
+  };
+
+  const handleGoBack = () => {
+    setNavHistory((prev) => {
+      if (prev.index <= 0) return prev;
+      const nextIdx = prev.index - 1;
+      const entry = prev.entries[nextIdx];
+      if (entry) {
+        setActiveSurface(entry.surface);
+        setActiveTaskId(entry.taskId);
+      }
+      return { ...prev, index: nextIdx };
+    });
+  };
+
+  const handleGoForward = () => {
+    setNavHistory((prev) => {
+      if (prev.index >= prev.entries.length - 1) return prev;
+      const nextIdx = prev.index + 1;
+      const entry = prev.entries[nextIdx];
+      if (entry) {
+        setActiveSurface(entry.surface);
+        setActiveTaskId(entry.taskId);
+      }
+      return { ...prev, index: nextIdx };
+    });
+  };
+
+  const handleToggleBrowser = () => {
+    const browserTab = sideTabs.find((t) => t.kind === "browser");
+    if (sidePaneOpen && browserTab && activeSideTabId === browserTab.tabId) {
+      setSidePaneFullView(false);
+      setSidePaneOpen(false);
+      return;
+    }
+    openSideTab(
+      browserTab ?? {
+        tabId: "tab-browser",
+        kind: "browser",
+        title: "Browser",
+      },
+    );
+  };
+
+  const handleTaskTopBarAction = (
+    actionId:
+      | "open-in-editor"
+      | "open-in-file-manager"
+      | "copy-path"
+      | "copy-session-id"
+      | "reload-session"
+      | "view-model-trajectory"
+      | "open-resource-manager"
+      | "go-to-config",
+  ) => {
+    if (actionId === "view-model-trajectory") {
+      openSideTab({
+        tabId: `tab-model-trajectory-${activeTask?.taskId ?? "current"}`,
+        kind: "model-trajectory",
+        title: "Model Trajectory",
+      });
+    } else if (actionId === "open-resource-manager") {
+      setResourceManagerOpen(true);
+    } else if (actionId === "go-to-config") {
+      openSettingsOverlay("general");
+    } else if (actionId === "open-in-editor" || actionId === "open-in-file-manager") {
+      openSideTab({ tabId: "tab-files", kind: "files", title: "Files" });
+    } else if (actionId === "copy-path") {
+      const path = projects[0]?.path ?? "/home/km-abdullah/karyora_Platform";
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        void navigator.clipboard.writeText(path);
+      }
+      pushToast("Copied workspace path", path);
+    } else if (actionId === "copy-session-id") {
+      const sid = activeTask?.taskId ?? "draft-session";
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        void navigator.clipboard.writeText(sid);
+      }
+      pushToast("Copied session ID", sid);
+    } else {
+      pushToast("Session reloaded", activeTask?.title ?? "Workspace");
+    }
+  };
+
   const handleLaunchToolOrPlugin = (item: NewTabLauncherItem) => {
     if (item.kind === "document-preview" && item.sampleDocumentPath) {
       openSideTab({
@@ -734,8 +879,14 @@ export function App(): ReactElement {
           activeInterfaceMode={prefs.interfaceMode}
           activeZoomPercent={prefs.interfaceZoomPercent}
           sidebarCollapsed={prefs.sidebarCollapsed}
+          canGoBack={navHistory.index > 0}
+          canGoForward={navHistory.index < navHistory.entries.length - 1}
           terminalOpen={terminalOpen}
           terminalMaximized={terminalMaximized}
+          browserOpen={
+            sidePaneOpen &&
+            sideTabs.some((t) => t.tabId === activeSideTabId && t.kind === "browser")
+          }
           sidePaneOpen={sidePaneOpen}
           sidePaneFullView={sidePaneFullView}
           activeSurface={activeSurface}
@@ -748,11 +899,16 @@ export function App(): ReactElement {
           notificationDrawerOpen={notificationDrawerOpen}
           onboardingMode={onboardingMode}
           settingsOverlayOpen={settingsOverlayOpen}
+          mobileRemoteOpen={mobileRemoteOpen}
+          resourceManagerOpen={resourceManagerOpen}
           toasts={toasts}
           canWrite={true}
           onToggleSidebar={() =>
             updatePref("sidebarCollapsed", !prefs.sidebarCollapsed)
           }
+          onGoBack={handleGoBack}
+          onGoForward={handleGoForward}
+          onToggleBrowser={handleToggleBrowser}
           onToggleTerminal={() => setTerminalOpen((prev) => !prev)}
           onToggleSidePane={() =>
             setSidePaneOpen((prev) => {
@@ -771,19 +927,31 @@ export function App(): ReactElement {
           onOpenReviewDiffTab={() =>
             openSideTab({ tabId: "tab-review", kind: "review", title: "Review" })
           }
+          onShowProjectFiles={() =>
+            openSideTab({ tabId: "tab-files", kind: "files", title: "Files" })
+          }
+          onTaskTopBarAction={handleTaskTopBarAction}
+          onOpenMobileRemoteControl={() => setMobileRemoteOpen(true)}
+          onCloseMobileRemoteControl={() => setMobileRemoteOpen(false)}
+          onOpenResourceManager={() => setResourceManagerOpen(true)}
+          onCloseResourceManager={() => setResourceManagerOpen(false)}
+          onNotify={pushToast}
           onNewTask={() => {
             setActiveSurface("workspace");
             setActiveTaskId(null);
             setSidePaneFullView(false);
+            pushNavHistory("workspace", null);
           }}
           onSelectSurface={(surface) => {
             setActiveSurface(surface);
             setSidePaneFullView(false);
+            pushNavHistory(surface, activeTaskId);
           }}
           onSelectTask={(task) => {
             setActiveSurface("workspace");
             setActiveTaskId(task.taskId);
             setSidePaneFullView(false);
+            pushNavHistory("workspace", task.taskId);
           }}
           onAddProject={() => {
             void platformBridge.pickFolderOrFile({ mode: "folder" });
@@ -815,6 +983,12 @@ export function App(): ReactElement {
                 setActiveTaskId(null);
               }
               pushToast("Task deleted", task.title);
+            } else if (actionId === "view-model-trajectory") {
+              openSideTab({
+                tabId: `tab-model-trajectory-${task.taskId}`,
+                kind: "model-trajectory",
+                title: "Model Trajectory",
+              });
             } else {
               pushToast(`Task action: ${actionId}`, task.title);
             }
@@ -879,19 +1053,30 @@ export function App(): ReactElement {
           sidePaneContent={
             <MultiTabSidePane
               tabs={sideTabs}
+              recentlyClosedTabs={recentlyClosedTabs}
               activeTabId={activeSideTabId}
               isFullView={sidePaneFullView}
               runtimeTarget={platformBridge.runtimeTarget}
               remoteShellEnabledByCore={platformBridge.isDesktop}
               browserUseEnabled={browserUseEnabled}
+              sitePermissionsStore={sitePermissionsStore}
               activeCodeTheme={activeCodeTheme}
               workspaceName={projects[0]?.name ?? "karyora_Platform"}
+              activeTaskTitle={activeTask?.title ?? "Workspace session"}
+              conversationTurns={turns}
               workspaceFiles={INITIAL_WORKSPACE_FILES}
               selectedFilePath={selectedFilePath}
               reviewDiffFiles={INITIAL_REVIEW_DIFFS}
               subagents={INITIAL_SUBAGENT_RECORDS}
               onSelectTab={setActiveSideTabId}
               onCloseTab={(tabId) => {
+                const closing = sideTabs.find((t) => t.tabId === tabId);
+                if (closing && closing.kind !== "new-tab") {
+                  setRecentlyClosedTabs((prev) => [
+                    { ...closing, closedAt: Date.now() },
+                    ...prev.filter((p) => p.tabId !== closing.tabId),
+                  ].slice(0, 12));
+                }
                 const res = closeSideTab(sideTabs, activeSideTabId, tabId);
                 setSideTabs(res.tabs);
                 setActiveSideTabId(res.activeTabId);
@@ -899,6 +1084,12 @@ export function App(): ReactElement {
                   setSidePaneFullView(false);
                   setSidePaneOpen(false);
                 }
+              }}
+              onReopenClosedTab={(closedTab) => {
+                setRecentlyClosedTabs((prev) =>
+                  prev.filter((t) => t.tabId !== closedTab.tabId),
+                );
+                openSideTab(closedTab);
               }}
               onOpenNewTabLauncher={() =>
                 openSideTab({
@@ -908,7 +1099,38 @@ export function App(): ReactElement {
                 })
               }
               onLaunchToolOrPlugin={handleLaunchToolOrPlugin}
+              onOpenMarketplace={() => {
+                setSidePaneFullView(false);
+                setActiveSurface("marketplace");
+              }}
               onSelectFile={(fp) => setSelectedFilePath(fp)}
+              onOpenHtmlInBrowser={(filePath, htmlContent) =>
+                openSideTab({
+                  tabId: `browser-html-${filePath}`,
+                  kind: "browser",
+                  title: filePath.split("/").pop() ?? "HTML Preview",
+                  filePath,
+                  htmlSourceContent: htmlContent,
+                })
+              }
+              onOpenSitePermissions={(origin) =>
+                openSideTab({
+                  tabId: `browser-permissions-${origin}`,
+                  kind: "browser-permissions",
+                  title: "Site permissions",
+                  browserOrigin: origin,
+                })
+              }
+              onSetSitePermission={(origin, key, decision) =>
+                setSitePermissionsStore((prev) =>
+                  setOriginPermission(prev, origin, key, decision),
+                )
+              }
+              onResetSitePermissions={(origin) =>
+                setSitePermissionsStore((prev) =>
+                  resetOriginPermissions(prev, origin),
+                )
+              }
               onInspectSubagent={(sub) =>
                 openSideTab({
                   tabId: `subagent-report-${sub.subagentId}`,
@@ -925,12 +1147,13 @@ export function App(): ReactElement {
               onSendSelectionToChat={handleSendSelectionToChat}
               onOpenBrowserUseSettings={() => openSettingsOverlay("browser-use")}
               onOpenExternalUrl={(url, domain) =>
-                pushToast(`External URL validated (${domain})`, url)
+                pushToast(`Opened external URL (${domain})`, url)
               }
               onOpenContextInspectorPage={() => {
                 setSidePaneFullView(false);
                 setActiveSurface("context");
               }}
+              onNotify={pushToast}
             />
           }
           floatingWorkingBar={
@@ -1075,6 +1298,13 @@ export function App(): ReactElement {
             >
               {activeTask === null ? (
                 <GreetingEmptyState
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  onSelectProject={setSelectedProjectId}
+                  onAddProject={() => {
+                    void platformBridge.pickFolderOrFile({ mode: "folder" });
+                    pushToast("Add project folder", "Workspace folder picker triggered.");
+                  }}
                   onSelectQuickChip={(chip) => setPromptText(chip.promptTemplate)}
                 />
               ) : (
@@ -1092,6 +1322,36 @@ export function App(): ReactElement {
                       filePath,
                     });
                   }}
+                  onEditUserTurn={(text) => {
+                    setPromptText(text);
+                    pushToast("Loaded prompt for editing");
+                  }}
+                  onForkTurn={(turnId) => {
+                    const forkId = `task-fork-${Date.now().toString().slice(-4)}`;
+                    setTasks((prev) => [
+                      {
+                        taskId: forkId,
+                        projectId: projects[0]?.projectId ?? "proj-karyora",
+                        title: `Fork: ${activeTask.title}`,
+                        status: "idle",
+                        isPinned: false,
+                        isUnread: false,
+                        sessionMode: composerMode,
+                        modelId: composerModel,
+                        thoughtLevel: composerThought,
+                        logEpoch: 1,
+                        updatedAt: "now",
+                        diffAdditions: activeTask.diffAdditions,
+                        diffDeletions: activeTask.diffDeletions,
+                        changedFilesCount: activeTask.changedFilesCount,
+                      },
+                      ...prev,
+                    ]);
+                    setActiveTaskId(forkId);
+                    pushToast("Conversation forked", `Forked from ${turnId}`);
+                  }}
+                  onOpenHooksSettings={() => openSettingsOverlay("hooks")}
+                  onNotify={pushToast}
                   onApprovalDecision={(approvalId, decision) => {
                     pushToast("Approval recorded", `${approvalId}: ${decision}`);
                   }}
@@ -1119,6 +1379,13 @@ export function App(): ReactElement {
                 codeTheme={activeCodeTheme}
                 queueSnapshot={queueSnapshot}
                 triggerSuggestions={COMPOSER_SUGGESTIONS}
+                onOpenContextInspector={() =>
+                  openSideTab({
+                    tabId: "tab-context-inspector",
+                    kind: "context-inspector",
+                    title: "Context Inspector",
+                  })
+                }
                 onPromptChange={setPromptText}
                 onAddChip={(chip) => setChips((prev) => [...prev, chip])}
                 onRemoveChip={(chipId) =>

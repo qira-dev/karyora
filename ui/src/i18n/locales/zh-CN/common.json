@@ -111,7 +111,9 @@
       "settings": "设置",
       "searchPlaceholder": "筛选任务...",
       "collapseSidebar": "收起侧边栏",
-      "addProject": "添加项目"
+      "addProject": "添加项目",
+      "goBack": "后退",
+      "goForward": "前进"
     },
     "greeting": {
       "morning": "早上好",
@@ -149,7 +151,8 @@
       "sidePane": "切换侧边面板",
       "notifications": "通知",
       "working": "运行中",
-      "openSettings": "设置"
+      "openSettings": "设置",
+      "browser": "切换浏览器"
     },
     "profile": {
       "language": "语言",
@@ -402,7 +405,8 @@
       "newTab": "新建标签页",
       "open": "打开",
       "appPlugins": "应用插件",
-      "viewAllPlugins": "查看全部插件"
+      "viewAllPlugins": "查看全部插件",
+      "workspaceTools": "工作区工具"
     },
     "coreStatus": {
       "offlinePill": "Core 离线（本地预览）",
@@ -434,6 +438,45 @@
       "migrationGuide": "迁移指南",
       "addSection": "添加",
       "pluginsSection": "插件"
+    },
+    "remoteControl": {
+      "title": "手机远程控制",
+      "subtitle": "在同一可信网络中使用手机扫描此二维码，远程监控任务、查看代码差异并审批智能体操作。"
+    },
+    "browser": {
+      "title": "浏览器",
+      "browserAria": "内置浏览器",
+      "sitesAria": "本地站点预览",
+      "back": "后退",
+      "forward": "前进",
+      "reload": "刷新",
+      "siteInfo": "查看网站信息",
+      "agentActive": "智能体浏览器控制：已开启",
+      "agentManual": "手动浏览模式",
+      "sitePermissions": "网站权限",
+      "configureBrowserUse": "浏览器使用设置",
+      "addressLabel": "地址栏",
+      "addressPlaceholder": "输入网址（例如 example.com 或 http://127.0.0.1:5173）",
+      "enterResponsive": "自由尺寸视口",
+      "exitResponsive": "退出自由尺寸视口",
+      "startPicker": "选择页面元素发送到对话",
+      "cancelPicker": "取消元素选择",
+      "moreActions": "更多浏览器操作",
+      "openExternal": "在默认浏览器中打开",
+      "exportPng": "导出为 PNG",
+      "exportPdf": "导出为 PDF",
+      "recentlyVisited": "最近访问",
+      "removeRecent": "从最近访问中移除",
+      "devicePreset": "设备预设",
+      "fitToWindow": "适应窗口",
+      "addToChat": "添加到对话",
+      "invalidUrl": "仅支持 http:// 和 https:// 网址。",
+      "emptyHint": "粘贴或输入网址以打开页面。",
+      "loadingPage": "正在加载页面...",
+      "embedHint": "网站阻止了嵌入显示？",
+      "resetPermissions": "重置网站权限",
+      "permissionsResetDone": "权限已重置，刷新页面后将重新请求。",
+      "permissionsSaved": "权限已更新，刷新页面后生效。"
     }
   }
 }

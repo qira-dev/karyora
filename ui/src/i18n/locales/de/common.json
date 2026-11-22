@@ -111,7 +111,9 @@
       "settings": "Einstellungen",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Zurück",
+      "goForward": "Vorwärts"
     },
     "greeting": {
       "morning": "Guten Morgen",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Einstellungen"
+      "openSettings": "Einstellungen",
+      "browser": "Browser umschalten"
     },
     "profile": {
       "language": "Sprache",
@@ -402,7 +405,8 @@
       "newTab": "Neuer Tab",
       "open": "Öffnen",
       "appPlugins": "App-Plugins",
-      "viewAllPlugins": "Alle Plugins anzeigen"
+      "viewAllPlugins": "Alle Plugins anzeigen",
+      "workspaceTools": "Arbeitsbereich-Tools"
     },
     "coreStatus": {
       "offlinePill": "Core offline (Vorschau)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Migrationsleitfaden",
       "addSection": "HINZUFÜGEN",
       "pluginsSection": "PLUGINS"
+    },
+    "remoteControl": {
+      "title": "Mobile Fernsteuerung",
+      "subtitle": "Scanne diesen QR-Code im selben vertrauenswürdigen Netzwerk, um Aufgaben zu überwachen und Aktionen freizugeben."
+    },
+    "browser": {
+      "title": "Browser",
+      "browserAria": "Integrierter Browser",
+      "sitesAria": "Lokale Seitenvorschau",
+      "back": "Zurück",
+      "forward": "Vorwärts",
+      "reload": "Neu laden",
+      "siteInfo": "Seiteninformationen anzeigen",
+      "agentActive": "Agent-Browsernutzung: Aktiv",
+      "agentManual": "Manueller Browsermodus",
+      "sitePermissions": "Website-Berechtigungen",
+      "configureBrowserUse": "Browsernutzung konfigurieren",
+      "addressLabel": "Adressleiste",
+      "addressPlaceholder": "URL eingeben (z. B. example.com oder http://127.0.0.1:5173)",
+      "enterResponsive": "Freier Viewport",
+      "exitResponsive": "Freien Viewport verlassen",
+      "startPicker": "Seitenelement für Chat auswählen",
+      "cancelPicker": "Elementauswahl abbrechen",
+      "moreActions": "Weitere Browser-Aktionen",
+      "openExternal": "Im Standardbrowser öffnen",
+      "exportPng": "Als PNG exportieren",
+      "exportPdf": "Als PDF exportieren",
+      "recentlyVisited": "Zuletzt besucht",
+      "removeRecent": "Aus Verlauf entfernen",
+      "devicePreset": "Gerätevorgabe",
+      "fitToWindow": "An Fenster anpassen",
+      "addToChat": "Zum Chat hinzufügen",
+      "invalidUrl": "Nur http://- und https://-URLs werden unterstützt.",
+      "emptyHint": "URL einfügen oder eingeben, um eine Seite zu öffnen.",
+      "loadingPage": "Seite wird geladen...",
+      "embedHint": "Einbettung von Website blockiert?",
+      "resetPermissions": "Berechtigungen zurücksetzen",
+      "permissionsResetDone": "Berechtigungen zurückgesetzt. Seite neu laden.",
+      "permissionsSaved": "Berechtigungen gespeichert. Zum Anwenden neu laden."
     }
   }
 }

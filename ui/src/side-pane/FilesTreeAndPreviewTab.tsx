@@ -24,6 +24,7 @@ export interface FilesTreeAndPreviewTabProps {
   readonly activeCodeTheme: LightCodeTheme | DarkCodeTheme;
   readonly onSelectFile: (filePath: string) => void;
   readonly onOpenExternalFile?: (filePath: string) => void;
+  readonly onOpenHtmlInBrowser?: (filePath: string, htmlContent: string) => void;
   readonly onSendSelectionToChat: (excerpt: string, sourceFile: string) => void;
 }
 
@@ -36,6 +37,7 @@ export function FilesTreeAndPreviewTab({
   activeCodeTheme,
   onSelectFile,
   onOpenExternalFile,
+  onOpenHtmlInBrowser,
   onSendSelectionToChat,
 }: FilesTreeAndPreviewTabProps): ReactElement {
   const [searchQuery, setSearchQuery] = useState("");
@@ -202,6 +204,20 @@ export function FilesTreeAndPreviewTab({
               </div>
 
               <div className="ky-files-split__viewer-actions">
+                {onOpenHtmlInBrowser &&
+                  /\.(html?|svg)$/i.test(selectedNode.path) &&
+                  selectedNode.content && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        onOpenHtmlInBrowser(selectedNode.path, selectedNode.content ?? "")
+                      }
+                    >
+                      <ChromeIcon name="browser-globe" size={14} />
+                      <span>Preview in Browser</span>
+                    </Button>
+                  )}
                 {previewKind === "code" && (
                   <Button
                     size="sm"

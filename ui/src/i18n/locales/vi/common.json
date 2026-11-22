@@ -111,7 +111,9 @@
       "settings": "Cài đặt",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Quay lại",
+      "goForward": "Tiến tới"
     },
     "greeting": {
       "morning": "Chào buổi sáng",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Cài đặt"
+      "openSettings": "Cài đặt",
+      "browser": "Bật/tắt trình duyệt"
     },
     "profile": {
       "language": "Ngôn ngữ",
@@ -402,7 +405,8 @@
       "newTab": "Thẻ mới",
       "open": "Mở",
       "appPlugins": "Plugin ứng dụng",
-      "viewAllPlugins": "Xem tất cả plugin"
+      "viewAllPlugins": "Xem tất cả plugin",
+      "workspaceTools": "Công cụ không gian làm việc"
     },
     "coreStatus": {
       "offlinePill": "Core ngoại tuyến (xem trước)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Hướng dẫn di chuyển",
       "addSection": "THÊM",
       "pluginsSection": "TIỆN ÍCH"
+    },
+    "remoteControl": {
+      "title": "Điều khiển từ xa qua di động",
+      "subtitle": "Quét mã QR này từ điện thoại trong cùng mạng tin cậy để theo dõi tác vụ, xem thay đổi và phê duyệt hành động từ xa."
+    },
+    "browser": {
+      "title": "Trình duyệt",
+      "browserAria": "Trình duyệt tích hợp",
+      "sitesAria": "Xem trước trang cục bộ",
+      "back": "Quay lại",
+      "forward": "Tiến tới",
+      "reload": "Tải lại",
+      "siteInfo": "Xem thông tin trang web",
+      "agentActive": "Trình duyệt tác nhân: Đang bật",
+      "agentManual": "Chế độ duyệt thủ công",
+      "sitePermissions": "Quyền trang web",
+      "configureBrowserUse": "Cài đặt sử dụng trình duyệt",
+      "addressLabel": "Thanh địa chỉ",
+      "addressPlaceholder": "Nhập URL (ví dụ: example.com hoặc http://127.0.0.1:5173)",
+      "enterResponsive": "Khung nhìn kích thước tự do",
+      "exitResponsive": "Thoát khung nhìn tự do",
+      "startPicker": "Chọn phần tử trang cho trò chuyện",
+      "cancelPicker": "Hủy chọn phần tử",
+      "moreActions": "Thêm thao tác trình duyệt",
+      "openExternal": "Mở trong trình duyệt mặc định",
+      "exportPng": "Xuất dưới dạng PNG",
+      "exportPdf": "Xuất dưới dạng PDF",
+      "recentlyVisited": "Truy cập gần đây",
+      "removeRecent": "Xóa khỏi truy cập gần đây",
+      "devicePreset": "Cấu hình thiết bị",
+      "fitToWindow": "Vừa với cửa sổ",
+      "addToChat": "Thêm vào trò chuyện",
+      "invalidUrl": "Chỉ hỗ trợ URL http:// và https://.",
+      "emptyHint": "Dán hoặc nhập URL để mở trang.",
+      "loadingPage": "Đang tải trang...",
+      "embedHint": "Trang web chặn nhúng?",
+      "resetPermissions": "Đặt lại quyền trang web",
+      "permissionsResetDone": "Đã đặt lại quyền. Hãy tải lại trang.",
+      "permissionsSaved": "Đã cập nhật quyền. Hãy tải lại trang để áp dụng."
     }
   }
 }

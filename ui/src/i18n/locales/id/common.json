@@ -111,7 +111,9 @@
       "settings": "Pengaturan",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Kembali",
+      "goForward": "Maju"
     },
     "greeting": {
       "morning": "Selamat pagi",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Pengaturan"
+      "openSettings": "Pengaturan",
+      "browser": "Alihkan browser"
     },
     "profile": {
       "language": "Bahasa",
@@ -402,7 +405,8 @@
       "newTab": "Tab baru",
       "open": "Buka",
       "appPlugins": "Plugin aplikasi",
-      "viewAllPlugins": "Lihat semua plugin"
+      "viewAllPlugins": "Lihat semua plugin",
+      "workspaceTools": "Alat ruang kerja"
     },
     "coreStatus": {
       "offlinePill": "Core luring (pratinjau)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Panduan migrasi",
       "addSection": "TAMBAH",
       "pluginsSection": "PLUGIN"
+    },
+    "remoteControl": {
+      "title": "Kontrol jarak jauh seluler",
+      "subtitle": "Pindai kode QR ini dari ponsel pada jaringan tepercaya yang sama untuk memantau tugas dan menyetujui tindakan agen."
+    },
+    "browser": {
+      "title": "Browser",
+      "browserAria": "Browser bawaan",
+      "sitesAria": "Pratinjau Situs Lokal",
+      "back": "Kembali",
+      "forward": "Maju",
+      "reload": "Muat ulang",
+      "siteInfo": "Lihat informasi situs",
+      "agentActive": "Browser Agen: Aktif",
+      "agentManual": "Mode penjelajahan manual",
+      "sitePermissions": "Izin situs",
+      "configureBrowserUse": "Pengaturan Penggunaan Browser",
+      "addressLabel": "Bilah alamat",
+      "addressPlaceholder": "Masukkan URL (mis. example.com atau http://127.0.0.1:5173)",
+      "enterResponsive": "Viewport ukuran bebas",
+      "exitResponsive": "Keluar dari viewport bebas",
+      "startPicker": "Pilih elemen halaman untuk obrolan",
+      "cancelPicker": "Batalkan pemilihan elemen",
+      "moreActions": "Tindakan browser lainnya",
+      "openExternal": "Buka di browser bawaan sistem",
+      "exportPng": "Ekspor sebagai PNG",
+      "exportPdf": "Ekspor sebagai PDF",
+      "recentlyVisited": "Baru dikunjungi",
+      "removeRecent": "Hapus dari riwayat",
+      "devicePreset": "Preset perangkat",
+      "fitToWindow": "Sesuaikan ke jendela",
+      "addToChat": "Tambahkan ke obrolan",
+      "invalidUrl": "Hanya URL http:// dan https:// yang didukung.",
+      "emptyHint": "Tempel atau ketik URL untuk membuka halaman.",
+      "loadingPage": "Memuat halaman...",
+      "embedHint": "Situs memblokir penyematan?",
+      "resetPermissions": "Atur ulang izin situs",
+      "permissionsResetDone": "Izin diatur ulang. Muat ulang halaman.",
+      "permissionsSaved": "Izin diperbarui. Muat ulang halaman untuk menerapkan."
     }
   }
 }

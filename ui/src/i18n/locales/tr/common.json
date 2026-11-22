@@ -111,7 +111,9 @@
       "settings": "Ayarlar",
       "searchPlaceholder": "Filter tasks...",
       "collapseSidebar": "Collapse sidebar",
-      "addProject": "Add project"
+      "addProject": "Add project",
+      "goBack": "Geri",
+      "goForward": "İleri"
     },
     "greeting": {
       "morning": "Günaydın",
@@ -149,7 +151,8 @@
       "sidePane": "Toggle side pane",
       "notifications": "Notifications",
       "working": "Working",
-      "openSettings": "Ayarlar"
+      "openSettings": "Ayarlar",
+      "browser": "Tarayıcıyı aç/kapat"
     },
     "profile": {
       "language": "Dil",
@@ -402,7 +405,8 @@
       "newTab": "Yeni sekme",
       "open": "Aç",
       "appPlugins": "Uygulama eklentileri",
-      "viewAllPlugins": "Tüm eklentiler"
+      "viewAllPlugins": "Tüm eklentiler",
+      "workspaceTools": "Çalışma alanı araçları"
     },
     "coreStatus": {
       "offlinePill": "Core çevrimdışı (önizleme)",
@@ -434,6 +438,45 @@
       "migrationGuide": "Geçiş rehberi",
       "addSection": "EKLE",
       "pluginsSection": "EKLENTİLER"
+    },
+    "remoteControl": {
+      "title": "Mobil uzaktan kontrol",
+      "subtitle": "Görevleri izlemek, farkları incelemek ve ajan işlemlerini onaylamak için bu QR kodunu aynı güvenilir ağdaki telefonunuzdan tarayın."
+    },
+    "browser": {
+      "title": "Tarayıcı",
+      "browserAria": "Yerleşik Tarayıcı",
+      "sitesAria": "Yerel Site Önizlemesi",
+      "back": "Geri",
+      "forward": "İleri",
+      "reload": "Yenile",
+      "siteInfo": "Site bilgilerini görüntüle",
+      "agentActive": "Ajan Tarayıcı Kullanımı: Açık",
+      "agentManual": "Manuel tarama modu",
+      "sitePermissions": "Site izinleri",
+      "configureBrowserUse": "Tarayıcı kullanım ayarları",
+      "addressLabel": "Adres çubuğu",
+      "addressPlaceholder": "URL girin (ör. example.com veya http://127.0.0.1:5173)",
+      "enterResponsive": "Serbest boyutlu görünüm",
+      "exitResponsive": "Serbest görünümden çık",
+      "startPicker": "Sohbet için sayfa öğesi seç",
+      "cancelPicker": "Öğe seçimini iptal et",
+      "moreActions": "Diğer tarayıcı işlemleri",
+      "openExternal": "Varsayılan tarayıcıda aç",
+      "exportPng": "PNG olarak dışa aktar",
+      "exportPdf": "PDF olarak dışa aktar",
+      "recentlyVisited": "Son ziyaret edilenler",
+      "removeRecent": "Son ziyaretlerden kaldır",
+      "devicePreset": "Cihaz ön ayarı",
+      "fitToWindow": "Pencereye sığdır",
+      "addToChat": "Sohbete ekle",
+      "invalidUrl": "Yalnızca http:// ve https:// URL'leri desteklenir.",
+      "emptyHint": "Sayfa açmak için bir URL yapıştırın veya yazın.",
+      "loadingPage": "Sayfa yükleniyor...",
+      "embedHint": "Site gömmeyi engelledi mi?",
+      "resetPermissions": "Site izinlerini sıfırla",
+      "permissionsResetDone": "İzinler sıfırlandı. Sayfayı yenileyin.",
+      "permissionsSaved": "İzinler güncellendi. Uygulamak için sayfayı yenileyin."
     }
   }
 }
