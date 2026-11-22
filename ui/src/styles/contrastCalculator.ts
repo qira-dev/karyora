@@ -1,9 +1,8 @@
 /**
  * WCAG 2.2 AA Relative Luminance & Token Contrast Verification Engine (UIR-2.1, UI-25, G-03).
  *
- * Implements W3C WCAG 2.2 relative luminance and contrast ratio formulas to
- * verify all Dark and Light semantic foreground/background token pairs defined
- * in Blueprint §20.1 A.
+ * Verifies all ZCode Neutral Carbon Dark and Neutral Light semantic foreground/background
+ * token pairs in `tokens.css` against WCAG 2.2 AA (`>= 4.5:1`).
  */
 
 export interface TokenContrastPair {
@@ -22,37 +21,37 @@ export interface EvaluatedContrastPair extends TokenContrastPair {
 }
 
 export const CANONICAL_TOKEN_CONTRAST_PAIRS: readonly TokenContrastPair[] = [
-  // Dark Theme (Blueprint §20.1 A)
+  // ZCode Neutral Carbon Dark Theme
   {
     theme: "dark",
     foregroundToken: "--text-primary",
-    foregroundHex: "#f8fafc",
+    foregroundHex: "#f0f0f0",
     backgroundToken: "--bg-canvas",
-    backgroundHex: "#0b0e14",
+    backgroundHex: "#171717",
     minimumRequiredRatio: 4.5,
   },
   {
     theme: "dark",
     foregroundToken: "--text-secondary",
-    foregroundHex: "#cbd5e1",
+    foregroundHex: "#c4c4c4",
     backgroundToken: "--bg-surface-1",
-    backgroundHex: "#11161f",
+    backgroundHex: "#232323",
     minimumRequiredRatio: 4.5,
   },
   {
     theme: "dark",
     foregroundToken: "--text-muted",
-    foregroundHex: "#94a3b8",
+    foregroundHex: "#9a9a9a",
     backgroundToken: "--bg-surface-1",
-    backgroundHex: "#11161f",
+    backgroundHex: "#232323",
     minimumRequiredRatio: 4.5,
   },
   {
     theme: "dark",
     foregroundToken: "--accent-text",
-    foregroundHex: "#818cf8",
+    foregroundHex: "#38bdf8",
     backgroundToken: "--bg-surface-1",
-    backgroundHex: "#11161f",
+    backgroundHex: "#232323",
     minimumRequiredRatio: 4.5,
   },
   {
@@ -60,7 +59,7 @@ export const CANONICAL_TOKEN_CONTRAST_PAIRS: readonly TokenContrastPair[] = [
     foregroundToken: "--success-text",
     foregroundHex: "#4ade80",
     backgroundToken: "--bg-surface-1",
-    backgroundHex: "#11161f",
+    backgroundHex: "#232323",
     minimumRequiredRatio: 4.5,
   },
   {
@@ -68,7 +67,7 @@ export const CANONICAL_TOKEN_CONTRAST_PAIRS: readonly TokenContrastPair[] = [
     foregroundToken: "--warning-text",
     foregroundHex: "#fbbf24",
     backgroundToken: "--bg-surface-1",
-    backgroundHex: "#11161f",
+    backgroundHex: "#232323",
     minimumRequiredRatio: 4.5,
   },
   {
@@ -76,23 +75,23 @@ export const CANONICAL_TOKEN_CONTRAST_PAIRS: readonly TokenContrastPair[] = [
     foregroundToken: "--danger-text",
     foregroundHex: "#f87171",
     backgroundToken: "--bg-surface-1",
-    backgroundHex: "#11161f",
+    backgroundHex: "#232323",
     minimumRequiredRatio: 4.5,
   },
 
-  // Light Theme (Blueprint §20.1 A)
+  // ZCode Neutral Light Theme
   {
     theme: "light",
     foregroundToken: "--text-primary",
-    foregroundHex: "#0f172a",
+    foregroundHex: "#171717",
     backgroundToken: "--bg-canvas",
-    backgroundHex: "#f8fafc",
+    backgroundHex: "#ffffff",
     minimumRequiredRatio: 4.5,
   },
   {
     theme: "light",
     foregroundToken: "--text-secondary",
-    foregroundHex: "#334155",
+    foregroundHex: "#404040",
     backgroundToken: "--bg-surface-1",
     backgroundHex: "#ffffff",
     minimumRequiredRatio: 4.5,
@@ -100,7 +99,7 @@ export const CANONICAL_TOKEN_CONTRAST_PAIRS: readonly TokenContrastPair[] = [
   {
     theme: "light",
     foregroundToken: "--text-muted",
-    foregroundHex: "#475569",
+    foregroundHex: "#525252",
     backgroundToken: "--bg-surface-1",
     backgroundHex: "#ffffff",
     minimumRequiredRatio: 4.5,
@@ -108,7 +107,7 @@ export const CANONICAL_TOKEN_CONTRAST_PAIRS: readonly TokenContrastPair[] = [
   {
     theme: "light",
     foregroundToken: "--accent-text",
-    foregroundHex: "#3730a3",
+    foregroundHex: "#0369a1",
     backgroundToken: "--bg-surface-1",
     backgroundHex: "#ffffff",
     minimumRequiredRatio: 4.5,

@@ -1,9 +1,10 @@
 /**
- * Left Sidebar Navigation (`248 px` Expanded / Collapsible via `Ctrl+B`)
- * (UIR-3.2, Screenshots #61–#65, #68, #84–#85, Blueprint §4.3).
+ * Left Sidebar Navigation (`260 px` ZCode Chrome, Collapsible via `Ctrl+B`)
+ * (Screenshots #61–#65, #68, #75, #82, #84–#85, Blueprint §4.3).
  */
 
 import type { ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../components/icons";
 import { Button } from "../components/primitives";
 import type {
@@ -71,6 +72,8 @@ export function LeftSidebar({
   onChangeInterfaceMode,
   onChangeZoomPercent,
 }: LeftSidebarProps): ReactElement | null {
+  const { t } = useTranslation();
+
   if (collapsed) {
     return null;
   }
@@ -81,11 +84,15 @@ export function LeftSidebar({
       data-testid="karyora-left-sidebar"
       className="ky-sidebar"
     >
-      {/* Top Window Chrome & Collapse Toggle */}
+      {/* Top Window Brand Mark & Subtle Navigation Arrows (#68, #75, #82) */}
       <div className="ky-sidebar__top-chrome">
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-          <ChromeIcon name="sparkles" size={16} />
-          <span style={{ fontWeight: 600, fontSize: "0.875rem" }}>Karyora</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span className="ky-sidebar__brand-mark" aria-hidden="true">
+            K
+          </span>
+          <span style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--text-primary)" }}>
+            {t("appName", { defaultValue: "Karyora" })}
+          </span>
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
           <Button
@@ -96,53 +103,61 @@ export function LeftSidebar({
             title="Command Center (Ctrl+K)"
             onClick={() => onOpenCommandCenter("sidebar-cmd-center-btn")}
           >
-            <ChromeIcon name="search" size={16} />
+            <ChromeIcon name="search" size={14} />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            aria-label="Collapse sidebar (Ctrl+B)"
+            aria-label={t("ui.sidebar.collapseSidebar", { defaultValue: "Collapse sidebar" })}
             title="Toggle Sidebar (Ctrl+B)"
             onClick={onToggleCollapse}
           >
-            <ChromeIcon name="sidebar-left" size={16} />
+            <ChromeIcon name="sidebar-left" size={14} />
           </Button>
         </div>
       </div>
 
-      {/* ZCode Primary Navigation Entries (#68) */}
+      {/* ZCode Primary 3 Navigation Items (#68, #75, #82) */}
       <nav aria-label="Workspace tools" className="ky-sidebar__primary-nav">
-        <Button
-          variant="ghost"
-          size="sm"
-          selected={activeSurface === "workspace" && activeTaskId === null}
-          leadingIcon={<ChromeIcon name="new-task" size={16} />}
-          style={{ justifyContent: "flex-start", width: "100%" }}
+        <button
+          type="button"
+          className="ky-sidebar__nav-item"
+          data-active={activeSurface === "workspace" && activeTaskId === null ? "true" : "false"}
           onClick={onNewTask}
         >
-          New task
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          selected={activeSurface === "automations"}
-          leadingIcon={<ChromeIcon name="automations" size={16} />}
-          style={{ justifyContent: "flex-start", width: "100%" }}
+          <span className="ky-sidebar__nav-left">
+            <ChromeIcon name="new-task" size={16} />
+            <span>{t("ui.sidebar.newTask", { defaultValue: "New task" })}</span>
+          </span>
+          <span className="ky-sidebar__shortcut-hint">Ctrl+N</span>
+        </button>
+
+        <button
+          type="button"
+          className="ky-sidebar__nav-item"
+          data-active={activeSurface === "automations" ? "true" : "false"}
           onClick={() => onSelectSurface("automations")}
         >
-          Automations
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          selected={activeSurface === "marketplace"}
-          leadingIcon={<ChromeIcon name="plugin-marketplace" size={16} />}
-          style={{ justifyContent: "flex-start", width: "100%" }}
+          <span className="ky-sidebar__nav-left">
+            <ChromeIcon name="automations" size={16} />
+            <span>{t("ui.sidebar.automations", { defaultValue: "Automations" })}</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="ky-sidebar__nav-item"
+          data-active={activeSurface === "marketplace" ? "true" : "false"}
           onClick={() => onSelectSurface("marketplace")}
         >
-          Plugin Marketplace
-        </Button>
+          <span className="ky-sidebar__nav-left">
+            <ChromeIcon name="plugin-marketplace" size={16} />
+            <span>{t("ui.sidebar.pluginMarketplace", { defaultValue: "Plugin Marketplace" })}</span>
+          </span>
+        </button>
       </nav>
+
+      <div className="ky-sidebar__divider" />
 
       {/* Scrollable Projects & Tasks Tree + Karyora Core Domain Links */}
       <div className="ky-sidebar__scroll-region">
@@ -155,68 +170,67 @@ export function LeftSidebar({
           onTaskContextAction={onTaskContextAction}
         />
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "2px",
-            paddingTop: "var(--space-2)",
-            borderTop: "1px solid var(--border-subtle)",
-          }}
-        >
+        <div className="ky-sidebar__divider" style={{ margin: "6px 2px" }} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
           <div className="ky-sidebar__section-header">
-            <span>Karyora Core</span>
+            <span>{t("ui.sidebar.coreSection", { defaultValue: "Karyora Core" })}</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={activeSurface === "jobs"}
-            leadingIcon={<ChromeIcon name="cpu" size={14} />}
-            style={{ justifyContent: "flex-start", width: "100%" }}
+          <button
+            type="button"
+            className="ky-sidebar__nav-item"
+            data-active={activeSurface === "jobs" ? "true" : "false"}
             onClick={() => onSelectSurface("jobs")}
           >
-            Durable Jobs
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={activeSurface === "knowledge"}
-            leadingIcon={<ChromeIcon name="database" size={14} />}
-            style={{ justifyContent: "flex-start", width: "100%" }}
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="cpu" size={14} />
+              <span>{t("ui.sidebar.jobs", { defaultValue: "Jobs" })}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ky-sidebar__nav-item"
+            data-active={activeSurface === "knowledge" ? "true" : "false"}
             onClick={() => onSelectSurface("knowledge")}
           >
-            KnowledgePack
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={activeSurface === "memory"}
-            leadingIcon={<ChromeIcon name="brain-thinking" size={14} />}
-            style={{ justifyContent: "flex-start", width: "100%" }}
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="database" size={14} />
+              <span>{t("ui.sidebar.knowledge", { defaultValue: "Knowledge" })}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ky-sidebar__nav-item"
+            data-active={activeSurface === "memory" ? "true" : "false"}
             onClick={() => onSelectSurface("memory")}
           >
-            Scoped Memory
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={activeSurface === "context"}
-            leadingIcon={<ChromeIcon name="sliders" size={14} />}
-            style={{ justifyContent: "flex-start", width: "100%" }}
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="brain-thinking" size={14} />
+              <span>{t("ui.sidebar.memory", { defaultValue: "Memory" })}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ky-sidebar__nav-item"
+            data-active={activeSurface === "context" ? "true" : "false"}
             onClick={() => onSelectSurface("context")}
           >
-            Context Inspector
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={activeSurface === "activity"}
-            leadingIcon={<ChromeIcon name="activity" size={14} />}
-            style={{ justifyContent: "flex-start", width: "100%" }}
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="sliders" size={14} />
+              <span>{t("ui.sidebar.context", { defaultValue: "Context" })}</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="ky-sidebar__nav-item"
+            data-active={activeSurface === "activity" ? "true" : "false"}
             onClick={() => onSelectSurface("activity")}
           >
-            Activity &amp; Audit
-          </Button>
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="activity" size={14} />
+              <span>{t("ui.sidebar.activityAudit", { defaultValue: "Activity & Audit" })}</span>
+            </span>
+          </button>
         </div>
       </div>
 
@@ -238,8 +252,8 @@ export function LeftSidebar({
           id="sidebar-settings-btn"
           variant="ghost"
           size="sm"
-          aria-label="Open Settings (Ctrl+,)"
-          title="Settings (Ctrl+,)"
+          aria-label={t("ui.sidebar.settings", { defaultValue: "Settings" })}
+          title={`${t("ui.sidebar.settings", { defaultValue: "Settings" })} (Ctrl+,)`}
           onClick={() => onOpenSettings("general", "sidebar-settings-btn")}
         >
           <ChromeIcon name="settings" size={16} />

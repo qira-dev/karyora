@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { I18nextProvider } from "react-i18next";
 
 import { App } from "./App";
 import { createI18n } from "./i18n";
@@ -15,7 +16,23 @@ import "./domains/enterprise-domains.css";
 import "./settings/settings-hub.css";
 import "./styles/responsive-reflow.css";
 
-createI18n();
+const i18nInstance = createI18n();
+
+// Apply dark class synchronously before first paint unless light theme was explicitly saved
+if (typeof document !== "undefined") {
+  try {
+    const savedTheme = window.localStorage.getItem("karyora:ui:theme");
+    const isLight =
+      savedTheme === "light" ||
+      (savedTheme === "system" &&
+        window.matchMedia?.("(prefers-color-scheme: light)").matches);
+    document.documentElement.classList.toggle("dark", !isLight);
+    document.documentElement.dataset.theme = isLight ? "light" : "dark";
+  } catch {
+    document.documentElement.classList.add("dark");
+    document.documentElement.dataset.theme = "dark";
+  }
+}
 
 const container = document.getElementById("root");
 if (!container) {
@@ -24,6 +41,8 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <I18nextProvider i18n={i18nInstance}>
+      <App />
+    </I18nextProvider>
   </StrictMode>,
 );

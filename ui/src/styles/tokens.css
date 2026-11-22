@@ -1,61 +1,76 @@
 /**
  * Authoritative v3.0 Semantic Theme & Design Tokens (UI-07, UI-08, UI-25).
  *
- * Source baseline: ZCode v3.18.2 token surface (styles-D4aYlB9N.css) +
- * Karyora WCAG 2.2 AA contrast-verified semantic tokens (Blueprint §5.1, §20.1).
+ * Calibrated directly against ZCode v3.18.2's extracted `styles-D4aYlB9N.css`
+ * neutral carbon palette (`neutral-950` / `neutral-900` / `neutral-800` + `sky` brand
+ * + crisp monochrome primary controls) while passing WCAG 2.2 AA contrast (`G-03`).
  */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Surfaces */
-  --bg-canvas: #f8fafc;
-  --bg-sidebar: #f1f5f9;
+  /* ZCode Neutral Light Surfaces */
+  --bg-canvas: #ffffff;
+  --bg-sidebar: #f5f5f5;
   --bg-surface-1: #ffffff;
-  --bg-surface-2: #f1f5f9;
-  --bg-surface-3: #e2e8f0;
-  --bg-overlay: rgba(15, 23, 42, 0.45);
+  --bg-surface-2: #f0f0f0;
+  --bg-surface-3: #e5e5e5;
+  --bg-composer: #ffffff;
+  --bg-composer-focused: #fafafa;
+  --bg-overlay: rgba(10, 10, 10, 0.42);
 
-  /* Borders & Focus */
-  --border-subtle: #e2e8f0;
-  --border-default: #cbd5e1;
-  --border-strong: #94a3b8;
-  --focus-ring: #4f46e5;
+  /* Hairline Borders & Sky Focus */
+  --border-subtle: rgba(10, 10, 10, 0.08);
+  --border-default: rgba(10, 10, 10, 0.13);
+  --border-strong: rgba(10, 10, 10, 0.24);
+  --focus-ring: #0284c7;
 
-  /* Typography */
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --text-muted: #475569;
-  --accent-primary: #4f46e5;
-  --accent-text: #3730a3;
+  /* Neutral Typography */
+  --text-primary: #171717;
+  --text-secondary: #404040;
+  --text-muted: #525252;
+
+  /* ZCode Monochrome Primary CTA + Sky Brand Accent */
+  --btn-primary-bg: #171717;
+  --btn-primary-bg-hover: #262626;
+  --btn-primary-fg: #fafafa;
+  --accent-primary: #0284c7;
+  --accent-text: #0369a1;
+
+  /* Toggle Switch (Exact ZCode Light) */
+  --toggle-off-bg: #d4d4d4;
+  --toggle-off-thumb: #ffffff;
+  --toggle-on-bg: #171717;
+  --toggle-on-thumb: #ffffff;
 
   /* Shimmer Gradient */
-  --gradient-text-from: #4f46e5;
-  --gradient-text-via: #0284c7;
-  --gradient-text-to: #4f46e5;
+  --gradient-text-from: #525252;
+  --gradient-text-via: #171717;
+  --gradient-text-to: #525252;
 
   /* Semantic Status & Diffs */
-  --success-bg: rgba(22, 163, 74, 0.12);
+  --success-bg: rgba(22, 163, 74, 0.10);
   --success-text: #15803d;
-  --warning-bg: rgba(217, 119, 6, 0.14);
+  --warning-bg: rgba(217, 119, 6, 0.12);
   --warning-text: #b45309;
-  --danger-bg: rgba(220, 38, 38, 0.12);
+  --danger-bg: rgba(220, 38, 38, 0.10);
   --danger-text: #b91c1c;
-  --info-bg: rgba(37, 99, 235, 0.12);
-  --info-text: #1d4ed8;
-  --diff-added: #15803d;
-  --diff-removed: #b91c1c;
+  --info-bg: rgba(2, 132, 199, 0.10);
+  --info-text: #0369a1;
+  --diff-added: #16a34a;
+  --diff-removed: #dc2626;
+  --user-bubble-bg: rgba(10, 10, 10, 0.06);
 
   /* Typography Families & Scales */
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Noto Sans Bengali", sans-serif;
+    "Noto Sans Bengali", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono", "MesloLGS NF", "Fira Code", ui-monospace,
     SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --ui-font-size: 14px;
   --code-font-size: 12px;
 
-  /* Spacing Scale (4px Base Grid, Blueprint §20.1 B) */
+  /* Spacing Scale (4px Base Grid) */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -67,7 +82,7 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  /* Shape & Border Radii (Blueprint §20.1 C) */
+  /* Shape & Border Radii */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -75,8 +90,8 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  /* Layout Dimensions */
-  --sidebar-width: 248px;
+  /* Layout Dimensions (ZCode 260px Sidebar) */
+  --sidebar-width: 260px;
   --topbar-height: 44px;
 }
 
@@ -84,41 +99,55 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Surfaces */
-  --bg-canvas: #0b0e14;
-  --bg-sidebar: #0e121a;
-  --bg-surface-1: #11161f;
-  --bg-surface-2: #161c28;
-  --bg-surface-3: #1c2433;
-  --bg-overlay: rgba(6, 8, 13, 0.72);
+  /* ZCode Exact Neutral Carbon Dark Surfaces (#242424 outer frame, #171717 inset panel, #232323 cards/composer) */
+  --bg-canvas: #171717;
+  --bg-sidebar: #232323;
+  --bg-surface-1: #232323;
+  --bg-surface-2: #2c2c2c;
+  --bg-surface-3: #363636;
+  --bg-composer: #232323;
+  --bg-composer-focused: #262626;
+  --bg-overlay: rgba(0, 0, 0, 0.65);
 
-  /* Borders & Focus */
+  /* Hairline Borders & Sky Focus */
   --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-default: rgba(255, 255, 255, 0.12);
+  --border-default: rgba(255, 255, 255, 0.11);
   --border-strong: rgba(255, 255, 255, 0.22);
-  --focus-ring: #6366f1;
+  --focus-ring: #38bdf8;
 
-  /* Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --accent-primary: #6366f1;
-  --accent-text: #818cf8;
+  /* Neutral Carbon Typography */
+  --text-primary: #f0f0f0;
+  --text-secondary: #c4c4c4;
+  --text-muted: #9a9a9a;
+
+  /* ZCode Monochrome Crisp White Primary CTA + Sky Brand Accent */
+  --btn-primary-bg: #f0f0f0;
+  --btn-primary-bg-hover: #ffffff;
+  --btn-primary-fg: #141414;
+  --accent-primary: #0ea5e9;
+  --accent-text: #38bdf8;
+
+  /* Toggle Switch (Exact ZCode Dark: White Track + Dark Thumb when ON) */
+  --toggle-off-bg: #363636;
+  --toggle-off-thumb: #8f8f8f;
+  --toggle-on-bg: #ffffff;
+  --toggle-on-thumb: #171717;
 
   /* Shimmer Gradient */
-  --gradient-text-from: #94a3b8;
-  --gradient-text-via: #f8fafc;
-  --gradient-text-to: #94a3b8;
+  --gradient-text-from: #8a8a8a;
+  --gradient-text-via: #ffffff;
+  --gradient-text-to: #8a8a8a;
 
   /* Semantic Status & Diffs */
   --success-bg: rgba(34, 197, 94, 0.14);
   --success-text: #4ade80;
-  --warning-bg: rgba(245, 158, 11, 0.15);
+  --warning-bg: rgba(245, 158, 11, 0.14);
   --warning-text: #fbbf24;
   --danger-bg: rgba(239, 68, 68, 0.15);
   --danger-text: #f87171;
-  --info-bg: rgba(59, 130, 246, 0.15);
-  --info-text: #60a5fa;
+  --info-bg: rgba(56, 189, 248, 0.14);
+  --info-text: #38bdf8;
   --diff-added: #4ade80;
   --diff-removed: #f87171;
+  --user-bubble-bg: rgba(255, 255, 255, 0.08);
 }

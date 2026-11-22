@@ -1,6 +1,6 @@
 /**
- * Base Application Reset, 3-Region Workspace Shell, Responsive Reflow & 9-State Primitives
- * (UIR-2.1, UIR-2.3, Blueprint §4.2, §6.1, §20.1, §22.2).
+ * Base Application Reset, ZCode-Calibrated 9-State Primitives & Subtle Scrollbars
+ * (UIR-2.1, UIR-2.3, ZCode styles-D4aYlB9N.css parity).
  */
 
 *,
@@ -16,7 +16,7 @@ body,
   padding: 0;
   width: 100%;
   height: 100%;
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-sidebar);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--ui-font-size);
@@ -24,9 +24,25 @@ body,
   -webkit-font-smoothing: antialiased;
 }
 
+/* ZCode subtle translucent scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.22);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.38);
+}
+
 :focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline: 1.5px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 
 .karyora-shell-root {
@@ -34,26 +50,26 @@ body,
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-sidebar);
   color: var(--text-primary);
 }
 
-/* 9-State Button Primitive (Blueprint §6.1, §20.3 A) */
+/* ZCode-Calibrated 9-State Button Primitive */
 .ky-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  min-width: 24px;
+  gap: 7px;
+  min-width: 28px;
   min-height: 32px;
-  padding-inline: var(--space-3);
-  padding-block: var(--space-1);
-  border-radius: var(--radius-sm);
+  padding-inline: 12px;
+  padding-block: 5px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.84rem;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.3;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.14s ease, border-color 0.14s ease,
@@ -61,31 +77,46 @@ body,
 }
 
 .ky-btn--sm {
-  min-height: 28px;
-  padding-inline: var(--space-2);
+  min-height: 30px;
+  padding-inline: 10px;
   font-size: 0.8125rem;
 }
 
 .ky-btn--md {
   min-height: 34px;
-  padding-inline: var(--space-3);
+  padding-inline: 14px;
 }
 
 .ky-btn--lg {
-  min-height: 40px;
-  padding-inline: var(--space-4);
-  font-size: 0.9375rem;
+  min-height: 38px;
+  padding-inline: 16px;
+  font-size: 0.9rem;
 }
 
+/* Crisp Monochrome Primary Button (White in Dark Mode, Black in Light Mode — ZCode #1, #10) */
 .ky-btn--primary {
-  background-color: var(--accent-primary);
-  color: #ffffff;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-weight: 500;
+}
+
+.ky-btn--primary:hover:not(:disabled) {
+  background-color: var(--btn-primary-bg-hover);
 }
 
 .ky-btn--secondary {
-  background-color: var(--bg-surface-2);
+  background-color: rgba(255, 255, 255, 0.04);
   border-color: var(--border-default);
   color: var(--text-primary);
+}
+
+[data-theme="light"] .ky-btn--secondary {
+  background-color: #ffffff;
+}
+
+.ky-btn--secondary:hover:not(:disabled) {
+  background-color: var(--bg-surface-2);
+  border-color: var(--border-strong);
 }
 
 .ky-btn--ghost {
@@ -94,36 +125,48 @@ body,
 }
 
 .ky-btn--ghost:hover:not(:disabled) {
-  background-color: var(--bg-surface-2);
+  background-color: rgba(255, 255, 255, 0.07);
   color: var(--text-primary);
+}
+
+[data-theme="light"] .ky-btn--ghost:hover:not(:disabled) {
+  background-color: rgba(10, 10, 10, 0.06);
 }
 
 .ky-btn--danger {
   background-color: var(--danger-bg);
-  border-color: var(--danger-text);
+  border-color: rgba(239, 68, 68, 0.35);
   color: var(--danger-text);
+}
+
+.ky-btn--danger:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.24);
 }
 
 .ky-btn:disabled,
 .ky-btn[aria-disabled="true"] {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
 .ky-btn--selected {
-  border-color: var(--accent-primary);
-  background-color: var(--bg-surface-3);
+  background-color: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .ky-btn--selected {
+  background-color: rgba(10, 10, 10, 0.08);
 }
 
 .ky-btn--invalid {
   border-color: var(--danger-text);
 }
 
-/* 9-State Input & Textarea Primitives (Blueprint §6.1, §8.2) */
+/* ZCode-Calibrated Input, Textarea & Select */
 .ky-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 6px;
   width: 100%;
 }
 
@@ -131,15 +174,40 @@ body,
 .ky-textarea,
 .ky-select {
   width: 100%;
-  min-height: 34px;
-  padding-inline: var(--space-3);
-  padding-block: var(--space-2);
-  border-radius: var(--radius-sm);
+  min-height: 36px;
+  padding-inline: 12px;
+  padding-block: 7px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-default);
-  background-color: var(--bg-surface-1);
+  background-color: rgba(0, 0, 0, 0.16);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  transition: border-color 0.14s ease, background-color 0.14s ease;
+}
+
+[data-theme="light"] .ky-input,
+[data-theme="light"] .ky-textarea,
+[data-theme="light"] .ky-select {
+  background-color: #ffffff;
+}
+
+.ky-input:hover:not(:disabled),
+.ky-textarea:hover:not(:disabled),
+.ky-select:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.ky-input:focus,
+.ky-textarea:focus,
+.ky-select:focus {
+  border-color: var(--focus-ring);
+  outline: none;
+}
+
+.ky-select option {
+  background-color: var(--bg-surface-1);
+  color: var(--text-primary);
 }
 
 .ky-input[aria-invalid="true"],
@@ -151,52 +219,53 @@ body,
 .ky-input:disabled,
 .ky-textarea:disabled,
 .ky-select:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
-  background-color: var(--bg-surface-2);
 }
 
-/* Toggle Switch (role="switch") */
+/* ZCode Exact Toggle Switch (White Track + Dark Thumb when ON, Dark Track when OFF — Screenshots #1, #5, #10) */
 .ky-toggle {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 36px;
-  height: 20px;
+  flex-shrink: 0;
+  width: 38px;
+  height: 22px;
   padding: 2px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-default);
-  background-color: var(--bg-surface-3);
+  background-color: var(--toggle-off-bg);
   cursor: pointer;
-  transition: background-color 0.16s ease;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
 }
 
 .ky-toggle[aria-checked="true"] {
-  background-color: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background-color: var(--toggle-on-bg);
+  border-color: var(--toggle-on-bg);
 }
 
 .ky-toggle__thumb {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: var(--radius-full);
-  background-color: #ffffff;
-  transition: transform 0.16s ease;
+  background-color: var(--toggle-off-thumb);
+  transition: transform 0.16s ease, background-color 0.16s ease;
 }
 
 .ky-toggle[aria-checked="true"] .ky-toggle__thumb {
   transform: translateX(16px);
+  background-color: var(--toggle-on-thumb);
 }
 
 /* Badges & Diff Counters (+A -R) */
 .ky-badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding-inline: var(--space-2);
+  gap: 5px;
+  padding-inline: 8px;
   padding-block: 2px;
   border-radius: var(--radius-full);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -204,13 +273,14 @@ body,
 .ky-diff-pill {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  padding-inline: var(--space-2);
+  gap: 6px;
+  padding-inline: 6px;
   padding-block: 2px;
   border-radius: var(--radius-xs);
-  background-color: var(--bg-surface-2);
+  background-color: transparent;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -222,20 +292,20 @@ body,
   color: var(--diff-removed);
 }
 
-/* Standardized 5-Element RecoveryPanel (Blueprint §21.2) */
+/* Standardized 5-Element RecoveryPanel */
 .ky-recovery-panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-default);
   background-color: var(--bg-surface-1);
 }
 
 .ky-recovery-panel--error,
 .ky-recovery-panel--permission-denied {
-  border-color: var(--danger-text);
+  border-color: rgba(248, 113, 113, 0.35);
   background-color: var(--danger-bg);
 }
 
@@ -243,7 +313,7 @@ body,
 .ky-recovery-panel--unknown-outcome-s4,
 .ky-recovery-panel--conflict,
 .ky-recovery-panel--rate-limited {
-  border-color: var(--warning-text);
+  border-color: rgba(251, 191, 36, 0.35);
   background-color: var(--warning-bg);
 }
 
@@ -251,12 +321,13 @@ body,
 .ky-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 60;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
   background-color: var(--bg-overlay);
+  backdrop-filter: blur(2px);
 }
 
 .ky-modal-dialog {
@@ -269,9 +340,80 @@ body,
   border: 1px solid var(--border-default);
   background-color: var(--bg-surface-1);
   color: var(--text-primary);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
 }
 
-/* Responsive Breakpoints & 320 CSS px Reflow (Blueprint §22.2, WCAG 1.4.10) */
+/* ZCode Horizontal Setting Group Card (Exact Match to Screenshots #1, #5, #10) */
+.ky-setting-group {
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface-1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ky-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ky-setting-row:last-child {
+  border-bottom: none;
+}
+
+.ky-setting-row--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.ky-setting-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ky-setting-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ky-setting-row__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ky-setting-row__desc {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.ky-setting-row__control {
+  flex-shrink: 0;
+  min-width: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ky-setting-row__control--compact {
+  min-width: auto;
+}
+
 @media (max-width: 767px) {
   .karyora-shell-root {
     flex-direction: column;
@@ -283,7 +425,14 @@ body,
     max-width: 100%;
   }
 
-  .ky-btn {
-    min-height: 40px;
+  .ky-setting-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .ky-setting-row__control {
+    min-width: 0;
+    justify-content: flex-start;
   }
 }

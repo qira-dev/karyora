@@ -1,6 +1,6 @@
 /**
- * 3-Region Application Shell, Left Sidebar (248px), Top Bar, Popovers & Overlay Styles
- * (UIR-3, Blueprint §4.2–4.4, §14, §22.2, Screenshots #55, #61–#65, #68, #79–#80, #84–#85).
+ * ZCode v3.18.2 3-Region Application Shell, Outer Charcoal Frame + Inset Rounded Main Panel
+ * (Screenshots #61–#65, #68, #75, #79–#80, #82–#85).
  */
 
 .ky-app-shell {
@@ -8,7 +8,7 @@
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-sidebar);
   color: var(--text-primary);
 }
 
@@ -17,7 +17,7 @@
   user-select: none;
 }
 
-/* Left Sidebar (248px expanded, collapsible via Ctrl+B) */
+/* Left Sidebar (260px ZCode Chrome — seamless with outer window frame) */
 .ky-sidebar {
   display: flex;
   flex-direction: column;
@@ -26,66 +26,141 @@
   max-width: var(--sidebar-width);
   height: 100%;
   background-color: var(--bg-sidebar);
-  border-inline-end: 1px solid var(--border-subtle);
   overflow: hidden;
+  user-select: none;
 }
 
 .ky-sidebar__top-chrome {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--topbar-height);
-  padding-inline: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  height: 46px;
+  padding: 0 12px 0 14px;
   flex-shrink: 0;
+}
+
+.ky-sidebar__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
 }
 
 .ky-sidebar__primary-nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 4px 10px 10px;
+}
+
+.ky-sidebar__nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.ky-sidebar__nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .ky-sidebar__nav-item:hover {
+  background-color: rgba(10, 10, 10, 0.06);
+}
+
+.ky-sidebar__nav-item[data-active="true"] {
+  background-color: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+[data-theme="light"] .ky-sidebar__nav-item[data-active="true"] {
+  background-color: rgba(10, 10, 10, 0.08);
+}
+
+.ky-sidebar__nav-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ky-sidebar__shortcut-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+  flex-shrink: 0;
+}
+
+.ky-sidebar__divider {
+  height: 1px;
+  margin: 6px 12px;
+  background-color: var(--border-subtle);
 }
 
 .ky-sidebar__scroll-region {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-2);
+  padding: 4px 10px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 10px;
 }
 
 .ky-sidebar__section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-inline: var(--space-2);
+  padding: 2px 10px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .ky-sidebar__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--border-subtle);
+  gap: 8px;
+  padding: 10px 12px;
   background-color: var(--bg-sidebar);
   position: relative;
+  flex-shrink: 0;
 }
 
-/* Center Workspace Column + Optional Side Pane + Bottom Docked Terminal */
+/* ZCode Signature Inset Rounded Main Workspace Card (Screenshots #68, #75, #82) */
 .ky-main-column {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  height: calc(100% - 12px);
+  margin: 6px 6px 6px 0;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-canvas);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -97,8 +172,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   height: var(--topbar-height);
-  padding-inline: var(--space-4);
-  border-bottom: 1px solid var(--border-subtle);
+  padding-inline: 16px;
   background-color: var(--bg-canvas);
   flex-shrink: 0;
   position: relative;
@@ -123,7 +197,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: 12px 24px 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 .ky-side-pane-slot {
@@ -132,7 +208,7 @@
   max-width: 55%;
   height: 100%;
   border-inline-start: 1px solid var(--border-subtle);
-  background-color: var(--bg-surface-1);
+  background-color: var(--bg-canvas);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -140,9 +216,9 @@
 
 .ky-bottom-terminal-slot {
   height: 220px;
-  border-top: 1px solid var(--border-default);
-  background-color: var(--code-bg);
-  color: var(--code-fg);
+  border-top: 1px solid var(--border-subtle);
+  background-color: #0e0e0e;
+  color: #e5e5e5;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -152,43 +228,61 @@
   height: 55%;
 }
 
-/* Floating Popover Surfaces (Elevation 3 — Project Hover Card #84, Profile #61–#65, Share #79, Help #80) */
+/* Floating Popover Surfaces (Project Hover Card #84, Profile #61–#65, Share #79, Help #80, Context Menu #85) */
 .ky-popover-surface {
   position: absolute;
-  z-index: 35;
-  border-radius: var(--radius-md);
+  z-index: 45;
+  border-radius: 10px;
   border: 1px solid var(--border-default);
   background-color: var(--bg-surface-1);
   color: var(--text-primary);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.48);
 }
 
 .ky-project-hover-card {
   width: 280px;
-  padding: var(--space-3);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 /* Notification Drawer */
 .ky-drawer-right {
   position: fixed;
-  top: var(--topbar-height);
-  inset-inline-end: 0;
-  bottom: 0;
-  width: min(380px, 100vw);
-  z-index: 42;
+  top: 50px;
+  inset-inline-end: 10px;
+  bottom: 10px;
+  width: min(370px, calc(100vw - 20px));
+  z-index: 48;
+  border-radius: 12px;
   background-color: var(--bg-surface-1);
-  border-inline-start: 1px solid var(--border-default);
+  border: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
-  padding: var(--space-4);
-  gap: var(--space-3);
-  box-shadow: -8px 0 28px rgba(0, 0, 0, 0.32);
+  padding: 16px;
+  gap: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
-/* Compact Desktop / Tablet & 320 CSS px Reflow (Blueprint §22.2, G-07) */
+/* Compact Discreet Core Handshake Status Pill (Non-intrusive bottom-right) */
+.ky-core-status-pill {
+  position: fixed;
+  right: 16px;
+  bottom: 14px;
+  z-index: 32;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-default);
+  background-color: var(--bg-surface-1);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
+}
+
 @media (max-width: 1199px) {
   .ky-side-pane-slot {
     position: fixed;
@@ -211,14 +305,22 @@
     width: min(280px, 88vw);
     min-width: 0;
     max-width: 88vw;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .ky-main-column {
+    margin: 0;
+    height: 100%;
+    border-radius: 0;
+    border: none;
   }
 
   .ky-topbar {
-    padding-inline: var(--space-2);
-    gap: var(--space-1);
+    padding-inline: 10px;
+    gap: 6px;
   }
 
   .ky-center-scroll {
-    padding: var(--space-3);
+    padding: 12px;
   }
 }

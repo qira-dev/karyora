@@ -1,16 +1,10 @@
 /**
  * Left Sidebar Bottom User Profile Popover & 4 Flyout Submenus
  * (UIR-3.3, Screenshots #61–#65, Blueprint §4.3 (6)).
- *
- * Implements:
- * - Avatar button + masked user/workspace ID + one-click Copy ID
- * - `Language ▸` (`System default` + all 13 locked locales including `bn` #62)
- * - `App theme ▸` (`Dark`, `Light`, `System` #63)
- * - `Interface mode ▸` (`Coding mode` vs `Office mode` #64)
- * - `Interface zoom ▸` (`100%`, `Zoom In Ctrl+=`, `Zoom Out Ctrl+-`, `Reset Zoom Ctrl+0` #65)
  */
 
 import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../components/icons";
 import { Button } from "../components/primitives";
 import type {
@@ -53,6 +47,7 @@ export function ProfilePopoverMenu({
   onChangeInterfaceMode,
   onChangeZoomPercent,
 }: ProfilePopoverMenuProps): ReactElement {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [submenu, setSubmenu] = useState<ActiveSubmenu>("none");
   const [copiedId, setCopiedId] = useState(false);
@@ -78,10 +73,10 @@ export function ProfilePopoverMenu({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: "22px",
-            height: "22px",
+            width: "24px",
+            height: "24px",
             borderRadius: "var(--radius-full)",
-            backgroundColor: "var(--accent-primary)",
+            backgroundColor: "#7c3aed",
             color: "#ffffff",
             fontSize: "0.75rem",
             fontWeight: 600,
@@ -89,7 +84,7 @@ export function ProfilePopoverMenu({
         >
           {initials}
         </span>
-        <span style={{ fontSize: "0.8125rem", fontWeight: 500 }}>
+        <span style={{ fontSize: "0.82rem", color: "var(--text-primary)", fontWeight: 500 }}>
           {userDisplayName}
         </span>
       </Button>
@@ -97,23 +92,17 @@ export function ProfilePopoverMenu({
       {open && (
         <div
           role="menu"
-          aria-label="User profile and quick appearance menu"
+          aria-label="User profile and preferences menu"
           data-testid="profile-popover-menu"
           className="ky-popover-surface"
           style={{
             bottom: "calc(100% + 8px)",
             insetInlineStart: 0,
-            width: "256px",
-            padding: "var(--space-2)",
+            width: "248px",
+            padding: "8px",
             display: "flex",
             flexDirection: "column",
             gap: "4px",
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setOpen(false);
-            }
           }}
         >
           <div
@@ -121,190 +110,250 @@ export function ProfilePopoverMenu({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "var(--space-2)",
+              padding: "6px 8px",
               borderBottom: "1px solid var(--border-subtle)",
+              marginBottom: "4px",
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+              <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>
                 {userDisplayName}
               </div>
               <div
                 style={{
-                  fontSize: "0.7rem",
+                  fontSize: "0.72rem",
                   color: "var(--text-muted)",
                   fontFamily: "var(--font-mono)",
                 }}
               >
-                ID: {maskedUserId}
+                {maskedUserId}
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              aria-label="Copy User ID"
+              aria-label={t("ui.profile.copyId", { defaultValue: "Copy ID" })}
               onClick={() => {
-                if (
-                  typeof navigator !== "undefined" &&
-                  typeof navigator.clipboard?.writeText === "function"
-                ) {
-                  void navigator.clipboard.writeText(maskedUserId);
-                }
+                void navigator.clipboard?.writeText(maskedUserId);
                 setCopiedId(true);
+                window.setTimeout(() => setCopiedId(false), 1200);
               }}
             >
               <ChromeIcon name={copiedId ? "check" : "copy"} size={14} />
             </Button>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={submenu === "language"}
-            style={{ justifyContent: "space-between", width: "100%" }}
+          <button
+            type="button"
+            role="menuitem"
+            className="ky-sidebar__nav-item"
+            data-active={submenu === "language" ? "true" : "false"}
             onClick={() =>
               setSubmenu((prev) => (prev === "language" ? "none" : "language"))
             }
           >
-            <span>Language ({activeLocale})</span>
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="browser-globe" size={14} />
+              <span>{t("ui.profile.language", { defaultValue: "Language" })}</span>
+            </span>
             <ChromeIcon name="chevron-right" size={14} />
-          </Button>
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            className="ky-sidebar__nav-item"
+            data-active={submenu === "theme" ? "true" : "false"}
+            onClick={() =>
+              setSubmenu((prev) => (prev === "theme" ? "none" : "theme"))
+            }
+          >
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="appearance" size={14} />
+              <span>{t("ui.profile.appTheme", { defaultValue: "App theme" })}</span>
+            </span>
+            <ChromeIcon name="chevron-right" size={14} />
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            className="ky-sidebar__nav-item"
+            data-active={submenu === "mode" ? "true" : "false"}
+            onClick={() =>
+              setSubmenu((prev) => (prev === "mode" ? "none" : "mode"))
+            }
+          >
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="sliders" size={14} />
+              <span>{t("ui.profile.interfaceMode", { defaultValue: "Interface mode" })}</span>
+            </span>
+            <ChromeIcon name="chevron-right" size={14} />
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            className="ky-sidebar__nav-item"
+            data-active={submenu === "zoom" ? "true" : "false"}
+            onClick={() =>
+              setSubmenu((prev) => (prev === "zoom" ? "none" : "zoom"))
+            }
+          >
+            <span className="ky-sidebar__nav-left">
+              <ChromeIcon name="maximize" size={14} />
+              <span>
+                {t("ui.profile.interfaceZoom", { defaultValue: "Interface zoom" })} ({activeZoomPercent}%)
+              </span>
+            </span>
+            <ChromeIcon name="chevron-right" size={14} />
+          </button>
+
           {submenu === "language" && (
             <div
-              data-testid="profile-submenu-language"
+              role="menu"
+              aria-label="Language options"
+              className="ky-popover-surface"
               style={{
-                maxHeight: "180px",
+                bottom: 0,
+                insetInlineStart: "calc(100% + 6px)",
+                width: "216px",
+                maxHeight: "340px",
                 overflowY: "auto",
-                paddingInlineStart: "var(--space-2)",
+                padding: "6px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "2px",
               }}
             >
               {PROFILE_LOCALE_OPTIONS.map((opt) => (
-                <Button
+                <button
                   key={opt.code}
-                  variant="ghost"
-                  size="sm"
-                  selected={opt.code === activeLocale}
-                  style={{ justifyContent: "flex-start", width: "100%" }}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={opt.code === activeLocale ? "true" : "false"}
+                  className="ky-sidebar__nav-item"
+                  data-active={opt.code === activeLocale ? "true" : "false"}
                   onClick={() => {
-                    onChangeLocale(opt.code === "system" ? "en" : opt.code);
+                    const resolvedLocale: SupportedLocale =
+                      opt.code === "system" ? "en" : opt.code;
+                    onChangeLocale(resolvedLocale);
                     setOpen(false);
                   }}
                 >
-                  {opt.label}
-                </Button>
+                  <span>{opt.label}</span>
+                  {opt.code === activeLocale && <ChromeIcon name="check" size={14} />}
+                </button>
               ))}
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={submenu === "theme"}
-            style={{ justifyContent: "space-between", width: "100%" }}
-            onClick={() =>
-              setSubmenu((prev) => (prev === "theme" ? "none" : "theme"))
-            }
-          >
-            <span>App theme ({activeTheme})</span>
-            <ChromeIcon name="chevron-right" size={14} />
-          </Button>
           {submenu === "theme" && (
             <div
-              data-testid="profile-submenu-theme"
+              role="menu"
+              aria-label="App theme options"
+              className="ky-popover-surface"
               style={{
-                paddingInlineStart: "var(--space-2)",
+                bottom: 0,
+                insetInlineStart: "calc(100% + 6px)",
+                width: "164px",
+                padding: "6px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "2px",
               }}
             >
-              {PROFILE_THEME_OPTIONS.map((opt) => (
-                <Button
-                  key={opt.value}
-                  variant="ghost"
-                  size="sm"
-                  selected={opt.value === activeTheme}
-                  style={{ justifyContent: "flex-start", width: "100%" }}
-                  onClick={() => {
-                    onChangeTheme(opt.value);
-                    setOpen(false);
-                  }}
-                >
-                  {opt.label}
-                </Button>
-              ))}
+              {PROFILE_THEME_OPTIONS.map((opt) => {
+                const labelKey =
+                  opt.value === "dark"
+                    ? "ui.profile.themeDark"
+                    : opt.value === "light"
+                      ? "ui.profile.themeLight"
+                      : "ui.profile.themeSystem";
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={opt.value === activeTheme ? "true" : "false"}
+                    className="ky-sidebar__nav-item"
+                    data-active={opt.value === activeTheme ? "true" : "false"}
+                    onClick={() => {
+                      onChangeTheme(opt.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <span>{t(labelKey, { defaultValue: opt.label })}</span>
+                    {opt.value === activeTheme && <ChromeIcon name="check" size={14} />}
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={submenu === "mode"}
-            style={{ justifyContent: "space-between", width: "100%" }}
-            onClick={() =>
-              setSubmenu((prev) => (prev === "mode" ? "none" : "mode"))
-            }
-          >
-            <span>Interface mode ({activeInterfaceMode})</span>
-            <ChromeIcon name="chevron-right" size={14} />
-          </Button>
           {submenu === "mode" && (
             <div
-              data-testid="profile-submenu-mode"
+              role="menu"
+              aria-label="Interface mode options"
+              className="ky-popover-surface"
               style={{
-                paddingInlineStart: "var(--space-2)",
+                bottom: 0,
+                insetInlineStart: "calc(100% + 6px)",
+                width: "216px",
+                padding: "6px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "2px",
               }}
             >
               {PROFILE_INTERFACE_MODE_OPTIONS.map((opt) => (
-                <Button
+                <button
                   key={opt.value}
-                  variant="ghost"
-                  size="sm"
-                  selected={opt.value === activeInterfaceMode}
-                  style={{ justifyContent: "flex-start", width: "100%" }}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={opt.value === activeInterfaceMode ? "true" : "false"}
+                  className="ky-sidebar__nav-item"
+                  data-active={opt.value === activeInterfaceMode ? "true" : "false"}
                   onClick={() => {
                     onChangeInterfaceMode(opt.value);
                     setOpen(false);
                   }}
                 >
-                  {opt.label}
-                </Button>
+                  <span>
+                    {t(
+                      opt.value === "coding"
+                        ? "ui.profile.codingMode"
+                        : "ui.profile.officeMode",
+                      { defaultValue: opt.label },
+                    )}
+                  </span>
+                  {opt.value === activeInterfaceMode && (
+                    <ChromeIcon name="check" size={14} />
+                  )}
+                </button>
               ))}
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            selected={submenu === "zoom"}
-            style={{ justifyContent: "space-between", width: "100%" }}
-            onClick={() =>
-              setSubmenu((prev) => (prev === "zoom" ? "none" : "zoom"))
-            }
-          >
-            <span>Interface zoom ({activeZoomPercent}%)</span>
-            <ChromeIcon name="chevron-right" size={14} />
-          </Button>
           {submenu === "zoom" && (
             <div
-              data-testid="profile-submenu-zoom"
+              role="menu"
+              aria-label="Interface zoom controls"
+              className="ky-popover-surface"
               style={{
-                paddingInlineStart: "var(--space-2)",
+                bottom: 0,
+                insetInlineStart: "calc(100% + 6px)",
+                width: "190px",
+                padding: "6px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "2px",
               }}
             >
-              <Button
-                variant="ghost"
-                size="sm"
-                style={{ justifyContent: "space-between", width: "100%" }}
+              <button
+                type="button"
+                role="menuitem"
+                className="ky-sidebar__nav-item"
                 onClick={() =>
                   onChangeZoomPercent(
                     clampInterfaceZoom(activeZoomPercent + INTERFACE_ZOOM_STEP),
@@ -312,12 +361,12 @@ export function ProfilePopoverMenu({
                 }
               >
                 <span>Zoom In</span>
-                <kbd>Ctrl+=</kbd>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                style={{ justifyContent: "space-between", width: "100%" }}
+                <span className="ky-sidebar__shortcut-hint">Ctrl+=</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="ky-sidebar__nav-item"
                 onClick={() =>
                   onChangeZoomPercent(
                     clampInterfaceZoom(activeZoomPercent - INTERFACE_ZOOM_STEP),
@@ -325,17 +374,17 @@ export function ProfilePopoverMenu({
                 }
               >
                 <span>Zoom Out</span>
-                <kbd>Ctrl+-</kbd>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                style={{ justifyContent: "space-between", width: "100%" }}
+                <span className="ky-sidebar__shortcut-hint">Ctrl+-</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="ky-sidebar__nav-item"
                 onClick={() => onChangeZoomPercent(100)}
               >
-                <span>Reset Zoom (100%)</span>
-                <kbd>Ctrl+0</kbd>
-              </Button>
+                <span>Reset Zoom</span>
+                <span className="ky-sidebar__shortcut-hint">Ctrl+0</span>
+              </button>
             </div>
           )}
         </div>

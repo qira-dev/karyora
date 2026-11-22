@@ -1,5 +1,7 @@
 /**
- * Complete 21-Section Overlay Settings Hub Styles (UIR-8, Screenshots #1–#60, Blueprint §13).
+ * ZCode v3.18.2 21-Section Overlay Settings Hub Styles (Screenshots #1–#60).
+ * Exact match: Charcoal left navigation (#232323) + Inset rounded dark content panel (#171717)
+ * + Grouped horizontal setting rows (#232323) with hairline dividers.
  */
 
 .ky-settings-overlay {
@@ -7,118 +9,207 @@
   inset: 0;
   z-index: 50;
   display: flex;
-  background-color: var(--bg-canvas);
+  background-color: var(--bg-sidebar);
   color: var(--text-primary);
   overflow: hidden;
 }
 
 .ky-settings-nav {
-  width: 264px;
-  min-width: 220px;
-  max-width: 300px;
+  width: 256px;
+  min-width: 230px;
+  max-width: 280px;
   height: 100%;
-  border-inline-end: 1px solid var(--border-subtle);
   background-color: var(--bg-sidebar);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 14px 10px 12px;
+  gap: 10px;
 }
 
 .ky-settings-nav__top {
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ky-settings-back-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+[data-theme="light"] .ky-settings-back-btn {
+  background-color: rgba(10, 10, 10, 0.06);
+}
+
+.ky-settings-back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.11);
+  color: var(--text-primary);
+}
+
+.ky-settings-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ky-settings-search-input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  background-color: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+}
+
+.ky-settings-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ky-settings-search-input:focus {
+  outline: none;
+  border-color: var(--border-strong);
 }
 
 .ky-settings-nav__scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-3) var(--space-2);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 16px;
+  padding-right: 2px;
 }
 
 .ky-settings-nav__group-title {
-  margin: 0 0 6px var(--space-2);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  margin: 0 0 6px 10px;
+  font-size: 0.74rem;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
 .ky-settings-nav__btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   width: 100%;
-  border: 1px solid transparent;
+  height: 34px;
+  border: none;
   background: transparent;
   color: var(--text-secondary);
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 0.83rem;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 400;
   text-align: start;
   cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .ky-settings-nav__btn:hover {
-  background-color: var(--bg-surface-2);
+  background-color: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
+}
+
+[data-theme="light"] .ky-settings-nav__btn:hover {
+  background-color: rgba(10, 10, 10, 0.06);
 }
 
 .ky-settings-nav__btn[data-active="true"] {
-  background-color: var(--bg-surface-2);
-  border-color: var(--accent-primary);
+  background-color: rgba(255, 255, 255, 0.10);
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 500;
 }
 
+[data-theme="light"] .ky-settings-nav__btn[data-active="true"] {
+  background-color: rgba(10, 10, 10, 0.09);
+}
+
+/* Inset Rounded Right Settings Canvas (Exact match to Screenshots #1, #5, #10) */
 .ky-settings-main {
   flex: 1;
   min-width: 0;
-  height: 100%;
+  height: calc(100% - 12px);
+  margin: 6px 6px 6px 0;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-canvas);
   overflow-y: auto;
-  padding: var(--space-6);
+  padding: 36px 48px 56px;
 }
 
 .ky-settings-content {
-  max-width: 880px;
+  max-width: 740px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 16px;
+}
+
+.ky-settings-page-title {
+  margin: 0 0 4px;
+  font-size: 1.65rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.ky-settings-section-heading {
+  margin: 12px 0 2px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ky-settings-section-sub {
+  margin: 0 0 4px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }
 
 .ky-settings-card {
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  border-radius: 12px;
   border: 1px solid var(--border-subtle);
   background-color: var(--bg-surface-1);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 14px;
 }
 
 .ky-settings-card__title {
   margin: 0;
-  font-size: 0.96rem;
+  font-size: 0.92rem;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .ky-settings-grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-3);
+  gap: 14px;
 }
 
 .ky-theme-preview-card {
-  border-radius: var(--radius-md);
-  border: 2px solid var(--border-subtle);
+  border-radius: 12px;
+  border: 1.5px solid var(--border-subtle);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -132,7 +223,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-subtle);
   font-size: 0.8rem;
   font-weight: 600;
@@ -140,10 +231,10 @@
 
 .ky-theme-preview-card__code {
   margin: 0;
-  padding: var(--space-3);
+  padding: 14px;
   font-family: var(--font-mono);
   font-size: 0.76rem;
-  line-height: 1.5;
+  line-height: 1.55;
   overflow-x: auto;
 }
 
@@ -166,16 +257,16 @@
   transform: scale(1.12);
 }
 
-/* Usage Stats Summary Cards & 12-Month Heatmap (#56–#57) */
+/* Usage Stats Summary Cards & 12-Month Sky-Blue Heatmap (#56–#57) */
 .ky-usage-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 10px;
 }
 
 .ky-usage-stat-box {
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
+  padding: 14px;
+  border-radius: 10px;
   border: 1px solid var(--border-subtle);
   background-color: var(--bg-canvas);
   display: flex;
@@ -205,10 +296,10 @@
   background-color: var(--bg-surface-2);
 }
 
-.ky-heatmap-cell[data-level="1"] { background-color: rgba(99, 102, 241, 0.25); }
-.ky-heatmap-cell[data-level="2"] { background-color: rgba(99, 102, 241, 0.48); }
-.ky-heatmap-cell[data-level="3"] { background-color: rgba(99, 102, 241, 0.72); }
-.ky-heatmap-cell[data-level="4"] { background-color: #6366f1; }
+.ky-heatmap-cell[data-level="1"] { background-color: rgba(56, 189, 248, 0.22); }
+.ky-heatmap-cell[data-level="2"] { background-color: rgba(56, 189, 248, 0.44); }
+.ky-heatmap-cell[data-level="3"] { background-color: rgba(14, 165, 233, 0.70); }
+.ky-heatmap-cell[data-level="4"] { background-color: #38bdf8; }
 
 .ky-bar-chart {
   display: flex;
@@ -243,8 +334,13 @@
     width: 100%;
     max-width: 100%;
     height: auto;
-    max-height: 180px;
-    border-inline-end: none;
-    border-bottom: 1px solid var(--border-subtle);
+    max-height: 200px;
+    padding: 10px;
+  }
+  .ky-settings-main {
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    padding: 20px 16px;
   }
 }

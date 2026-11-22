@@ -1,18 +1,14 @@
 /**
- * Multi-State Agentic Composer (UIR-4.1, Screenshots #68, #70–#85, Blueprint §7.3, E2E-03).
+ * Multi-State Agentic Composer — Calibrated 1:1 to ZCode Screenshots #68, #75, #82.
  *
- * Implements:
- * - Context chips row (`@`, `/`, `#`, `$`, `+` attachments)
- * - Auto-expanding prompt input (`Enter` send, `Shift+Enter` newline)
- * - `+` Add context menu (`Attachments`, `Goal`, `Workflow`, `PLUGINS`)
- * - Inline trigger popovers (`@`, `/`, `#`, `$`)
- * - Mode (`Default` | `Plan` | `Auto` `Ctrl+Shift+M`), Model (`Ctrl+M`), Thought Level (`Ctrl+T`)
- * - Send (`↑`) / Stop (`■`) button and visible `SubmissionQueueDrawer` (`Queue (N)`)
+ * Clean rounded-2xl charcoal input shell, circular `+` button, borderless mode/model/thinking
+ * controls, and crisp circular monochrome Send (`↑`) / Stop (`■`) button.
  */
 
 import { useState, type KeyboardEvent, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../../components/icons";
-import { Badge, Button, Select } from "../../components/primitives";
+import { Badge } from "../../components/primitives";
 import type { DarkCodeTheme, LightCodeTheme } from "../../types/decisions";
 import type { ComposerContextChip, SessionQueueSnapshot } from "../state";
 import {
@@ -93,6 +89,7 @@ export function AgenticComposer({
   onQueueSendNow,
   onQueueRemove,
 }: AgenticComposerProps): ReactElement {
+  const { t } = useTranslation();
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [caretPos, setCaretPos] = useState(promptText.length);
   const [dismissedTriggerAt, setDismissedTriggerAt] = useState<number | null>(null);
@@ -130,7 +127,7 @@ export function AgenticComposer({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       <SubmissionQueueDrawer
         snapshot={queueSnapshot}
         onReorder={onQueueReorder}
@@ -180,7 +177,7 @@ export function AgenticComposer({
 
         {(chips.length > 0 || goalModeEnabled) && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-            {goalModeEnabled && <Badge tone="accent" label="Goal Mode" />}
+            {goalModeEnabled && <Badge tone="accent" label={t("ui.composer.goal", { defaultValue: "Goal" })} />}
             {chips.map((chip) => (
               <span
                 key={chip.chipId}
@@ -213,7 +210,16 @@ export function AgenticComposer({
         <textarea
           aria-label="Prompt composer"
           className="ky-composer-textarea"
-          placeholder="Ask anything... Use @ for files, / for commands, # for sessions, $ for skills"
+          placeholder={
+            isRunning
+              ? t("ui.composer.placeholderQueue", {
+                  defaultValue: "Keep typing to queue follow-up changes...",
+                })
+              : t("ui.composer.placeholder", {
+                  defaultValue:
+                    "Ask Karyora anything, @ to add context, / for commands or capabilities",
+                })
+          }
           value={promptText}
           onChange={(e) => {
             setDismissedTriggerAt(null);
@@ -226,83 +232,110 @@ export function AgenticComposer({
           onKeyDown={handleKeyDown}
         />
 
+        {/* ZCode Bottom Composer Bar: Left (+ & Mode) | Right (Model, Thinking & Circular Send/Stop) */}
         <div className="ky-composer-toolbar">
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)" }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label="Add context (+)"
-              title="Add context, Goal, Workflow, or Plugins"
-              selected={addMenuOpen}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <button
+              type="button"
+              className="ky-composer-plus-btn"
+              aria-label={t("ui.composer.addContext", { defaultValue: "Add context" })}
+              title={t("ui.composer.addContext", { defaultValue: "Add context" })}
               onClick={() => setAddMenuOpen((prev) => !prev)}
             >
               <ChromeIcon name="plus" size={16} />
-            </Button>
+            </button>
 
-            <div style={{ width: "110px" }}>
-              <Select
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                color: mode === "auto" ? "#f59e0b" : "var(--text-secondary)",
+              }}
+            >
+              <ChromeIcon name="shield-security" size={14} />
+              <select
                 aria-label="Session mode"
+                className="ky-composer-inline-select"
+                style={{
+                  color: mode === "auto" ? "#f59e0b" : "var(--text-secondary)",
+                }}
                 value={mode}
                 onChange={(e) => onChangeMode(e.target.value as ComposerSessionMode)}
-                options={[
-                  { value: "default", label: "Default" },
-                  { value: "plan", label: "Plan" },
-                  { value: "auto", label: "Auto" },
-                ]}
-              />
-            </div>
-
-            <div style={{ width: "170px" }}>
-              <Select
-                aria-label="Active model"
-                value={modelId}
-                onChange={(e) => onChangeModel(e.target.value)}
-                options={availableModels.map((m) => ({ value: m, label: m }))}
-              />
-            </div>
-
-            <div style={{ width: "120px" }}>
-              <Select
-                aria-label="Thought level"
-                value={thoughtLevel}
-                onChange={(e) =>
-                  onChangeThoughtLevel(e.target.value as ComposerThoughtLevel)
-                }
-                options={[
-                  { value: "low", label: "Thought: Low" },
-                  { value: "medium", label: "Thought: Med" },
-                  { value: "high", label: "Thought: High" },
-                ]}
-              />
+              >
+                <option value="default">
+                  {t("ui.composer.modeDefault", { defaultValue: "Default" })}
+                </option>
+                <option value="plan">
+                  {t("ui.composer.modePlan", { defaultValue: "Plan" })}
+                </option>
+                <option value="auto">
+                  {t("ui.composer.modeAuto", { defaultValue: "Full access" })}
+                </option>
+              </select>
             </div>
           </div>
 
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
-            {isRunning && (
-              <Button
-                variant="danger"
-                size="sm"
-                aria-label="Stop running turn"
-                leadingIcon={<ChromeIcon name="stop" size={14} />}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            <select
+              aria-label="Active model"
+              className="ky-composer-inline-select"
+              value={modelId}
+              onChange={(e) => onChangeModel(e.target.value)}
+            >
+              {availableModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+
+            <select
+              aria-label="Thought level"
+              className="ky-composer-inline-select"
+              style={{ color: "var(--text-muted)" }}
+              value={thoughtLevel}
+              onChange={(e) =>
+                onChangeThoughtLevel(e.target.value as ComposerThoughtLevel)
+              }
+            >
+              <option value="low">
+                {t("ui.composer.thinkingLow", { defaultValue: "Low" })}
+              </option>
+              <option value="medium">
+                {t("ui.composer.thinkingMedium", { defaultValue: "Medium" })}
+              </option>
+              <option value="high">
+                {t("ui.composer.thinkingHigh", { defaultValue: "High" })}
+              </option>
+            </select>
+
+            {isRunning ? (
+              <button
+                type="button"
+                className="ky-composer-send-btn"
+                aria-label={t("ui.composer.stop", { defaultValue: "Stop" })}
+                title={t("ui.composer.stop", { defaultValue: "Stop" })}
                 onClick={onStopTurn}
               >
-                Stop
-              </Button>
+                <ChromeIcon name="stop" size={14} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="ky-composer-send-btn"
+                disabled={!canSubmit}
+                aria-label={t("ui.composer.send", { defaultValue: "Send" })}
+                title={
+                  isCoreOffline
+                    ? "Core is offline — draft preserved safely"
+                    : t("ui.composer.send", { defaultValue: "Send" })
+                }
+                onClick={onSubmitPrompt}
+              >
+                <ChromeIcon name="send" size={16} />
+              </button>
             )}
-            <Button
-              variant="primary"
-              size="sm"
-              disabled={!canSubmit}
-              disabledReason={
-                isCoreOffline
-                  ? "Core is offline — draft preserved safely"
-                  : "Enter a prompt or attach context"
-              }
-              leadingIcon={<ChromeIcon name="send" size={14} />}
-              onClick={onSubmitPrompt}
-            >
-              {isRunning ? "Queue" : "Send"}
-            </Button>
           </div>
         </div>
       </div>

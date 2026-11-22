@@ -9,6 +9,7 @@
  */
 
 import { useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 import { ChromeIcon } from "../components/icons";
 import { Button, Input } from "../components/primitives";
 import type {
@@ -44,6 +45,7 @@ export function ProjectTaskTree({
   onAddProject,
   onTaskContextAction,
 }: ProjectTaskTreeProps): ReactElement {
+  const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<ProjectTaskFilterMode>("all");
@@ -169,7 +171,7 @@ export function ProjectTaskTree({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <div className="ky-sidebar__section-header">
-        <span>Projects</span>
+        <span>{t("ui.sidebar.taskList", { defaultValue: "Task list" })}</span>
         <div style={{ display: "inline-flex", alignItems: "center", gap: "2px" }}>
           <Button
             variant="ghost"

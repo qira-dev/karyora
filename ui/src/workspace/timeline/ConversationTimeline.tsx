@@ -74,35 +74,13 @@ export function ConversationTimeline({
             <article
               key={turn.turnId}
               id={`turn-${turn.turnId}`}
+              className={turn.role === "user" ? "ky-user-bubble" : undefined}
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--space-2)",
-                padding:
-                  turn.role === "user" ? "var(--space-3)" : "var(--space-1) 0",
-                borderRadius: turn.role === "user" ? "var(--radius-md)" : undefined,
-                backgroundColor:
-                  turn.role === "user" ? "var(--bg-surface-2)" : "transparent",
-                border:
-                  turn.role === "user"
-                    ? "1px solid var(--border-subtle)"
-                    : undefined,
+                gap: "8px",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  fontSize: "0.75rem",
-                  color: "var(--text-muted)",
-                }}
-              >
-                <strong style={{ color: "var(--text-secondary)" }}>
-                  {turn.role === "user" ? "You" : "Karyora Agent"}
-                </strong>
-                <span>{turn.timestamp}</span>
-              </div>
 
               {turn.thinkingText && (
                 <ThinkingRow

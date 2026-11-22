@@ -1,13 +1,13 @@
 /**
  * Startup Core Handshake Gate (UIR-3.1, Blueprint §4.1, §21.1 #1).
  *
- * Probes the Go Core via `V3CoreClient.probeBootstrapStatus()` on mount, removes the
- * static `#startup-logo-shell` once React mounts, and displays a truthful connectivity
- * status pill or `RecoveryPanel` if Core is offline or requires session authentication —
- * never fabricating a connected state.
+ * Probes the Go Core via `V3CoreClient.probeBootstrapStatus()` on mount and exposes
+ * an honest, non-intrusive Core status pill in the bottom-right corner with one-click
+ * expandable `RecoveryPanel` details so the ZCode workspace shell remains spotless.
  */
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { RecoveryPanel } from "../components/feedback";
 import type { CoreBootstrapStatus, V3CoreClient } from "../coreclient";
 import { toRecoveryPanelDescriptor } from "../coreclient";
@@ -25,8 +25,10 @@ export function StartupHandshakeGate({
   onOpenConnectionSettings,
   children,
 }: StartupHandshakeGateProps): ReactElement {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<CoreBootstrapStatus | null>(null);
   const [dismissedBanner, setDismissedBanner] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const runProbe = async () => {
     try {
@@ -73,52 +75,101 @@ export function StartupHandshakeGate({
 
   return (
     <>
-      {showOfflineOrAuthNotice && (
+      {children(status)}
+
+      {showOfflineOrAuthNotice && !detailsOpen && (
         <div
           data-testid="startup-handshake-banner"
-          style={{
-            padding: "var(--space-2) var(--space-4)",
-            borderBottom: "1px solid var(--border-subtle)",
-            backgroundColor: "var(--bg-surface-1)",
-          }}
+          className="ky-core-status-pill"
+          role="status"
         >
-          <RecoveryPanel
-            descriptor={recoveryDescriptor}
-            titleText={
-              status.status === "auth-required"
-                ? "Core session authentication required"
-                : "Local Core is currently unreachable"
-            }
-            explanationText={
-              status.status === "auth-required"
-                ? "The local Core answered, but requires an origin-bound session exchange before loading authoritative workspace data."
-                : "Karyora could not reach the local Go Core on this origin. Workspace chrome remains browsable in offline preview mode while drafts stay protected."
-            }
-            primaryActionLabel={
-              status.status === "auth-required"
-                ? "Open Core Connection Settings"
-                : "Retry Core Handshake"
-            }
-            onPrimaryAction={() => {
-              if (status.status === "auth-required") {
-                onOpenConnectionSettings?.();
-              } else {
-                void runProbe();
-              }
+          <span
+            aria-hidden="true"
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "9999px",
+              backgroundColor:
+                status.status === "auth-required"
+                  ? "var(--warning-text)"
+                  : "var(--text-muted)",
             }}
-            secondaryActions={
-              <button
-                type="button"
-                className="ky-btn ky-btn--ghost ky-btn--sm"
-                onClick={() => setDismissedBanner(true)}
-              >
-                Continue offline
-              </button>
-            }
           />
+          <span>
+            {status.status === "auth-required"
+              ? t("ui.coreStatus.authRequiredPill", { defaultValue: "Core auth required" })
+              : t("ui.coreStatus.offlinePill", { defaultValue: "Core offline (local preview)" })}
+          </span>
+          <button
+            type="button"
+            className="ky-btn ky-btn--ghost ky-btn--sm"
+            style={{ minHeight: "22px", paddingInline: "6px", fontSize: "0.74rem" }}
+            onClick={() => void runProbe()}
+          >
+            {t("ui.coreStatus.retryHandshake", { defaultValue: "Retry" })}
+          </button>
+          <button
+            type="button"
+            className="ky-btn ky-btn--ghost ky-btn--sm"
+            style={{ minHeight: "22px", paddingInline: "5px", fontSize: "0.74rem" }}
+            aria-label="Core connection details"
+            onClick={() => setDetailsOpen(true)}
+          >
+            Details
+          </button>
+          <button
+            type="button"
+            className="ky-btn ky-btn--ghost ky-btn--sm"
+            style={{ minHeight: "22px", paddingInline: "5px", fontSize: "0.74rem" }}
+            aria-label="Dismiss status notice"
+            onClick={() => setDismissedBanner(true)}
+          >
+            ×
+          </button>
         </div>
       )}
-      {children(status)}
+
+      {showOfflineOrAuthNotice && detailsOpen && (
+        <div className="ky-modal-backdrop" role="presentation">
+          <div className="ky-modal-dialog">
+            <RecoveryPanel
+              descriptor={recoveryDescriptor}
+              titleText={
+                status.status === "auth-required"
+                  ? "Core session authentication required"
+                  : "Local Core is currently unreachable"
+              }
+              explanationText={
+                status.status === "auth-required"
+                  ? "The local Core answered, but requires an origin-bound session exchange before loading authoritative workspace data."
+                  : "Karyora could not reach the local Go Core on this origin. Workspace chrome remains browsable in offline preview mode while drafts stay protected."
+              }
+              primaryActionLabel={
+                status.status === "auth-required"
+                  ? "Open Core Connection Settings"
+                  : "Retry Core Handshake"
+              }
+              onPrimaryAction={() => {
+                if (status.status === "auth-required" && onOpenConnectionSettings) {
+                  setDetailsOpen(false);
+                  onOpenConnectionSettings();
+                } else {
+                  void runProbe();
+                }
+              }}
+              secondaryActions={
+                <button
+                  type="button"
+                  className="ky-btn ky-btn--secondary ky-btn--sm"
+                  onClick={() => setDetailsOpen(false)}
+                >
+                  Close
+                </button>
+              }
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

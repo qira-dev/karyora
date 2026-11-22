@@ -549,7 +549,67 @@ export function App(): ReactElement {
   ) => {
     const updated = preferencesStore.updatePreferences({ [key]: value });
     setPrefs(updated);
+    try {
+      if (key === "appTheme") {
+        window.localStorage.setItem("karyora:ui:theme", String(value));
+      } else if (key === "locale") {
+        window.localStorage.setItem("karyora:ui:locale", String(value));
+      }
+    } catch {
+      // ignore storage errors in restricted contexts
+    }
   };
+
+  // Restore non-secret saved locale and theme on mount (G-11 safe: zero credentials)
+  useEffect(() => {
+    try {
+      const savedLocale = window.localStorage.getItem("karyora:ui:locale");
+      const savedTheme = window.localStorage.getItem("karyora:ui:theme");
+      const patch: Record<string, unknown> = {};
+      if (savedLocale && savedLocale !== prefs.locale) {
+        patch.locale = savedLocale as SupportedLocale;
+      }
+      if (savedTheme === "dark" || savedTheme === "light" || savedTheme === "system") {
+        patch.appTheme = savedTheme as AppTheme;
+      }
+      if (Object.keys(patch).length > 0) {
+        setPrefs(preferencesStore.updatePreferences(patch));
+      }
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Apply App Theme (dark / light / system) live to documentElement (Screenshots #5, #63)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const applyTheme = () => {
+      const systemDark =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      const resolvedDark =
+        prefs.appTheme === "dark" ||
+        (prefs.appTheme === "system" && systemDark);
+      document.documentElement.classList.toggle("dark", resolvedDark);
+      document.documentElement.dataset.theme = resolvedDark ? "dark" : "light";
+    };
+    applyTheme();
+    if (prefs.appTheme === "system" && typeof window !== "undefined" && window.matchMedia) {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      mq.addEventListener("change", applyTheme);
+      return () => mq.removeEventListener("change", applyTheme);
+    }
+    return undefined;
+  }, [prefs.appTheme]);
+
+  // Apply UI Font Size & Interface Zoom live to documentElement (#5, #65)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const scaledPx = Math.round((prefs.uiFontSizePx * prefs.interfaceZoomPercent) / 100);
+    document.documentElement.style.setProperty("--ui-font-size", `${scaledPx}px`);
+    document.documentElement.style.setProperty("--code-font-size", `${prefs.codeFontSizePx}px`);
+  }, [prefs.uiFontSizePx, prefs.interfaceZoomPercent, prefs.codeFontSizePx]);
 
   useEffect(() => {
     void activateLocale(i18next, prefs.locale);
@@ -1006,7 +1066,13 @@ export function App(): ReactElement {
           }
         >
           {activeSurface === "workspace" ? (
-            <div className="ky-workspace-stage">
+            <div
+              className={
+                activeTask === null
+                  ? "ky-workspace-stage ky-workspace-stage--empty"
+                  : "ky-workspace-stage"
+              }
+            >
               {activeTask === null ? (
                 <GreetingEmptyState
                   onSelectQuickChip={(chip) => setPromptText(chip.promptTemplate)}

@@ -1,15 +1,17 @@
 /**
- * Complete 21-Section Overlay Settings Hub (UIR-8, Screenshots #1–#60, Blueprint §13).
+ * Complete 21-Section Overlay Settings Hub — Calibrated 1:1 to ZCode Screenshots #1–#60.
  *
- * Full-viewport overlay (`Ctrl+,`) mounted above the live (`inert`) 3-region workspace:
- * - Top-left `← Back to app` button + `Escape` close handler
+ * Full-viewport overlay (`Ctrl+,`) mounted above the live (`inert`) workspace:
+ * - Top-left `← Back to app` pill + live `Search settings` filter
  * - 3-Group Left Navigation (`Basics` 7, `Agent capabilities` 9, `Data and statistics` 5 = 21 sections)
- * - Dirty-form navigation guard (`ConfirmDialog`) preventing accidental loss of unsaved edits
+ *   with crisp icons and live 13-locale i18next translations
+ * - Dirty-form navigation guard (`ConfirmDialog`)
  */
 
 import { useEffect, useState, type ReactElement } from "react";
-import { ChromeIcon } from "../components/icons";
-import { Badge, Button, ConfirmDialog } from "../components/primitives";
+import { useTranslation } from "react-i18next";
+import { ChromeIcon, type ChromeIconName } from "../components/icons";
+import { Badge, ConfirmDialog } from "../components/primitives";
 import type { WorkspaceProjectSummary } from "../coreclient";
 import type { ScopedMemorySurfaceProps } from "../domains/memory";
 import type { MarketplacePluginRecord } from "../marketplace";
@@ -51,6 +53,36 @@ import {
   UsageStatsSection,
 } from "./data-governance";
 import { SETTINGS_GROUPS } from "./settingsConfig";
+
+const SECTION_ICON_MAP: Readonly<Record<SettingsSectionId, ChromeIconName>> = {
+  general: "sliders",
+  appearance: "appearance",
+  "model-settings": "model-cube",
+  "browser-use": "browser-globe",
+  "remote-devices": "remote-server",
+  "computer-use": "computer-monitor",
+  "keyboard-shortcuts": "keyboard",
+  personalization: "profile",
+  "behavior-and-tools": "settings",
+  memory: "brain-thinking",
+  subagents: "subagent",
+  plugins: "plugin-marketplace",
+  "mcp-servers": "mcp-plug",
+  skills: "skills",
+  commands: "commands",
+  hooks: "hooks",
+  "data-sync": "database",
+  "usage-stats": "usage-chart",
+  "project-management": "projects",
+  "archive-management": "archive",
+  "shares-and-governance": "shield-security",
+};
+
+const GROUP_I18N_KEY_MAP: Readonly<Record<string, string>> = {
+  basics: "ui.settings.groups.basics",
+  capabilities: "ui.settings.groups.agentCapabilities",
+  "data-governance": "ui.settings.groups.dataAndStatistics",
+};
 
 export interface SettingsOverlayHubProps {
   readonly isOpen: boolean;
@@ -111,7 +143,9 @@ export default function SettingsOverlayHub({
   onNotify,
   onClose,
 }: SettingsOverlayHubProps): ReactElement | null {
+  const { t } = useTranslation();
   const [hasDirtyForm, setHasDirtyForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [pendingNavTarget, setPendingNavTarget] = useState<
     { readonly kind: "close" } | { readonly kind: "section"; readonly id: SettingsSectionId } | null
   >(null);
@@ -149,6 +183,7 @@ export default function SettingsOverlayHub({
 
   const activeMeta =
     SETTINGS_SECTIONS.find((s) => s.id === activeSection) ?? SETTINGS_SECTIONS[0];
+  const normalizedSearch = searchQuery.trim().toLowerCase();
 
   return (
     <>
@@ -161,21 +196,68 @@ export default function SettingsOverlayHub({
       >
         <nav className="ky-settings-nav" aria-label="Settings sections">
           <div className="ky-settings-nav__top">
-            <Button size="sm" variant="ghost" onClick={requestClose} data-testid="settings-back-to-app">
+            <button
+              type="button"
+              className="ky-settings-back-btn"
+              onClick={requestClose}
+              data-testid="settings-back-to-app"
+            >
               <ChromeIcon name="arrow-left" size={14} />
-              <span>Back to app</span>
-            </Button>
-            {hasDirtyForm && <Badge tone="warning" label="Unsaved" />}
+              <span>{t("ui.settings.backToApp", { defaultValue: "Back to app" })}</span>
+              {hasDirtyForm && (
+                <span style={{ marginInlineStart: "auto" }}>
+                  <Badge
+                    tone="warning"
+                    label={t("ui.settings.unsaved", { defaultValue: "Unsaved" })}
+                  />
+                </span>
+              )}
+            </button>
+
+            <div className="ky-settings-search-wrap">
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  insetInlineStart: "10px",
+                  color: "var(--text-muted)",
+                  display: "inline-flex",
+                }}
+              >
+                <ChromeIcon name="search" size={14} />
+              </span>
+              <input
+                type="search"
+                className="ky-settings-search-input"
+                aria-label={t("ui.settings.searchSettings", { defaultValue: "Search settings" })}
+                placeholder={t("ui.settings.searchSettings", { defaultValue: "Search settings" })}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="ky-settings-nav__scroll">
             {SETTINGS_GROUPS.map((group) => {
-              const groupSections = SETTINGS_SECTIONS.filter(
-                (sec) => sec.group === group.id,
-              );
+              const groupSections = SETTINGS_SECTIONS.filter((sec) => {
+                if (sec.group !== group.id) return false;
+                if (!normalizedSearch) return true;
+                const localizedLabel = t(`ui.settings.sections.${sec.id}`, {
+                  defaultValue: sec.label,
+                });
+                return (
+                  localizedLabel.toLowerCase().includes(normalizedSearch) ||
+                  sec.label.toLowerCase().includes(normalizedSearch)
+                );
+              });
+              if (groupSections.length === 0) return null;
               return (
                 <div key={group.id}>
-                  <h4 className="ky-settings-nav__group-title">{group.label}</h4>
+                  <h4 className="ky-settings-nav__group-title">
+                    {t(GROUP_I18N_KEY_MAP[group.id] ?? "ui.settings.groups.basics", {
+                      defaultValue: group.label,
+                    })}
+                  </h4>
                   {groupSections.map((sec) => (
                     <button
                       key={sec.id}
@@ -185,9 +267,11 @@ export default function SettingsOverlayHub({
                       data-active={sec.id === activeSection ? "true" : "false"}
                       onClick={() => requestSection(sec.id)}
                     >
-                      <span>{sec.label}</span>
-                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                        {sec.screenshots}
+                      <ChromeIcon name={SECTION_ICON_MAP[sec.id]} size={16} />
+                      <span>
+                        {t(`ui.settings.sections.${sec.id}`, {
+                          defaultValue: sec.label,
+                        })}
                       </span>
                     </button>
                   ))}
@@ -198,11 +282,12 @@ export default function SettingsOverlayHub({
         </nav>
 
         <main className="ky-settings-main">
-          <div className="ky-settings-content" style={{ marginBottom: "var(--space-4)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
-              <h2 style={{ margin: 0, fontSize: "1.3rem" }}>{activeMeta.label}</h2>
-              <Badge tone="neutral" label={`Reference ${activeMeta.screenshots}`} />
-            </div>
+          <div className="ky-settings-content" style={{ marginBottom: "18px" }}>
+            <h2 className="ky-settings-page-title">
+              {t(`ui.settings.sections.${activeMeta.id}`, {
+                defaultValue: activeMeta.label,
+              })}
+            </h2>
           </div>
 
           {activeSection === "general" ? (
